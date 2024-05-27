@@ -1,0 +1,11 @@
+.{
+    .name = "sgui",
+    .version = "0.0.0",
+
+    .dependencies = .{
+        .wiz = .{
+            .path = "../wiz",
+        },
+    },
+    .paths = .{"."},
+}
