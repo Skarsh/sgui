@@ -1,0 +1,7 @@
+* text=auto
+*.zig text=auto eol=lf
+*.zig.zon text=auto eol=lf
+*.h text=auto eol=lf
+*.c text=auto eol=lf
+*.vert text=auto eol=lf
+*.frag text=auto eol=lf
