@@ -52,8 +52,8 @@ UI_State :: struct {
 	hot_item:    i32,
 	active_item: i32,
 	kbd_item:    i32,
-	key_entered: i32,
-	key_mod:     i32,
+	key_entered: Key,
+	key_mod:     Keymod,
 	last_widget: i32,
 }
 
@@ -77,6 +77,16 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 }
 
 button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
+	// If no widget has keyboard focus, take it
+	if ctx.ui_state.kbd_item == 0 {
+		ctx.ui_state.kbd_item = id
+	}
+
+	// If we have keyboard focus, show it
+	if ctx.ui_state.kbd_item == id {
+		draw_rect(ctx, Rect{rect.x - 6, rect.y - 6, 84, 68}, Color{255, 0, 0, 255})
+	}
+
 	// Check whether the button should be hot
 	if intersect_rect(ctx^, rect) {
 		ctx.ui_state.hot_item = id
@@ -99,6 +109,33 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 		// button is not hot, but may be active
 		draw_rect(ctx, rect, Color{128, 128, 128, 255})
 	}
+
+	// If we have keyboard focus, we'll need to process the keys
+	if ctx.ui_state.kbd_item == id {
+		#partial switch ctx.ui_state.key_entered {
+		case .Tab:
+			// If tab is pressed, lose keyboard focus.
+			// Next widget will grab the focus.
+			ctx.ui_state.kbd_item = 0
+
+			// If shift was also pressed, we want to move focus
+			// to the previous widget instead.
+			if ctx.ui_state.key_mod == KMOD_SHIFT {
+				ctx.ui_state.kbd_item = ctx.ui_state.last_widget
+			}
+
+			// Also clear the key so that next widget
+			// won't process it
+			ctx.ui_state.key_entered = .Unknown
+		case .Return:
+			// Had keyboard focus, received return,
+			// so we'll act as if we were clicked.
+			return true
+		}
+	}
+
+	ctx.ui_state.last_widget = id
+
 
 	// If button is hot and active, but mouse button is not
 	// down, the user must have clicked the button
@@ -178,4 +215,9 @@ end :: proc(ctx: ^Context) {
 			ctx.ui_state.active_item = -1
 		}
 	}
+	// If no widget grabbed tab, clear focus
+	if ctx.ui_state.key_entered == .Tab {
+		ctx.ui_state.kbd_item = 0
+	}
+	ctx.ui_state.key_entered = .Unknown
 }

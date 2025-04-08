@@ -75,6 +75,14 @@ main :: proc() {
 				}
 			case .KEYDOWN:
 				log.info("KeyDown: ", event)
+				// TODO(Thomas): I really think this should all happen in its own
+				// process input or something.
+				key := sdlkey_to_own_key(event.key.keysym.sym)
+				keymod := sdlkeymod_to_own_keymod(event.key.keysym.mod)
+				log.info("key: ", key)
+				log.info("key_mod: ", keymod)
+				// TODO(Thomas): At least it should not be set just like this. Just for testing right now.
+				ctx.ui_state.key_entered = key
 			case .QUIT:
 				running = false
 			}
@@ -132,4 +140,33 @@ main :: proc() {
 		sdl.Delay(10)
 	}
 
+}
+
+// TODO(Thomas): Does this belong in the backend or in the ui input layer?
+sdlkey_to_own_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
+	key := ui.Key.Unknown
+	// TODO(Thomas): Complete more of this switch
+	#partial switch sdl_key {
+	case .TAB:
+		key = ui.Key.Tab
+	case .RETURN:
+		key = ui.Key.Return
+	}
+	return key
+}
+
+// TODO(Thomas): Does this belong in the backend or in the ui input layer?
+sdlkeymod_to_own_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod {
+	log.info("sdl_key_mod: ", sdl_key_mod)
+	key_mod := ui.KMOD_NONE
+
+	if .LSHIFT in sdl_key_mod {
+		key_mod = ui.KMOD_LSHIFT
+	} else if .RSHIFT in sdl_key_mod {
+		key_mod = ui.KMOD_RSHIFT
+	} else if .LSHIFT in sdl_key_mod && .RSHIFT in sdl_key_mod {
+		key_mod = ui.KMOD_SHIFT
+	}
+
+	return key_mod
 }
