@@ -1,0 +1,181 @@
+package ui
+
+import "core:log"
+
+COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
+
+Color :: struct {
+	r, g, b, a: u8,
+}
+
+Rect :: struct {
+	x, y, w, h: i32,
+}
+
+Command :: union {
+	Command_Rect,
+}
+
+Command_Rect :: struct {
+	rect:  Rect,
+	color: Color,
+}
+
+Stack :: struct($T: typeid, $N: int) {
+	idx:   i32,
+	items: [N]T,
+}
+
+push :: #force_inline proc(stk: ^$T/Stack($V, $N), val: V) {
+	assert(stk.idx < len(stk.items))
+	if stk.idx == -1 {
+		stk.idx = 0
+	}
+	stk.items[stk.idx] = val
+	stk.idx += 1
+}
+
+pop :: #force_inline proc(stk: ^$T/Stack($V, $N)) -> (V, bool) {
+	if stk.idx < 0 {
+		return nil, false
+	}
+
+	val := stk.items[stk.idx]
+	stk.idx -= 1
+	return val, true
+}
+
+UI_State :: struct {
+	mouse_x:     i32,
+	mouse_y:     i32,
+	mouse_down:  bool,
+	hot_item:    i32,
+	active_item: i32,
+	kbd_item:    i32,
+	key_entered: i32,
+	key_mod:     i32,
+	last_widget: i32,
+}
+
+intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
+	if ctx.ui_state.mouse_x < rect.x ||
+	   ctx.ui_state.mouse_y < rect.y ||
+	   ctx.ui_state.mouse_x >= rect.x + rect.w ||
+	   ctx.ui_state.mouse_y >= rect.y + rect.h {
+		return false
+	}
+	return true
+}
+
+Context :: struct {
+	command_list: Stack(Command, COMMAND_LIST_SIZE),
+	ui_state:     UI_State,
+}
+
+draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
+	push(&ctx.command_list, Command_Rect{rect, color})
+}
+
+button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
+	// Check whether the button should be hot
+	if intersect_rect(ctx^, rect) {
+		ctx.ui_state.hot_item = id
+		if ctx.ui_state.active_item == 0 && ctx.ui_state.mouse_down {
+			ctx.ui_state.active_item = id
+		}
+	}
+
+	// draw button
+	draw_rect(ctx, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}, Color{0, 0, 0, 255})
+	if ctx.ui_state.hot_item == id {
+		if ctx.ui_state.active_item == id {
+			// Button is both 'hot' and 'active'
+			draw_rect(ctx, Rect{rect.x + 2, rect.y + 2, rect.w, rect.h}, Color{255, 255, 255, 255})
+		} else {
+			// Button is merely 'hot'
+			draw_rect(ctx, rect, Color{255, 255, 255, 255})
+		}
+	} else {
+		// button is not hot, but may be active
+		draw_rect(ctx, rect, Color{128, 128, 128, 255})
+	}
+
+	// If button is hot and active, but mouse button is not
+	// down, the user must have clicked the button
+	if ctx.ui_state.mouse_down == false &&
+	   ctx.ui_state.hot_item == id &&
+	   ctx.ui_state.active_item == id {
+		return true
+	}
+
+	return false
+}
+
+// Simple scroll bar widget
+slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
+	// Calculate mouse cursor's relative y offset
+	start_y: i32 = 16
+	length: i32 = 256
+	y_pos := ((length - start_y) * value^) / max
+
+	// Check for hotness
+	if intersect_rect(ctx^, Rect{x + 8, y + 8, start_y, length - 1}) {
+		ctx.ui_state.hot_item = id
+		if ctx.ui_state.active_item == 0 && ctx.ui_state.mouse_down {
+			ctx.ui_state.active_item = id
+		}
+	}
+
+	// Render the scrollbar
+	scroll_bar_width: i32 = 32
+	draw_rect(ctx, Rect{x, y, scroll_bar_width, length + start_y}, Color{0x77, 0x77, 0x77, 0xff})
+
+	thumb_width: i32 = 16
+	if ctx.ui_state.active_item == id || ctx.ui_state.hot_item == id {
+		draw_rect(
+			ctx,
+			Rect{x + 8, y + 8 + y_pos, thumb_width, thumb_width},
+			Color{0xff, 0xff, 0xff, 0xff},
+		)
+	} else {
+		draw_rect(
+			ctx,
+			Rect{x + 8, y + 8 + y_pos, thumb_width, thumb_width},
+			Color{0xaa, 0xaa, 0xaa, 0xff},
+		)
+
+	}
+
+	// Update widget value
+	if ctx.ui_state.active_item == id {
+		mouse_pos := ctx.ui_state.mouse_y - (y + 8)
+		if mouse_pos < 0 {
+			mouse_pos = 0
+		} else if mouse_pos > 255 {
+			mouse_pos = 255
+		}
+
+		v := (mouse_pos * max) / 255
+		if v != value^ {
+			value^ = v
+			return true
+		}
+	}
+
+	return false
+}
+
+begin :: proc(ctx: ^Context) {
+	ctx.ui_state.hot_item = 0
+	ctx.command_list.idx = -1
+}
+
+end :: proc(ctx: ^Context) {
+	if !ctx.ui_state.mouse_down {
+		ctx.ui_state.active_item = 0
+	} else {
+		if ctx.ui_state.active_item == 0 {
+			ctx.ui_state.active_item = -1
+		}
+	}
+}
