@@ -77,6 +77,15 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 }
 
 button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
+
+	// Check whether the button should be hot
+	if intersect_rect(ctx^, rect) {
+		ctx.ui_state.hot_item = id
+		if ctx.ui_state.active_item == 0 && ctx.ui_state.mouse_down {
+			ctx.ui_state.active_item = id
+		}
+	}
+
 	// If no widget has keyboard focus, take it
 	if ctx.ui_state.kbd_item == 0 {
 		ctx.ui_state.kbd_item = id
@@ -87,13 +96,6 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 		draw_rect(ctx, Rect{rect.x - 6, rect.y - 6, 84, 68}, Color{255, 0, 0, 255})
 	}
 
-	// Check whether the button should be hot
-	if intersect_rect(ctx^, rect) {
-		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && ctx.ui_state.mouse_down {
-			ctx.ui_state.active_item = id
-		}
-	}
 
 	// draw button
 	draw_rect(ctx, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}, Color{0, 0, 0, 255})
@@ -163,6 +165,16 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 		}
 	}
 
+	// If no widget has keyboard focus, take it
+	if ctx.ui_state.kbd_item == 0 {
+		ctx.ui_state.kbd_item = id
+	}
+
+	// If we have keyboard focus, show it
+	if ctx.ui_state.kbd_item == id {
+		draw_rect(ctx, Rect{x - 4, y - 4, 40, 280}, Color{255, 0, 0, 255})
+	}
+
 	// Render the scrollbar
 	scroll_bar_width: i32 = 32
 	draw_rect(ctx, Rect{x, y, scroll_bar_width, length + start_y}, Color{0x77, 0x77, 0x77, 0xff})
@@ -182,6 +194,39 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 		)
 
 	}
+
+	// If we have keyboard focus, we'll need to process the keys
+	if ctx.ui_state.kbd_item == id {
+		#partial switch ctx.ui_state.key_entered {
+		case .Tab:
+			// If tab is pressed, lose keyboard focus
+			// Next widget will grab the focus.
+			ctx.ui_state.kbd_item = 0
+
+			// If shift was also pressed, we want to move focus
+			// to the previous widget instead
+			if ctx.ui_state.key_mod == KMOD_SHIFT {
+				ctx.ui_state.kbd_item = ctx.ui_state.last_widget
+			}
+			// Also clear the key so that next widget
+			// won't process it
+			ctx.ui_state.key_entered = .Unknown
+		case .Up:
+			// Slide value up (if not at zero)
+			if value^ > 0 {
+				value^ -= 1
+				return true
+			}
+		case .Down:
+			// Slide value down (if not at max)
+			if value^ < max {
+				value^ += 1
+				return true
+			}
+		}
+	}
+
+	ctx.ui_state.last_widget = id
 
 	// Update widget value
 	if ctx.ui_state.active_item == id {

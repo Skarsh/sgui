@@ -83,6 +83,7 @@ main :: proc() {
 				log.info("key_mod: ", keymod)
 				// TODO(Thomas): At least it should not be set just like this. Just for testing right now.
 				ctx.ui_state.key_entered = key
+				ctx.ui_state.key_mod = keymod
 			case .QUIT:
 				running = false
 			}
@@ -151,6 +152,10 @@ sdlkey_to_own_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 		key = ui.Key.Tab
 	case .RETURN:
 		key = ui.Key.Return
+	case .UP:
+		key = ui.Key.Up
+	case .DOWN:
+		key = ui.Key.Down
 	}
 	return key
 }
