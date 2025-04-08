@@ -126,5 +126,17 @@ Key :: enum {
 	F10,
 	F11,
 	F12,
+	Prinstscreen,
+	Scrollock,
+	Pause,
+	Insert,
+	Home,
+	Page_Up,
+	End,
+	Page_Down,
+	Right,
+	Left,
+	Down,
+	Up,
 	// Continue here
 }
