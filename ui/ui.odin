@@ -192,7 +192,6 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 			Rect{x + 8, y + 8 + y_pos, thumb_width, thumb_width},
 			Color{0xaa, 0xaa, 0xaa, 0xff},
 		)
-
 	}
 
 	// If we have keyboard focus, we'll need to process the keys
