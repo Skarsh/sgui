@@ -25,7 +25,6 @@ Command_Rect :: struct {
 }
 
 UI_State :: struct {
-	mouse_down:  bool,
 	hot_item:    i32,
 	active_item: i32,
 	kbd_item:    i32,
@@ -55,11 +54,12 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 }
 
 button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
+	left_click := .Left in ctx.input.mouse_down_bits
 
 	// Check whether the button should be hot
 	if intersect_rect(ctx^, rect) {
 		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && ctx.ui_state.mouse_down {
+		if ctx.ui_state.active_item == 0 && left_click {
 			ctx.ui_state.active_item = id
 		}
 	}
@@ -119,9 +119,7 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 
 	// If button is hot and active, but mouse button is not
 	// down, the user must have clicked the button
-	if ctx.ui_state.mouse_down == false &&
-	   ctx.ui_state.hot_item == id &&
-	   ctx.ui_state.active_item == id {
+	if !left_click && ctx.ui_state.hot_item == id && ctx.ui_state.active_item == id {
 		return true
 	}
 
@@ -135,10 +133,12 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	length: i32 = 256
 	y_pos := ((length - start_y) * value^) / max
 
+	left_click := .Left in ctx.input.mouse_down_bits
+
 	// Check for hotness
 	if intersect_rect(ctx^, Rect{x + 8, y + 8, start_y, length - 1}) {
 		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && ctx.ui_state.mouse_down {
+		if ctx.ui_state.active_item == 0 && left_click {
 			ctx.ui_state.active_item = id
 		}
 	}
@@ -230,7 +230,8 @@ begin :: proc(ctx: ^Context) {
 }
 
 end :: proc(ctx: ^Context) {
-	if !ctx.ui_state.mouse_down {
+	left_click := .Left in ctx.input.mouse_down_bits
+	if !left_click {
 		ctx.ui_state.active_item = 0
 	} else {
 		if ctx.ui_state.active_item == 0 {
