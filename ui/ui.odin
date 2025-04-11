@@ -25,8 +25,6 @@ Command_Rect :: struct {
 }
 
 UI_State :: struct {
-	mouse_x:     i32,
-	mouse_y:     i32,
 	mouse_down:  bool,
 	hot_item:    i32,
 	active_item: i32,
@@ -37,10 +35,10 @@ UI_State :: struct {
 }
 
 intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
-	if ctx.ui_state.mouse_x < rect.x ||
-	   ctx.ui_state.mouse_y < rect.y ||
-	   ctx.ui_state.mouse_x >= rect.x + rect.w ||
-	   ctx.ui_state.mouse_y >= rect.y + rect.h {
+	if ctx.input.mouse_pos.x < rect.x ||
+	   ctx.input.mouse_pos.y < rect.y ||
+	   ctx.input.mouse_pos.x >= rect.x + rect.w ||
+	   ctx.input.mouse_pos.y >= rect.y + rect.h {
 		return false
 	}
 	return true
@@ -209,7 +207,7 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 
 	// Update widget value
 	if ctx.ui_state.active_item == id {
-		mouse_pos := ctx.ui_state.mouse_y - (y + 8)
+		mouse_pos := ctx.input.mouse_pos.y - (y + 8)
 		if mouse_pos < 0 {
 			mouse_pos = 0
 		} else if mouse_pos > 255 {
