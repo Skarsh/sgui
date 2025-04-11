@@ -21,30 +21,6 @@ Command_Rect :: struct {
 	color: Color,
 }
 
-Stack :: struct($T: typeid, $N: int) {
-	idx:   i32,
-	items: [N]T,
-}
-
-push :: #force_inline proc(stk: ^$T/Stack($V, $N), val: V) {
-	assert(stk.idx < len(stk.items))
-	if stk.idx == -1 {
-		stk.idx = 0
-	}
-	stk.items[stk.idx] = val
-	stk.idx += 1
-}
-
-pop :: #force_inline proc(stk: ^$T/Stack($V, $N)) -> (V, bool) {
-	if stk.idx < 0 {
-		return nil, false
-	}
-
-	val := stk.items[stk.idx]
-	stk.idx -= 1
-	return val, true
-}
-
 UI_State :: struct {
 	mouse_x:     i32,
 	mouse_y:     i32,
