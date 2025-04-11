@@ -58,29 +58,22 @@ main :: proc() {
 		for sdl.PollEvent(&event) {
 			#partial switch event.type {
 			case .MOUSEMOTION:
-				log.info("MouseMotion: ", event)
 				ctx.ui_state.mouse_x = event.motion.x
 				ctx.ui_state.mouse_y = event.motion.y
 			case .MOUSEBUTTONDOWN:
-				log.info("MouseButtonDown: ", event)
 				ctx.ui_state.mouse_down = true
 			case .MOUSEBUTTONUP:
-				log.info("MouseButtonUp: ", event)
 				ctx.ui_state.mouse_down = false
 			case .KEYUP:
-				log.info("KeyUp: ", event)
 				#partial switch event.key.keysym.sym {
 				case .ESCAPE:
 					running = false
 				}
 			case .KEYDOWN:
-				log.info("KeyDown: ", event)
 				// TODO(Thomas): I really think this should all happen in its own
 				// process input or something.
 				key := sdlkey_to_own_key(event.key.keysym.sym)
 				keymod := sdlkeymod_to_own_keymod(event.key.keysym.mod)
-				log.info("key: ", key)
-				log.info("key_mod: ", keymod)
 				// TODO(Thomas): At least it should not be set just like this. Just for testing right now.
 				ctx.ui_state.key_entered = key
 				ctx.ui_state.key_mod = keymod
@@ -162,7 +155,6 @@ sdlkey_to_own_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 
 // TODO(Thomas): Does this belong in the backend or in the ui input layer?
 sdlkeymod_to_own_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod {
-	log.info("sdl_key_mod: ", sdl_key_mod)
 	key_mod := ui.KMOD_NONE
 
 	if .LSHIFT in sdl_key_mod {
