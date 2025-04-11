@@ -1,6 +1,16 @@
 package ui
 
-KeymodFlag :: enum u16 {
+import sdl "vendor:sdl2"
+
+Mouse :: enum u32 {
+	Left,
+	Right,
+	Middle,
+}
+
+Mouse_Set :: distinct bit_set[Mouse;u32]
+
+Keymod_Flag :: enum u16 {
 	LSHIFT   = 0x0,
 	RSHIFT   = 0x1,
 	LCTRL    = 0x6,
@@ -15,7 +25,7 @@ KeymodFlag :: enum u16 {
 	RESERVED = 0xf,
 }
 
-Keymod :: distinct bit_set[KeymodFlag;u16]
+Keymod :: distinct bit_set[Keymod_Flag;u16]
 
 KMOD_NONE :: Keymod{}
 KMOD_LSHIFT :: Keymod{.LSHIFT}
@@ -37,7 +47,7 @@ KMOD_GUI :: Keymod{.LGUI, .RGUI}
 
 
 // These are taken from SDL3 keycodes https://wiki.libsdl.org/SDL3/SDL_Keycode
-Key :: enum {
+Key :: enum u32 {
 	Unknown,
 	Return,
 	Escape,
@@ -139,4 +149,50 @@ Key :: enum {
 	Down,
 	Up,
 	// Continue here
+}
+
+Key_Set :: distinct bit_set[Key]
+
+Input :: struct {
+	// Mouse
+	mouse_pos:           Vector2i32,
+	last_mouse_pos:      Vector2i32,
+	mouse_delta:         Vector2i32,
+	scroll_delta:        Vector2i32,
+	mouse_down_bits:     Mouse_Set,
+	mouse_pressed_bits:  Mouse_Set,
+	mouse_released_bits: Mouse_Set,
+	// Keys
+	key_down_bits:       Key_Set,
+	key_pressed_bits:    Key_Set,
+}
+
+handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {
+	ctx.input.mouse_pos = Vector2i32{x, y}
+}
+
+handle_mouse_down :: proc(ctx: ^Context, x, y: i32, btn: Mouse) {
+	handle_mouse_move(ctx, x, y)
+	ctx.input.mouse_down_bits += {btn}
+	ctx.input.mouse_pressed_bits += {btn}
+}
+
+handle_scroll :: proc(ctx: ^Context, x, y: i32) {
+	ctx.input.scroll_delta.x += x
+	ctx.input.scroll_delta.y += y
+}
+
+handle_mouse_up :: proc(ctx: ^Context, x, y: i32, btn: Mouse) {
+	handle_mouse_move(ctx, x, y)
+	ctx.input.mouse_down_bits -= {btn}
+	ctx.input.mouse_released_bits += {btn}
+}
+
+handle_key_down :: proc(ctx: ^Context, key: Key) {
+	ctx.input.key_pressed_bits += {key}
+	ctx.input.key_down_bits += {key}
+}
+
+handle_key_up :: proc(ctx: ^Context, key: Key) {
+	ctx.input.key_down_bits += {key}
 }

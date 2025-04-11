@@ -4,6 +4,9 @@ import "core:log"
 
 COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
 
+Vector2i32 :: [2]i32
+
+
 Color :: struct {
 	r, g, b, a: u8,
 }
@@ -46,6 +49,7 @@ intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
 Context :: struct {
 	command_list: Stack(Command, COMMAND_LIST_SIZE),
 	ui_state:     UI_State,
+	input:        Input,
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
@@ -240,4 +244,7 @@ end :: proc(ctx: ^Context) {
 		ctx.ui_state.kbd_item = 0
 	}
 	ctx.ui_state.key_entered = .Unknown
+
+	// clear input
+	ctx.input.key_pressed_bits = {}
 }

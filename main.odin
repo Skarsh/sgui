@@ -58,25 +58,41 @@ main :: proc() {
 		for sdl.PollEvent(&event) {
 			#partial switch event.type {
 			case .MOUSEMOTION:
-				ctx.ui_state.mouse_x = event.motion.x
-				ctx.ui_state.mouse_y = event.motion.y
+				ui.handle_mouse_move(&ctx, event.motion.x, event.motion.y)
 			case .MOUSEBUTTONDOWN:
-				ctx.ui_state.mouse_down = true
+				btn: ui.Mouse
+				switch event.button.button {
+				case sdl.BUTTON_LEFT:
+					btn = .Left
+				case sdl.BUTTON_RIGHT:
+					btn = .Right
+				case sdl.BUTTON_MIDDLE:
+					btn = .Middle
+				}
+				ui.handle_mouse_down(&ctx, event.motion.x, event.motion.y, btn)
 			case .MOUSEBUTTONUP:
-				ctx.ui_state.mouse_down = false
+				btn: ui.Mouse
+				switch event.button.button {
+				case sdl.BUTTON_LEFT:
+					btn = .Left
+				case sdl.BUTTON_RIGHT:
+					btn = .Right
+				case sdl.BUTTON_MIDDLE:
+					btn = .Middle
+				}
+				ui.handle_mouse_up(&ctx, event.motion.x, event.motion.y, btn)
 			case .KEYUP:
+				key := sdl_key_to_ui_key(event.key.keysym.sym)
+				ui.handle_key_down(&ctx, key)
+
 				#partial switch event.key.keysym.sym {
 				case .ESCAPE:
 					running = false
 				}
 			case .KEYDOWN:
-				// TODO(Thomas): I really think this should all happen in its own
-				// process input or something.
-				key := sdlkey_to_own_key(event.key.keysym.sym)
-				keymod := sdlkeymod_to_own_keymod(event.key.keysym.mod)
-				// TODO(Thomas): At least it should not be set just like this. Just for testing right now.
-				ctx.ui_state.key_entered = key
-				ctx.ui_state.key_mod = keymod
+				key := sdl_key_to_ui_key(event.key.keysym.sym)
+				ui.handle_key_down(&ctx, key)
+			// TODO(Thomas): Do the same for the key modifiers
 			case .QUIT:
 				running = false
 			}
@@ -133,14 +149,14 @@ main :: proc() {
 
 		sdl.Delay(10)
 	}
-
 }
 
-// TODO(Thomas): Does this belong in the backend or in the ui input layer?
-sdlkey_to_own_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
+sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 	key := ui.Key.Unknown
 	// TODO(Thomas): Complete more of this switch
 	#partial switch sdl_key {
+	case .ESCAPE:
+		key = ui.Key.Escape
 	case .TAB:
 		key = ui.Key.Tab
 	case .RETURN:
@@ -153,8 +169,7 @@ sdlkey_to_own_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 	return key
 }
 
-// TODO(Thomas): Does this belong in the backend or in the ui input layer?
-sdlkeymod_to_own_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod {
+sdl_keymod_to_own_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod {
 	key_mod := ui.KMOD_NONE
 
 	if .LSHIFT in sdl_key_mod {
