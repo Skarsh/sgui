@@ -27,8 +27,6 @@ UI_State :: struct {
 	hot_item:    i32,
 	active_item: i32,
 	kbd_item:    i32,
-	key_entered: Key,
-	key_mod:     Keymod_Set,
 	last_widget: i32,
 }
 
@@ -90,22 +88,21 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 
 	// If we have keyboard focus, we'll need to process the keys
 	if ctx.ui_state.kbd_item == id {
-		#partial switch ctx.ui_state.key_entered {
-		case .Tab:
+		if .Tab in ctx.input.key_pressed_bits {
 			// If tab is pressed, lose keyboard focus.
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
 
 			// If shift was also pressed, we want to move focus
 			// to the previous widget instead.
-			if ctx.ui_state.key_mod == KMOD_SHIFT {
+			if ctx.input.keymod_down_bits <= KMOD_SHIFT && ctx.input.keymod_down_bits != {} {
 				ctx.ui_state.kbd_item = ctx.ui_state.last_widget
 			}
 
 			// Also clear the key so that next widget
 			// won't process it
-			ctx.ui_state.key_entered = .Unknown
-		case .Return:
+			ctx.input.key_pressed_bits = {}
+		} else if .Return in ctx.input.key_pressed_bits {
 			// Had keyboard focus, received return,
 			// so we'll act as if we were clicked.
 			return true
@@ -172,27 +169,26 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 
 	// If we have keyboard focus, we'll need to process the keys
 	if ctx.ui_state.kbd_item == id {
-		#partial switch ctx.ui_state.key_entered {
-		case .Tab:
+		if .Tab in ctx.input.key_pressed_bits {
 			// If tab is pressed, lose keyboard focus
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
 
 			// If shift was also pressed, we want to move focus
 			// to the previous widget instead
-			if ctx.ui_state.key_mod == KMOD_SHIFT {
+			if ctx.input.keymod_down_bits <= KMOD_SHIFT && ctx.input.keymod_down_bits != {} {
 				ctx.ui_state.kbd_item = ctx.ui_state.last_widget
 			}
 			// Also clear the key so that next widget
 			// won't process it
-			ctx.ui_state.key_entered = .Unknown
-		case .Up:
+			ctx.input.key_pressed_bits = {}
+		} else if .Up in ctx.input.key_pressed_bits {
 			// Slide value up (if not at zero)
 			if value^ > 0 {
 				value^ -= 1
 				return true
 			}
-		case .Down:
+		} else if .Down in ctx.input.key_pressed_bits {
 			// Slide value down (if not at max)
 			if value^ < max {
 				value^ += 1
@@ -237,10 +233,9 @@ end :: proc(ctx: ^Context) {
 		}
 	}
 	// If no widget grabbed tab, clear focus
-	if ctx.ui_state.key_entered == .Tab {
+	if .Tab in ctx.input.key_pressed_bits {
 		ctx.ui_state.kbd_item = 0
 	}
-	ctx.ui_state.key_entered = .Unknown
 
 	// clear input
 	ctx.input.key_pressed_bits = {}
