@@ -49,7 +49,7 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 }
 
 button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
-	left_click := .Left in ctx.input.mouse_down_bits
+	left_click := .Left == get_mouse_down(ctx^)
 
 	// Check whether the button should be hot
 	if intersect_rect(ctx^, rect) {
@@ -86,7 +86,8 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 
 	// If we have keyboard focus, we'll need to process the keys
 	if ctx.ui_state.kbd_item == id {
-		if .Tab in ctx.input.key_pressed_bits {
+		key := get_key_pressed(ctx^)
+		if key == .Tab {
 			// If tab is pressed, lose keyboard focus.
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
@@ -100,7 +101,7 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 			// Also clear the key so that next widget
 			// won't process it
 			ctx.input.key_pressed_bits = {}
-		} else if .Return in ctx.input.key_pressed_bits {
+		} else if key == .Return {
 			// Had keyboard focus, received return,
 			// so we'll act as if we were clicked.
 			return true
@@ -126,7 +127,7 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	length: i32 = 256
 	y_pos := ((length - start_y) * value^) / max
 
-	left_click := .Left in ctx.input.mouse_down_bits
+	left_click := .Left == get_mouse_down(ctx^)
 
 	// Check for hotness
 	if intersect_rect(ctx^, Rect{x + 8, y + 8, start_y, length - 1}) {
@@ -167,7 +168,9 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 
 	// If we have keyboard focus, we'll need to process the keys
 	if ctx.ui_state.kbd_item == id {
-		if .Tab in ctx.input.key_pressed_bits {
+		key := get_key_pressed(ctx^)
+		#partial switch key {
+		case .Tab:
 			// If tab is pressed, lose keyboard focus
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
@@ -180,13 +183,13 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 			// Also clear the key so that next widget
 			// won't process it
 			ctx.input.key_pressed_bits = {}
-		} else if .Up in ctx.input.key_pressed_bits {
+		case .Up:
 			// Slide value up (if not at zero)
 			if value^ > 0 {
 				value^ -= 1
 				return true
 			}
-		} else if .Down in ctx.input.key_pressed_bits {
+		case .Down:
 			// Slide value down (if not at max)
 			if value^ < max {
 				value^ += 1
@@ -222,8 +225,7 @@ begin :: proc(ctx: ^Context) {
 }
 
 end :: proc(ctx: ^Context) {
-	left_click := .Left in ctx.input.mouse_down_bits
-	if !left_click {
+	if .Left != get_mouse_down(ctx^) {
 		ctx.ui_state.active_item = 0
 	} else {
 		if ctx.ui_state.active_item == 0 {
@@ -231,7 +233,8 @@ end :: proc(ctx: ^Context) {
 		}
 	}
 	// If no widget grabbed tab, clear focus
-	if .Tab in ctx.input.key_pressed_bits {
+	key := get_key_pressed(ctx^)
+	if key == .Tab {
 		ctx.ui_state.kbd_item = 0
 	}
 

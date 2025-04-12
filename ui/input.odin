@@ -1,6 +1,7 @@
 package ui
 
 Mouse :: enum u32 {
+	Unknown,
 	Left,
 	Right,
 	Middle,
@@ -214,4 +215,26 @@ handle_key_down :: proc(ctx: ^Context, key: Key) {
 
 handle_key_up :: proc(ctx: ^Context, key: Key) {
 	ctx.input.key_down_bits -= {key}
+}
+
+get_mouse_down :: proc(ctx: Context) -> Mouse {
+	for mouse in ctx.input.mouse_down_bits {
+		return mouse
+	}
+	return .Unknown
+}
+
+get_mouse_pressed :: proc(ctx: Context) -> Mouse {
+	for mouse in ctx.input.mouse_pressed_bits {
+		return mouse
+	}
+	return .Unknown
+}
+
+get_key_pressed :: proc(ctx: Context) -> Key {
+	for key in ctx.input.key_pressed_bits {
+		return key
+	}
+
+	return .Unknown
 }
