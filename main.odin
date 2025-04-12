@@ -46,6 +46,22 @@ main :: proc() {
 	}
 	defer sdl.DestroyRenderer(g_renderer)
 
+	// Load font atlas
+	surface := sdl.LoadBMP("data/font14x24.bmp")
+	if surface == nil {
+		log.error("Failed to load font atlas:", sdl.GetError())
+		return
+	}
+	defer sdl.FreeSurface(surface)
+
+	font_atlas := sdl.CreateTextureFromSurface(g_renderer, surface)
+	if font_atlas == nil {
+		log.error("Failed to create texture:", sdl.GetError())
+		return
+	}
+	defer sdl.DestroyTexture(font_atlas)
+
+
 	ctx := ui.Context{}
 
 	slider_value_1: i32 = 32
@@ -123,7 +139,6 @@ main :: proc() {
 		ui.slider(&ctx, 6, 550, 40, 255, &slider_value_2)
 		ui.slider(&ctx, 7, 600, 40, 255, &slider_value_3)
 
-		// Assuming stk is already defined and filled with items
 		idx := 0
 		for command, ok := ui.pop(&ctx.command_list); ok; command, ok = ui.pop(&ctx.command_list) {
 			commands[idx] = command
@@ -147,6 +162,10 @@ main :: proc() {
 		}
 
 		ui.end(&ctx)
+
+		// Temporary text rendering for experimenting
+		render_text(g_renderer, font_atlas, "Hello Odin!", 50, 250)
+
 		sdl.RenderPresent(g_renderer)
 
 		sdl.Delay(10)
@@ -188,4 +207,21 @@ sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
 	}
 
 	return key_mod
+}
+
+render_text :: proc(renderer: ^sdl.Renderer, font_atlas: ^sdl.Texture, text: string, x, y: i32) {
+	CHAR_WIDTH :: 14
+	CHAR_HEIGHT :: 24
+	src_rect := sdl.Rect{}
+	dst_rect := sdl.Rect{x, y, CHAR_WIDTH, CHAR_HEIGHT}
+
+	for c in text {
+		src_rect.x = 0
+		src_rect.y = (i32(c) - 32) * CHAR_HEIGHT
+		src_rect.w = CHAR_WIDTH
+		src_rect.h = CHAR_HEIGHT
+
+		sdl.RenderCopy(renderer, font_atlas, &src_rect, &dst_rect)
+		dst_rect.x += CHAR_WIDTH
+	}
 }
