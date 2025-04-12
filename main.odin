@@ -83,7 +83,9 @@ main :: proc() {
 				ui.handle_mouse_up(&ctx, event.motion.x, event.motion.y, btn)
 			case .KEYUP:
 				key := sdl_key_to_ui_key(event.key.keysym.sym)
-				ui.handle_key_down(&ctx, key)
+				ui.handle_key_up(&ctx, key)
+				keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+				ui.handle_keymod_up(&ctx, keymod)
 
 				#partial switch event.key.keysym.sym {
 				case .ESCAPE:
@@ -92,7 +94,8 @@ main :: proc() {
 			case .KEYDOWN:
 				key := sdl_key_to_ui_key(event.key.keysym.sym)
 				ui.handle_key_down(&ctx, key)
-			// TODO(Thomas): Do the same for the key modifiers
+				keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+				ui.handle_keymod_up(&ctx, keymod)
 			case .QUIT:
 				running = false
 			}
@@ -165,13 +168,18 @@ sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 		key = ui.Key.Up
 	case .DOWN:
 		key = ui.Key.Down
+	case .LSHIFT:
+		key = ui.Key.Left_Shift
+	case .RSHIFT:
+		key = ui.Key.Right_Shift
 	}
 	return key
 }
 
-sdl_keymod_to_own_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod {
+sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
 	key_mod := ui.KMOD_NONE
 
+	// TODO(Thomas): Do this for the complete set of modifiers
 	if .LSHIFT in sdl_key_mod {
 		key_mod = ui.KMOD_LSHIFT
 	} else if .RSHIFT in sdl_key_mod {

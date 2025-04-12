@@ -25,25 +25,25 @@ Keymod_Flag :: enum u16 {
 	RESERVED = 0xf,
 }
 
-Keymod :: distinct bit_set[Keymod_Flag;u16]
+Keymod_Set :: distinct bit_set[Keymod_Flag;u16]
 
-KMOD_NONE :: Keymod{}
-KMOD_LSHIFT :: Keymod{.LSHIFT}
-KMOD_RSHIFT :: Keymod{.RSHIFT}
-KMOD_LCTRL :: Keymod{.LCTRL}
-KMOD_RCTRL :: Keymod{.RCTRL}
-KMOD_LALT :: Keymod{.LALT}
-KMOD_RALT :: Keymod{.RALT}
-KMOD_LGUI :: Keymod{.LGUI}
-KMOD_RGUI :: Keymod{.RGUI}
-KMOD_NUM :: Keymod{.NUM}
-KMOD_CAPS :: Keymod{.CAPS}
-KMOD_MODE :: Keymod{.MODE}
-KMOD_RESERVED :: Keymod{.RESERVED}
-KMOD_CTRL :: Keymod{.LCTRL, .RCTRL}
-KMOD_SHIFT :: Keymod{.LSHIFT, .RSHIFT}
-KMOD_ALT :: Keymod{.LALT, .RALT}
-KMOD_GUI :: Keymod{.LGUI, .RGUI}
+KMOD_NONE :: Keymod_Set{}
+KMOD_LSHIFT :: Keymod_Set{.LSHIFT}
+KMOD_RSHIFT :: Keymod_Set{.RSHIFT}
+KMOD_LCTRL :: Keymod_Set{.LCTRL}
+KMOD_RCTRL :: Keymod_Set{.RCTRL}
+KMOD_LALT :: Keymod_Set{.LALT}
+KMOD_RALT :: Keymod_Set{.RALT}
+KMOD_LGUI :: Keymod_Set{.LGUI}
+KMOD_RGUI :: Keymod_Set{.RGUI}
+KMOD_NUM :: Keymod_Set{.NUM}
+KMOD_CAPS :: Keymod_Set{.CAPS}
+KMOD_MODE :: Keymod_Set{.MODE}
+KMOD_RESERVED :: Keymod_Set{.RESERVED}
+KMOD_CTRL :: Keymod_Set{.LCTRL, .RCTRL}
+KMOD_SHIFT :: Keymod_Set{.LSHIFT, .RSHIFT}
+KMOD_ALT :: Keymod_Set{.LALT, .RALT}
+KMOD_GUI :: Keymod_Set{.LGUI, .RGUI}
 
 
 // These are taken from SDL3 keycodes https://wiki.libsdl.org/SDL3/SDL_Keycode
@@ -148,9 +148,21 @@ Key :: enum u32 {
 	Left,
 	Down,
 	Up,
+	Left_Ctrl,
+	Left_Shift,
+	Left_Alt,
+	Left_GUI,
+	Right_Ctrl,
+	Right_Shift,
+	Right_Alt,
+	Right_GUI,
 	// Continue here
 }
 
+// TODO(Thomas): This has a limitation of only being able to represent 128 keys, 
+// since 128-bits is the highest number of bits an integer value can have in Odin.
+// If we want to use a bit_set for a more complete Key enumeration, we would have
+// go for another solution (e.g. core:container/bit_array?), but this works for now.
 Key_Set :: distinct bit_set[Key]
 
 Input :: struct {
@@ -165,6 +177,7 @@ Input :: struct {
 	// Keys
 	key_down_bits:       Key_Set,
 	key_pressed_bits:    Key_Set,
+	keymod_down_bits:    Keymod_Set,
 }
 
 handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {
@@ -188,11 +201,19 @@ handle_mouse_up :: proc(ctx: ^Context, x, y: i32, btn: Mouse) {
 	ctx.input.mouse_released_bits += {btn}
 }
 
+handle_keymod_down :: proc(ctx: ^Context, keymod: Keymod_Set) {
+	ctx.input.keymod_down_bits = keymod
+}
+
+handle_keymod_up :: proc(ctx: ^Context, keymod: Keymod_Set) {
+	ctx.input.keymod_down_bits = keymod
+}
+
 handle_key_down :: proc(ctx: ^Context, key: Key) {
 	ctx.input.key_pressed_bits += {key}
 	ctx.input.key_down_bits += {key}
 }
 
 handle_key_up :: proc(ctx: ^Context, key: Key) {
-	ctx.input.key_down_bits += {key}
+	ctx.input.key_down_bits -= {key}
 }

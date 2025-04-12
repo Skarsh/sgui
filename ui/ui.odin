@@ -6,7 +6,6 @@ COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
 
 Vector2i32 :: [2]i32
 
-
 Color :: struct {
 	r, g, b, a: u8,
 }
@@ -29,7 +28,7 @@ UI_State :: struct {
 	active_item: i32,
 	kbd_item:    i32,
 	key_entered: Key,
-	key_mod:     Keymod,
+	key_mod:     Keymod_Set,
 	last_widget: i32,
 }
 
@@ -73,7 +72,6 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 	if ctx.ui_state.kbd_item == id {
 		draw_rect(ctx, Rect{rect.x - 6, rect.y - 6, 84, 68}, Color{255, 0, 0, 255})
 	}
-
 
 	// draw button
 	draw_rect(ctx, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}, Color{0, 0, 0, 255})
