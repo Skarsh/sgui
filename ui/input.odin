@@ -1,7 +1,5 @@
 package ui
 
-import sdl "vendor:sdl2"
-
 Mouse :: enum u32 {
 	Left,
 	Right,

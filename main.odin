@@ -48,7 +48,6 @@ main :: proc() {
 
 	ctx := ui.Context{}
 
-	bg_color: ui.Color
 	slider_value_1: i32 = 32
 	slider_value_2: i32 = 64
 	slider_value_3: i32 = 28

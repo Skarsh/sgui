@@ -93,7 +93,7 @@ test_basic_stack_operations :: proc(t: ^testing.T) {
 
 	{
 		// Peek
-		val, ok := peek(&stack)
+		_, ok := peek(&stack)
 		testing.expect(t, !ok)
 	}
 

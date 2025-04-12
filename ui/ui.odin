@@ -1,7 +1,5 @@
 package ui
 
-import "core:log"
-
 COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
 
 Vector2i32 :: [2]i32
