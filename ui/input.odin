@@ -1,5 +1,7 @@
 package ui
 
+import "core:strings"
+
 Mouse :: enum u32 {
 	Unknown,
 	Left,
@@ -177,6 +179,9 @@ Input :: struct {
 	key_down_bits:       Key_Set,
 	key_pressed_bits:    Key_Set,
 	keymod_down_bits:    Keymod_Set,
+	// Text
+	_text_store:         [MAX_TEXT_STORE]u8,
+	text:                strings.Builder,
 }
 
 handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {
@@ -217,6 +222,13 @@ handle_key_up :: proc(ctx: ^Context, key: Key) {
 	ctx.input.key_down_bits -= {key}
 }
 
+handle_text :: proc(ctx: ^Context, text: string) {
+	strings.write_string(&ctx.input.text, text)
+}
+
+//TODO(Thomas): This is not entirely correct, multiple
+// mouse buttons could be down at the same time.
+// This is just convenience for now, but needs to be changed later.
 get_mouse_down :: proc(ctx: Context) -> Mouse {
 	for mouse in ctx.input.mouse_down_bits {
 		return mouse
@@ -224,6 +236,9 @@ get_mouse_down :: proc(ctx: Context) -> Mouse {
 	return .Unknown
 }
 
+//TODO(Thomas): This is not entirely correct, multiple
+// mouse buttons could be pressed at the same time.
+// This is just convenience for now, but needs to be changed later.
 get_mouse_pressed :: proc(ctx: Context) -> Mouse {
 	for mouse in ctx.input.mouse_pressed_bits {
 		return mouse
@@ -231,6 +246,9 @@ get_mouse_pressed :: proc(ctx: Context) -> Mouse {
 	return .Unknown
 }
 
+//TODO(Thomas): This is not entirely correct, multiple
+// keys could be pressed at the same time.
+// This is just convenience for now, but needs to be changed later.
 get_key_pressed :: proc(ctx: Context) -> Key {
 	for key in ctx.input.key_pressed_bits {
 		return key

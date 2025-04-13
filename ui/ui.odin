@@ -1,6 +1,9 @@
 package ui
 
+import "core:strings"
+
 COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
+MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 
 Vector2i32 :: [2]i32
 
@@ -14,11 +17,17 @@ Rect :: struct {
 
 Command :: union {
 	Command_Rect,
+	Command_Text,
 }
 
 Command_Rect :: struct {
 	rect:  Rect,
 	color: Color,
+}
+
+Command_Text :: struct {
+	x, y: i32,
+	str:  string,
 }
 
 UI_State :: struct {
@@ -44,8 +53,17 @@ Context :: struct {
 	input:        Input,
 }
 
+init :: proc(ctx: ^Context) {
+	ctx^ = {} // zero memory
+	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
+}
+
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 	push(&ctx.command_list, Command_Rect{rect, color})
+}
+
+draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
+	push(&ctx.command_list, Command_Text{x, y, str})
 }
 
 button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
@@ -217,6 +235,51 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	}
 
 	return false
+}
+
+text_field :: proc(ctx: ^Context, id: i32, rect: Rect, str: string) {
+	str_len := len(str)
+	changed := false
+
+	// Check for hotness
+	if intersect_rect(ctx^, rect) {
+		ctx.ui_state.hot_item = id
+		if ctx.ui_state.active_item == 0 && .Left == get_mouse_down(ctx^) {
+			ctx.ui_state.active_item = id
+		}
+	}
+
+	// If no widget has keyboard focus, take it
+	if ctx.ui_state.kbd_item == 0 {
+		ctx.ui_state.kbd_item = id
+	}
+
+	// If we have keyboard focus, show it
+	if ctx.ui_state.kbd_item == id {
+		draw_rect(
+			ctx,
+			Rect{rect.x - 6, rect.y - 6, rect.w + 12, rect.h + 12},
+			Color{255, 0, 0, 255},
+		)
+	}
+
+	// Render the text field
+	if ctx.ui_state.active_item == id || ctx.ui_state.hot_item == id {
+		draw_rect(
+			ctx,
+			Rect{rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8},
+			Color{0xaa, 0xaa, 0xaa, 0xff},
+		)
+	} else {
+		draw_rect(
+			ctx,
+			Rect{rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8},
+			Color{0x77, 0x77, 0x77, 0xff},
+		)
+	}
+
+
+	draw_text(ctx, rect.x, rect.y, str)
 }
 
 begin :: proc(ctx: ^Context) {

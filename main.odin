@@ -1,6 +1,7 @@
 package main
 
 import "core:log"
+import "core:unicode/utf8"
 
 import sdl "vendor:sdl2"
 
@@ -61,8 +62,8 @@ main :: proc() {
 	}
 	defer sdl.DestroyTexture(font_atlas)
 
-
 	ctx := ui.Context{}
+	ui.init(&ctx)
 
 	slider_value_1: i32 = 32
 	slider_value_2: i32 = 64
@@ -111,6 +112,9 @@ main :: proc() {
 				ui.handle_key_down(&ctx, key)
 				keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
 				ui.handle_keymod_up(&ctx, keymod)
+			case .TEXTINPUT:
+				text := string(cstring(&event.text.text[0]))
+				ui.handle_text(&ctx, text)
 			case .QUIT:
 				running = false
 			}
@@ -139,6 +143,14 @@ main :: proc() {
 		ui.slider(&ctx, 6, 550, 40, 255, &slider_value_2)
 		ui.slider(&ctx, 7, 600, 40, 255, &slider_value_3)
 
+		// TODO(Thomas): Transmuting the _text_store like this is EXTREMELY TEMPORARY
+		ui.text_field(
+			&ctx,
+			8,
+			ui.Rect{50, 250, 100, 50},
+			transmute(string)ctx.input._text_store[:],
+		)
+
 		idx := 0
 		for command, ok := ui.pop(&ctx.command_list); ok; command, ok = ui.pop(&ctx.command_list) {
 			commands[idx] = command
@@ -158,13 +170,12 @@ main :: proc() {
 				)
 				sdl.RenderDrawRect(g_renderer, &rect)
 				sdl.RenderFillRect(g_renderer, &rect)
+			case ui.Command_Text:
+				render_text(g_renderer, font_atlas, val.x, val.y, val.str)
 			}
 		}
 
 		ui.end(&ctx)
-
-		// Temporary text rendering for experimenting
-		render_text(g_renderer, font_atlas, "Hello Odin!", 50, 250)
 
 		sdl.RenderPresent(g_renderer)
 
@@ -209,7 +220,7 @@ sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
 	return key_mod
 }
 
-render_text :: proc(renderer: ^sdl.Renderer, font_atlas: ^sdl.Texture, text: string, x, y: i32) {
+render_text :: proc(renderer: ^sdl.Renderer, font_atlas: ^sdl.Texture, x, y: i32, text: string) {
 	CHAR_WIDTH :: 14
 	CHAR_HEIGHT :: 24
 	src_rect := sdl.Rect{}
