@@ -67,7 +67,7 @@ draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
 }
 
 button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
-	left_click := .Left == get_mouse_down(ctx^)
+	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check whether the button should be hot
 	if intersect_rect(ctx^, rect) {
@@ -145,7 +145,7 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	length: i32 = 256
 	y_pos := ((length - start_y) * value^) / max
 
-	left_click := .Left == get_mouse_down(ctx^)
+	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check for hotness
 	if intersect_rect(ctx^, Rect{x + 8, y + 8, start_y, length - 1}) {

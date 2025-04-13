@@ -226,6 +226,22 @@ handle_text :: proc(ctx: ^Context, text: string) {
 	strings.write_string(&ctx.input.text, text)
 }
 
+is_mouse_down :: proc(ctx: Context, mouse: Mouse) -> bool {
+	return mouse in ctx.input.mouse_down_bits
+}
+
+is_mouse_pressed :: proc(ctx: Context, mouse: Mouse) -> bool {
+	return mouse in ctx.input.mouse_pressed_bits
+}
+
+is_key_down :: proc(ctx: Context, key: Key) -> bool {
+	return key in ctx.input.key_down_bits
+}
+
+is_key_pressed :: proc(ctx: Context, key: Key) -> bool {
+	return key in ctx.input.key_pressed_bits
+}
+
 //TODO(Thomas): This is not entirely correct, multiple
 // mouse buttons could be down at the same time.
 // This is just convenience for now, but needs to be changed later.
