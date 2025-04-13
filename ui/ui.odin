@@ -238,9 +238,6 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 }
 
 text_field :: proc(ctx: ^Context, id: i32, rect: Rect, str: string) {
-	str_len := len(str)
-	changed := false
-
 	// Check for hotness
 	if intersect_rect(ctx^, rect) {
 		ctx.ui_state.hot_item = id

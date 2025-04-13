@@ -1,7 +1,6 @@
 package main
 
 import "core:log"
-import "core:unicode/utf8"
 
 import sdl "vendor:sdl2"
 
