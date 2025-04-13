@@ -1,6 +1,8 @@
 package ui
 
+import "core:log"
 import "core:strings"
+import textedit "core:text/edit"
 
 COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
 MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
@@ -56,6 +58,7 @@ Context :: struct {
 init :: proc(ctx: ^Context) {
 	ctx^ = {} // zero memory
 	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
+	ctx.input.textbox_state.builder = &ctx.input.text
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
@@ -237,11 +240,13 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	return false
 }
 
-text_field :: proc(ctx: ^Context, id: i32, rect: Rect, str: string) {
+text_field :: proc(ctx: ^Context, id: i32, rect: Rect, text_buf: []u8, text_len: ^int) {
+	left_click := is_mouse_down(ctx^, .Left)
+
 	// Check for hotness
-	if intersect_rect(ctx^, rect) {
+	if intersect_rect(ctx^, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}) {
 		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && .Left == get_mouse_down(ctx^) {
+		if ctx.ui_state.active_item == 0 && left_click {
 			ctx.ui_state.active_item = id
 		}
 	}
@@ -275,8 +280,42 @@ text_field :: proc(ctx: ^Context, id: i32, rect: Rect, str: string) {
 		)
 	}
 
+	if ctx.ui_state.kbd_item == id {
+		builder := strings.builder_from_bytes(text_buf)
+		non_zero_resize(&builder.buf, text_len^)
+		ctx.input.textbox_state.builder = &builder
 
-	draw_text(ctx, rect.x, rect.y, str)
+		if strings.builder_len(ctx.input.text) > 0 {
+			if textedit.input_text(&ctx.input.textbox_state, strings.to_string(ctx.input.text)) >
+			   0 {
+				text_len^ = strings.builder_len(builder)
+			}
+		}
+
+
+		key := get_key_pressed(ctx^)
+		#partial switch key {
+		case .Tab:
+			// If tab is pressed, lose keyboard focus.
+			// Next widget will grab the focus.
+			ctx.ui_state.kbd_item = 0
+
+			// If shift was also pressed, we want to move focus
+			// to the previous widget instead
+			if ctx.input.keymod_down_bits <= KMOD_SHIFT && ctx.input.keymod_down_bits != {} {
+				ctx.ui_state.kbd_item = ctx.ui_state.last_widget
+			}
+
+		case .Backspace:
+			move: textedit.Translation =
+				textedit.Translation.Word_Left if .Left_Ctrl in ctx.input.key_down_bits else textedit.Translation.Left
+			textedit.delete_to(&ctx.input.textbox_state, move)
+			text_len^ = strings.builder_len(builder)
+		}
+	}
+
+	ctx.input.textbox_state.selection[0] = text_len^
+	draw_text(ctx, rect.x, rect.y, string(text_buf[:text_len^]))
 }
 
 begin :: proc(ctx: ^Context) {
@@ -300,4 +339,5 @@ end :: proc(ctx: ^Context) {
 
 	// clear input
 	ctx.input.key_pressed_bits = {}
+	strings.builder_reset(&ctx.input.text)
 }

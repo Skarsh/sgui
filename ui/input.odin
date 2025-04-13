@@ -1,6 +1,7 @@
 package ui
 
 import "core:strings"
+import textedit "core:text/edit"
 
 Mouse :: enum u32 {
 	Unknown,
@@ -182,6 +183,7 @@ Input :: struct {
 	// Text
 	_text_store:         [MAX_TEXT_STORE]u8,
 	text:                strings.Builder,
+	textbox_state:       textedit.State,
 }
 
 handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {

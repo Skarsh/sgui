@@ -54,6 +54,9 @@ main :: proc() {
 	}
 	defer sdl.FreeSurface(surface)
 
+	// Set color key to make black (0) transparent
+	sdl.SetColorKey(surface, 1, 0)
+
 	font_atlas := sdl.CreateTextureFromSurface(g_renderer, surface)
 	if font_atlas == nil {
 		log.error("Failed to create texture:", sdl.GetError())
@@ -67,6 +70,10 @@ main :: proc() {
 	slider_value_1: i32 = 32
 	slider_value_2: i32 = 64
 	slider_value_3: i32 = 28
+
+	text_buf := make([]u8, 1024)
+	text_len := 0
+
 	for running {
 		// Process input
 		event := sdl.Event{}
@@ -142,13 +149,7 @@ main :: proc() {
 		ui.slider(&ctx, 6, 550, 40, 255, &slider_value_2)
 		ui.slider(&ctx, 7, 600, 40, 255, &slider_value_3)
 
-		// TODO(Thomas): Transmuting the _text_store like this is EXTREMELY TEMPORARY
-		ui.text_field(
-			&ctx,
-			8,
-			ui.Rect{50, 250, 100, 50},
-			transmute(string)ctx.input._text_store[:],
-		)
+		ui.text_field(&ctx, 8, ui.Rect{50, 400, 500, 24}, text_buf, &text_len)
 
 		idx := 0
 		for command, ok := ui.pop(&ctx.command_list); ok; command, ok = ui.pop(&ctx.command_list) {
@@ -200,6 +201,8 @@ sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 		key = ui.Key.Left_Shift
 	case .RSHIFT:
 		key = ui.Key.Right_Shift
+	case .BACKSPACE:
+		key = ui.Key.Backspace
 	}
 	return key
 }
@@ -222,6 +225,7 @@ sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
 render_text :: proc(renderer: ^sdl.Renderer, font_atlas: ^sdl.Texture, x, y: i32, text: string) {
 	CHAR_WIDTH :: 14
 	CHAR_HEIGHT :: 24
+
 	src_rect := sdl.Rect{}
 	dst_rect := sdl.Rect{x, y, CHAR_WIDTH, CHAR_HEIGHT}
 
