@@ -240,7 +240,7 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	return false
 }
 
-text_field :: proc(ctx: ^Context, id: i32, rect: Rect, text_buf: []u8, text_len: ^int) {
+text_field :: proc(ctx: ^Context, id: i32, rect: Rect, text_buf: []u8, text_len: ^int) -> bool {
 	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check for hotness
@@ -306,6 +306,10 @@ text_field :: proc(ctx: ^Context, id: i32, rect: Rect, text_buf: []u8, text_len:
 				ctx.ui_state.kbd_item = ctx.ui_state.last_widget
 			}
 
+			// Also clear the key so that next widget
+			// won't process it
+			ctx.input.key_pressed_bits = {}
+
 		case .Backspace:
 			move: textedit.Translation =
 				textedit.Translation.Word_Left if .Left_Ctrl in ctx.input.key_down_bits else textedit.Translation.Left
@@ -316,6 +320,10 @@ text_field :: proc(ctx: ^Context, id: i32, rect: Rect, text_buf: []u8, text_len:
 
 	ctx.input.textbox_state.selection[0] = text_len^
 	draw_text(ctx, rect.x, rect.y, string(text_buf[:text_len^]))
+
+	ctx.ui_state.last_widget = id
+
+	return true
 }
 
 begin :: proc(ctx: ^Context) {
