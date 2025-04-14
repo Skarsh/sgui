@@ -1,6 +1,5 @@
 package ui
 
-import "core:log"
 import "core:strings"
 import textedit "core:text/edit"
 
