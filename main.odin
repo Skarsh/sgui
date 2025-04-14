@@ -67,9 +67,9 @@ main :: proc() {
 	ctx := ui.Context{}
 	ui.init(&ctx)
 
-	slider_value_1: i32 = 32
-	slider_value_2: i32 = 64
-	slider_value_3: i32 = 28
+	slider_value_1: i32 = i32(ctx.style.colors[.Window_BG].r)
+	slider_value_2: i32 = i32(ctx.style.colors[.Window_BG].g)
+	slider_value_3: i32 = i32(ctx.style.colors[.Window_BG].b)
 
 	text_buf := make([]u8, 1024)
 	text_len := 0

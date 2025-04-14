@@ -8,7 +8,24 @@ MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 CHAR_WIDTH :: #config(SUI_CHAR_WIDTH, 14)
 CHAR_HEIGHT :: #config(SUI_CHAR_HEIGHT, 24)
 
+
 Vector2i32 :: [2]i32
+
+Color_Type :: enum u32 {
+	Text,
+	Selection_BG,
+	Window_BG,
+	Button,
+	Button_Hot,
+	Button_Active,
+	Button_Shadow,
+	Base,
+	Base_Hot,
+	Base_Active,
+	Scroll_Base,
+	Scroll_Thumb,
+	Scroll_Thumb_Hot,
+}
 
 Color :: struct {
 	r, g, b, a: u8,
@@ -40,14 +57,42 @@ UI_State :: struct {
 	last_widget: u64,
 }
 
+Style :: struct {
+	scrollbar_size:    i32,
+	scroll_thumb_size: i32,
+	colors:            [Color_Type]Color,
+}
+
 Context :: struct {
 	command_list: Stack(Command, COMMAND_LIST_SIZE),
 	ui_state:     UI_State,
+	style:        Style,
 	input:        Input,
+}
+
+default_style := Style {
+	scrollbar_size = 12,
+	scroll_thumb_size = 8,
+	colors = {
+		.Text = {230, 230, 230, 255},
+		.Selection_BG = {90, 90, 90, 255},
+		.Window_BG = {50, 50, 50, 255},
+		.Button = {75, 75, 75, 255},
+		.Button_Hot = {95, 95, 95, 255},
+		.Button_Active = {115, 115, 115, 255},
+		.Button_Shadow = {0, 0, 0, 255},
+		.Base = {30, 30, 30, 255},
+		.Base_Hot = {35, 35, 35, 255},
+		.Base_Active = {40, 40, 40, 255},
+		.Scroll_Base = {43, 43, 43, 255},
+		.Scroll_Thumb = {30, 30, 30, 255},
+		.Scroll_Thumb_Hot = {95, 95, 95, 255},
+	},
 }
 
 init :: proc(ctx: ^Context) {
 	ctx^ = {} // zero memory
+	ctx.style = default_style
 	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
 	ctx.input.textbox_state.builder = &ctx.input.text
 }
@@ -79,22 +124,33 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 
 	// If we have keyboard focus, show it
 	if ctx.ui_state.kbd_item == id {
-		draw_rect(ctx, Rect{rect.x - 6, rect.y - 6, 84, 68}, Color{255, 0, 0, 255})
+		draw_rect(ctx, Rect{rect.x - 6, rect.y - 6, 84, 68}, ctx.style.colors[.Selection_BG])
 	}
 
 	// draw button
-	draw_rect(ctx, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}, Color{0, 0, 0, 255})
+	draw_rect(ctx, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}, ctx.style.colors[.Button_Shadow])
 	if ctx.ui_state.hot_item == id {
 		if ctx.ui_state.active_item == id {
 			// Button is both 'hot' and 'active'
-			draw_rect(ctx, Rect{rect.x + 2, rect.y + 2, rect.w, rect.h}, Color{255, 255, 255, 255})
+			draw_rect(
+				ctx,
+				Rect{rect.x + 2, rect.y + 2, rect.w, rect.h},
+				ctx.style.colors[.Button_Active],
+			)
 		} else {
 			// Button is merely 'hot'
-			draw_rect(ctx, rect, Color{255, 255, 255, 255})
+			draw_rect(ctx, rect, ctx.style.colors[.Button_Hot])
 		}
 	} else {
-		// button is not hot, but may be active
-		draw_rect(ctx, rect, Color{128, 128, 128, 255})
+		if ctx.ui_state.active_item == id {
+			draw_rect(
+				ctx,
+				Rect{rect.x + 2, rect.y + 2, rect.w, rect.h},
+				ctx.style.colors[.Button_Active],
+			)
+		} else {
+			draw_rect(ctx, rect, ctx.style.colors[.Button])
+		}
 	}
 
 	// If we have keyboard focus, we'll need to process the keys
@@ -159,25 +215,25 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 
 	// If we have keyboard focus, show it
 	if ctx.ui_state.kbd_item == id {
-		draw_rect(ctx, Rect{x - 4, y - 4, 40, 280}, Color{255, 0, 0, 255})
+		draw_rect(ctx, Rect{x - 4, y - 4, 40, 280}, ctx.style.colors[.Selection_BG])
 	}
 
 	// Render the scrollbar
 	scroll_bar_width: i32 = 32
-	draw_rect(ctx, Rect{x, y, scroll_bar_width, length + start_y}, Color{0x77, 0x77, 0x77, 0xff})
+	draw_rect(ctx, Rect{x, y, scroll_bar_width, length + start_y}, ctx.style.colors[.Scroll_Base])
 
 	thumb_width: i32 = 16
 	if ctx.ui_state.active_item == id || ctx.ui_state.hot_item == id {
 		draw_rect(
 			ctx,
 			Rect{x + 8, y + 8 + y_pos, thumb_width, thumb_width},
-			Color{0xff, 0xff, 0xff, 0xff},
+			ctx.style.colors[.Scroll_Thumb_Hot],
 		)
 	} else {
 		draw_rect(
 			ctx,
 			Rect{x + 8, y + 8 + y_pos, thumb_width, thumb_width},
-			Color{0xaa, 0xaa, 0xaa, 0xff},
+			ctx.style.colors[.Scroll_Thumb],
 		)
 	}
 
@@ -262,7 +318,7 @@ text_field :: proc(
 		draw_rect(
 			ctx,
 			Rect{rect.x - 6, rect.y - 6, rect.w + 12, rect.h + 12},
-			Color{255, 0, 0, 255},
+			ctx.style.colors[.Selection_BG],
 		)
 	}
 
@@ -271,13 +327,13 @@ text_field :: proc(
 		draw_rect(
 			ctx,
 			Rect{rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8},
-			Color{0xaa, 0xaa, 0xaa, 0xff},
+			ctx.style.colors[.Base_Hot],
 		)
 	} else {
 		draw_rect(
 			ctx,
 			Rect{rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8},
-			Color{0x77, 0x77, 0x77, 0xff},
+			ctx.style.colors[.Base],
 		)
 	}
 
