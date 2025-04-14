@@ -40,16 +40,6 @@ UI_State :: struct {
 	last_widget: u64,
 }
 
-intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
-	if ctx.input.mouse_pos.x < rect.x ||
-	   ctx.input.mouse_pos.y < rect.y ||
-	   ctx.input.mouse_pos.x >= rect.x + rect.w ||
-	   ctx.input.mouse_pos.y >= rect.y + rect.h {
-		return false
-	}
-	return true
-}
-
 Context :: struct {
 	command_list: Stack(Command, COMMAND_LIST_SIZE),
 	ui_state:     UI_State,
