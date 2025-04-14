@@ -171,7 +171,15 @@ main :: proc() {
 				sdl.RenderDrawRect(g_renderer, &rect)
 				sdl.RenderFillRect(g_renderer, &rect)
 			case ui.Command_Text:
-				render_text(g_renderer, font_atlas, val.x, val.y, val.str)
+				render_text(
+					g_renderer,
+					font_atlas,
+					val.x,
+					val.y,
+					ui.CHAR_WIDTH,
+					ui.CHAR_HEIGHT,
+					val.str,
+				)
 			}
 		}
 
@@ -222,20 +230,25 @@ sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
 	return key_mod
 }
 
-render_text :: proc(renderer: ^sdl.Renderer, font_atlas: ^sdl.Texture, x, y: i32, text: string) {
-	CHAR_WIDTH :: 14
-	CHAR_HEIGHT :: 24
+render_text :: proc(
+	renderer: ^sdl.Renderer,
+	font_atlas: ^sdl.Texture,
+	x, y: i32,
+	char_width: i32,
+	char_height: i32,
+	text: string,
+) {
 
 	src_rect := sdl.Rect{}
-	dst_rect := sdl.Rect{x, y, CHAR_WIDTH, CHAR_HEIGHT}
+	dst_rect := sdl.Rect{x, y, char_width, char_height}
 
 	for c in text {
 		src_rect.x = 0
-		src_rect.y = (i32(c) - 32) * CHAR_HEIGHT
-		src_rect.w = CHAR_WIDTH
-		src_rect.h = CHAR_HEIGHT
+		src_rect.y = (i32(c) - 32) * char_height
+		src_rect.w = char_width
+		src_rect.h = char_height
 
 		sdl.RenderCopy(renderer, font_atlas, &src_rect, &dst_rect)
-		dst_rect.x += CHAR_WIDTH
+		dst_rect.x += char_width
 	}
 }

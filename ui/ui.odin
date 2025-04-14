@@ -6,6 +6,8 @@ import textedit "core:text/edit"
 
 COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
 MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
+CHAR_WIDTH :: #config(SUI_CHAR_WIDTH, 14)
+CHAR_HEIGHT :: #config(SUI_CHAR_HEIGHT, 24)
 
 Vector2i32 :: [2]i32
 
