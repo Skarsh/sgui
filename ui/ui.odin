@@ -35,10 +35,17 @@ Command_Text :: struct {
 }
 
 UI_State :: struct {
-	hot_item:    i32,
-	active_item: i32,
-	kbd_item:    i32,
-	last_widget: i32,
+	hot_item:    u64,
+	active_item: u64,
+	kbd_item:    u64,
+	last_widget: u64,
+}
+
+Widget :: struct {
+	key: Widget_Key,
+}
+
+Widget_Key :: struct {
 }
 
 intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
@@ -71,7 +78,8 @@ draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
 	push(&ctx.command_list, Command_Text{x, y, str})
 }
 
-button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
+button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
+	id := hash_key(id_key)
 	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check whether the button should be hot
@@ -144,7 +152,9 @@ button :: proc(ctx: ^Context, id: i32, rect: Rect) -> bool {
 }
 
 // Simple scroll bar widget
-slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
+slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bool {
+	id := hash_key(id_key)
+
 	// Calculate mouse cursor's relative y offset
 	start_y: i32 = 16
 	length: i32 = 256
@@ -242,7 +252,14 @@ slider :: proc(ctx: ^Context, id, x, y, max: i32, value: ^i32) -> bool {
 	return false
 }
 
-text_field :: proc(ctx: ^Context, id: i32, rect: Rect, text_buf: []u8, text_len: ^int) -> bool {
+text_field :: proc(
+	ctx: ^Context,
+	id_key: string,
+	rect: Rect,
+	text_buf: []u8,
+	text_len: ^int,
+) -> bool {
+	id := hash_key(id_key)
 	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check for hotness
@@ -338,7 +355,11 @@ end :: proc(ctx: ^Context) {
 		ctx.ui_state.active_item = 0
 	} else {
 		if ctx.ui_state.active_item == 0 {
-			ctx.ui_state.active_item = -1
+			// TODO(Thomas): This has to change but still keep the original effect
+			// This will only work because its very unlikely that we get hashes that will
+			// result into 1337 here, but we're not guaranteed.
+			//ctx.ui_state.active_item = -1
+			ctx.ui_state.active_item = 1337
 		}
 	}
 	// If no widget grabbed tab, clear focus

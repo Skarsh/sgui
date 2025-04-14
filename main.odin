@@ -141,15 +141,15 @@ main :: proc() {
 		commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
 
 		ui.begin(&ctx)
-		ui.button(&ctx, 2, ui.Rect{50, 50, 64, 48})
-		ui.button(&ctx, 3, ui.Rect{150, 50, 64, 48})
-		ui.button(&ctx, 4, ui.Rect{50, 150, 64, 48})
+		ui.button(&ctx, "one", ui.Rect{50, 50, 64, 48})
+		ui.button(&ctx, "two", ui.Rect{150, 50, 64, 48})
+		ui.button(&ctx, "three", ui.Rect{50, 150, 64, 48})
 
-		ui.slider(&ctx, 5, 500, 40, 255, &slider_value_1)
-		ui.slider(&ctx, 6, 550, 40, 255, &slider_value_2)
-		ui.slider(&ctx, 7, 600, 40, 255, &slider_value_3)
+		ui.slider(&ctx, "red", 500, 40, 255, &slider_value_1)
+		ui.slider(&ctx, "green", 550, 40, 255, &slider_value_2)
+		ui.slider(&ctx, "blue", 600, 40, 255, &slider_value_3)
 
-		ui.text_field(&ctx, 8, ui.Rect{50, 400, 500, 24}, text_buf, &text_len)
+		ui.text_field(&ctx, "texty", ui.Rect{50, 400, 500, 24}, text_buf, &text_len)
 
 		idx := 0
 		for command, ok := ui.pop(&ctx.command_list); ok; command, ok = ui.pop(&ctx.command_list) {
