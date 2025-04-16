@@ -183,6 +183,7 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 	// If button is hot and active, but mouse button is not
 	// down, the user must have clicked the button
 	if !left_click && ctx.ui_state.hot_item == id && ctx.ui_state.active_item == id {
+		ctx.ui_state.kbd_item = id
 		return true
 	}
 
@@ -267,6 +268,13 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 				return true
 			}
 		}
+	}
+
+	// If widget is hot and active, but mouse button is not 
+	// down, the user must have clicked the widget; give it
+	// keyboard focus
+	if left_click && ctx.ui_state.hot_item == id && ctx.ui_state.active_item == id {
+		ctx.ui_state.kbd_item = id
 	}
 
 	ctx.ui_state.last_widget = id
@@ -377,6 +385,15 @@ text_field :: proc(
 
 	ctx.input.textbox_state.selection[0] = text_len^
 	draw_text(ctx, rect.x, rect.y, string(text_buf[:text_len^]))
+
+	// If widget is hot and active, but mouse button is not 
+	// down, the user must have clicked the widget; give it
+	// keyboard focus
+	if is_mouse_down(ctx^, .Left) &&
+	   ctx.ui_state.hot_item == id &&
+	   ctx.ui_state.active_item == id {
+		ctx.ui_state.kbd_item = id
+	}
 
 	ctx.ui_state.last_widget = id
 
