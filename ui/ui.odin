@@ -155,8 +155,7 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 
 	// If we have keyboard focus, we'll need to process the keys
 	if ctx.ui_state.kbd_item == id {
-		key := get_key_pressed(ctx^)
-		if key == .Tab {
+		if is_key_pressed(ctx^, .Tab) {
 			// If tab is pressed, lose keyboard focus.
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
@@ -170,7 +169,7 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 			// Also clear the key so that next widget
 			// won't process it
 			ctx.input.key_pressed_bits = {}
-		} else if key == .Return {
+		} else if is_key_pressed(ctx^, .Return) {
 			// Had keyboard focus, received return,
 			// so we'll act as if we were clicked.
 			return true
@@ -240,9 +239,7 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 
 	// If we have keyboard focus, we'll need to process the keys
 	if ctx.ui_state.kbd_item == id {
-		key := get_key_pressed(ctx^)
-		#partial switch key {
-		case .Tab:
+		if is_key_pressed(ctx^, .Tab) {
 			// If tab is pressed, lose keyboard focus
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
@@ -255,13 +252,14 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 			// Also clear the key so that next widget
 			// won't process it
 			ctx.input.key_pressed_bits = {}
-		case .Up:
+
+		} else if is_key_pressed(ctx^, .Up) {
 			// Slide value up (if not at zero)
 			if value^ > 0 {
 				value^ -= 1
 				return true
 			}
-		case .Down:
+		} else if is_key_pressed(ctx^, .Down) {
 			// Slide value down (if not at max)
 			if value^ < max {
 				value^ += 1
@@ -357,10 +355,7 @@ text_field :: proc(
 			}
 		}
 
-
-		key := get_key_pressed(ctx^)
-		#partial switch key {
-		case .Tab:
+		if is_key_pressed(ctx^, .Tab) {
 			// If tab is pressed, lose keyboard focus.
 			// Next widget will grab the focus.
 			ctx.ui_state.kbd_item = 0
@@ -374,12 +369,12 @@ text_field :: proc(
 			// Also clear the key so that next widget
 			// won't process it
 			ctx.input.key_pressed_bits = {}
-
-		case .Backspace:
+		} else if is_key_pressed(ctx^, .Backspace) {
 			move: textedit.Translation =
 				textedit.Translation.Word_Left if .Left_Ctrl in ctx.input.key_down_bits else textedit.Translation.Left
 			textedit.delete_to(&ctx.input.textbox_state, move)
 			text_len^ = strings.builder_len(builder)
+
 		}
 	}
 
@@ -406,7 +401,8 @@ begin :: proc(ctx: ^Context) {
 }
 
 end :: proc(ctx: ^Context) {
-	if .Left != get_mouse_down(ctx^) {
+
+	if !is_mouse_down(ctx^, .Left) {
 		ctx.ui_state.active_item = 0
 	} else {
 		if ctx.ui_state.active_item == 0 {
@@ -417,13 +413,10 @@ end :: proc(ctx: ^Context) {
 			ctx.ui_state.active_item = 1337
 		}
 	}
-	// If no widget grabbed tab, clear focus
-	key := get_key_pressed(ctx^)
-	if key == .Tab {
+
+	if is_key_pressed(ctx^, .Tab) {
 		ctx.ui_state.kbd_item = 0
 	}
 
-	// clear input
-	ctx.input.key_pressed_bits = {}
-	strings.builder_reset(&ctx.input.text)
+	clear_input(ctx)
 }

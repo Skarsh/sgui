@@ -244,33 +244,8 @@ is_key_pressed :: proc(ctx: Context, key: Key) -> bool {
 	return key in ctx.input.key_pressed_bits
 }
 
-//TODO(Thomas): This is not entirely correct, multiple
-// mouse buttons could be down at the same time.
-// This is just convenience for now, but needs to be changed later.
-get_mouse_down :: proc(ctx: Context) -> Mouse {
-	for mouse in ctx.input.mouse_down_bits {
-		return mouse
-	}
-	return .Unknown
-}
-
-//TODO(Thomas): This is not entirely correct, multiple
-// mouse buttons could be pressed at the same time.
-// This is just convenience for now, but needs to be changed later.
-get_mouse_pressed :: proc(ctx: Context) -> Mouse {
-	for mouse in ctx.input.mouse_pressed_bits {
-		return mouse
-	}
-	return .Unknown
-}
-
-//TODO(Thomas): This is not entirely correct, multiple
-// keys could be pressed at the same time.
-// This is just convenience for now, but needs to be changed later.
-get_key_pressed :: proc(ctx: Context) -> Key {
-	for key in ctx.input.key_pressed_bits {
-		return key
-	}
-
-	return .Unknown
+clear_input :: proc(ctx: ^Context) {
+	ctx.input.key_pressed_bits = {}
+	ctx.input.mouse_pressed_bits = {}
+	strings.builder_reset(&ctx.input.text)
 }
