@@ -54,8 +54,6 @@ Widget :: struct {
 	flags:                 Widget_Flag_Set,
 	string:                string,
 	semantic_size:         [Axis2_Size]Size,
-	child_layout_axis:     Axis2,
-
 
 	// recomputed every frame
 	computed_rel_position: [Axis2_Size]f32,
@@ -73,6 +71,7 @@ widget_make :: proc(
 	ctx: ^Context,
 	key_id: string,
 	flags: Widget_Flag_Set = {},
+	semantic_size: [Axis2_Size]Size = [Axis2_Size]Size{},
 ) -> (
 	^Widget,
 	bool,
@@ -82,6 +81,7 @@ widget_make :: proc(
 		log.error("failed to allocated widget")
 		return nil, false
 	}
+
 
 	// Set parent
 	widget.parent = ctx.current_parent
@@ -97,6 +97,9 @@ widget_make :: proc(
 			widget.parent.last = widget
 		}
 	}
+
+	widget.flags = flags
+	widget.semantic_size = semantic_size
 
 	return widget, true
 }
@@ -127,6 +130,29 @@ pop_parent :: proc(ctx: ^Context) -> (^Widget, bool) {
 	ctx.current_parent = parent_from_stack
 
 	return popped_parent, true
+}
+
+render_widget :: proc(ctx: ^Context, widget: ^Widget) {
+	draw_rect(ctx, widget.rect, ctx.style.colors[.Button])
+}
+
+button_new :: proc(ctx: ^Context, id_key: string) -> bool {
+	flags: Widget_Flag_Set = {
+		.Clickable,
+		.Draw_Border,
+		.Draw_Text,
+		.Draw_Background,
+		.Hot_Animation,
+		.Active_Animation,
+	}
+	semantic_size: [Axis2_Size]Size = {Size{kind = .Pixels}, Size{kind = .Pixels}}
+	widget, ok := widget_make(ctx, id_key, flags, semantic_size)
+
+	widget.rect = Rect{50, 50, 64, 48}
+
+	render_widget(ctx, widget)
+
+	return false
 }
 
 @(test)

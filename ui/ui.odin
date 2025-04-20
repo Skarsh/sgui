@@ -403,7 +403,13 @@ text_field :: proc(
 	return true
 }
 
+
 begin :: proc(ctx: ^Context) {
+	ctx.ui_state.hot_item = ui_key_null()
+	ctx.command_list.idx = -1
+}
+
+begin_new :: proc(ctx: ^Context) {
 	ctx.ui_state.hot_item = ui_key_null()
 	ctx.command_list.idx = -1
 }
@@ -427,6 +433,11 @@ end :: proc(ctx: ^Context) {
 	if is_key_pressed(ctx^, .Tab) {
 		ctx.ui_state.kbd_item = ui_key_null()
 	}
+
+	clear_input(ctx)
+}
+
+end_new :: proc(ctx: ^Context) {
 
 	clear_input(ctx)
 }

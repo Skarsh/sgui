@@ -90,6 +90,7 @@ main :: proc() {
 		sdl.RenderClear(g_renderer)
 
 		build_and_render_ui(&app_state)
+		//build_and_render_ui_new(&app_state)
 
 		sdl.RenderPresent(g_renderer)
 
@@ -172,9 +173,6 @@ App_State :: struct {
 
 build_and_render_ui :: proc(app_state: ^App_State) {
 
-	// 2. Declare ui
-	commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
-
 	ui.begin(&app_state.ctx)
 	ui.button(&app_state.ctx, "one", ui.Rect{50, 50, 64, 48})
 	ui.button(&app_state.ctx, "two", ui.Rect{150, 50, 64, 48})
@@ -191,6 +189,15 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 		app_state.text_buf,
 		&app_state.text_len,
 	)
+
+	render_draw_commands(app_state)
+
+	ui.end(&app_state.ctx)
+}
+
+render_draw_commands :: proc(app_state: ^App_State) {
+
+	commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
 
 	idx := 0
 	for command, ok := ui.pop(&app_state.ctx.command_list);
@@ -219,8 +226,19 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 			)
 		}
 	}
+}
 
-	ui.end(&app_state.ctx)
+build_and_render_ui_new :: proc(app_state: ^App_State) {
+
+	commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
+
+	ui.begin_new(&app_state.ctx)
+
+	ui.button_new(&app_state.ctx, "new button")
+
+	render_draw_commands(app_state)
+
+	ui.end_new(&app_state.ctx)
 }
 
 process_input :: proc(app_state: ^App_State) {
