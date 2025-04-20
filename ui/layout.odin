@@ -45,7 +45,17 @@ Widget :: struct {
 	next:                  ^Widget,
 	prev:                  ^Widget,
 	parent:                ^Widget,
+
+	// Key and frame info
+	key:                   UI_Key,
+	last_frame_touched:    u64,
+
+	// Per-frame builder info
+	flags:                 Widget_Flag_Set,
+	string:                string,
 	semantic_size:         [Axis2_Size]Size,
+	child_layout_axis:     Axis2,
+
 
 	// recomputed every frame
 	computed_rel_position: [Axis2_Size]f32,
@@ -53,9 +63,20 @@ Widget :: struct {
 	// NOTE(Thomas): Not entirely sure about this rect
 	// and how it should be represented.
 	rect:                  Rect,
+
+	// Persistent animation data
+	hot:                   f32,
+	active:                f32,
 }
 
-widget_make :: proc(ctx: ^Context, key_id: string) -> (^Widget, bool) {
+widget_make :: proc(
+	ctx: ^Context,
+	key_id: string,
+	flags: Widget_Flag_Set = {},
+) -> (
+	^Widget,
+	bool,
+) {
 	widget, err := new(Widget)
 	if err != nil {
 		log.error("failed to allocated widget")
