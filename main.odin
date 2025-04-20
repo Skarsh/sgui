@@ -230,8 +230,6 @@ render_draw_commands :: proc(app_state: ^App_State) {
 
 build_and_render_ui_new :: proc(app_state: ^App_State) {
 
-	commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
-
 	ui.begin_new(&app_state.ctx)
 
 	ui.button_new(&app_state.ctx, "new button")

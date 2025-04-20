@@ -146,7 +146,7 @@ button_new :: proc(ctx: ^Context, id_key: string) -> bool {
 		.Active_Animation,
 	}
 	semantic_size: [Axis2_Size]Size = {Size{kind = .Pixels}, Size{kind = .Pixels}}
-	widget, ok := widget_make(ctx, id_key, flags, semantic_size)
+	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
 
 	widget.rect = Rect{50, 50, 64, 48}
 
