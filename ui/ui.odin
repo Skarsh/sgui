@@ -4,6 +4,7 @@ import "core:strings"
 import textedit "core:text/edit"
 
 COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
+PARENT_LIST_SIZE :: #config(SUI_PARENT_LIST_SIZE, 64)
 MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 CHAR_WIDTH :: #config(SUI_CHAR_WIDTH, 14)
 CHAR_HEIGHT :: #config(SUI_CHAR_HEIGHT, 24)
@@ -51,10 +52,10 @@ Command_Text :: struct {
 }
 
 UI_State :: struct {
-	hot_item:    u64,
-	active_item: u64,
-	kbd_item:    u64,
-	last_widget: u64,
+	hot_item:    UI_Key,
+	active_item: UI_Key,
+	kbd_item:    UI_Key,
+	last_widget: UI_Key,
 }
 
 Style :: struct {
@@ -64,10 +65,13 @@ Style :: struct {
 }
 
 Context :: struct {
-	command_list: Stack(Command, COMMAND_LIST_SIZE),
-	ui_state:     UI_State,
-	style:        Style,
-	input:        Input,
+	command_list:   Stack(Command, COMMAND_LIST_SIZE),
+	parent_list:    Stack(^Widget, PARENT_LIST_SIZE),
+	parent_widget:  ^Widget,
+	ui_state:       UI_State,
+	current_parent: ^Widget,
+	style:          Style,
+	input:          Input,
 }
 
 default_style := Style {
@@ -106,31 +110,31 @@ draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
 }
 
 button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
-	id := hash_key(id_key)
+	id := ui_key_hash(id_key)
 	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check whether the button should be hot
 	if intersect_rect(ctx^, rect) {
 		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && left_click {
+		if ui_key_match(ctx.ui_state.active_item, ui_key_null()) && left_click {
 			ctx.ui_state.active_item = id
 		}
 	}
 
 	// If no widget has keyboard focus, take it
-	if ctx.ui_state.kbd_item == 0 {
+	if ui_key_match(ctx.ui_state.kbd_item, ui_key_null()) {
 		ctx.ui_state.kbd_item = id
 	}
 
 	// If we have keyboard focus, show it
-	if ctx.ui_state.kbd_item == id {
+	if ui_key_match(ctx.ui_state.kbd_item, id) {
 		draw_rect(ctx, Rect{rect.x - 6, rect.y - 6, 84, 68}, ctx.style.colors[.Selection_BG])
 	}
 
 	// draw button
 	draw_rect(ctx, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}, ctx.style.colors[.Button_Shadow])
-	if ctx.ui_state.hot_item == id {
-		if ctx.ui_state.active_item == id {
+	if ui_key_match(ctx.ui_state.hot_item, id) {
+		if ui_key_match(ctx.ui_state.active_item, id) {
 			// Button is both 'hot' and 'active'
 			draw_rect(
 				ctx,
@@ -154,11 +158,11 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 	}
 
 	// If we have keyboard focus, we'll need to process the keys
-	if ctx.ui_state.kbd_item == id {
+	if ui_key_match(ctx.ui_state.kbd_item, id) {
 		if is_key_pressed(ctx^, .Tab) {
 			// If tab is pressed, lose keyboard focus.
 			// Next widget will grab the focus.
-			ctx.ui_state.kbd_item = 0
+			ctx.ui_state.kbd_item = ui_key_null()
 
 			// If shift was also pressed, we want to move focus
 			// to the previous widget instead.
@@ -181,7 +185,9 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 
 	// If button is hot and active, but mouse button is not
 	// down, the user must have clicked the button
-	if !left_click && ctx.ui_state.hot_item == id && ctx.ui_state.active_item == id {
+	if !left_click &&
+	   ui_key_match(ctx.ui_state.hot_item, id) &&
+	   ui_key_match(ctx.ui_state.active_item, id) {
 		ctx.ui_state.kbd_item = id
 		return true
 	}
@@ -191,7 +197,7 @@ button :: proc(ctx: ^Context, id_key: string, rect: Rect) -> bool {
 
 // Simple scroll bar widget
 slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bool {
-	id := hash_key(id_key)
+	id := ui_key_hash(id_key)
 
 	// Calculate mouse cursor's relative y offset
 	start_y: i32 = 16
@@ -203,18 +209,18 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 	// Check for hotness
 	if intersect_rect(ctx^, Rect{x + 8, y + 8, start_y, length - 1}) {
 		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && left_click {
+		if ui_key_match(ctx.ui_state.active_item, ui_key_null()) && left_click {
 			ctx.ui_state.active_item = id
 		}
 	}
 
 	// If no widget has keyboard focus, take it
-	if ctx.ui_state.kbd_item == 0 {
+	if ui_key_match(ctx.ui_state.kbd_item, ui_key_null()) {
 		ctx.ui_state.kbd_item = id
 	}
 
 	// If we have keyboard focus, show it
-	if ctx.ui_state.kbd_item == id {
+	if ui_key_match(ctx.ui_state.kbd_item, id) {
 		draw_rect(ctx, Rect{x - 4, y - 4, 40, 280}, ctx.style.colors[.Selection_BG])
 	}
 
@@ -223,7 +229,7 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 	draw_rect(ctx, Rect{x, y, scroll_bar_width, length + start_y}, ctx.style.colors[.Scroll_Base])
 
 	thumb_width: i32 = 16
-	if ctx.ui_state.active_item == id || ctx.ui_state.hot_item == id {
+	if ui_key_match(ctx.ui_state.active_item, id) || ui_key_match(ctx.ui_state.hot_item, id) {
 		draw_rect(
 			ctx,
 			Rect{x + 8, y + 8 + y_pos, thumb_width, thumb_width},
@@ -238,11 +244,11 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 	}
 
 	// If we have keyboard focus, we'll need to process the keys
-	if ctx.ui_state.kbd_item == id {
+	if ui_key_match(ctx.ui_state.kbd_item, id) {
 		if is_key_pressed(ctx^, .Tab) {
 			// If tab is pressed, lose keyboard focus
 			// Next widget will grab the focus.
-			ctx.ui_state.kbd_item = 0
+			ctx.ui_state.kbd_item = ui_key_null()
 
 			// If shift was also pressed, we want to move focus
 			// to the previous widget instead
@@ -271,7 +277,9 @@ slider :: proc(ctx: ^Context, id_key: string, x, y, max: i32, value: ^i32) -> bo
 	// If widget is hot and active, but mouse button is not 
 	// down, the user must have clicked the widget; give it
 	// keyboard focus
-	if left_click && ctx.ui_state.hot_item == id && ctx.ui_state.active_item == id {
+	if left_click &&
+	   ui_key_match(ctx.ui_state.hot_item, id) &&
+	   ui_key_match(ctx.ui_state.active_item, id) {
 		ctx.ui_state.kbd_item = id
 	}
 
@@ -303,24 +311,24 @@ text_field :: proc(
 	text_buf: []u8,
 	text_len: ^int,
 ) -> bool {
-	id := hash_key(id_key)
+	id := ui_key_hash(id_key)
 	left_click := is_mouse_down(ctx^, .Left)
 
 	// Check for hotness
 	if intersect_rect(ctx^, Rect{rect.x + 8, rect.y + 8, rect.w, rect.h}) {
 		ctx.ui_state.hot_item = id
-		if ctx.ui_state.active_item == 0 && left_click {
+		if ui_key_match(ctx.ui_state.active_item, ui_key_null()) && left_click {
 			ctx.ui_state.active_item = id
 		}
 	}
 
 	// If no widget has keyboard focus, take it
-	if ctx.ui_state.kbd_item == 0 {
+	if ui_key_match(ctx.ui_state.kbd_item, ui_key_null()) {
 		ctx.ui_state.kbd_item = id
 	}
 
 	// If we have keyboard focus, show it
-	if ctx.ui_state.kbd_item == id {
+	if ui_key_match(ctx.ui_state.kbd_item, id) {
 		draw_rect(
 			ctx,
 			Rect{rect.x - 6, rect.y - 6, rect.w + 12, rect.h + 12},
@@ -329,7 +337,7 @@ text_field :: proc(
 	}
 
 	// Render the text field
-	if ctx.ui_state.active_item == id || ctx.ui_state.hot_item == id {
+	if ui_key_match(ctx.ui_state.active_item, id) || ui_key_match(ctx.ui_state.hot_item, id) {
 		draw_rect(
 			ctx,
 			Rect{rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8},
@@ -343,7 +351,7 @@ text_field :: proc(
 		)
 	}
 
-	if ctx.ui_state.kbd_item == id {
+	if ui_key_match(ctx.ui_state.kbd_item, id) {
 		builder := strings.builder_from_bytes(text_buf)
 		non_zero_resize(&builder.buf, text_len^)
 		ctx.input.textbox_state.builder = &builder
@@ -358,7 +366,7 @@ text_field :: proc(
 		if is_key_pressed(ctx^, .Tab) {
 			// If tab is pressed, lose keyboard focus.
 			// Next widget will grab the focus.
-			ctx.ui_state.kbd_item = 0
+			ctx.ui_state.kbd_item = ui_key_null()
 
 			// If shift was also pressed, we want to move focus
 			// to the previous widget instead
@@ -385,8 +393,8 @@ text_field :: proc(
 	// down, the user must have clicked the widget; give it
 	// keyboard focus
 	if is_mouse_down(ctx^, .Left) &&
-	   ctx.ui_state.hot_item == id &&
-	   ctx.ui_state.active_item == id {
+	   ui_key_match(ctx.ui_state.hot_item, id) &&
+	   ui_key_match(ctx.ui_state.active_item, id) {
 		ctx.ui_state.kbd_item = id
 	}
 
@@ -396,26 +404,28 @@ text_field :: proc(
 }
 
 begin :: proc(ctx: ^Context) {
-	ctx.ui_state.hot_item = 0
+	ctx.ui_state.hot_item = ui_key_null()
 	ctx.command_list.idx = -1
 }
 
 end :: proc(ctx: ^Context) {
 
 	if !is_mouse_down(ctx^, .Left) {
-		ctx.ui_state.active_item = 0
+		ctx.ui_state.active_item = ui_key_null()
 	} else {
-		if ctx.ui_state.active_item == 0 {
+		if ui_key_match(ctx.ui_state.active_item, ui_key_null()) {
 			// TODO(Thomas): This has to change but still keep the original effect
 			// This will only work because its very unlikely that we get hashes that will
 			// result into 1337 here, but we're not guaranteed.
 			//ctx.ui_state.active_item = -1
-			ctx.ui_state.active_item = 1337
+			ctx.ui_state.active_item = UI_Key {
+				hash = 1337,
+			}
 		}
 	}
 
 	if is_key_pressed(ctx^, .Tab) {
-		ctx.ui_state.kbd_item = 0
+		ctx.ui_state.kbd_item = ui_key_null()
 	}
 
 	clear_input(ctx)

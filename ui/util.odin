@@ -1,13 +1,25 @@
 package ui
 
-hash_key :: proc(str: string) -> u64 {
+UI_Key :: struct {
+	hash: u64,
+}
+
+ui_key_null :: proc() -> UI_Key {
+	return UI_Key{hash = 0}
+}
+
+ui_key_hash :: proc(str: string) -> UI_Key {
 	hash: u64 = 5381
 
 	for b in transmute([]u8)str {
 		hash = ((hash << 5) + hash) + u64(b)
 	}
 
-	return hash
+	return UI_Key{hash = hash}
+}
+
+ui_key_match :: proc(a, b: UI_Key) -> bool {
+	return a.hash == b.hash
 }
 
 intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
