@@ -1,5 +1,6 @@
 package ui
 
+import "core:mem"
 import "core:strings"
 import textedit "core:text/edit"
 
@@ -65,15 +66,17 @@ Style :: struct {
 }
 
 Context :: struct {
-	command_list:   Stack(Command, COMMAND_LIST_SIZE),
-	parent_list:    Stack(^Widget, PARENT_LIST_SIZE),
-	root_widget:    ^Widget,
-	ui_state:       UI_State,
-	current_parent: ^Widget,
-	style:          Style,
-	input:          Input,
-	widget_cache:   map[UI_Key]^Widget,
-	frame_index:    u64,
+	persistent_allocator: mem.Allocator,
+	frame_allocator:      mem.Allocator,
+	command_list:         Stack(Command, COMMAND_LIST_SIZE),
+	parent_list:          Stack(^Widget, PARENT_LIST_SIZE),
+	root_widget:          ^Widget,
+	ui_state:             UI_State,
+	current_parent:       ^Widget,
+	style:                Style,
+	input:                Input,
+	widget_cache:         map[UI_Key]^Widget,
+	frame_index:          u64,
 }
 
 default_style := Style {
@@ -96,8 +99,10 @@ default_style := Style {
 	},
 }
 
-init :: proc(ctx: ^Context) {
+init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator: mem.Allocator) {
 	ctx^ = {} // zero memory
+	ctx.persistent_allocator = persistent_allocator
+	ctx.frame_allocator = frame_allocator
 	ctx.style = default_style
 	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
 	ctx.input.textbox_state.builder = &ctx.input.text
@@ -105,7 +110,7 @@ init :: proc(ctx: ^Context) {
 	ctx.current_parent = nil
 
 	// TODO(Thomas): Allocate from passed in allocator
-	ctx.widget_cache = make(map[UI_Key]^Widget)
+	ctx.widget_cache = make(map[UI_Key]^Widget, persistent_allocator)
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
@@ -450,6 +455,5 @@ end_new :: proc(ctx: ^Context) {
 	// TODO(Thomas): Prune unused widgets here?
 
 	clear_input(ctx)
-
-
+	free_all(ctx.frame_allocator)
 }

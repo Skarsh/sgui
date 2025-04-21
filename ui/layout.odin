@@ -1,6 +1,7 @@
 package ui
 
 import "core:log"
+import "core:mem"
 import "core:testing"
 
 Widget_Flag :: enum u32 {
@@ -83,8 +84,8 @@ widget_make :: proc(
 	widget, found := ctx.widget_cache[key]
 
 	if !found {
-		new_widget, err := new(Widget)
-		widget = new_widget
+		err: mem.Allocator_Error
+		widget, err = new(Widget, ctx.persistent_allocator)
 		if err != nil {
 			log.error("failed to allocated widget")
 			return nil, false
@@ -227,7 +228,8 @@ button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 test_widget_hierarchy :: proc(t: ^testing.T) {
 	// Initialize context
 	ctx := Context{}
-	init(&ctx)
+	init(&ctx, context.temp_allocator, context.temp_allocator)
+	defer free_all(context.temp_allocator)
 
 	root, ok := widget_make(&ctx, "root")
 	testing.expect(t, ok, "Root widget should be created successfully")

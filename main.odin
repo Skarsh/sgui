@@ -1,6 +1,9 @@
 package main
 
+import "core:fmt"
 import "core:log"
+import "core:mem"
+import "core:mem/virtual"
 
 import sdl "vendor:sdl2"
 
@@ -14,7 +17,29 @@ g_renderer: ^sdl.Renderer
 
 running := true
 main :: proc() {
-	context.logger = log.create_console_logger()
+	track: mem.Tracking_Allocator
+	mem.tracking_allocator_init(&track, context.allocator)
+	context.allocator = mem.tracking_allocator(&track)
+
+	defer {
+		if len(track.allocation_map) > 0 {
+			fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+			for _, entry in track.allocation_map {
+				fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+			}
+		}
+		if len(track.bad_free_array) > 0 {
+			fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
+			for entry in track.bad_free_array {
+				fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
+			}
+		}
+		mem.tracking_allocator_destroy(&track)
+	}
+
+	logger := log.create_console_logger(log.Level.Info)
+	context.logger = logger
+	defer log.destroy_console_logger(logger)
 
 	if sdl.Init(sdl.INIT_VIDEO) < 0 {
 		log.error("Unable to init SDL: ", sdl.GetError())
@@ -65,15 +90,39 @@ main :: proc() {
 	defer sdl.DestroyTexture(font_atlas)
 
 	ctx := ui.Context{}
-	ui.init(&ctx)
 
+	persistent_arena := virtual.Arena{}
+	persistent_arena_buffer := make([]u8, 100 * 1024)
+	persistent_arena_alloc_err := virtual.arena_init_buffer(
+		&persistent_arena,
+		persistent_arena_buffer,
+	)
+	assert(persistent_arena_alloc_err == .None)
+	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
+	defer free_all(persistent_arena_allocator)
+	defer delete(persistent_arena_buffer)
+
+	frame_arena := virtual.Arena{}
+	frame_arena_buffer := make([]u8, 100 * 1024)
+	frame_arena_alloc_err := virtual.arena_init_buffer(&frame_arena, frame_arena_buffer)
+	assert(frame_arena_alloc_err == .None)
+	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
+	defer free_all(frame_arena_allocator)
+	defer delete(frame_arena_buffer)
+
+	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator)
+
+	// TODO(Thomas): When suitable, this should come from a fixed size buffer allocator
+	// or something.
+	text_buf := make([]u8, 1024)
+	defer delete(text_buf)
 	app_state := App_State {
 		ctx            = ctx,
 		font_atlas     = font_atlas,
 		slider_value_1 = i32(ctx.style.colors[.Window_BG].r),
 		slider_value_2 = i32(ctx.style.colors[.Window_BG].g),
 		slider_value_3 = i32(ctx.style.colors[.Window_BG].b),
-		text_buf       = make([]u8, 1024),
+		text_buf       = text_buf,
 		text_len       = 0,
 	}
 
