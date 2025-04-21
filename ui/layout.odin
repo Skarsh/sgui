@@ -1,7 +1,6 @@
 package ui
 
 import "core:log"
-import "core:math"
 import "core:testing"
 
 Widget_Flag :: enum u32 {
@@ -91,6 +90,14 @@ widget_make :: proc(
 			return nil, false
 		}
 
+		// Update widget state, important to set parent
+		// before using widget.parent to set tree links
+		widget.parent = ctx.current_parent
+		widget.flags = flags
+		widget.string = string
+		widget.semantic_size = semantic_size
+		widget.last_frame_touched = ctx.frame_index
+
 		// Add to parent's child list if we have a parent
 		if widget.parent != nil {
 			if widget.parent.first == nil {
@@ -103,16 +110,10 @@ widget_make :: proc(
 			}
 		}
 
-		widget.flags = flags
-		widget.string = string
-		widget.semantic_size = semantic_size
 
+		ctx.widget_cache[key] = widget
 	}
 
-	// Set parent
-	widget.parent = ctx.current_parent
-
-	ctx.widget_cache[key] = widget
 
 	return widget, true
 }
