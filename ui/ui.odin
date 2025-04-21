@@ -1,5 +1,6 @@
 package ui
 
+import "core:log"
 import "core:strings"
 import textedit "core:text/edit"
 
@@ -67,11 +68,13 @@ Style :: struct {
 Context :: struct {
 	command_list:   Stack(Command, COMMAND_LIST_SIZE),
 	parent_list:    Stack(^Widget, PARENT_LIST_SIZE),
-	parent_widget:  ^Widget,
+	root_widget:    ^Widget,
 	ui_state:       UI_State,
 	current_parent: ^Widget,
 	style:          Style,
 	input:          Input,
+	widget_cache:   map[UI_Key]^Widget,
+	frame_index:    u64,
 }
 
 default_style := Style {
@@ -99,6 +102,18 @@ init :: proc(ctx: ^Context) {
 	ctx.style = default_style
 	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
 	ctx.input.textbox_state.builder = &ctx.input.text
+	// TODO(Thomas): Allocate from passed in allocator
+	ctx.widget_cache = make(map[UI_Key]^Widget)
+
+	// Create root widget
+	root_widget, root_ok := widget_make(ctx, "root")
+	if !root_ok {
+		log.error("Failed to create root widget")
+		panic("Failed to create root widget, cannot proceed")
+	}
+	ctx.root_widget = root_widget
+
+	//TODO(Thomas): Set up root widget sizes?
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
@@ -438,6 +453,11 @@ end :: proc(ctx: ^Context) {
 }
 
 end_new :: proc(ctx: ^Context) {
+	ctx.frame_index += 1
+
+	// TODO(Thomas): Prune unused widgets here?
 
 	clear_input(ctx)
+
+
 }

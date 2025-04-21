@@ -1,6 +1,7 @@
 package ui
 
 import "core:log"
+import "core:math"
 import "core:testing"
 
 Widget_Flag :: enum u32 {
@@ -69,37 +70,49 @@ Widget :: struct {
 
 widget_make :: proc(
 	ctx: ^Context,
-	key_id: string,
+	string: string,
 	flags: Widget_Flag_Set = {},
 	semantic_size: [Axis2_Size]Size = [Axis2_Size]Size{},
 ) -> (
 	^Widget,
 	bool,
 ) {
-	widget, err := new(Widget)
-	if err != nil {
-		log.error("failed to allocated widget")
-		return nil, false
-	}
 
+	key := ui_key_hash(string)
+
+	// Try to get the widget from the cache first
+	widget, found := ctx.widget_cache[key]
+
+	if !found {
+		new_widget, err := new(Widget)
+		widget = new_widget
+		if err != nil {
+			log.error("failed to allocated widget")
+			return nil, false
+		}
+
+		// Add to parent's child list if we have a parent
+		if widget.parent != nil {
+			if widget.parent.first == nil {
+				widget.parent.first = widget
+				widget.parent.last = widget
+			} else {
+				widget.parent.last.next = widget
+				widget.prev = widget.parent.last
+				widget.parent.last = widget
+			}
+		}
+
+		widget.flags = flags
+		widget.string = string
+		widget.semantic_size = semantic_size
+
+	}
 
 	// Set parent
 	widget.parent = ctx.current_parent
 
-	// Add to parent's child list if we have a parent
-	if widget.parent != nil {
-		if widget.parent.first == nil {
-			widget.parent.first = widget
-			widget.parent.last = widget
-		} else {
-			widget.parent.last.next = widget
-			widget.prev = widget.parent.last
-			widget.parent.last = widget
-		}
-	}
-
-	widget.flags = flags
-	widget.semantic_size = semantic_size
+	ctx.widget_cache[key] = widget
 
 	return widget, true
 }
@@ -132,11 +145,64 @@ pop_parent :: proc(ctx: ^Context) -> (^Widget, bool) {
 	return popped_parent, true
 }
 
-render_widget :: proc(ctx: ^Context, widget: ^Widget) {
-	draw_rect(ctx, widget.rect, ctx.style.colors[.Button])
+Comm :: struct {
+	widget:         ^Widget,
+	mouse:          Vector2i32,
+	drag_delta:     Vector2i32,
+	clicked:        bool,
+	double_clicked: bool,
+	held:           bool,
+	released:       bool,
+	dragging:       bool,
+	hovering:       bool,
 }
 
-button_new :: proc(ctx: ^Context, id_key: string) -> bool {
+comm_from_widget :: proc(ctx: ^Context, widget: ^Widget) -> Comm {
+	comm: Comm
+	comm.widget = widget
+
+	if point_in_rect(ctx.input.mouse_pos, widget.rect) {
+		comm.hovering = true
+		comm.mouse = ctx.input.mouse_pos
+
+		// TODO(Thomas): The hot animation accumulation here should
+		// be time based instead and its should follow exponential / easing functions
+		// instead of a linear accumulation
+		if widget.hot < 1.0 {
+			widget.hot += 0.05
+		} else {
+			widget.hot = 1.0
+		}
+
+		// TODO(Thomas): Not exactly sure what to do here in the pressed vs held, set both like it is now?
+		if is_mouse_pressed(ctx^, .Left) {
+			comm.clicked = true
+		}
+
+		if is_mouse_down(ctx^, .Left) {
+			comm.held = true
+		}
+	} else {
+		widget.hot = 0.0
+	}
+
+	return comm
+}
+
+render_widget :: proc(ctx: ^Context, widget: ^Widget) {
+
+	color := ctx.style.colors[.Button]
+
+	if .Hot_Animation in widget.flags {
+		hot_color := ctx.style.colors[.Button_Hot]
+		t := widget.hot
+		color = lerp_color(color, hot_color, t)
+	}
+
+	draw_rect(ctx, widget.rect, color)
+}
+
+button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 	flags: Widget_Flag_Set = {
 		.Clickable,
 		.Draw_Border,
@@ -150,9 +216,10 @@ button_new :: proc(ctx: ^Context, id_key: string) -> bool {
 
 	widget.rect = Rect{50, 50, 64, 48}
 
+	comm := comm_from_widget(ctx, widget)
 	render_widget(ctx, widget)
 
-	return false
+	return comm
 }
 
 @(test)

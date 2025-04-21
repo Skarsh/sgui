@@ -89,8 +89,8 @@ main :: proc() {
 		)
 		sdl.RenderClear(g_renderer)
 
-		build_and_render_ui(&app_state)
-		//build_and_render_ui_new(&app_state)
+		//build_and_render_ui(&app_state)
+		build_and_render_ui_new(&app_state)
 
 		sdl.RenderPresent(g_renderer)
 
@@ -232,7 +232,9 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 
 	ui.begin_new(&app_state.ctx)
 
-	ui.button_new(&app_state.ctx, "new button")
+	if ui.button_new(&app_state.ctx, "new button").held {
+		log.info("button held!")
+	}
 
 	render_draw_commands(app_state)
 

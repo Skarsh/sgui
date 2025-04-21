@@ -1,5 +1,7 @@
 package ui
 
+import "core:math"
+
 UI_Key :: struct {
 	hash: u64,
 }
@@ -22,6 +24,14 @@ ui_key_match :: proc(a, b: UI_Key) -> bool {
 	return a.hash == b.hash
 }
 
+point_in_rect :: proc(p: Vector2i32, rect: Rect) -> bool {
+	if p.x < rect.x || p.y < rect.y || p.x >= rect.x + rect.w || p.y >= rect.y + rect.h {
+		return false
+	}
+	return true
+
+}
+
 intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
 	if ctx.input.mouse_pos.x < rect.x ||
 	   ctx.input.mouse_pos.y < rect.y ||
@@ -30,4 +40,17 @@ intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
 		return false
 	}
 	return true
+}
+
+lerp_color :: proc(a, b: Color, t: f32) -> Color {
+	t_clamped := math.clamp(t, 0.0, 1.0)
+
+	color := Color {
+		u8(math.lerp(f32(a.r), f32(b.r), t_clamped)),
+		u8(math.lerp(f32(a.g), f32(b.g), t_clamped)),
+		u8(math.lerp(f32(a.b), f32(b.b), t_clamped)),
+		u8(math.lerp(f32(a.a), f32(b.a), t_clamped)),
+	}
+
+	return color
 }
