@@ -421,11 +421,6 @@ begin :: proc(ctx: ^Context) {
 	ctx.command_list.idx = -1
 }
 
-begin_new :: proc(ctx: ^Context) {
-	ctx.ui_state.hot_item = ui_key_null()
-	ctx.command_list.idx = -1
-}
-
 end :: proc(ctx: ^Context) {
 
 	if !is_mouse_down(ctx^, .Left) {
@@ -447,13 +442,4 @@ end :: proc(ctx: ^Context) {
 	}
 
 	clear_input(ctx)
-}
-
-end_new :: proc(ctx: ^Context) {
-	ctx.frame_index += 1
-
-	// TODO(Thomas): Prune unused widgets here?
-
-	clear_input(ctx)
-	free_all(ctx.frame_allocator)
 }

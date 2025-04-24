@@ -103,6 +103,7 @@ widget_make :: proc(
 		if widget.parent != nil {
 			if widget.parent.first == nil {
 				widget.parent.first = widget
+				widget.parent.next = widget
 				widget.parent.last = widget
 			} else {
 				widget.parent.last.next = widget
@@ -213,7 +214,10 @@ button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 		.Hot_Animation,
 		.Active_Animation,
 	}
-	semantic_size: [Axis2_Size]Size = {Size{kind = .Pixels}, Size{kind = .Pixels}}
+	semantic_size: [Axis2_Size]Size = {
+		Size{kind = .Pixels, value = 64},
+		Size{kind = .Pixels, value = 48},
+	}
 	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
 
 	widget.rect = Rect{50, 50, 64, 48}
@@ -222,6 +226,79 @@ button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 	render_widget(ctx, widget)
 
 	return comm
+}
+
+begin_new :: proc(ctx: ^Context) {
+	ctx.ui_state.hot_item = ui_key_null()
+	ctx.command_list.idx = -1
+}
+
+calculate_standalone_sizes :: proc(ctx: ^Context, widget: ^Widget) {
+	if widget == nil {
+		return
+	}
+
+	// Process this widget
+	for axis in Axis2 {
+		if widget.semantic_size[axis].kind == .Pixels {
+			widget.computed_size[axis] = widget.semantic_size[axis].value
+		}
+	}
+
+	// TODO(Thomas): This is defintetly not enough, this won't traverse the hierarchy properly
+	// But nice for some simple testing right now
+	calculate_standalone_sizes(ctx, widget.next)
+}
+
+calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
+	if widget == nil {
+		return
+	}
+}
+
+perform_layout :: proc(ctx: ^Context) {
+	// 1. (Any order is acceptable) Calculate "standalone" sizes.These are size that
+	// do not depend on other widgets and can be calculated purely with the
+	// information that comes from the single widget that is having its size
+	// calculated. (Size_Kind.Pixels, Size_Kind.Text_Content)
+	calculate_standalone_sizes(ctx, ctx.root_widget)
+
+	// 2. (Pre-order) Calculate "upwards-dependent" sizes. These are sizes that
+	// strictly depend on an ancestor's size, other than ancestors that have
+	// "downwards-dependent" sizes on the given axis. (Size_Kind.Percent_Of_Parent)
+
+	// 3. (Post-order) Calculate "downwards-dependent" sizes. These are size that
+	// depend on sizes of descendants. (Size_Kind.Children_Sum)
+
+	// 4. (Pre-order) Solve violations. For each level in the hierarchy, this will verify
+	// that the children do not extend past the boundaries of a given parent
+	// (unless explicitly allowed to do so; for example, in the case of a parent that
+	// is scrollable on the given axis), to the best of the algorithm's ability.
+	// If there is a violation, it will take a proportion of each child widget's size
+	// (on the given axis), proportional to both the size of the vioaltion, and (1 - strictness),
+	// where strictness is that specified in the semantic size on the child widget for the given axis.
+
+	// 5. (Pre-order) Finally, given the calculated sizes of each widget, compute the
+	// relative positions of each widget (by laying out on an axis which can be specified on any parent node).
+	// This stage can also compute the final screen-coordinates rectangle.
+	calculate_positions(ctx, ctx.root_widget)
+}
+
+render_all_widgets :: proc(ctx: ^Context) {
+
+}
+
+end_new :: proc(ctx: ^Context) {
+	ctx.frame_index += 1
+
+	perform_layout(ctx)
+
+	render_all_widgets(ctx)
+
+	// TODO(Thomas): Prune unused widgets here?
+
+	clear_input(ctx)
+	free_all(ctx.frame_allocator)
 }
 
 @(test)
@@ -248,6 +325,7 @@ test_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, child_1_ok, "Child_1 widget should be created successfully")
 	testing.expect(t, child_1.parent == root, "Child_1's parent should be root")
 	testing.expect(t, root.first == child_1, "Root's first child should be child_1")
+	testing.expect(t, root.next == child_1, "Root's first should be child_1")
 	testing.expect(t, child_1.prev == nil, "Child_1's prev should be nil")
 	testing.expect(t, child_1.next == child_2, "Child_2's next should be child_2")
 

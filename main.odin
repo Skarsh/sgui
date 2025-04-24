@@ -281,9 +281,15 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 
 	ui.begin_new(&app_state.ctx)
 
+	root, root_ok := ui.widget_make(&app_state.ctx, "root")
+	app_state.ctx.root_widget = root
+	assert(root_ok)
+	ui.push_parent(&app_state.ctx, root)
+
 	if ui.button_new(&app_state.ctx, "new button").held {
 		log.info("button held!")
 	}
+	ui.pop_parent(&app_state.ctx)
 
 	render_draw_commands(app_state)
 
