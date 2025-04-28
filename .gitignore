@@ -1,4 +1,5 @@
 *.exe
 *.pdb
 *.rdbg
+*.rdi
 *.dll
