@@ -99,23 +99,23 @@ widget_make :: proc(
 		widget.semantic_size = semantic_size
 		widget.last_frame_touched = ctx.frame_index
 
-		// Add to parent's child list if we have a parent
+		// We only need to deal with the non root case, since that's
+		// already dealt with by default from setting the widget state above.
 		if widget.parent != nil {
+			// We know we're first (which also means last)
 			if widget.parent.first == nil {
 				widget.parent.first = widget
-				widget.parent.next = widget
 				widget.parent.last = widget
 			} else {
+				// We have to be somewhere in the sibling chain
+				// We can easily extend to that chain by using the last pointer
 				widget.parent.last.next = widget
-				widget.prev = widget.parent.last
 				widget.parent.last = widget
 			}
 		}
 
-
 		ctx.widget_cache[key] = widget
 	}
-
 
 	return widget, true
 }
@@ -302,8 +302,7 @@ end_new :: proc(ctx: ^Context) {
 }
 
 @(test)
-test_widget_hierarchy :: proc(t: ^testing.T) {
-	// Initialize context
+test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	ctx := Context{}
 	init(&ctx, context.temp_allocator, context.temp_allocator)
 	defer free_all(context.temp_allocator)
@@ -318,20 +317,139 @@ test_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, prev == nil, "Previous parent should be nil")
 	testing.expect(t, ctx.current_parent == root, "Container's parent should be root")
 
-	// Create child widgets
-	child_1, child_1_ok := widget_make(&ctx, "child_1")
-	child_2, child_2_ok := widget_make(&ctx, "child_2")
+	// Create child button panel
+	button_panel, button_panel_ok := widget_make(&ctx, "button_panel")
+	testing.expect(t, button_panel_ok)
 
-	testing.expect(t, child_1_ok, "Child_1 widget should be created successfully")
-	testing.expect(t, child_1.parent == root, "Child_1's parent should be root")
-	testing.expect(t, root.first == child_1, "Root's first child should be child_1")
-	testing.expect(t, root.next == child_1, "Root's first should be child_1")
-	testing.expect(t, child_1.prev == nil, "Child_1's prev should be nil")
-	testing.expect(t, child_1.next == child_2, "Child_2's next should be child_2")
+	testing.expect(t, root.first == button_panel)
+	testing.expect(t, root.last == button_panel)
+	testing.expect(t, root.next == nil)
 
-	testing.expect(t, child_2_ok, "Child_2 widget should be created successfully")
-	testing.expect(t, child_2.parent == root, "Child_2's parent should be root")
-	testing.expect(t, root.last == child_2, "Root's first child should be child_1")
-	testing.expect(t, child_2.prev == child_1, "Child_2's prev should be child_1")
-	testing.expect(t, child_2.next == nil, "Child_2's next should be nil")
+	testing.expect(t, button_panel.parent == root)
+	testing.expect(t, button_panel.first == nil)
+	testing.expect(t, button_panel.last == nil)
+	testing.expect(t, button_panel.next == nil)
+
+	button_panel_prev_parent, button_panel_push_ok := push_parent(&ctx, button_panel)
+	testing.expect(t, button_panel_push_ok, "Should successfully push button_panel as parent")
+	testing.expect(t, button_panel_prev_parent == root, "Previous parent should be root")
+	testing.expect(
+		t,
+		ctx.current_parent == button_panel,
+		"Ctx current_parent should be button_panel",
+	)
+
+	// Button 1
+	button_1, button_1_ok := widget_make(&ctx, "button_1")
+	testing.expect(t, button_1_ok)
+
+	testing.expect(t, button_panel.first == button_1)
+	testing.expect(t, button_panel.last == button_1)
+	testing.expect(t, button_panel.next == nil)
+	testing.expect(t, button_1.parent == button_panel)
+	testing.expect(t, button_1.first == nil)
+	testing.expect(t, button_1.last == nil)
+	testing.expect(t, button_1.next == nil)
+
+	// Button 2
+	button_2, button_2_ok := widget_make(&ctx, "button_2")
+	testing.expect(t, button_2_ok)
+
+	testing.expect(t, button_panel.first == button_1)
+	testing.expect(t, button_panel.last == button_2)
+	testing.expect(t, button_panel.next == nil)
+	testing.expect(t, button_1.next == button_2)
+	testing.expect(t, button_2.parent == button_panel)
+	testing.expect(t, button_2.first == nil)
+	testing.expect(t, button_2.last == nil)
+	testing.expect(t, button_2.next == nil)
+
+	// Button 3
+	button_3, button_3_ok := widget_make(&ctx, "button_3")
+	testing.expect(t, button_3_ok)
+
+	testing.expect(t, button_panel.first == button_1)
+	testing.expect(t, button_panel.last == button_3)
+	testing.expect(t, button_panel.next == nil)
+	testing.expect(t, button_1.next == button_2)
+	testing.expect(t, button_1.parent == button_panel)
+	testing.expect(t, button_2.next == button_3)
+	testing.expect(t, button_2.parent == button_panel)
+	testing.expect(t, button_3.parent == button_panel)
+	testing.expect(t, button_3.first == nil)
+	testing.expect(t, button_3.last == nil)
+	testing.expect(t, button_3.next == nil)
+
+	// Pop button_panel
+	button_panel_popped, button_panel_popped_ok := pop_parent(&ctx)
+	testing.expect(t, button_panel_popped_ok)
+	testing.expect(t, button_panel_popped == button_panel)
+	testing.expect(t, ctx.current_parent == root)
+
+	// Now we make a second button panel
+	// Create child button panel
+	button_panel_2, button_panel_2_ok := widget_make(&ctx, "button_panel_2")
+	testing.expect(t, button_panel_2_ok)
+
+	button_panel_2_prev_parent, button_panel_2_push_ok := push_parent(&ctx, button_panel_2)
+
+	testing.expect(t, root.first == button_panel)
+	testing.expect(t, root.last == button_panel_2)
+	testing.expect(t, root.next == nil)
+
+	testing.expect(t, button_panel.parent == root)
+	testing.expect(t, button_panel.first == button_1)
+	testing.expect(t, button_panel.last == button_3)
+	testing.expect(t, button_panel.next == button_panel_2)
+
+	// Button 4
+	button_4, button_4_ok := widget_make(&ctx, "button_4")
+	testing.expect(t, button_1_ok)
+
+	testing.expect(t, button_panel_2.first == button_4)
+	testing.expect(t, button_panel_2.last == button_4)
+	testing.expect(t, button_panel_2.next == nil)
+	testing.expect(t, button_4.parent == button_panel_2)
+	testing.expect(t, button_4.first == nil)
+	testing.expect(t, button_4.last == nil)
+	testing.expect(t, button_4.next == nil)
+
+	// Button 2
+	button_5, button_5_ok := widget_make(&ctx, "button_5")
+	testing.expect(t, button_5_ok)
+
+	testing.expect(t, button_panel_2.first == button_4)
+	testing.expect(t, button_panel_2.last == button_5)
+	testing.expect(t, button_panel_2.next == nil)
+	testing.expect(t, button_4.next == button_5)
+	testing.expect(t, button_5.parent == button_panel_2)
+	testing.expect(t, button_5.first == nil)
+	testing.expect(t, button_5.last == nil)
+	testing.expect(t, button_5.next == nil)
+
+	// Button 3
+	button_6, button_6_ok := widget_make(&ctx, "button_6")
+	testing.expect(t, button_6_ok)
+
+	testing.expect(t, button_panel_2.first == button_4)
+	testing.expect(t, button_panel_2.last == button_6)
+	testing.expect(t, button_panel_2.next == nil)
+	testing.expect(t, button_4.next == button_5)
+	testing.expect(t, button_4.parent == button_panel_2)
+	testing.expect(t, button_5.next == button_6)
+	testing.expect(t, button_5.parent == button_panel_2)
+	testing.expect(t, button_6.parent == button_panel_2)
+	testing.expect(t, button_6.first == nil)
+	testing.expect(t, button_6.last == nil)
+	testing.expect(t, button_6.next == nil)
+
+	// Pop button_panel_2
+	button_panel_2_popped, button_panel_2_popped_ok := pop_parent(&ctx)
+	testing.expect(t, button_panel_2_popped_ok)
+	testing.expect(t, button_panel_2_popped == button_panel_2)
+
+	// Pop root
+	root_panel_popped, root_panel_popped_ok := pop_parent(&ctx)
+	testing.expect(t, root_panel_popped_ok)
+	testing.expect(t, root_panel_popped == root)
 }
