@@ -55,9 +55,12 @@ Widget :: struct {
 	flags:                 Widget_Flag_Set,
 	string:                string,
 	semantic_size:         [Axis2_Size]Size,
+	discovered:            bool,
 
 	// recomputed every frame
+	// Computed position relative to the parent position
 	computed_rel_position: [Axis2_Size]f32,
+	// Computed size in pixels
 	computed_size:         [Axis2_Size]f32,
 	// NOTE(Thomas): Not entirely sure about this rect
 	// and how it should be represented.
@@ -116,6 +119,10 @@ widget_make :: proc(
 
 		ctx.widget_cache[key] = widget
 	}
+
+	// Discovered needs to be reset for every frame
+	// due to it being used in the layout algorithm
+	widget.discovered = false
 
 	return widget, true
 }
@@ -193,6 +200,7 @@ comm_from_widget :: proc(ctx: ^Context, widget: ^Widget) -> Comm {
 }
 
 render_widget :: proc(ctx: ^Context, widget: ^Widget) {
+	widget.discovered = true
 
 	color := ctx.style.colors[.Button]
 
@@ -203,6 +211,14 @@ render_widget :: proc(ctx: ^Context, widget: ^Widget) {
 	}
 
 	draw_rect(ctx, widget.rect, color)
+
+	if widget.first != nil && !widget.first.discovered {
+		render_widget(ctx, widget.first)
+	}
+
+	if widget.next != nil && !widget.next.discovered {
+		render_widget(ctx, widget.next)
+	}
 }
 
 button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
@@ -214,16 +230,19 @@ button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 		.Hot_Animation,
 		.Active_Animation,
 	}
+
 	semantic_size: [Axis2_Size]Size = {
 		Size{kind = .Pixels, value = 64},
 		Size{kind = .Pixels, value = 48},
 	}
+
 	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
 
-	widget.rect = Rect{50, 50, 64, 48}
+	//widget.rect = Rect{50, 50, 64, 48}
 
 	comm := comm_from_widget(ctx, widget)
-	render_widget(ctx, widget)
+
+	//render_widget(ctx, widget)
 
 	return comm
 }
@@ -243,16 +262,50 @@ calculate_standalone_sizes :: proc(ctx: ^Context, widget: ^Widget) {
 		if widget.semantic_size[axis].kind == .Pixels {
 			widget.computed_size[axis] = widget.semantic_size[axis].value
 		}
+		log.info("widget.computed_size[axis]: ", widget.computed_size[axis])
 	}
 
-	// TODO(Thomas): This is defintetly not enough, this won't traverse the hierarchy properly
-	// But nice for some simple testing right now
-	calculate_standalone_sizes(ctx, widget.next)
+
+	widget.discovered = true
+
+	if widget.first != nil && !widget.first.discovered {
+		calculate_standalone_sizes(ctx, widget.first)
+	}
+
+	if widget.next != nil && !widget.next.discovered {
+		calculate_standalone_sizes(ctx, widget.next)
+	}
 }
 
 calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
 	if widget == nil {
 		return
+	}
+
+	clear_discovered(ctx.root_widget)
+
+	for axis in Axis2 {
+		if widget.parent != nil {
+			widget.computed_rel_position =
+				widget.parent.computed_rel_position + widget.parent.computed_size
+		}
+	}
+
+	widget.rect = Rect {
+		i32(widget.computed_rel_position[Axis2.X]),
+		i32(widget.computed_rel_position[Axis2.Y]),
+		i32(widget.computed_size[Axis2.X]),
+		i32(widget.computed_size[Axis2.Y]),
+	}
+
+	widget.discovered = true
+
+	if widget.first != nil && !widget.first.discovered {
+		calculate_positions(ctx, widget.first)
+	}
+
+	if widget.next != nil && !widget.next.discovered {
+		calculate_positions(ctx, widget.next)
 	}
 }
 
@@ -285,7 +338,8 @@ perform_layout :: proc(ctx: ^Context) {
 }
 
 render_all_widgets :: proc(ctx: ^Context) {
-
+	clear_discovered(ctx.root_widget)
+	render_widget(ctx, ctx.root_widget)
 }
 
 end_new :: proc(ctx: ^Context) {
@@ -452,4 +506,89 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	root_panel_popped, root_panel_popped_ok := pop_parent(&ctx)
 	testing.expect(t, root_panel_popped_ok)
 	testing.expect(t, root_panel_popped == root)
+}
+
+clear_discovered :: proc(widget: ^Widget) {
+	if widget == nil {
+		return
+	}
+
+	widget.discovered = false
+	clear_discovered(widget.first)
+	clear_discovered(widget.next)
+}
+
+traverse_widget_hierarchy :: proc(ctx: ^Context, widget: ^Widget) {
+	widget.discovered = true
+
+	log.info(widget.string)
+
+	if widget.first != nil && !widget.first.discovered {
+		traverse_widget_hierarchy(ctx, widget.first)
+	}
+
+	if widget.next != nil && !widget.next.discovered {
+		traverse_widget_hierarchy(ctx, widget.next)
+	}
+}
+
+@(test)
+test_widget_hierarchy_traversal :: proc(t: ^testing.T) {
+
+	ctx := Context{}
+	init(&ctx, context.temp_allocator, context.temp_allocator)
+
+	// A simple three button "panel" hierarchy
+	root, ok := widget_make(&ctx, "root")
+	testing.expect(t, ok, "Root widget should be created successfully")
+	testing.expect(t, root != nil, "Root widget should be created successfully")
+
+	// Push root as parent
+	push_parent(&ctx, root)
+
+	panel_1, panel_1_ok := widget_make(&ctx, "panel_1")
+	testing.expect(t, panel_1_ok)
+
+	push_parent(&ctx, panel_1)
+
+	button_1_comm := button_new(&ctx, "button_1")
+	button_2_comm := button_new(&ctx, "button_2")
+	button_3_comm := button_new(&ctx, "button_3")
+
+	pop_parent(&ctx)
+
+	panel_2, panel_2_ok := widget_make(&ctx, "panel_2")
+	testing.expect(t, panel_2_ok)
+
+	push_parent(&ctx, panel_2)
+
+	button_4_comm := button_new(&ctx, "button_4")
+	button_5_comm := button_new(&ctx, "button_5")
+	button_6_comm := button_new(&ctx, "button_6")
+
+	pop_parent(&ctx)
+
+
+	traverse_widget_hierarchy(&ctx, root)
+	testing.expect(t, root.discovered == true)
+	testing.expect(t, button_1_comm.widget.discovered == true)
+	testing.expect(t, button_2_comm.widget.discovered == true)
+	testing.expect(t, button_3_comm.widget.discovered == true)
+	testing.expect(t, button_4_comm.widget.discovered == true)
+	testing.expect(t, button_5_comm.widget.discovered == true)
+	testing.expect(t, button_6_comm.widget.discovered == true)
+
+	// Pop root as parent
+	root_popped, root_popped_ok := pop_parent(&ctx)
+	testing.expect(t, root_popped_ok)
+	testing.expect(t, root_popped == root)
+
+	clear_discovered(root)
+	testing.expect(t, root.discovered == false)
+	testing.expect(t, button_1_comm.widget.discovered == false)
+	testing.expect(t, button_2_comm.widget.discovered == false)
+	testing.expect(t, button_3_comm.widget.discovered == false)
+	testing.expect(t, button_4_comm.widget.discovered == false)
+	testing.expect(t, button_5_comm.widget.discovered == false)
+	testing.expect(t, button_6_comm.widget.discovered == false)
 }
