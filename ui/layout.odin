@@ -168,6 +168,7 @@ Comm :: struct {
 	hovering:       bool,
 }
 
+// TODO(Thomas): This is very incomplete
 comm_from_widget :: proc(ctx: ^Context, widget: ^Widget) -> Comm {
 	comm: Comm
 	comm.widget = widget
@@ -222,6 +223,7 @@ render_widget :: proc(ctx: ^Context, widget: ^Widget) {
 	}
 }
 
+// TODO(Thomas): Return error?
 button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 	flags: Widget_Flag_Set = {
 		.Clickable,
@@ -233,14 +235,29 @@ button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 	}
 
 	semantic_size: [Axis2_Size]Size = {
-		Size{kind = .Pixels, value = 64},
-		Size{kind = .Pixels, value = 48},
+		Size{kind = .Pixels, value = 64, strictness = 1.0},
+		Size{kind = .Pixels, value = 48, strictness = 1.0},
 	}
 
 	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
 
 	comm := comm_from_widget(ctx, widget)
 
+	return comm
+}
+
+// TODO(Thomas): Return error?
+//NOTE(Thomas): This should converted to a more general panel or row
+// widget later. This is primarily for testing right now.
+button_panel :: proc(ctx: ^Context, id_key: string) -> Comm {
+	flags: Widget_Flag_Set = {}
+
+	semantic_size: [Axis2_Size]Size = {
+		Size{kind = .Pixels, value = 2 * 64, strictness = 1.0},
+		Size{kind = .Pixels, value = 2 * 48, strictness = 1.0},
+	}
+	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
+	comm := comm_from_widget(ctx, widget)
 	return comm
 }
 

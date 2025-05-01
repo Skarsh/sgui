@@ -286,6 +286,9 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 	assert(root_ok)
 	ui.push_parent(&app_state.ctx, root)
 
+	button_panel_comm := ui.button_panel(&app_state.ctx, "button_panel")
+	ui.push_parent(&app_state.ctx, button_panel_comm.widget)
+
 	comm_button_1 := ui.button_new(&app_state.ctx, "button_1")
 	if comm_button_1.held {
 		log.infof("%s held: ", comm_button_1.widget.string)
@@ -296,6 +299,10 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 		log.infof("%s held: ", comm_button_2.widget.string)
 	}
 
+	// Pop button panel
+	ui.pop_parent(&app_state.ctx)
+
+	// Pop root
 	ui.pop_parent(&app_state.ctx)
 
 	ui.end_new(&app_state.ctx)
