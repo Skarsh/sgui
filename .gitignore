@@ -1,5 +1,10 @@
+# Windows specific files
 *.exe
 *.pdb
 *.rdbg
 *.rdi
 *.dll
+
+# Linux specific files
+*.bin
+sgui
