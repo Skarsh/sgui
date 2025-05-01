@@ -113,6 +113,7 @@ widget_make :: proc(
 				// We have to be somewhere in the sibling chain
 				// We can easily extend to that chain by using the last pointer
 				widget.parent.last.next = widget
+				widget.prev = widget.parent.last
 				widget.parent.last = widget
 			}
 		}
@@ -286,8 +287,13 @@ calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
 
 	for axis in Axis2 {
 		if widget.parent != nil {
-			widget.computed_rel_position =
-				widget.parent.computed_rel_position + widget.parent.computed_size
+			if widget.prev == nil {
+				widget.computed_rel_position =
+					widget.parent.computed_rel_position + widget.parent.computed_size
+			} else {
+				widget.computed_rel_position =
+					widget.prev.computed_rel_position + widget.prev.computed_size
+			}
 		}
 	}
 
@@ -297,6 +303,8 @@ calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
 		i32(widget.computed_size[Axis2.X]),
 		i32(widget.computed_size[Axis2.Y]),
 	}
+
+	log.info("rect: ", widget.rect)
 
 	widget.discovered = true
 
@@ -378,11 +386,13 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, root.first == button_panel)
 	testing.expect(t, root.last == button_panel)
 	testing.expect(t, root.next == nil)
+	testing.expect(t, root.prev == nil)
 
 	testing.expect(t, button_panel.parent == root)
 	testing.expect(t, button_panel.first == nil)
 	testing.expect(t, button_panel.last == nil)
 	testing.expect(t, button_panel.next == nil)
+	testing.expect(t, button_panel.prev == nil)
 
 	button_panel_prev_parent, button_panel_push_ok := push_parent(&ctx, button_panel)
 	testing.expect(t, button_panel_push_ok, "Should successfully push button_panel as parent")
@@ -404,6 +414,7 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, button_1.first == nil)
 	testing.expect(t, button_1.last == nil)
 	testing.expect(t, button_1.next == nil)
+	testing.expect(t, button_1.prev == nil)
 
 	// Button 2
 	button_2, button_2_ok := widget_make(&ctx, "button_2")
@@ -417,6 +428,7 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, button_2.first == nil)
 	testing.expect(t, button_2.last == nil)
 	testing.expect(t, button_2.next == nil)
+	testing.expect(t, button_2.prev == button_1)
 
 	// Button 3
 	button_3, button_3_ok := widget_make(&ctx, "button_3")
@@ -433,6 +445,7 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, button_3.first == nil)
 	testing.expect(t, button_3.last == nil)
 	testing.expect(t, button_3.next == nil)
+	testing.expect(t, button_3.prev == button_2)
 
 	// Pop button_panel
 	button_panel_popped, button_panel_popped_ok := pop_parent(&ctx)
@@ -450,11 +463,17 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, root.first == button_panel)
 	testing.expect(t, root.last == button_panel_2)
 	testing.expect(t, root.next == nil)
+	testing.expect(t, root.prev == nil)
 
 	testing.expect(t, button_panel.parent == root)
 	testing.expect(t, button_panel.first == button_1)
 	testing.expect(t, button_panel.last == button_3)
 	testing.expect(t, button_panel.next == button_panel_2)
+	testing.expect(t, button_panel.prev == nil)
+
+	testing.expect(t, button_panel_2.parent == root)
+	testing.expect(t, button_panel_2.next == nil)
+	testing.expect(t, button_panel_2.prev == button_panel)
 
 	// Button 4
 	button_4, button_4_ok := widget_make(&ctx, "button_4")
@@ -467,8 +486,9 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, button_4.first == nil)
 	testing.expect(t, button_4.last == nil)
 	testing.expect(t, button_4.next == nil)
+	testing.expect(t, button_4.prev == nil)
 
-	// Button 2
+	// Button 5
 	button_5, button_5_ok := widget_make(&ctx, "button_5")
 	testing.expect(t, button_5_ok)
 
@@ -480,8 +500,9 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, button_5.first == nil)
 	testing.expect(t, button_5.last == nil)
 	testing.expect(t, button_5.next == nil)
+	testing.expect(t, button_5.prev == button_4)
 
-	// Button 3
+	// Button 6
 	button_6, button_6_ok := widget_make(&ctx, "button_6")
 	testing.expect(t, button_6_ok)
 
@@ -496,6 +517,7 @@ test_button_panel_widget_hierarchy :: proc(t: ^testing.T) {
 	testing.expect(t, button_6.first == nil)
 	testing.expect(t, button_6.last == nil)
 	testing.expect(t, button_6.next == nil)
+	testing.expect(t, button_6.prev == button_5)
 
 	// Pop button_panel_2
 	button_panel_2_popped, button_panel_2_popped_ok := pop_parent(&ctx)

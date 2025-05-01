@@ -289,11 +289,16 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 	if ui.button_new(&app_state.ctx, "new button").held {
 		log.info("button held!")
 	}
+
+	if ui.button_new(&app_state.ctx, "new button 2").held {
+		log.info("button held!")
+	}
+
 	ui.pop_parent(&app_state.ctx)
 
-	render_draw_commands(app_state)
-
 	ui.end_new(&app_state.ctx)
+
+	render_draw_commands(app_state)
 }
 
 process_input :: proc(app_state: ^App_State) {
