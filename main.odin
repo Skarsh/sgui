@@ -286,12 +286,14 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 	assert(root_ok)
 	ui.push_parent(&app_state.ctx, root)
 
-	if ui.button_new(&app_state.ctx, "new button").held {
-		log.info("button held!")
+	comm_button_1 := ui.button_new(&app_state.ctx, "button_1")
+	if comm_button_1.held {
+		log.infof("%s held: ", comm_button_1.widget.string)
 	}
 
-	if ui.button_new(&app_state.ctx, "new button 2").held {
-		log.info("button held!")
+	comm_button_2 := ui.button_new(&app_state.ctx, "button_2")
+	if comm_button_2.held {
+		log.infof("%s held: ", comm_button_2.widget.string)
 	}
 
 	ui.pop_parent(&app_state.ctx)

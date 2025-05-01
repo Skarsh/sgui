@@ -239,11 +239,7 @@ button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
 
 	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
 
-	//widget.rect = Rect{50, 50, 64, 48}
-
 	comm := comm_from_widget(ctx, widget)
-
-	//render_widget(ctx, widget)
 
 	return comm
 }
@@ -263,7 +259,6 @@ calculate_standalone_sizes :: proc(ctx: ^Context, widget: ^Widget) {
 		if widget.semantic_size[axis].kind == .Pixels {
 			widget.computed_size[axis] = widget.semantic_size[axis].value
 		}
-		log.info("widget.computed_size[axis]: ", widget.computed_size[axis])
 	}
 
 
@@ -289,10 +284,10 @@ calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
 		if widget.parent != nil {
 			if widget.prev == nil {
 				widget.computed_rel_position =
-					widget.parent.computed_rel_position + widget.parent.computed_size
+					widget.parent.computed_rel_position.x + widget.parent.computed_size.x
 			} else {
-				widget.computed_rel_position =
-					widget.prev.computed_rel_position + widget.prev.computed_size
+				widget.computed_rel_position.x =
+					widget.prev.computed_rel_position.x + widget.prev.computed_size.x
 			}
 		}
 	}
@@ -303,8 +298,6 @@ calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
 		i32(widget.computed_size[Axis2.X]),
 		i32(widget.computed_size[Axis2.Y]),
 	}
-
-	log.info("rect: ", widget.rect)
 
 	widget.discovered = true
 
