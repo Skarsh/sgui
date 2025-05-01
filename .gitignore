@@ -1,3 +1,9 @@
+# VSCode
+.vscode
+
+# Ols
+ols.json
+
 # Windows specific files
 *.exe
 *.pdb
