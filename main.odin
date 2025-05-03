@@ -138,8 +138,7 @@ main :: proc() {
 		)
 		sdl.RenderClear(g_renderer)
 
-		//build_and_render_ui(&app_state)
-		build_and_render_ui_new(&app_state)
+		build_and_render_ui(&app_state)
 
 		sdl.RenderPresent(g_renderer)
 
@@ -219,31 +218,6 @@ App_State :: struct {
 	text_len:       int,
 }
 
-
-build_and_render_ui :: proc(app_state: ^App_State) {
-
-	ui.begin(&app_state.ctx)
-	ui.button(&app_state.ctx, "one", ui.Rect{50, 50, 64, 48})
-	ui.button(&app_state.ctx, "two", ui.Rect{150, 50, 64, 48})
-	ui.button(&app_state.ctx, "three", ui.Rect{50, 150, 64, 48})
-
-	ui.slider(&app_state.ctx, "red", 500, 40, 255, &app_state.slider_value_1)
-	ui.slider(&app_state.ctx, "green", 550, 40, 255, &app_state.slider_value_2)
-	ui.slider(&app_state.ctx, "blue", 600, 40, 255, &app_state.slider_value_3)
-
-	ui.text_field(
-		&app_state.ctx,
-		"texty",
-		ui.Rect{50, 400, 500, 24},
-		app_state.text_buf,
-		&app_state.text_len,
-	)
-
-	render_draw_commands(app_state)
-
-	ui.end(&app_state.ctx)
-}
-
 render_draw_commands :: proc(app_state: ^App_State) {
 
 	commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
@@ -277,9 +251,9 @@ render_draw_commands :: proc(app_state: ^App_State) {
 	}
 }
 
-build_and_render_ui_new :: proc(app_state: ^App_State) {
+build_and_render_ui :: proc(app_state: ^App_State) {
 
-	ui.begin_new(&app_state.ctx)
+	ui.begin(&app_state.ctx)
 
 	root, root_ok := ui.widget_make(&app_state.ctx, "root")
 	app_state.ctx.root_widget = root
@@ -289,12 +263,12 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 	button_panel_comm := ui.button_panel(&app_state.ctx, "button_panel")
 	ui.push_parent(&app_state.ctx, button_panel_comm.widget)
 
-	comm_button_1 := ui.button_new(&app_state.ctx, "button_1")
+	comm_button_1 := ui.button(&app_state.ctx, "button_1")
 	if comm_button_1.held {
 		log.infof("%s held: ", comm_button_1.widget.string)
 	}
 
-	comm_button_2 := ui.button_new(&app_state.ctx, "button_2")
+	comm_button_2 := ui.button(&app_state.ctx, "button_2")
 	if comm_button_2.held {
 		log.infof("%s held: ", comm_button_2.widget.string)
 	}
@@ -305,7 +279,7 @@ build_and_render_ui_new :: proc(app_state: ^App_State) {
 	// Pop root
 	ui.pop_parent(&app_state.ctx)
 
-	ui.end_new(&app_state.ctx)
+	ui.end(&app_state.ctx)
 
 	render_draw_commands(app_state)
 }

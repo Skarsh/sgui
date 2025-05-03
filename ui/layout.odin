@@ -224,7 +224,7 @@ render_widget :: proc(ctx: ^Context, widget: ^Widget) {
 }
 
 // TODO(Thomas): Return error?
-button_new :: proc(ctx: ^Context, id_key: string) -> Comm {
+button :: proc(ctx: ^Context, id_key: string) -> Comm {
 	flags: Widget_Flag_Set = {
 		.Clickable,
 		.Draw_Border,
@@ -261,7 +261,7 @@ button_panel :: proc(ctx: ^Context, id_key: string) -> Comm {
 	return comm
 }
 
-begin_new :: proc(ctx: ^Context) {
+begin :: proc(ctx: ^Context) {
 	ctx.ui_state.hot_item = ui_key_null()
 	ctx.command_list.idx = -1
 }
@@ -361,7 +361,7 @@ render_all_widgets :: proc(ctx: ^Context) {
 	render_widget(ctx, ctx.root_widget)
 }
 
-end_new :: proc(ctx: ^Context) {
+end :: proc(ctx: ^Context) {
 	ctx.frame_index += 1
 
 	perform_layout(ctx)
@@ -584,9 +584,9 @@ test_widget_hierarchy_traversal :: proc(t: ^testing.T) {
 
 	push_parent(&ctx, panel_1)
 
-	button_1_comm := button_new(&ctx, "button_1")
-	button_2_comm := button_new(&ctx, "button_2")
-	button_3_comm := button_new(&ctx, "button_3")
+	button_1_comm := button(&ctx, "button_1")
+	button_2_comm := button(&ctx, "button_2")
+	button_3_comm := button(&ctx, "button_3")
 
 	pop_parent(&ctx)
 
@@ -595,9 +595,9 @@ test_widget_hierarchy_traversal :: proc(t: ^testing.T) {
 
 	push_parent(&ctx, panel_2)
 
-	button_4_comm := button_new(&ctx, "button_4")
-	button_5_comm := button_new(&ctx, "button_5")
-	button_6_comm := button_new(&ctx, "button_6")
+	button_4_comm := button(&ctx, "button_4")
+	button_5_comm := button(&ctx, "button_5")
+	button_6_comm := button(&ctx, "button_6")
 
 	pop_parent(&ctx)
 
