@@ -297,11 +297,12 @@ calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
 
 	clear_discovered(ctx.root_widget)
 
+	// TODO(Thomas): This is just hardcoded for axis now.
+	// This obviously has to change.
 	for axis in Axis2 {
 		if widget.parent != nil {
 			if widget.prev == nil {
-				widget.computed_rel_position =
-					widget.parent.computed_rel_position.x + widget.parent.computed_size.x
+				widget.computed_rel_position = widget.parent.computed_rel_position.x
 			} else {
 				widget.computed_rel_position.x =
 					widget.prev.computed_rel_position.x + widget.prev.computed_size.x
