@@ -4,8 +4,9 @@ import "core:mem"
 import "core:strings"
 import textedit "core:text/edit"
 
-COMMAND_LIST_SIZE :: #config(SUI_COMMAND_LIST_SIZE, 100)
-PARENT_LIST_SIZE :: #config(SUI_PARENT_LIST_SIZE, 64)
+COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
+PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)
+STYLE_STACK_SIZE :: #config(SUI_STYLE_STACK_SIZE, 64)
 MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 CHAR_WIDTH :: #config(SUI_CHAR_WIDTH, 14)
 CHAR_HEIGHT :: #config(SUI_CHAR_HEIGHT, 24)
@@ -68,8 +69,9 @@ Style :: struct {
 Context :: struct {
 	persistent_allocator: mem.Allocator,
 	frame_allocator:      mem.Allocator,
-	command_list:         Stack(Command, COMMAND_LIST_SIZE),
-	parent_list:          Stack(^Widget, PARENT_LIST_SIZE),
+	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
+	parent_stack:         Stack(^Widget, PARENT_STACK_SIZE),
+	style_stack:          Stack(^Color, STYLE_STACK_SIZE),
 	root_widget:          ^Widget,
 	ui_state:             UI_State,
 	current_parent:       ^Widget,
@@ -114,9 +116,9 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
-	push(&ctx.command_list, Command_Rect{rect, color})
+	push(&ctx.command_stack, Command_Rect{rect, color})
 }
 
 draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
-	push(&ctx.command_list, Command_Text{x, y, str})
+	push(&ctx.command_stack, Command_Text{x, y, str})
 }

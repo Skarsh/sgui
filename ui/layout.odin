@@ -131,7 +131,7 @@ widget_make :: proc(
 // Push a new widget to become the parent
 push_parent :: proc(ctx: ^Context, widget: ^Widget) -> (^Widget, bool) {
 	prev_parent := ctx.current_parent
-	ok := push(&ctx.parent_list, prev_parent)
+	ok := push(&ctx.parent_stack, prev_parent)
 	if !ok {
 		log.error("Failed to push parent onto parent stack / list")
 		return nil, false
@@ -146,7 +146,7 @@ pop_parent :: proc(ctx: ^Context) -> (^Widget, bool) {
 
 	popped_parent := ctx.current_parent
 
-	parent_from_stack, ok := pop(&ctx.parent_list)
+	parent_from_stack, ok := pop(&ctx.parent_stack)
 	if !ok {
 		return nil, false
 	}
@@ -263,7 +263,7 @@ button_panel :: proc(ctx: ^Context, id_key: string) -> Comm {
 
 begin :: proc(ctx: ^Context) {
 	ctx.ui_state.hot_item = ui_key_null()
-	ctx.command_list.idx = -1
+	ctx.command_stack.idx = -1
 }
 
 calculate_standalone_sizes :: proc(ctx: ^Context, widget: ^Widget) {

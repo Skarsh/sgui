@@ -220,12 +220,12 @@ App_State :: struct {
 
 render_draw_commands :: proc(app_state: ^App_State) {
 
-	commands := [ui.COMMAND_LIST_SIZE]ui.Command{}
+	commands := [ui.COMMAND_STACK_SIZE]ui.Command{}
 
 	idx := 0
-	for command, ok := ui.pop(&app_state.ctx.command_list);
+	for command, ok := ui.pop(&app_state.ctx.command_stack);
 	    ok;
-	    command, ok = ui.pop(&app_state.ctx.command_list) {
+	    command, ok = ui.pop(&app_state.ctx.command_stack) {
 		commands[idx] = command
 		idx += 1
 	}
