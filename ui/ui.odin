@@ -60,52 +60,42 @@ UI_State :: struct {
 	last_widget: UI_Key,
 }
 
-Style :: struct {
-	scrollbar_size:    i32,
-	scroll_thumb_size: i32,
-	colors:            [Color_Type]Color,
-}
+Color_Style :: [Color_Type]Color
 
 Context :: struct {
 	persistent_allocator: mem.Allocator,
 	frame_allocator:      mem.Allocator,
 	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
 	parent_stack:         Stack(^Widget, PARENT_STACK_SIZE),
-	style_stack:          Stack(^Color, STYLE_STACK_SIZE),
+	style_stack:          Stack(Color_Style, STYLE_STACK_SIZE),
 	root_widget:          ^Widget,
 	ui_state:             UI_State,
 	current_parent:       ^Widget,
-	style:                Style,
 	input:                Input,
 	widget_cache:         map[UI_Key]^Widget,
 	frame_index:          u64,
 }
 
-default_style := Style {
-	scrollbar_size = 12,
-	scroll_thumb_size = 8,
-	colors = {
-		.Text = {230, 230, 230, 255},
-		.Selection_BG = {90, 90, 90, 255},
-		.Window_BG = {50, 50, 50, 255},
-		.Button = {75, 75, 75, 255},
-		.Button_Hot = {95, 95, 95, 255},
-		.Button_Active = {115, 115, 115, 255},
-		.Button_Shadow = {0, 0, 0, 255},
-		.Base = {30, 30, 30, 255},
-		.Base_Hot = {35, 35, 35, 255},
-		.Base_Active = {40, 40, 40, 255},
-		.Scroll_Base = {43, 43, 43, 255},
-		.Scroll_Thumb = {30, 30, 30, 255},
-		.Scroll_Thumb_Hot = {95, 95, 95, 255},
-	},
+default_color_style := Color_Style {
+	.Text             = {230, 230, 230, 255},
+	.Selection_BG     = {90, 90, 90, 255},
+	.Window_BG        = {50, 50, 50, 255},
+	.Button           = {75, 75, 75, 255},
+	.Button_Hot       = {95, 95, 95, 255},
+	.Button_Active    = {115, 115, 115, 255},
+	.Button_Shadow    = {0, 0, 0, 255},
+	.Base             = {30, 30, 30, 255},
+	.Base_Hot         = {35, 35, 35, 255},
+	.Base_Active      = {40, 40, 40, 255},
+	.Scroll_Base      = {43, 43, 43, 255},
+	.Scroll_Thumb     = {30, 30, 30, 255},
+	.Scroll_Thumb_Hot = {95, 95, 95, 255},
 }
 
 init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator: mem.Allocator) {
 	ctx^ = {} // zero memory
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
-	ctx.style = default_style
 	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
 	ctx.input.textbox_state.builder = &ctx.input.text
 
@@ -121,4 +111,14 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 
 draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
 	push(&ctx.command_stack, Command_Text{x, y, str})
+}
+
+push_color :: proc(ctx: ^Context, color_type: Color_Type, color: Color) -> bool {
+	colors := default_color_style
+	colors[color_type] = color
+	return push(&ctx.style_stack, colors)
+}
+
+pop_color :: proc(ctx: ^Context) -> (Color_Style, bool) {
+	return pop(&ctx.style_stack)
 }

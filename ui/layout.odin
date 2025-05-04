@@ -65,6 +65,7 @@ Widget :: struct {
 	// NOTE(Thomas): Not entirely sure about this rect
 	// and how it should be represented.
 	rect:                  Rect,
+	color_style:           Color_Style,
 
 	// Persistent animation data
 	hot:                   f32,
@@ -101,6 +102,11 @@ widget_make :: proc(
 		widget.string = string
 		widget.semantic_size = semantic_size
 		widget.last_frame_touched = ctx.frame_index
+		ok: bool
+		widget.color_style, ok = peek(&ctx.style_stack)
+		if !ok {
+			widget.color_style = default_color_style
+		}
 
 		// We only need to deal with the non root case, since that's
 		// already dealt with by default from setting the widget state above.
@@ -204,10 +210,15 @@ comm_from_widget :: proc(ctx: ^Context, widget: ^Widget) -> Comm {
 render_widget :: proc(ctx: ^Context, widget: ^Widget) {
 	widget.discovered = true
 
-	color := ctx.style.colors[.Button]
+	//color := ctx.style.colors[.Button]
+	//color := widget.color
+	//color := widget.color_style[.Button]
+	color := default_color_style[.Button]
 
 	if .Hot_Animation in widget.flags {
-		hot_color := ctx.style.colors[.Button_Hot]
+		//hot_color := ctx.style.colors[.Button_Hot]
+		//hot_color := widget.color_style[.Button_Hot]
+		hot_color := default_color_style[.Button_Hot]
 		t := widget.hot
 		color = lerp_color(color, hot_color, t)
 	}
