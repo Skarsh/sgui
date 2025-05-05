@@ -258,12 +258,15 @@ button :: proc(ctx: ^Context, id_key: string) -> Comm {
 button_panel :: proc(ctx: ^Context, id_key: string) -> Comm {
 	flags: Widget_Flag_Set = {}
 
-	semantic_size: [Axis2_Size]Size = {
-		Size{kind = .Pixels, value = 2 * 64, strictness = 1.0},
-		Size{kind = .Pixels, value = 2 * 48, strictness = 1.0},
+
+	semantic_size := [Axis2_Size]Size {
+		Size{kind = .Percent_Of_Parent, value = 100, strictness = 1.0},
+		Size{kind = .Children_Sum, value = 100, strictness = 1.0},
 	}
+
 	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
 	comm := comm_from_widget(ctx, widget)
+
 	return comm
 }
 
@@ -296,12 +299,38 @@ calculate_standalone_sizes :: proc(ctx: ^Context, widget: ^Widget) {
 	}
 }
 
-calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
+calculate_upwards_dependent :: proc(ctx: ^Context, widget: ^Widget) {
 	if widget == nil {
 		return
 	}
 
-	clear_discovered(ctx.root_widget)
+	for axis in Axis2 {
+		if widget.semantic_size[axis].kind == .Percent_Of_Parent {
+			widget.computed_size[axis] = widget.parent.computed_size[axis]
+		}
+	}
+
+	widget.discovered = true
+
+	if widget.first != nil && !widget.first.discovered {
+		calculate_upwards_dependent(ctx, widget.first)
+	}
+
+	if widget.next != nil && !widget.next.discovered {
+		calculate_upwards_dependent(ctx, widget.next)
+	}
+}
+
+calculate_downwards_dependent :: proc(ctx: ^Context, widget: ^Widget) {
+	if widget == nil {
+		return
+	}
+}
+
+calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
+	if widget == nil {
+		return
+	}
 
 	// TODO(Thomas): This is just hardcoded for axis now.
 	// This obviously has to change.
@@ -344,9 +373,13 @@ perform_layout :: proc(ctx: ^Context) {
 	// 2. (Pre-order) Calculate "upwards-dependent" sizes. These are sizes that
 	// strictly depend on an ancestor's size, other than ancestors that have
 	// "downwards-dependent" sizes on the given axis. (Size_Kind.Percent_Of_Parent)
+	clear_discovered(ctx.root_widget)
+	calculate_upwards_dependent(ctx, ctx.root_widget)
 
 	// 3. (Post-order) Calculate "downwards-dependent" sizes. These are size that
 	// depend on sizes of descendants. (Size_Kind.Children_Sum)
+	clear_discovered(ctx.root_widget)
+	calculate_downwards_dependent(ctx, ctx.root_widget)
 
 	// 4. (Pre-order) Solve violations. For each level in the hierarchy, this will verify
 	// that the children do not extend past the boundaries of a given parent
@@ -359,6 +392,7 @@ perform_layout :: proc(ctx: ^Context) {
 	// 5. (Pre-order) Finally, given the calculated sizes of each widget, compute the
 	// relative positions of each widget (by laying out on an axis which can be specified on any parent node).
 	// This stage can also compute the final screen-coordinates rectangle.
+	clear_discovered(ctx.root_widget)
 	calculate_positions(ctx, ctx.root_widget)
 }
 
