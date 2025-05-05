@@ -260,8 +260,8 @@ button_panel :: proc(ctx: ^Context, id_key: string) -> Comm {
 
 
 	semantic_size := [Axis2_Size]Size {
-		Size{kind = .Percent_Of_Parent, value = 100, strictness = 1.0},
-		Size{kind = .Children_Sum, value = 100, strictness = 1.0},
+		Size{kind = .Percent_Of_Parent, value = 0.2, strictness = 1.0},
+		Size{kind = .Children_Sum, value = 0, strictness = 1.0},
 	}
 
 	widget, _ := widget_make(ctx, id_key, flags, semantic_size)
@@ -306,7 +306,8 @@ calculate_upwards_dependent :: proc(ctx: ^Context, widget: ^Widget) {
 
 	for axis in Axis2 {
 		if widget.semantic_size[axis].kind == .Percent_Of_Parent {
-			widget.computed_size[axis] = widget.parent.computed_size[axis]
+			widget.computed_size[axis] =
+				widget.parent.computed_size[axis] * widget.semantic_size[axis].value
 		}
 	}
 
@@ -333,6 +334,24 @@ calculate_downwards_dependent :: proc(ctx: ^Context, widget: ^Widget) {
 	if widget.next != nil && !widget.next.discovered {
 		calculate_downwards_dependent(ctx, widget.next)
 	}
+
+	// NOTE(Thomas): There is an issue here with this that I haven't been able to figure out yet
+	// Summing the children only makes sense if we're summing in the direction
+	// we're laying them out. Example is say we have a panel and we want to lay out multiple buttons in a row
+	// and then Children_Sum in the vertical axis doesn't really make sense, what makes sense then might be to
+	// make all buttons the size of the largest button, or somethig like that.
+	//for axis in Axis2 {
+	//	if widget.semantic_size[axis].kind == .Children_Sum {
+	//		// Sum up all the size in the direction
+	//		total_size: f32 = 0
+	//		child := widget.first
+	//		for child != nil {
+	//			total_size += child.computed_size[axis]
+	//			child = child.next
+	//		}
+	//		widget.computed_size[axis] = total_size
+	//	}
+	//}
 
 	widget.discovered = true
 }
