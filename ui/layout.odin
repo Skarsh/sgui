@@ -325,6 +325,16 @@ calculate_downwards_dependent :: proc(ctx: ^Context, widget: ^Widget) {
 	if widget == nil {
 		return
 	}
+
+	if widget.first != nil && !widget.first.discovered {
+		calculate_downwards_dependent(ctx, widget.first)
+	}
+
+	if widget.next != nil && !widget.next.discovered {
+		calculate_downwards_dependent(ctx, widget.next)
+	}
+
+	widget.discovered = true
 }
 
 calculate_positions :: proc(ctx: ^Context, widget: ^Widget) {
