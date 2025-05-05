@@ -126,7 +126,8 @@ main :: proc() {
 	for running {
 		process_input(&app_state)
 
-		sdl.SetRenderDrawColor(g_renderer, 128, 128, 128, 255)
+		bg_color := ui.default_color_style[.Window_BG]
+		sdl.SetRenderDrawColor(g_renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(g_renderer)
 
 		build_and_render_ui(&app_state)
@@ -248,15 +249,11 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 	assert(root_ok)
 	ui.push_parent(&app_state.ctx, root)
 
-	ui.push_color(&app_state.ctx, .Base, ui.Color{255, 0, 0, 255})
 	button_panel_comm := ui.button_panel(&app_state.ctx, "button_panel")
-	ui.pop_color(&app_state.ctx)
 
 	ui.push_parent(&app_state.ctx, button_panel_comm.widget)
 
-	ui.push_color(&app_state.ctx, .Base, ui.Color{255, 255, 0, 255})
 	comm_button_1 := ui.button(&app_state.ctx, "button_1")
-	ui.pop_color(&app_state.ctx)
 
 	if comm_button_1.held {
 		log.infof("%s held: ", comm_button_1.widget.string)

@@ -18,16 +18,9 @@ Color_Type :: enum u32 {
 	Text,
 	Selection_BG,
 	Window_BG,
-	Button,
-	Button_Hot,
-	Button_Active,
-	Button_Shadow,
+	Hot,
+	Active,
 	Base,
-	Base_Hot,
-	Base_Active,
-	Scroll_Base,
-	Scroll_Thumb,
-	Scroll_Thumb_Hot,
 }
 
 Color :: struct {
@@ -77,19 +70,12 @@ Context :: struct {
 }
 
 default_color_style := Color_Style {
-	.Text             = {230, 230, 230, 255},
-	.Selection_BG     = {90, 90, 90, 255},
-	.Window_BG        = {50, 50, 50, 255},
-	.Button           = {75, 75, 75, 255},
-	.Button_Hot       = {95, 95, 95, 255},
-	.Button_Active    = {115, 115, 115, 255},
-	.Button_Shadow    = {0, 0, 0, 255},
-	.Base             = {30, 30, 30, 255},
-	.Base_Hot         = {35, 35, 35, 255},
-	.Base_Active      = {40, 40, 40, 255},
-	.Scroll_Base      = {43, 43, 43, 255},
-	.Scroll_Thumb     = {30, 30, 30, 255},
-	.Scroll_Thumb_Hot = {95, 95, 95, 255},
+	.Text         = {230, 230, 230, 255},
+	.Selection_BG = {90, 90, 90, 255},
+	.Window_BG    = {50, 50, 50, 255},
+	.Hot          = {95, 95, 95, 255},
+	.Active       = {115, 115, 115, 255},
+	.Base         = {30, 30, 30, 255},
 }
 
 init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator: mem.Allocator) {
@@ -98,6 +84,12 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx.frame_allocator = frame_allocator
 	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
 	ctx.input.textbox_state.builder = &ctx.input.text
+
+	// TODO(Thomas): Ideally we would like to not having to initialize
+	// the stacks like this. This has already caused issues.
+	ctx.command_stack = create_stack(Command, COMMAND_STACK_SIZE)
+	ctx.parent_stack = create_stack(^Widget, PARENT_STACK_SIZE)
+	ctx.style_stack = create_stack(Color_Style, STYLE_STACK_SIZE)
 
 	ctx.current_parent = nil
 

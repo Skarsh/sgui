@@ -210,15 +210,10 @@ comm_from_widget :: proc(ctx: ^Context, widget: ^Widget) -> Comm {
 render_widget :: proc(ctx: ^Context, widget: ^Widget) {
 	widget.discovered = true
 
-	//color := ctx.style.colors[.Button]
-	//color := widget.color
-	//color := widget.color_style[.Button]
-	color := default_color_style[.Button]
+	color := widget.color_style[.Base]
 
 	if .Hot_Animation in widget.flags {
-		//hot_color := ctx.style.colors[.Button_Hot]
-		//hot_color := widget.color_style[.Button_Hot]
-		hot_color := default_color_style[.Button_Hot]
+		hot_color := widget.color_style[.Hot]
 		t := widget.hot
 		color = lerp_color(color, hot_color, t)
 	}
