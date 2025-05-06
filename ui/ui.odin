@@ -7,10 +7,10 @@ import textedit "core:text/edit"
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
 PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)
 STYLE_STACK_SIZE :: #config(SUI_STYLE_STACK_SIZE, 64)
+CHILD_LAYOUT_AXIS_STACK_SIZE :: #config(SUI_CHILD_LAYOUT_AXIS_STACK_SIZE, 64)
 MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 CHAR_WIDTH :: #config(SUI_CHAR_WIDTH, 14)
 CHAR_HEIGHT :: #config(SUI_CHAR_HEIGHT, 24)
-
 
 Vector2i32 :: [2]i32
 
@@ -56,17 +56,18 @@ UI_State :: struct {
 Color_Style :: [Color_Type]Color
 
 Context :: struct {
-	persistent_allocator: mem.Allocator,
-	frame_allocator:      mem.Allocator,
-	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
-	parent_stack:         Stack(^Widget, PARENT_STACK_SIZE),
-	style_stack:          Stack(Color_Style, STYLE_STACK_SIZE),
-	root_widget:          ^Widget,
-	ui_state:             UI_State,
-	current_parent:       ^Widget,
-	input:                Input,
-	widget_cache:         map[UI_Key]^Widget,
-	frame_index:          u64,
+	persistent_allocator:    mem.Allocator,
+	frame_allocator:         mem.Allocator,
+	command_stack:           Stack(Command, COMMAND_STACK_SIZE),
+	parent_stack:            Stack(^Widget, PARENT_STACK_SIZE),
+	style_stack:             Stack(Color_Style, STYLE_STACK_SIZE),
+	child_layout_axis_stack: Stack(Axis2, CHILD_LAYOUT_AXIS_STACK_SIZE),
+	root_widget:             ^Widget,
+	ui_state:                UI_State,
+	current_parent:          ^Widget,
+	input:                   Input,
+	widget_cache:            map[UI_Key]^Widget,
+	frame_index:             u64,
 }
 
 default_color_style := Color_Style {
@@ -90,6 +91,7 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx.command_stack = create_stack(Command, COMMAND_STACK_SIZE)
 	ctx.parent_stack = create_stack(^Widget, PARENT_STACK_SIZE)
 	ctx.style_stack = create_stack(Color_Style, STYLE_STACK_SIZE)
+	ctx.child_layout_axis_stack = create_stack(Axis2, CHILD_LAYOUT_AXIS_STACK_SIZE)
 
 	ctx.current_parent = nil
 
@@ -113,4 +115,12 @@ push_color :: proc(ctx: ^Context, color_type: Color_Type, color: Color) -> bool 
 
 pop_color :: proc(ctx: ^Context) -> (Color_Style, bool) {
 	return pop(&ctx.style_stack)
+}
+
+push_child_layout_axis :: proc(ctx: ^Context, axis: Axis2) -> bool {
+	return push(&ctx.child_layout_axis_stack, axis)
+}
+
+pop_child_layout_axis :: proc(ctx: ^Context) -> (Axis2, bool) {
+	return pop(&ctx.child_layout_axis_stack)
 }

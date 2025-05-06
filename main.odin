@@ -253,13 +253,10 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 	assert(root_ok)
 	ui.push_parent(&app_state.ctx, root)
 
-	button_panel_semantic_size := [ui.Axis2_Size]ui.Size {
-		ui.Size{kind = .Percent_Of_Parent, value = 100, strictness = 1.0},
-		ui.Size{kind = .None},
-	}
-
 	ui.push_color(&app_state.ctx, .Base, ui.Color{255, 0, 0, 255})
+	ui.push_child_layout_axis(&app_state.ctx, .X)
 	button_panel_comm := ui.button_panel(&app_state.ctx, "button_panel")
+	ui.pop_child_layout_axis(&app_state.ctx)
 	ui.pop_color(&app_state.ctx)
 
 	ui.push_parent(&app_state.ctx, button_panel_comm.widget)

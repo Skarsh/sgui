@@ -55,6 +55,7 @@ Widget :: struct {
 	flags:                 Widget_Flag_Set,
 	string:                string,
 	semantic_size:         [Axis2_Size]Size,
+	child_layout_axis:     Axis2,
 	discovered:            bool,
 
 	// recomputed every frame
@@ -106,6 +107,11 @@ widget_make :: proc(
 		widget.color_style, ok = peek(&ctx.style_stack)
 		if !ok {
 			widget.color_style = default_color_style
+		}
+
+		widget.child_layout_axis, ok = peek(&ctx.child_layout_axis_stack)
+		if !ok {
+			widget.child_layout_axis = Axis2.X
 		}
 
 		// We only need to deal with the non root case, since that's
@@ -258,9 +264,8 @@ button :: proc(ctx: ^Context, id_key: string) -> Comm {
 button_panel :: proc(ctx: ^Context, id_key: string) -> Comm {
 	flags: Widget_Flag_Set = {}
 
-
 	semantic_size := [Axis2_Size]Size {
-		Size{kind = .Percent_Of_Parent, value = 0.2, strictness = 1.0},
+		Size{kind = .Percent_Of_Parent, value = 0.5, strictness = 1.0},
 		Size{kind = .Children_Sum, value = 0, strictness = 1.0},
 	}
 
@@ -335,23 +340,19 @@ calculate_downwards_dependent :: proc(ctx: ^Context, widget: ^Widget) {
 		calculate_downwards_dependent(ctx, widget.next)
 	}
 
-	// NOTE(Thomas): There is an issue here with this that I haven't been able to figure out yet
-	// Summing the children only makes sense if we're summing in the direction
-	// we're laying them out. Example is say we have a panel and we want to lay out multiple buttons in a row
-	// and then Children_Sum in the vertical axis doesn't really make sense, what makes sense then might be to
-	// make all buttons the size of the largest button, or somethig like that.
-	//for axis in Axis2 {
-	//	if widget.semantic_size[axis].kind == .Children_Sum {
-	//		// Sum up all the size in the direction
-	//		total_size: f32 = 0
-	//		child := widget.first
-	//		for child != nil {
-	//			total_size += child.computed_size[axis]
-	//			child = child.next
-	//		}
-	//		widget.computed_size[axis] = total_size
-	//	}
-	//}
+	for axis in Axis2 {
+		if widget.semantic_size[axis].kind == .Children_Sum {
+			sum: f32 = 0
+			for child := widget.first; child != nil; child = child.next {
+				if axis == widget.child_layout_axis {
+					sum += child.computed_size[axis]
+				} else {
+					sum = max(sum, child.computed_size[axis])
+				}
+			}
+			widget.computed_size[axis] = sum
+		}
+	}
 
 	widget.discovered = true
 }
