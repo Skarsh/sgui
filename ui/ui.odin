@@ -1,10 +1,12 @@
 package ui
 
+import "core:log"
 import "core:mem"
 import "core:strings"
 import textedit "core:text/edit"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
+ELEMENT_STACK_SIZE :: #config(SUI_ELEMENT_STACK_SIZE, 64)
 PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)
 STYLE_STACK_SIZE :: #config(SUI_STYLE_STACK_SIZE, 64)
 CHILD_LAYOUT_AXIS_STACK_SIZE :: #config(SUI_CHILD_LAYOUT_AXIS_STACK_SIZE, 64)
@@ -12,6 +14,7 @@ MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 CHAR_WIDTH :: #config(SUI_CHAR_WIDTH, 14)
 CHAR_HEIGHT :: #config(SUI_CHAR_HEIGHT, 24)
 
+Vec2 :: [2]f32
 Vector2i32 :: [2]i32
 
 Color_Type :: enum u32 {
@@ -46,28 +49,18 @@ Command_Text :: struct {
 	str:  string,
 }
 
-UI_State :: struct {
-	hot_item:    UI_Key,
-	active_item: UI_Key,
-	kbd_item:    UI_Key,
-	last_widget: UI_Key,
-}
 
 Color_Style :: [Color_Type]Color
 
 Context :: struct {
-	persistent_allocator:    mem.Allocator,
-	frame_allocator:         mem.Allocator,
-	command_stack:           Stack(Command, COMMAND_STACK_SIZE),
-	parent_stack:            Stack(^Widget, PARENT_STACK_SIZE),
-	style_stack:             Stack(Color_Style, STYLE_STACK_SIZE),
-	child_layout_axis_stack: Stack(Axis2, CHILD_LAYOUT_AXIS_STACK_SIZE),
-	root_widget:             ^Widget,
-	ui_state:                UI_State,
-	current_parent:          ^Widget,
-	input:                   Input,
-	widget_cache:            map[UI_Key]^Widget,
-	frame_index:             u64,
+	persistent_allocator: mem.Allocator,
+	frame_allocator:      mem.Allocator,
+	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
+	element_stack:        Stack(UI_Element, ELEMENT_STACK_SIZE),
+	current_parent:       UI_Element,
+	input:                Input,
+	element_cache:        map[UI_Key]UI_Element,
+	frame_index:          u64,
 }
 
 default_color_style := Color_Style {
@@ -83,20 +76,27 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx^ = {} // zero memory
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
-	ctx.input.text = strings.builder_from_bytes(ctx.input._text_store[:])
-	ctx.input.textbox_state.builder = &ctx.input.text
 
 	// TODO(Thomas): Ideally we would like to not having to initialize
 	// the stacks like this. This has already caused issues.
 	ctx.command_stack = create_stack(Command, COMMAND_STACK_SIZE)
-	ctx.parent_stack = create_stack(^Widget, PARENT_STACK_SIZE)
-	ctx.style_stack = create_stack(Color_Style, STYLE_STACK_SIZE)
-	ctx.child_layout_axis_stack = create_stack(Axis2, CHILD_LAYOUT_AXIS_STACK_SIZE)
+	ctx.element_stack = create_stack(UI_Element, ELEMENT_STACK_SIZE)
 
-	ctx.current_parent = nil
+	root_element := make_element(ctx, "root")
+	log.info("root_element.parent", root_element.parent)
+	log.info("root_element.children", root_element.children)
+	open_element(ctx, root_element)
 
 	// TODO(Thomas): Allocate from passed in allocator
-	ctx.widget_cache = make(map[UI_Key]^Widget, persistent_allocator)
+	ctx.element_cache = make(map[UI_Key]UI_Element, persistent_allocator)
+}
+
+begin :: proc(ctx: ^Context) {
+
+}
+
+end :: proc(ctx: ^Context) {
+
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
@@ -105,22 +105,4 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 
 draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
 	push(&ctx.command_stack, Command_Text{x, y, str})
-}
-
-push_color :: proc(ctx: ^Context, color_type: Color_Type, color: Color) -> bool {
-	colors := default_color_style
-	colors[color_type] = color
-	return push(&ctx.style_stack, colors)
-}
-
-pop_color :: proc(ctx: ^Context) -> (Color_Style, bool) {
-	return pop(&ctx.style_stack)
-}
-
-push_child_layout_axis :: proc(ctx: ^Context, axis: Axis2) -> bool {
-	return push(&ctx.child_layout_axis_stack, axis)
-}
-
-pop_child_layout_axis :: proc(ctx: ^Context) -> (Axis2, bool) {
-	return pop(&ctx.child_layout_axis_stack)
 }

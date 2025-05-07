@@ -244,46 +244,11 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 
 	ui.begin(&app_state.ctx)
 
-	root_semantic_size := [ui.Axis2_Size]ui.Size {
-		ui.Size{kind = .Pixels, value = 640, strictness = 1.0},
-		ui.Size{kind = .Pixels, value = 480, strictness = 1.0},
-	}
-	root, root_ok := ui.widget_make(&app_state.ctx, "root", semantic_size = root_semantic_size)
-	app_state.ctx.root_widget = root
-	assert(root_ok)
-	ui.push_parent(&app_state.ctx, root)
+	panel_element := ui.make_element(&app_state.ctx, "panel")
+	log.info(app_state.ctx.current_parent.children)
 
-	ui.push_color(&app_state.ctx, .Base, ui.Color{255, 0, 0, 255})
-	ui.push_child_layout_axis(&app_state.ctx, .X)
-	button_panel_comm := ui.button_panel(&app_state.ctx, "button_panel")
-	ui.pop_child_layout_axis(&app_state.ctx)
-	ui.pop_color(&app_state.ctx)
-
-	ui.push_parent(&app_state.ctx, button_panel_comm.widget)
-
-	ui.push_color(&app_state.ctx, .Base, ui.Color{128, 128, 128, 255})
-	comm_button_1 := ui.button(&app_state.ctx, "button_1")
-
-	if comm_button_1.held {
-		log.infof("%s held: ", comm_button_1.widget.string)
-	}
-
-	comm_button_2 := ui.button(&app_state.ctx, "button_2")
-	if comm_button_2.held {
-		log.infof("%s held: ", comm_button_2.widget.string)
-	}
-
-	comm_button_3 := ui.button(&app_state.ctx, "button_3")
-	if comm_button_3.held {
-		log.infof("%s held: ", comm_button_3.widget.string)
-	}
-	ui.pop_color(&app_state.ctx)
-
-	// Pop button panel
-	ui.pop_parent(&app_state.ctx)
-
-	// Pop root
-	ui.pop_parent(&app_state.ctx)
+	ui.open_element(&app_state.ctx, panel_element)
+	ui.close_element(&app_state.ctx)
 
 	ui.end(&app_state.ctx)
 
