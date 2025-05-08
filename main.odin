@@ -244,10 +244,16 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 
 	ui.begin(&app_state.ctx)
 
-	panel_element := ui.make_element(&app_state.ctx, "panel")
+	panel_element, panel_element_ok := ui.make_element(&app_state.ctx, "panel")
 	log.info(app_state.ctx.current_parent.children)
 
 	ui.open_element(&app_state.ctx, panel_element)
+	button_1_element, button_1_element_ok := ui.make_element(&app_state.ctx, "button_1")
+	assert(button_1_element_ok)
+	button_2_element, button_2_element_ok := ui.make_element(&app_state.ctx, "button_2")
+	assert(button_2_element_ok)
+	button_3_element, button_3_element_ok := ui.make_element(&app_state.ctx, "button_3")
+	assert(button_3_element_ok)
 	ui.close_element(&app_state.ctx)
 
 	ui.end(&app_state.ctx)

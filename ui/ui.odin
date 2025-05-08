@@ -56,10 +56,10 @@ Context :: struct {
 	persistent_allocator: mem.Allocator,
 	frame_allocator:      mem.Allocator,
 	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
-	element_stack:        Stack(UI_Element, ELEMENT_STACK_SIZE),
-	current_parent:       UI_Element,
+	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	current_parent:       ^UI_Element,
 	input:                Input,
-	element_cache:        map[UI_Key]UI_Element,
+	element_cache:        map[UI_Key]^UI_Element,
 	frame_index:          u64,
 }
 
@@ -80,15 +80,16 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	// TODO(Thomas): Ideally we would like to not having to initialize
 	// the stacks like this. This has already caused issues.
 	ctx.command_stack = create_stack(Command, COMMAND_STACK_SIZE)
-	ctx.element_stack = create_stack(UI_Element, ELEMENT_STACK_SIZE)
+	ctx.element_stack = create_stack(^UI_Element, ELEMENT_STACK_SIZE)
 
-	root_element := make_element(ctx, "root")
+	root_element, root_element_ok := make_element(ctx, "root")
+	assert(root_element_ok)
 	log.info("root_element.parent", root_element.parent)
 	log.info("root_element.children", root_element.children)
 	open_element(ctx, root_element)
 
 	// TODO(Thomas): Allocate from passed in allocator
-	ctx.element_cache = make(map[UI_Key]UI_Element, persistent_allocator)
+	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 }
 
 begin :: proc(ctx: ^Context) {
