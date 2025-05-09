@@ -58,6 +58,7 @@ Context :: struct {
 	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
 	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	current_parent:       ^UI_Element,
+	root_element:         ^UI_Element,
 	input:                Input,
 	element_cache:        map[UI_Key]^UI_Element,
 	frame_index:          u64,
@@ -77,22 +78,59 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 
-	root_element, root_element_ok := make_element(ctx, "root")
-	assert(root_element_ok)
-	log.info("root_element.parent", root_element.parent)
-	log.info("root_element.children", root_element.children)
-	open_element(ctx, root_element)
 
 	// TODO(Thomas): Allocate from passed in allocator
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 }
 
+deinit :: proc(ctx: ^Context) {
+}
+
 begin :: proc(ctx: ^Context) {
+	clear(&ctx.command_stack)
+
+	// Open the root element
+	root_open_ok := open_element(ctx, "root", {color = Color{128, 128, 128, 255}})
+	assert(root_open_ok)
+	root_element, _ := peek(&ctx.element_stack)
+	ctx.root_element = root_element
 
 }
 
 end :: proc(ctx: ^Context) {
 
+	// Close the root element
+	close_element(ctx)
+	assert(ctx.current_parent == nil)
+
+	draw_all_elements(ctx)
+}
+
+draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
+	if element == nil {
+		return
+	}
+
+	draw_rect(
+		ctx,
+		Rect {
+			i32(element.position.x),
+			i32(element.position.y),
+			i32(element.size.x),
+			i32(element.size.y),
+		},
+		element.color,
+	)
+
+	for child in element.children {
+		draw_element(ctx, child)
+	}
+}
+
+draw_all_elements :: proc(ctx: ^Context) {
+	// pre-order traversal
+	// We know that at this point the only element left is the root element
+	draw_element(ctx, ctx.root_element)
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {

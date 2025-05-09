@@ -111,6 +111,7 @@ main :: proc() {
 	defer delete(frame_arena_buffer)
 
 	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator)
+	defer ui.deinit(&ctx)
 
 	// TODO(Thomas): When suitable, this should come from a fixed size buffer allocator
 	// or something.
@@ -244,21 +245,35 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 
 	ui.begin(&app_state.ctx)
 
-	panel_element, panel_element_ok := ui.make_element(&app_state.ctx, "panel")
-	log.info(app_state.ctx.current_parent.children)
-
-	ui.open_element(&app_state.ctx, panel_element)
-	button_1_element, button_1_element_ok := ui.make_element(&app_state.ctx, "button_1")
-	assert(button_1_element_ok)
-	button_2_element, button_2_element_ok := ui.make_element(&app_state.ctx, "button_2")
-	assert(button_2_element_ok)
-	button_3_element, button_3_element_ok := ui.make_element(&app_state.ctx, "button_3")
-	assert(button_3_element_ok)
+	ui.open_element(
+		&app_state.ctx,
+		"blue rectangle",
+		{sizing = {{kind = .Fit}, {kind = .Fit}}, color = ui.Color{0, 0, 255, 255}},
+	)
+	ui.open_element(
+		&app_state.ctx,
+		"pink rectangle",
+		{
+			sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+			color = ui.Color{255, 192, 203, 255},
+		},
+	)
+	ui.close_element(&app_state.ctx)
+	ui.open_element(
+		&app_state.ctx,
+		"yellow rectangle",
+		{
+			sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+			color = ui.Color{255, 255, 0, 255},
+		},
+	)
+	ui.close_element(&app_state.ctx)
 	ui.close_element(&app_state.ctx)
 
 	ui.end(&app_state.ctx)
 
 	render_draw_commands(app_state)
+
 }
 
 process_input :: proc(app_state: ^App_State) {
