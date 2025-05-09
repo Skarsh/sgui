@@ -77,11 +77,6 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 
-	// TODO(Thomas): Ideally we would like to not having to initialize
-	// the stacks like this. This has already caused issues.
-	ctx.command_stack = create_stack(Command, COMMAND_STACK_SIZE)
-	ctx.element_stack = create_stack(^UI_Element, ELEMENT_STACK_SIZE)
-
 	root_element, root_element_ok := make_element(ctx, "root")
 	assert(root_element_ok)
 	log.info("root_element.parent", root_element.parent)

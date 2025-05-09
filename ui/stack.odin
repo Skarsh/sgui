@@ -3,121 +3,102 @@ package ui
 import "core:testing"
 
 Stack :: struct($T: typeid, $N: int) {
-	idx:   i32,
+	top:   i32,
 	items: [N]T,
 }
 
-create_stack :: proc($T: typeid, $N: int) -> Stack(T, N) {
-	stack := Stack(T, N){}
-	stack.idx = -1
-	return stack
-}
 
 push :: #force_inline proc(stack: ^$T/Stack($V, $N), val: V) -> bool {
-	if stack.idx >= len(stack.items) - 1 {
+	if stack.top + 1 >= len(stack.items) {
 		return false
 	}
 
-	stack.idx += 1
-	stack.items[stack.idx] = val
-
+	stack.top += 1
+	stack.items[stack.top] = val
 	return true
 }
 
 
 pop :: #force_inline proc(stack: ^$T/Stack($V, $N)) -> (V, bool) {
-	val: V = ---
-
-	if stack.idx < 0 {
-		return val, false
+	if stack.top <= 0 {
+		return V{}, false
 	}
-
-	val = stack.items[stack.idx]
-	stack.idx -= 1
-	return val, true
+	stack.top -= 1
+	return stack.items[stack.top + 1], true
 }
 
 peek :: #force_inline proc(stack: ^$T/Stack($V, $N)) -> (V, bool) {
-	val: V = ---
-
-	if stack.idx < 0 {
-		return val, false
+	if stack.top <= 0 {
+		return V{}, false
 	}
 
-	val = stack.items[stack.idx]
-	return val, true
+	return stack.items[stack.top], true
 }
 
 is_empty :: proc(stack: ^$T/Stack($V, $N)) -> bool {
-	return stack.idx == -1
+	return stack.top == 0
 }
 
 clear :: proc(stack: ^$T/Stack($V, $N)) {
-	stack.idx = -1
+	stack.top = 0
 }
 
 @(test)
 test_basic_stack_operations :: proc(t: ^testing.T) {
 
-	N :: 5
-	stack := create_stack(int, N)
+	stack := Stack(i32, 5){}
 
-	// Stack items has length N, so pushing N items
-	// onto the stack should be fine
-	for i in 0 ..< N {
-		ok := push(&stack, i)
-		testing.expect(t, ok)
-	}
+	// Check that the stack is empty
+	testing.expect(t, is_empty(&stack))
 
-	{
-		// Trying to push one more than N, so this should fail
-		ok := push(&stack, N + 1)
-		testing.expect(t, !ok)
+	// Peek should return false when empty
+	peek_val, peek_ok := peek(&stack)
+	testing.expect(t, !peek_ok)
 
-	}
+	// Fill the stack
+	push_ok := push(&stack, 1)
+	testing.expect(t, push_ok)
+	push_ok = push(&stack, 2)
+	testing.expect(t, push_ok)
+	push_ok = push(&stack, 3)
+	testing.expect(t, push_ok)
+	push_ok = push(&stack, 4)
+	testing.expect(t, push_ok)
 
-	{
-		// Peek
-		val, ok := peek(&stack)
-		testing.expect(t, ok)
-		testing.expect_value(t, val, N - 1)
-	}
+	// Try to push one more item onto the stack than the length allows
+	push_ok = push(&stack, 5)
+	testing.expect(t, !push_ok)
+
+	// Test peek
+	peek_val, peek_ok = peek(&stack)
+	testing.expect(t, peek_ok)
+	testing.expect_value(t, peek_val, 4)
 
 
-	// Pop N items off the stack
-	for i in 0 ..< N {
-		val, ok := pop(&stack)
-		testing.expect(t, ok)
-		testing.expect_value(t, val, (N - i) - 1)
-	}
+	// Pop all the items
+	val, pop_ok := pop(&stack)
+	testing.expect(t, pop_ok)
+	testing.expect_value(t, val, 4)
 
-	{
-		// Peek
-		_, ok := peek(&stack)
-		testing.expect(t, !ok)
-	}
+	val, pop_ok = pop(&stack)
+	testing.expect(t, pop_ok)
+	testing.expect_value(t, val, 3)
 
-	{
-		// is_empty
-		empty := is_empty(&stack)
-		testing.expect(t, empty)
-	}
+	val, pop_ok = pop(&stack)
+	testing.expect(t, pop_ok)
+	testing.expect_value(t, val, 2)
 
-	{
-		// clear while empty
-		clear(&stack)
-		empty := is_empty(&stack)
-		testing.expect(t, empty)
-	}
+	val, pop_ok = pop(&stack)
+	testing.expect(t, pop_ok)
+	testing.expect_value(t, val, 1)
 
-	{
-		// push some items and then clear, should be empty
-		push(&stack, 42)
-		empty := is_empty(&stack)
-		testing.expect(t, !empty)
-		clear(&stack)
-		empty = is_empty(&stack)
-		testing.expect(t, empty)
-	}
+	// All items popped, stack is empty
+	val, pop_ok = pop(&stack)
+	testing.expect(t, !pop_ok)
+	testing.expect(t, is_empty(&stack))
 
+	// Push one item onto stack and then clear
+	push_ok = push(&stack, 1)
+	clear(&stack)
+	testing.expect(t, is_empty(&stack))
 }
