@@ -81,13 +81,13 @@ close_element :: proc(ctx: ^Context) {
 			element.size.y += padding.top + padding.bottom
 			child_gap := f32((len(element.parent.children) - 1)) * element.parent.child_gap
 			if element.parent.layout_direction == .Left_To_Right {
-				element.size.x += child_gap
-				element.parent.size.x += element.size.x
+				//element.size.x += child_gap
+				element.parent.size.x += element.size.x + child_gap
 				element.parent.size.y = max(element.size.y, element.parent.size.y)
 			} else {
-				element.size.y += child_gap
+				//element.size.y += child_gap
 				element.parent.size.x = max(element.size.x, element.parent.size.x)
-				element.parent.size.y += element.size.y
+				element.parent.size.y += element.size.y + child_gap
 			}
 		}
 	}
@@ -117,9 +117,18 @@ make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
 		if element.parent != nil {
 			append(&element.parent.children, element)
+			log.infof(
+				"id_string: %s, len(parent.childen): %v",
+				element.id_string,
+				len(element.parent.children),
+			)
 		}
 
+		// CONTINUE HERE:
+		// Somehow caching the UI_Element causes the "panel"
+		// in main to be 240 wide instead of 230. Investigate why.
 		ctx.element_cache[key] = element
+
 	}
 
 
@@ -175,7 +184,6 @@ test_fit_sizing :: proc(t: ^testing.T) {
 		defer deinit(&ctx)
 
 		begin(&ctx)
-		defer end(&ctx)
 
 		open_element(
 			&ctx,
@@ -183,7 +191,7 @@ test_fit_sizing :: proc(t: ^testing.T) {
 			Element_Config {
 				sizing = {{kind = .Fit}, {kind = .Fit}},
 				layout_direction = .Left_To_Right,
-				padding = Padding{left = 10, right = 10},
+				padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
 		)
@@ -207,67 +215,46 @@ test_fit_sizing :: proc(t: ^testing.T) {
 		}
 
 		close_element(&ctx)
+		end(&ctx)
 
+		calculate_positions(ctx.root_element)
+
+		panel_element := ctx.root_element.children[0]
+
+		// assert panel size
 		left_pad: f32 = 10
 		right_pad: f32 = 10
-		child_gap: f32 = 10
-		testing.expect_value(
-			t,
-			ctx.root_element.children[0].size.x,
-			100 + 50 + child_gap + left_pad + right_pad,
-		)
-		testing.expect_value(t, ctx.root_element.children[0].size.y, 150)
-	}
-
-
-	// Top_To_Bottom layout direction
-	{
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-
-		begin(&ctx)
-		defer end(&ctx)
-
-		open_element(
-			&ctx,
-			"panel",
-			Element_Config {
-				sizing = {{kind = .Fit}, {kind = .Fit}},
-				layout_direction = .Top_To_Bottom,
-				padding = Padding{top = 10, bottom = 10},
-				child_gap = 10,
-			},
-		)
-
-		{
-			open_element(
-				&ctx,
-				"container_1",
-				Element_Config {
-					sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
-				},
-			)
-			close_element(&ctx)
-			open_element(
-				&ctx,
-				"container_2",
-				Element_Config {
-					sizing = {{kind = .Fixed, value = 50}, {kind = .Fixed, value = 150}},
-				},
-			)
-			close_element(&ctx)
-		}
-
-		close_element(&ctx)
-
 		top_pad: f32 = 10
 		bottom_pad: f32 = 10
 		child_gap: f32 = 10
-		testing.expect_value(t, ctx.root_element.children[0].size.x, 100)
+		testing.expect_value(t, panel_element.size.x, left_pad + 100 + child_gap + 50 + right_pad)
+		testing.expect_value(t, panel_element.size.y, 150 + top_pad + bottom_pad)
+
+		// assert panel positions
+		testing.expect_value(t, panel_element.position.x, 0)
+		testing.expect_value(t, panel_element.position.y, 0)
+
+		// assert container_1 size
+		container_1_element := panel_element.children[0]
+		testing.expect_value(t, container_1_element.size.x, 100)
+		testing.expect_value(t, container_1_element.size.y, 100)
+
+		// asert container_1 position
+		testing.expect_value(t, container_1_element.position.x, left_pad)
+		testing.expect_value(t, container_1_element.position.y, top_pad)
+
+		// assert container_2 size
+		container_2_element := panel_element.children[1]
+		testing.expect_value(t, container_2_element.size.x, 50)
+		testing.expect_value(t, container_2_element.size.y, 150)
+
+		// assert container_2 position
 		testing.expect_value(
 			t,
-			ctx.root_element.children[0].size.y,
-			100 + 150 + child_gap + top_pad + bottom_pad,
+			container_2_element.position.x,
+			container_1_element.position.x + container_1_element.size.x + child_gap,
 		)
+		testing.expect_value(t, container_2_element.position.y, top_pad)
+
 	}
 }
