@@ -126,6 +126,43 @@ make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 	return element, true
 }
 
+calculate_positions :: proc(parent: ^UI_Element) {
+	if parent == nil {
+		return
+	}
+
+	// First, calculate positions of all children relative to the parent's content area
+	content_start_x := parent.position.x + parent.padding.left
+	content_start_y := parent.position.y + parent.padding.top
+
+	current_x := content_start_x
+	current_y := content_start_y
+
+	for i in 0 ..< len(parent.children) {
+		child := parent.children[i]
+
+		// Position this child
+		child.position.x = current_x
+		child.position.y = current_y
+
+		// Update position for next child based on layout direction
+		if parent.layout_direction == .Left_To_Right {
+			if len(parent.children) >= 1 && i < len(parent.children) - 1 {
+				current_x += child.size.x + parent.child_gap
+			} else {
+				current_x += child.size.x
+			}
+		} else { 	// Top_To_Bottom
+			current_y += child.size.y + parent.child_gap
+		}
+	}
+
+	// Then recursively calculate positions for all children's children
+	for child in parent.children {
+		calculate_positions(child)
+	}
+}
+
 @(test)
 test_fit_sizing :: proc(t: ^testing.T) {
 	ctx := Context{}

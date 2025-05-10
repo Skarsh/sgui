@@ -103,6 +103,8 @@ end :: proc(ctx: ^Context) {
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
+	calculate_positions(ctx.root_element)
+
 	draw_all_elements(ctx)
 }
 

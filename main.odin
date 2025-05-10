@@ -248,7 +248,12 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 	ui.open_element(
 		&app_state.ctx,
 		"blue rectangle",
-		{sizing = {{kind = .Fit}, {kind = .Fit}}, color = ui.Color{0, 0, 255, 255}},
+		{
+			sizing = {{kind = .Fit}, {kind = .Fit}},
+			color = ui.Color{0, 0, 255, 255},
+			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
+			child_gap = 10,
+		},
 	)
 	ui.open_element(
 		&app_state.ctx,
