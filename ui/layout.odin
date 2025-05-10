@@ -2,6 +2,7 @@ package ui
 
 import "core:log"
 import "core:mem"
+import "core:testing"
 
 Layout_Direction :: enum {
 	Left_To_Right,
@@ -41,6 +42,8 @@ Sizing :: struct {
 
 Element_Config :: struct {
 	sizing:           [2]Sizing,
+	padding:          Padding,
+	child_gap:        f32,
 	layout_direction: Layout_Direction,
 	color:            Color,
 }
@@ -48,8 +51,12 @@ Element_Config :: struct {
 // TODO(Thomas): current parent probably has to be a pointer
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
 
+	// TODO(Thomas): Do something with the setting here
 	element, element_ok := make_element(ctx, id)
 	element.sizing = element_config.sizing
+	element.layout_direction = element_config.layout_direction
+	element.padding = element_config.padding
+	element.child_gap = element_config.child_gap
 	element.position.x = 0
 	element.position.y = 0
 	element.size.x = element.sizing[0].value
@@ -69,8 +76,19 @@ close_element :: proc(ctx: ^Context) {
 		ctx.current_parent = element.parent
 
 		if element.parent != nil {
-			element.parent.size.x += element.size.x
-			element.parent.size.y += element.size.y
+			padding := element.padding
+			element.size.x += padding.left + padding.right
+			element.size.y += padding.top + padding.bottom
+			child_gap := f32((len(element.parent.children) - 1)) * element.parent.child_gap
+			if element.parent.layout_direction == .Left_To_Right {
+				element.size.x += child_gap
+				element.parent.size.x += element.size.x
+				element.parent.size.y = max(element.size.y, element.parent.size.y)
+			} else {
+				element.size.y += child_gap
+				element.parent.size.x = max(element.size.x, element.parent.size.x)
+				element.parent.size.y += element.size.y
+			}
 		}
 	}
 
@@ -106,4 +124,113 @@ make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 
 
 	return element, true
+}
+
+@(test)
+test_fit_sizing :: proc(t: ^testing.T) {
+	ctx := Context{}
+	persistent_allocator := context.temp_allocator
+	frame_allocator := context.temp_allocator
+
+	// Left_To_Right layout direction
+	{
+		init(&ctx, persistent_allocator, frame_allocator)
+		defer deinit(&ctx)
+
+		begin(&ctx)
+		defer end(&ctx)
+
+		open_element(
+			&ctx,
+			"panel",
+			Element_Config {
+				sizing = {{kind = .Fit}, {kind = .Fit}},
+				layout_direction = .Left_To_Right,
+				padding = Padding{left = 10, right = 10},
+				child_gap = 10,
+			},
+		)
+		{
+			open_element(
+				&ctx,
+				"container_1",
+				Element_Config {
+					sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+				},
+			)
+			close_element(&ctx)
+			open_element(
+				&ctx,
+				"container_2",
+				Element_Config {
+					sizing = {{kind = .Fixed, value = 50}, {kind = .Fixed, value = 150}},
+				},
+			)
+			close_element(&ctx)
+		}
+
+		close_element(&ctx)
+
+		left_pad: f32 = 10
+		right_pad: f32 = 10
+		child_gap: f32 = 10
+		testing.expect_value(
+			t,
+			ctx.root_element.children[0].size.x,
+			100 + 50 + child_gap + left_pad + right_pad,
+		)
+		testing.expect_value(t, ctx.root_element.children[0].size.y, 150)
+	}
+
+
+	// Top_To_Bottom layout direction
+	{
+		init(&ctx, persistent_allocator, frame_allocator)
+		defer deinit(&ctx)
+
+		begin(&ctx)
+		defer end(&ctx)
+
+		open_element(
+			&ctx,
+			"panel",
+			Element_Config {
+				sizing = {{kind = .Fit}, {kind = .Fit}},
+				layout_direction = .Top_To_Bottom,
+				padding = Padding{top = 10, bottom = 10},
+				child_gap = 10,
+			},
+		)
+
+		{
+			open_element(
+				&ctx,
+				"container_1",
+				Element_Config {
+					sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+				},
+			)
+			close_element(&ctx)
+			open_element(
+				&ctx,
+				"container_2",
+				Element_Config {
+					sizing = {{kind = .Fixed, value = 50}, {kind = .Fixed, value = 150}},
+				},
+			)
+			close_element(&ctx)
+		}
+
+		close_element(&ctx)
+
+		top_pad: f32 = 10
+		bottom_pad: f32 = 10
+		child_gap: f32 = 10
+		testing.expect_value(t, ctx.root_element.children[0].size.x, 100)
+		testing.expect_value(
+			t,
+			ctx.root_element.children[0].size.y,
+			100 + 150 + child_gap + top_pad + bottom_pad,
+		)
+	}
 }

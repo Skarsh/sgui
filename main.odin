@@ -254,7 +254,7 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 		&app_state.ctx,
 		"pink rectangle",
 		{
-			sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+			sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 150}},
 			color = ui.Color{255, 192, 203, 255},
 		},
 	)
