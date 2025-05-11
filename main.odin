@@ -274,6 +274,15 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 			},
 		)
 		ui.close_element(&app_state.ctx)
+		ui.open_element(
+			&app_state.ctx,
+			"green rectangle",
+			{
+				sizing = {{kind = .Fixed, value = 150}, {kind = .Fixed, value = 100}},
+				color = ui.Color{0, 255, 0, 255},
+			},
+		)
+		ui.close_element(&app_state.ctx)
 
 	}
 	ui.close_element(&app_state.ctx)
