@@ -135,6 +135,8 @@ close_element :: proc(ctx: ^Context) {
 	}
 }
 
+// TODO(Thomas): Not entirely sure about the correctness regarding
+// Layout directions here
 grow_child_elements :: proc(element: ^UI_Element) {
 	remaining_width := element.size.x
 	remaining_height := element.size.y
@@ -143,19 +145,38 @@ grow_child_elements :: proc(element: ^UI_Element) {
 
 	child_gap := f32(len(element.children) - 1) * element.child_gap
 
-	for child in element.children {
-		remaining_width -= child.size.x
-	}
-
-	remaining_width -= child_gap
-
-	for child in element.children {
-		if child.sizing.x.kind == .Grow {
-			child.size.x += remaining_width
+	if element.layout_direction == .Left_To_Right {
+		for child in element.children {
+			remaining_width -= child.size.x
 		}
 
-		if child.sizing.y.kind == .Grow {
-			child.size.y += (remaining_height - child.size.y)
+		remaining_width -= child_gap
+
+		for child in element.children {
+			if child.sizing.x.kind == .Grow {
+				child.size.x += remaining_width
+			}
+
+			if child.sizing.y.kind == .Grow {
+				child.size.y += (remaining_height - child.size.y)
+			}
+		}
+
+	} else {
+		for child in element.children {
+			remaining_height -= child.size.y
+		}
+
+		remaining_height -= child_gap
+
+		for child in element.children {
+			if child.sizing.x.kind == .Grow {
+				child.size.x += (remaining_width - child.size.x)
+			}
+
+			if child.sizing.y.kind == .Grow {
+				child.size.y += remaining_height
+			}
 		}
 	}
 
