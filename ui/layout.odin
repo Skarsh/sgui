@@ -4,6 +4,11 @@ import "core:log"
 import "core:mem"
 import "core:testing"
 
+Axis2 :: enum {
+	X,
+	Y,
+}
+
 Layout_Direction :: enum {
 	Left_To_Right,
 	Top_To_Bottom,
@@ -48,6 +53,40 @@ Element_Config :: struct {
 	color:            Color,
 }
 
+calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
+	padding := element.padding
+	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
+	size: f32 = 0
+
+	child_gap := f32(len(element.children) - 1) * element.child_gap
+
+	if axis == .X {
+		if element.layout_direction == .Left_To_Right {
+			for child in element.children {
+				size += child.size.x
+			}
+			size += child_gap
+		} else {
+			for child in element.children {
+				size = max(size, child.size.x)
+			}
+		}
+	} else {
+		if element.layout_direction == .Left_To_Right {
+			for child in element.children {
+				size = max(size, child.size.y)
+			}
+		} else {
+			for child in element.children {
+				size += child.size.y
+			}
+			size += child_gap
+		}
+	}
+
+	return size + padding_sum
+}
+
 // TODO(Thomas): current parent probably has to be a pointer
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
 
@@ -75,18 +114,15 @@ close_element :: proc(ctx: ^Context) {
 	if ok {
 		ctx.current_parent = element.parent
 
+		if element.sizing.x.kind == .Fit {
+			element.size.x = calculate_element_size_for_axis(element, .X)
+		}
+
+		if element.sizing.y.kind == .Fit {
+			element.size.y = calculate_element_size_for_axis(element, .Y)
+		}
+
 		if element.parent != nil {
-			padding := element.padding
-			element.size.x += padding.left + padding.right
-			element.size.y += padding.top + padding.bottom
-			child_gap := f32((len(element.children) - 1)) * element.child_gap
-
-			if element.layout_direction == .Left_To_Right {
-				element.size.x += child_gap
-			} else {
-				element.size.y += child_gap
-			}
-
 			if element.parent.layout_direction == .Left_To_Right {
 				element.parent.size.x += element.size.x
 				element.parent.size.y = max(element.size.y, element.parent.size.y)
@@ -115,11 +151,6 @@ make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
 		if element.parent != nil {
 			append(&element.parent.children, element)
-			log.infof(
-				"id_string: %s, len(parent.childen): %v",
-				element.id_string,
-				len(element.parent.children),
-			)
 		}
 
 		ctx.element_cache[key] = element
