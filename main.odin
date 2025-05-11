@@ -253,6 +253,7 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 			color = ui.Color{0, 0, 255, 255},
 			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 			child_gap = 10,
+			layout_direction = .Left_To_Right,
 		},
 	)
 	{
@@ -286,7 +287,6 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 
 	}
 	ui.close_element(&app_state.ctx)
-
 	ui.end(&app_state.ctx)
 
 	render_draw_commands(app_state)

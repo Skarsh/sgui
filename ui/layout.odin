@@ -80,24 +80,22 @@ close_element :: proc(ctx: ^Context) {
 			element.size.x += padding.left + padding.right
 			element.size.y += padding.top + padding.bottom
 			child_gap := f32((len(element.children) - 1)) * element.child_gap
-			if element.parent.layout_direction == .Left_To_Right {
+
+			if element.layout_direction == .Left_To_Right {
 				element.size.x += child_gap
+			} else {
+				element.size.y += child_gap
+			}
+
+			if element.parent.layout_direction == .Left_To_Right {
 				element.parent.size.x += element.size.x
 				element.parent.size.y = max(element.size.y, element.parent.size.y)
 			} else {
-				element.size.y += child_gap
 				element.parent.size.x = max(element.size.x, element.parent.size.x)
 				element.parent.size.y += element.size.y
 			}
 		}
 	}
-
-	log.infof(
-		"id_string: %s, size.x: %f, size.y: %f",
-		element.id_string,
-		element.size.x,
-		element.size.y,
-	)
 }
 
 make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
@@ -124,13 +122,8 @@ make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 			)
 		}
 
-		// CONTINUE HERE:
-		// Somehow caching the UI_Element causes the "panel"
-		// in main to be 240 wide instead of 230. Investigate why.
 		ctx.element_cache[key] = element
-
 	}
-
 
 	return element, true
 }
