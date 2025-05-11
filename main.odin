@@ -52,8 +52,8 @@ main :: proc() {
 		"ImGUI",
 		sdl.WINDOWPOS_UNDEFINED,
 		sdl.WINDOWPOS_UNDEFINED,
-		640,
-		480,
+		1920,
+		1080,
 		sdl.WINDOW_SHOWN,
 	)
 
@@ -242,14 +242,13 @@ render_draw_commands :: proc(app_state: ^App_State) {
 }
 
 build_and_render_ui :: proc(app_state: ^App_State) {
-
 	ui.begin(&app_state.ctx)
 
 	ui.open_element(
 		&app_state.ctx,
 		"blue rectangle",
 		{
-			sizing = {{kind = .Fit}, {kind = .Fit}},
+			sizing = {{kind = .Fixed, value = 1600}, {kind = .Fit}},
 			color = ui.Color{0, 0, 255, 255},
 			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 			child_gap = 10,
@@ -261,7 +260,7 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 			&app_state.ctx,
 			"pink rectangle",
 			{
-				sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 150}},
+				sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}},
 				color = ui.Color{255, 192, 203, 255},
 			},
 		)
@@ -269,17 +268,14 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 		ui.open_element(
 			&app_state.ctx,
 			"yellow rectangle",
-			{
-				sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
-				color = ui.Color{255, 255, 0, 255},
-			},
+			{sizing = {{kind = .Grow}, {kind = .Grow}}, color = ui.Color{255, 255, 0, 255}},
 		)
 		ui.close_element(&app_state.ctx)
 		ui.open_element(
 			&app_state.ctx,
 			"green rectangle",
 			{
-				sizing = {{kind = .Fixed, value = 150}, {kind = .Fixed, value = 100}},
+				sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}},
 				color = ui.Color{0, 255, 0, 255},
 			},
 		)
@@ -290,7 +286,6 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 	ui.end(&app_state.ctx)
 
 	render_draw_commands(app_state)
-
 }
 
 process_input :: proc(app_state: ^App_State) {

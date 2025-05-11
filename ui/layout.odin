@@ -135,6 +135,35 @@ close_element :: proc(ctx: ^Context) {
 	}
 }
 
+grow_child_elements :: proc(element: ^UI_Element) {
+	remaining_width := element.size.x
+	remaining_height := element.size.y
+	remaining_width -= element.padding.left + element.padding.right
+	remaining_height -= element.padding.top + element.padding.bottom
+
+	child_gap := f32(len(element.children) - 1) * element.child_gap
+
+	for child in element.children {
+		remaining_width -= child.size.x
+	}
+
+	remaining_width -= child_gap
+
+	for child in element.children {
+		if child.sizing.x.kind == .Grow {
+			child.size.x += remaining_width
+		}
+
+		if child.sizing.y.kind == .Grow {
+			child.size.y += (remaining_height - child.size.y)
+		}
+	}
+
+	for child in element.children {
+		grow_child_elements(child)
+	}
+}
+
 make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 
 	key := ui_key_hash(id)

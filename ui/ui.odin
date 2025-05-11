@@ -103,6 +103,10 @@ end :: proc(ctx: ^Context) {
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
+	panel_element := ctx.root_element.children[0]
+
+	grow_child_elements(panel_element)
+
 	calculate_positions(ctx.root_element)
 
 	draw_all_elements(ctx)
