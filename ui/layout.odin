@@ -123,10 +123,11 @@ close_element :: proc(ctx: ^Context) {
 		}
 
 		if element.parent != nil {
-			if element.parent.layout_direction == .Left_To_Right {
+			if element.parent.layout_direction == .Left_To_Right && element.sizing.x.kind == .Fit {
 				element.parent.size.x += element.size.x
 				element.parent.size.y = max(element.size.y, element.parent.size.y)
-			} else {
+			} else if element.parent.layout_direction == .Top_To_Bottom &&
+			   element.sizing.y.kind == .Fit {
 				element.parent.size.x = max(element.size.x, element.parent.size.x)
 				element.parent.size.y += element.size.y
 			}
