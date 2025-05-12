@@ -1,7 +1,9 @@
 package ui
 
 import "core:log"
+import "core:math"
 import "core:mem"
+import "core:mem/virtual"
 import "core:testing"
 
 Axis2 :: enum {
@@ -135,9 +137,11 @@ close_element :: proc(ctx: ^Context) {
 	}
 }
 
-// TODO(Thomas): Not entirely sure about the correctness regarding
-// Layout directions here
 grow_child_elements :: proc(element: ^UI_Element) {
+	growables_x := make([dynamic]^UI_Element, context.temp_allocator)
+	growables_y := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
 	remaining_width := element.size.x
 	remaining_height := element.size.y
 	remaining_width -= element.padding.left + element.padding.right
@@ -147,35 +151,84 @@ grow_child_elements :: proc(element: ^UI_Element) {
 
 	if element.layout_direction == .Left_To_Right {
 		for child in element.children {
-			remaining_width -= child.size.x
-		}
-
-		remaining_width -= child_gap
-
-		for child in element.children {
 			if child.sizing.x.kind == .Grow {
-				child.size.x += remaining_width
+				append(&growables_x, child)
 			}
 
 			if child.sizing.y.kind == .Grow {
 				child.size.y += (remaining_height - child.size.y)
 			}
+
+			remaining_width -= child.size.x
 		}
+
+		remaining_width -= child_gap
+
+		if len(growables_x) > 0 {
+			smallest := growables_x[0].size.x
+			second_smallest := math.INF_F32
+			width_to_add := remaining_width
+
+			for child in growables_x {
+				if child.size.x < smallest {
+					second_smallest = smallest
+					smallest = child.size.x
+				}
+
+				if child.size.x > smallest {
+					second_smallest = min(second_smallest, child.size.x)
+					width_to_add = second_smallest
+				}
+			}
+			width_to_add = min(width_to_add, remaining_width / f32(len(growables_x)))
+
+			for child in growables_x {
+				if child.size.x == smallest {
+					child.size.x += width_to_add
+					remaining_width -= width_to_add
+				}
+			}
+		}
+
 
 	} else {
-		for child in element.children {
-			remaining_height -= child.size.y
-		}
-
-		remaining_height -= child_gap
-
 		for child in element.children {
 			if child.sizing.x.kind == .Grow {
 				child.size.x += (remaining_width - child.size.x)
 			}
 
 			if child.sizing.y.kind == .Grow {
-				child.size.y += remaining_height
+				append(&growables_y, child)
+			}
+
+			remaining_height -= child.size.y
+		}
+
+		remaining_height -= child_gap
+
+		if len(growables_y) > 0 {
+			smallest := growables_y[0].size.y
+			second_smallest := math.INF_F32
+			height_to_add := remaining_height
+
+			for child in growables_y {
+				if child.size.y < smallest {
+					second_smallest = smallest
+					smallest = child.size.y
+				}
+
+				if child.size.y > smallest {
+					second_smallest = min(second_smallest, child.size.y)
+					height_to_add = second_smallest
+				}
+			}
+			height_to_add = min(height_to_add, remaining_height / f32(len(growables_y)))
+
+			for child in growables_y {
+				if child.size.y == smallest {
+					child.size.y += height_to_add
+					remaining_height -= height_to_add
+				}
 			}
 		}
 	}
@@ -252,8 +305,17 @@ calculate_positions :: proc(parent: ^UI_Element) {
 @(test)
 test_fit_sizing :: proc(t: ^testing.T) {
 	ctx := Context{}
-	persistent_allocator := context.temp_allocator
-	frame_allocator := context.temp_allocator
+
+	arena := virtual.Arena{}
+	arena_buffer := make([]u8, 100 * 1024)
+	arena_alloc_err := virtual.arena_init_buffer(&arena, arena_buffer)
+	assert(arena_alloc_err == .None)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
+	defer delete(arena_buffer)
+
+	persistent_allocator := arena_allocator
+	frame_allocator := arena_allocator
 
 	// Left_To_Right layout direction
 	{
@@ -522,8 +584,17 @@ test_fit_sizing :: proc(t: ^testing.T) {
 test_grow_sizing :: proc(t: ^testing.T) {
 
 	ctx := Context{}
-	persistent_allocator := context.temp_allocator
-	frame_allocator := context.temp_allocator
+
+	arena := virtual.Arena{}
+	arena_buffer := make([]u8, 100 * 1024)
+	arena_alloc_err := virtual.arena_init_buffer(&arena, arena_buffer)
+	assert(arena_alloc_err == .None)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
+	defer delete(arena_buffer)
+
+	persistent_allocator := arena_allocator
+	frame_allocator := arena_allocator
 
 	// Left_To_Right layout direction
 	{
