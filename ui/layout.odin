@@ -100,8 +100,15 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	element.child_gap = element_config.child_gap
 	element.position.x = 0
 	element.position.y = 0
-	element.size.x = element.sizing[0].value
-	element.size.y = element.sizing[1].value
+
+	if element.sizing.x.kind == .Fixed {
+		element.size.x = element.sizing.x.value
+	}
+
+	if element.sizing.y.kind == .Fixed {
+		element.size.y = element.sizing.y.value
+	}
+
 	element.color = element_config.color
 	assert(element_ok)
 
