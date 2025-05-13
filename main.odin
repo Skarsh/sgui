@@ -248,7 +248,7 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 		&app_state.ctx,
 		"blue rectangle",
 		{
-			sizing = {{kind = .Fixed, value = 1600}, {kind = .Fit}},
+			sizing = {{kind = .Fixed, value = 1600}, {kind = .Fixed, value = 400}},
 			color = ui.Color{0, 0, 255, 255},
 			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 			child_gap = 10,
@@ -274,10 +274,7 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 		ui.open_element(
 			&app_state.ctx,
 			"green rectangle",
-			{
-				sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}},
-				color = ui.Color{0, 255, 0, 255},
-			},
+			{sizing = {{kind = .Grow}, {kind = .Grow}}, color = ui.Color{0, 255, 0, 255}},
 		)
 		ui.close_element(&app_state.ctx)
 
