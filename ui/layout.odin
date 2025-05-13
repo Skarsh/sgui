@@ -33,6 +33,7 @@ UI_Element :: struct {
 	parent:           ^UI_Element,
 	id_string:        string,
 	position:         Vec2,
+	min_size:         Vec2,
 	size:             Vec2,
 	sizing:           [2]Sizing,
 	layout_direction: Layout_Direction,
@@ -43,8 +44,9 @@ UI_Element :: struct {
 }
 
 Sizing :: struct {
-	kind:  Size_Kind,
-	value: f32,
+	kind:      Size_Kind,
+	min_value: f32,
+	value:     f32,
 }
 
 Element_Config :: struct {
@@ -102,10 +104,12 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	element.position.y = 0
 
 	if element.sizing.x.kind == .Fixed {
+		element.min_size.x = element.sizing.x.min_value
 		element.size.x = element.sizing.x.value
 	}
 
 	if element.sizing.y.kind == .Fixed {
+		element.min_size.y = element.sizing.y.min_value
 		element.size.y = element.sizing.y.value
 	}
 
@@ -124,124 +128,146 @@ close_element :: proc(ctx: ^Context) {
 		ctx.current_parent = element.parent
 
 		if element.sizing.x.kind == .Fit {
-			element.size.x = calculate_element_size_for_axis(element, .X)
+			calc_element_fit_size_for_axis(element, .X)
 		}
 
 		if element.sizing.y.kind == .Fit {
-			element.size.y = calculate_element_size_for_axis(element, .Y)
-		}
-
-		if element.parent != nil {
-			if element.parent.layout_direction == .Left_To_Right && element.sizing.x.kind == .Fit {
-				element.parent.size.x += element.size.x
-				element.parent.size.y = max(element.size.y, element.parent.size.y)
-			} else if element.parent.layout_direction == .Top_To_Bottom &&
-			   element.sizing.y.kind == .Fit {
-				element.parent.size.x = max(element.size.x, element.parent.size.x)
-				element.parent.size.y += element.size.y
-			}
+			calc_element_fit_size_for_axis(element, .Y)
 		}
 	}
 }
 
-grow_child_elements :: proc(element: ^UI_Element) {
-	growables_x := make([dynamic]^UI_Element, context.temp_allocator)
-	growables_y := make([dynamic]^UI_Element, context.temp_allocator)
+update_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+	parent := element.parent
+	if axis == .X && parent.layout_direction == .Left_To_Right {
+		parent.size.x += element.size.x
+		parent.min_size.x += element.min_size.x
+		parent.size.y = max(element.size.y, parent.size.y)
+		parent.min_size.y = max(element.min_size.y, parent.min_size.y)
+
+	} else if axis == .Y && parent.layout_direction == .Top_To_Bottom {
+		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
+		parent.size.x = max(element.size.x, parent.size.x)
+		parent.min_size.y += element.min_size.y
+		parent.size.y += element.size.y
+	}
+}
+
+calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+	if axis == .X {
+		element.size.x = calculate_element_size_for_axis(element, axis)
+	} else {
+		element.size.y = calculate_element_size_for_axis(element, axis)
+	}
+
+	if element.parent != nil {
+		update_element_fit_size_for_axis(element, axis)
+	}
+
+}
+
+grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+	growables := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
-	remaining_width := element.size.x
-	remaining_height := element.size.y
-	remaining_width -= element.padding.left + element.padding.right
-	remaining_height -= element.padding.top + element.padding.bottom
-
+	remaining_size: f32
 	child_gap := f32(len(element.children) - 1) * element.child_gap
 
-	if element.layout_direction == .Left_To_Right {
-		for child in element.children {
-			if child.sizing.x.kind == .Grow {
-				append(&growables_x, child)
-			}
+	if axis == .X {
+		remaining_size = element.size.x - (element.padding.left + element.padding.right)
 
-			if child.sizing.y.kind == .Grow {
-				child.size.y += (remaining_height - child.size.y)
+		if element.layout_direction == .Left_To_Right {
+			for child in element.children {
+				if child.sizing.x.kind == .Grow {
+					append(&growables, child)
+				}
+				remaining_size -= child.size.x
 			}
-
-			remaining_width -= child.size.x
+			remaining_size -= child_gap
+		} else { 	// Top_To_Bottom
+			for child in element.children {
+				if child.sizing.x.kind == .Grow {
+					child.size.x += (remaining_size - child.size.x)
+				}
+			}
 		}
+	} else { 	// axis == .Y
+		remaining_size = element.size.y - (element.padding.top + element.padding.bottom)
 
-		remaining_width -= child_gap
+		if element.layout_direction == .Top_To_Bottom {
+			for child in element.children {
+				if child.sizing.y.kind == .Grow {
+					append(&growables, child)
+				}
+				remaining_size -= child.size.y
+			}
+			remaining_size -= child_gap
+		} else { 	// Left_To_Right
+			for child in element.children {
+				if child.sizing.y.kind == .Grow {
+					child.size.y += (remaining_size - child.size.y)
+				}
+			}
+		}
+	}
 
-		if len(growables_x) > 0 {
-			smallest := growables_x[0].size.x
-			second_smallest := math.INF_F32
-			width_to_add := remaining_width
+	// Process growable children, only if we have collected any
+	if len(growables) > 0 {
+		smallest: f32
+		second_smallest := math.INF_F32
+		size_to_add: f32
 
-			for child in growables_x {
+		if axis == .X {
+			smallest = growables[0].size.x
+			size_to_add = remaining_size
+
+			for child in growables {
 				if child.size.x < smallest {
 					second_smallest = smallest
 					smallest = child.size.x
 				}
-
 				if child.size.x > smallest {
 					second_smallest = min(second_smallest, child.size.x)
-					width_to_add = second_smallest
+					size_to_add = second_smallest
 				}
 			}
-			width_to_add = min(width_to_add, remaining_width / f32(len(growables_x)))
 
-			for child in growables_x {
+			size_to_add = min(size_to_add, remaining_size / f32(len(growables)))
+
+			for child in growables {
 				if child.size.x == smallest {
-					child.size.x += width_to_add
-					remaining_width -= width_to_add
+					child.size.x += size_to_add
+					remaining_size -= size_to_add
 				}
 			}
-		}
+		} else { 	// axis == .Y
+			smallest = growables[0].size.y
+			size_to_add = remaining_size
 
-
-	} else {
-		for child in element.children {
-			if child.sizing.x.kind == .Grow {
-				child.size.x += (remaining_width - child.size.x)
-			}
-
-			if child.sizing.y.kind == .Grow {
-				append(&growables_y, child)
-			}
-
-			remaining_height -= child.size.y
-		}
-
-		remaining_height -= child_gap
-
-		if len(growables_y) > 0 {
-			smallest := growables_y[0].size.y
-			second_smallest := math.INF_F32
-			height_to_add := remaining_height
-
-			for child in growables_y {
+			for child in growables {
 				if child.size.y < smallest {
 					second_smallest = smallest
 					smallest = child.size.y
 				}
-
 				if child.size.y > smallest {
 					second_smallest = min(second_smallest, child.size.y)
-					height_to_add = second_smallest
+					size_to_add = second_smallest
 				}
 			}
-			height_to_add = min(height_to_add, remaining_height / f32(len(growables_y)))
 
-			for child in growables_y {
+			size_to_add = min(size_to_add, remaining_size / f32(len(growables)))
+
+			for child in growables {
 				if child.size.y == smallest {
-					child.size.y += height_to_add
-					remaining_height -= height_to_add
+					child.size.y += size_to_add
+					remaining_size -= size_to_add
 				}
 			}
 		}
 	}
 
 	for child in element.children {
-		grow_child_elements(child)
+		grow_child_elements_for_axis(child, axis)
 	}
 }
 

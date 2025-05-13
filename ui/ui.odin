@@ -90,7 +90,11 @@ begin :: proc(ctx: ^Context) {
 	clear(&ctx.command_stack)
 
 	// Open the root element
-	root_open_ok := open_element(ctx, "root", {color = Color{128, 128, 128, 255}})
+	root_open_ok := open_element(
+		ctx,
+		"root",
+		{color = Color{128, 128, 128, 255}, sizing = {{kind = .Fit}, {kind = .Fit}}},
+	)
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
 	ctx.root_element = root_element
@@ -105,7 +109,8 @@ end :: proc(ctx: ^Context) {
 
 	panel_element := ctx.root_element.children[0]
 
-	grow_child_elements(panel_element)
+	grow_child_elements_for_axis(panel_element, .X)
+	grow_child_elements_for_axis(panel_element, .Y)
 
 	calculate_positions(ctx.root_element)
 
