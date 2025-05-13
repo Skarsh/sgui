@@ -107,10 +107,8 @@ end :: proc(ctx: ^Context) {
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
-	panel_element := ctx.root_element.children[0]
-
-	grow_child_elements_for_axis(panel_element, .X)
-	grow_child_elements_for_axis(panel_element, .Y)
+	grow_child_elements_for_axis(ctx.root_element, .X)
+	grow_child_elements_for_axis(ctx.root_element, .Y)
 
 	calculate_positions(ctx.root_element)
 
