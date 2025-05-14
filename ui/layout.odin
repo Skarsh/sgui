@@ -91,29 +91,8 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 	return size + padding_sum
 }
 
-// TODO(Thomas): current parent probably has to be a pointer
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
-
-	// TODO(Thomas): Do something with the setting here
-	element, element_ok := make_element(ctx, id)
-	element.sizing = element_config.sizing
-	element.layout_direction = element_config.layout_direction
-	element.padding = element_config.padding
-	element.child_gap = element_config.child_gap
-	element.position.x = 0
-	element.position.y = 0
-
-	if element.sizing.x.kind == .Fixed {
-		element.min_size.x = element.sizing.x.min_value
-		element.size.x = element.sizing.x.value
-	}
-
-	if element.sizing.y.kind == .Fixed {
-		element.min_size.y = element.sizing.y.min_value
-		element.size.y = element.sizing.y.value
-	}
-
-	element.color = element_config.color
+	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
 
 	push(&ctx.element_stack, element) or_return
@@ -249,11 +228,19 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
-make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
+make_element :: proc(
+	ctx: ^Context,
+	id: string,
+	element_config: Element_Config,
+) -> (
+	^UI_Element,
+	bool,
+) {
 
 	key := ui_key_hash(id)
 
 	element, found := ctx.element_cache[key]
+
 	if !found {
 		err: mem.Allocator_Error
 		element, err = new(UI_Element, ctx.persistent_allocator)
@@ -269,6 +256,25 @@ make_element :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
 		}
 
 		ctx.element_cache[key] = element
+	}
+
+	// We need to set this fields every frame
+	element.sizing = element_config.sizing
+	element.layout_direction = element_config.layout_direction
+	element.padding = element_config.padding
+	element.child_gap = element_config.child_gap
+	element.position.x = 0
+	element.position.y = 0
+	element.color = element_config.color
+
+	if element.sizing.x.kind == .Fixed {
+		element.min_size.x = element.sizing.x.min_value
+		element.size.x = element.sizing.x.value
+	}
+
+	if element.sizing.y.kind == .Fixed {
+		element.min_size.y = element.sizing.y.min_value
+		element.size.y = element.sizing.y.value
 	}
 
 	return element, true
