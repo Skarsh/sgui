@@ -100,6 +100,29 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	return true
 }
 
+open_text_element :: proc(ctx: ^Context, id: string, content: string) -> bool {
+	str_len := len(content)
+	content_width := str_len * CHAR_WIDTH
+	content_height := CHAR_HEIGHT
+	element, element_ok := make_element(
+		ctx,
+		id,
+		Element_Config {
+			sizing = {
+				{kind = .Grow, min_value = CHAR_WIDTH},
+				{kind = .Grow, min_value = CHAR_HEIGHT},
+			},
+		},
+	)
+	assert(element_ok)
+	element.size.x = f32(content_width)
+	element.size.y = f32(content_height)
+
+	push(&ctx.element_stack, element) or_return
+	ctx.current_parent = element
+	return true
+}
+
 close_element :: proc(ctx: ^Context) {
 	element, ok := pop(&ctx.element_stack)
 	assert(ok)
@@ -145,8 +168,15 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 }
 
+@(private)
+GROW_ITER_MAX :: 1024
+@(private)
+SHRINK_ITER_MAX :: 1024
+
+
 grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	growables := make([dynamic]^UI_Element, context.temp_allocator)
+	shrinkables := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
 	padding_sum :=
@@ -184,9 +214,12 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		}
 	}
 
+	grow_iter := 0
 	// Process growable children, only if we have collected any
 	if len(growables) > 0 {
 		for remaining_size > 0 {
+			assert(grow_iter < GROW_ITER_MAX)
+			grow_iter += 1
 			// Initialize with the first child's size
 			smallest := axis == .X ? growables[0].size.x : growables[0].size.y
 			second_smallest := math.INF_F32
@@ -222,6 +255,75 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			}
 		}
 	}
+
+	// Shrinkable elements are elements that are not at their min size yet
+	// along the given axis
+	for child in element.children {
+		size_kind := axis == .X ? child.sizing.x.kind : child.sizing.y.kind
+		if size_kind == .Grow {
+			child_size: f32
+			child_min_size: f32
+			if axis == .X {
+				child_size = child.size.x
+				child_min_size = child.min_size.x
+			} else {
+				child_size = child.size.y
+				child_min_size = child.min_size.y
+			}
+			if child_size > child_min_size {
+				append(&shrinkables, child)
+			}
+		}
+	}
+
+	shrink_iter := 0
+	for remaining_size < 0 && len(shrinkables) > 0 {
+		assert(shrink_iter < SHRINK_ITER_MAX)
+		shrink_iter += 1
+		largest := axis == .X ? shrinkables[0].size.x : shrinkables[0].size.y
+		second_largest: f32 = 0
+		size_to_add := remaining_size
+
+		for child in shrinkables {
+			child_size := axis == .X ? child.size.x : child.size.y
+			if child_size > largest {
+				second_largest = largest
+				largest = child_size
+			} else if child_size < largest {
+				second_largest = max(second_largest, child_size)
+				size_to_add = second_largest - largest
+			}
+		}
+
+		size_to_add = max(size_to_add, remaining_size / f32(len(shrinkables)))
+
+		for child, idx in shrinkables {
+			prev_size := axis == .X ? child.size.x : child.size.y
+			child_size := axis == .X ? child.size.x : child.size.y
+			child_min_size := axis == .X ? child.min_size.x : child.min_size.y
+			if child_size == largest {
+				child_size += size_to_add
+
+				if axis == .X {
+					child.size.x = child_size
+				} else {
+					child.size.y = child_size
+				}
+
+				if child_size <= child_min_size {
+					child_size = child_min_size
+					if axis == .X {
+						child.size.x = child_size
+					} else {
+						child.size.y = child_size
+					}
+					unordered_remove(&shrinkables, idx)
+				}
+				remaining_size -= (child_size - prev_size)
+			}
+		}
+	}
+
 
 	for child in element.children {
 		grow_child_elements_for_axis(child, axis)
