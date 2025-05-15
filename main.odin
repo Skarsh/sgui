@@ -267,7 +267,11 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 			},
 		)
 		ui.close_element(&app_state.ctx)
-		ui.open_text_element(&app_state.ctx, "light blue", "Five Six Seven Eight Nine Ten")
+		ui.open_text_element(
+			&app_state.ctx,
+			"light blue",
+			"Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen",
+		)
 		ui.close_element(&app_state.ctx)
 	}
 	ui.close_element(&app_state.ctx)

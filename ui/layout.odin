@@ -182,7 +182,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	padding_sum :=
 		axis == .X ? element.padding.left + element.padding.right : element.padding.top + element.padding.bottom
 
-	remaining_size := axis == .X ? element.size.x - padding_sum : element.size.y - padding_sum
+	remaining_size := element.size[axis] - padding_sum
 
 	is_primary_axis :=
 		(axis == .X && element.layout_direction == .Left_To_Right) ||
@@ -192,18 +192,31 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if is_primary_axis {
 		child_gap := f32(len(element.children) - 1) * element.child_gap
 		for child in element.children {
-			size_kind := axis == .X ? child.sizing.x.kind : child.sizing.y.kind
+			size_kind := child.sizing[axis].kind
+
 			if size_kind == .Grow {
+				// Add to growables
 				append(&growables, child)
+
+				// Find the shrinkable elements and
+				// add them to the shrinkables dynamic array
+				// Shrinkable elements are elements that are not at their min size yet
+				// along the given axis
+				child_size := child.size[axis]
+				child_min_size := child.min_size[axis]
+				if child_size > child_min_size {
+					append(&shrinkables, child)
+				}
 			}
-			child_size := axis == .X ? child.size.x : child.size.y
+
+			child_size := child.size[axis]
 			remaining_size -= child_size
 		}
 		remaining_size -= child_gap
 	} else {
 		// For secondary axis, directly distribute available space
 		for child in element.children {
-			size_kind := axis == .X ? child.sizing.x.kind : child.sizing.y.kind
+			size_kind := child.sizing[axis].kind
 			if size_kind == .Grow {
 				if axis == .X {
 					child.size.x += (remaining_size - child.size.x)
@@ -221,13 +234,13 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			assert(grow_iter < GROW_ITER_MAX)
 			grow_iter += 1
 			// Initialize with the first child's size
-			smallest := axis == .X ? growables[0].size.x : growables[0].size.y
+			smallest := growables[0].size[axis]
 			second_smallest := math.INF_F32
 			size_to_add := remaining_size
 
 			// Find smallest and second-smallest sizes
 			for child in growables {
-				child_size := axis == .X ? child.size.x : child.size.y
+				child_size := child.size[axis]
 
 				if child_size < smallest {
 					second_smallest = smallest
@@ -243,7 +256,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 			// Add size to the smallest elements
 			for child in growables {
-				child_size := axis == .X ? child.size.x : child.size.y
+				child_size := child.size[axis]
 				if child_size == smallest {
 					if axis == .X {
 						child.size.x += size_to_add
@@ -256,36 +269,16 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		}
 	}
 
-	// Shrinkable elements are elements that are not at their min size yet
-	// along the given axis
-	for child in element.children {
-		size_kind := axis == .X ? child.sizing.x.kind : child.sizing.y.kind
-		if size_kind == .Grow {
-			child_size: f32
-			child_min_size: f32
-			if axis == .X {
-				child_size = child.size.x
-				child_min_size = child.min_size.x
-			} else {
-				child_size = child.size.y
-				child_min_size = child.min_size.y
-			}
-			if child_size > child_min_size {
-				append(&shrinkables, child)
-			}
-		}
-	}
-
 	shrink_iter := 0
 	for remaining_size < 0 && len(shrinkables) > 0 {
 		assert(shrink_iter < SHRINK_ITER_MAX)
 		shrink_iter += 1
-		largest := axis == .X ? shrinkables[0].size.x : shrinkables[0].size.y
+		largest := shrinkables[0].size[axis]
 		second_largest: f32 = 0
 		size_to_add := remaining_size
 
 		for child in shrinkables {
-			child_size := axis == .X ? child.size.x : child.size.y
+			child_size := child.size[axis]
 			if child_size > largest {
 				second_largest = largest
 				largest = child_size
@@ -298,9 +291,9 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		size_to_add = max(size_to_add, remaining_size / f32(len(shrinkables)))
 
 		for child, idx in shrinkables {
-			prev_size := axis == .X ? child.size.x : child.size.y
-			child_size := axis == .X ? child.size.x : child.size.y
-			child_min_size := axis == .X ? child.min_size.x : child.min_size.y
+			prev_size := child.size[axis]
+			child_size := child.size[axis]
+			child_min_size := child.min_size[axis]
 			if child_size == largest {
 				child_size += size_to_add
 
@@ -323,7 +316,6 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			}
 		}
 	}
-
 
 	for child in element.children {
 		grow_child_elements_for_axis(child, axis)
