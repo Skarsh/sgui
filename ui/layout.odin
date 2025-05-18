@@ -148,10 +148,10 @@ update_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		parent.min_size.y = max(element.min_size.y, parent.min_size.y)
 
 	} else if axis == .Y && parent.layout_direction == .Top_To_Bottom {
-		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
 		parent.size.x = max(element.size.x, parent.size.x)
-		parent.min_size.y += element.min_size.y
+		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
 		parent.size.y += element.size.y
+		parent.min_size.y += element.min_size.y
 	}
 }
 
@@ -169,10 +169,9 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 @(private)
-GROW_ITER_MAX :: 1024
+GROW_ITER_MAX :: 32
 @(private)
-SHRINK_ITER_MAX :: 1024
-
+SHRINK_ITER_MAX :: 32
 
 grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	growables := make([dynamic]^UI_Element, context.temp_allocator)
