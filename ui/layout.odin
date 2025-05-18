@@ -213,16 +213,6 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			if size_kind == .Grow {
 				// Add to growables
 				append(&growables, child)
-
-				// Find the shrinkable elements and
-				// add them to the shrinkables dynamic array
-				// Shrinkable elements are elements that are not at their min size yet
-				// along the given axis
-				child_size := child.size[axis]
-				child_min_size := child.min_size[axis]
-				if child_size > child_min_size {
-					append(&shrinkables, child)
-				}
 			}
 
 			child_size := child.size[axis]
@@ -285,6 +275,42 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		}
 	}
 
+	for child in element.children {
+		grow_child_elements_for_axis(child, axis)
+	}
+}
+
+shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+	shrinkables := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	remaining_size := calc_remaining_size(element^, axis)
+
+	primary_axis := is_primary_axis(element^, axis)
+
+	// Collect shrinkables
+	if primary_axis {
+		child_gap := calc_child_gap(element^)
+		for child in element.children {
+			size_kind := child.sizing[axis].kind
+			if size_kind == .Grow {
+				// Find the shrinkable elements and
+				// add them to the shrinkables dynamic array
+				// Shrinkable elements are elements that are not at their min size yet
+				// along the given axis
+				child_size := child.size[axis]
+				child_min_size := child.min_size[axis]
+				if child_size > child_min_size {
+					append(&shrinkables, child)
+				}
+			}
+
+			child_size := child.size[axis]
+			remaining_size -= child_size
+		}
+		remaining_size -= child_gap
+	}
+
 	shrink_iter := 0
 	for remaining_size < 0 && len(shrinkables) > 0 {
 		assert(shrink_iter < SHRINK_ITER_MAX)
@@ -334,8 +360,9 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 
 	for child in element.children {
-		grow_child_elements_for_axis(child, axis)
+		shrink_child_elements_for_axis(child, axis)
 	}
+
 }
 
 make_element :: proc(

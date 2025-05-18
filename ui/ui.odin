@@ -110,6 +110,9 @@ end :: proc(ctx: ^Context) {
 	grow_child_elements_for_axis(ctx.root_element, .X)
 	grow_child_elements_for_axis(ctx.root_element, .Y)
 
+	shrink_child_elements_for_axis(ctx.root_element, .X)
+	shrink_child_elements_for_axis(ctx.root_element, .Y)
+
 	calculate_positions(ctx.root_element)
 
 	draw_all_elements(ctx)
