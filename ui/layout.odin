@@ -57,12 +57,17 @@ Element_Config :: struct {
 	color:            Color,
 }
 
+
+calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
+	return f32(len(element.children) - 1) * element.child_gap
+}
+
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.padding
 	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
 	size: f32 = 0
 
-	child_gap := f32(len(element.children) - 1) * element.child_gap
+	child_gap := calc_child_gap(element^)
 
 	if axis == .X {
 		if element.layout_direction == .Left_To_Right {
@@ -168,6 +173,23 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 }
 
+calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
+	padding_sum :=
+		axis == .X ? element.padding.left + element.padding.right : element.padding.top + element.padding.bottom
+
+	remaining_size := element.size[axis] - padding_sum
+	return remaining_size
+}
+
+is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
+
+	is_primary_axis :=
+		(axis == .X && element.layout_direction == .Left_To_Right) ||
+		(axis == .Y && element.layout_direction == .Top_To_Bottom)
+
+	return is_primary_axis
+}
+
 @(private)
 GROW_ITER_MAX :: 32
 @(private)
@@ -178,18 +200,13 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	shrinkables := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
-	padding_sum :=
-		axis == .X ? element.padding.left + element.padding.right : element.padding.top + element.padding.bottom
+	remaining_size := calc_remaining_size(element^, axis)
 
-	remaining_size := element.size[axis] - padding_sum
-
-	is_primary_axis :=
-		(axis == .X && element.layout_direction == .Left_To_Right) ||
-		(axis == .Y && element.layout_direction == .Top_To_Bottom)
+	primary_axis := is_primary_axis(element^, axis)
 
 	// Collect growables and update sizes based on layout direction
-	if is_primary_axis {
-		child_gap := f32(len(element.children) - 1) * element.child_gap
+	if primary_axis {
+		child_gap := calc_child_gap(element^)
 		for child in element.children {
 			size_kind := child.sizing[axis].kind
 
