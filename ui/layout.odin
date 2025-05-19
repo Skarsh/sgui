@@ -105,19 +105,29 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	return true
 }
 
-open_text_element :: proc(ctx: ^Context, id: string, content: string) -> bool {
+// TODO(Thomas): I don't think we should pass in the font sizes like we're doing now,
+// this is very permanent and mostly for testing while developing.
+open_text_element :: proc(
+	ctx: ^Context,
+	id: string,
+	content: string,
+	font_width: f32 = CHAR_WIDTH,
+	font_height: f32 = CHAR_WIDTH,
+) -> bool {
 	str_len := len(content)
-	content_width := str_len * CHAR_WIDTH
-	content_height := CHAR_HEIGHT
+	content_width: f32 = f32(str_len) * font_width
+	content_height: f32 = font_height
 	element, element_ok := make_element(
-		ctx,
-		id,
-		Element_Config {
-			sizing = {
-				{kind = .Grow, min_value = CHAR_WIDTH},
-				{kind = .Grow, min_value = CHAR_HEIGHT},
-			},
+	ctx,
+	id,
+	Element_Config {
+		sizing = {
+			// TODO(Thomas): This is just hardcoded for it too look like something that makes sense for now.
+			// This should be calculated based on the largest word in the string, or something like that.
+			{kind = .Grow, min_value = 5.0 * font_width},
+			{kind = .Grow, min_value = font_height},
 		},
+	},
 	)
 	assert(element_ok)
 	element.size.x = f32(content_width)
@@ -197,7 +207,6 @@ SHRINK_ITER_MAX :: 32
 
 grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	growables := make([dynamic]^UI_Element, context.temp_allocator)
-	shrinkables := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
 	remaining_size := calc_remaining_size(element^, axis)
@@ -997,4 +1006,100 @@ test_grow_sizing :: proc(t: ^testing.T) {
 			container_2_element.position.y + container_2_element.size.y + panel_child_gap,
 		)
 	}
+}
+
+@(test)
+test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
+	ctx := Context{}
+
+	arena := virtual.Arena{}
+	arena_buffer := make([]u8, 100 * 1024)
+	arena_alloc_err := virtual.arena_init_buffer(&arena, arena_buffer)
+	assert(arena_alloc_err == .None)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
+	defer delete(arena_buffer)
+
+	persistent_allocator := arena_allocator
+	frame_allocator := arena_allocator
+
+	panel_size := Vec2{100, 100}
+	panel_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 10
+
+	// Case 1: Simple text element grows
+	{
+		init(&ctx, persistent_allocator, frame_allocator)
+		defer deinit(&ctx)
+		begin(&ctx)
+		open_element(
+			&ctx,
+			"panel",
+			Element_Config {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Top_To_Bottom,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
+			},
+		)
+		{
+			open_text_element(&ctx, "text", "AAAAA", 10, 10)
+			close_element(&ctx)
+		}
+		close_element(&ctx)
+		end(&ctx)
+
+		panel_element := ctx.root_element.children[0]
+		text_element := panel_element.children[0]
+
+		testing.expect_value(
+			t,
+			text_element.size.x,
+			panel_size.x - panel_padding.left - panel_padding.right,
+		)
+	}
+
+	// Case 2: Simple text element shrinks
+	{
+		init(&ctx, persistent_allocator, frame_allocator)
+		defer deinit(&ctx)
+		begin(&ctx)
+		open_element(
+			&ctx,
+			"panel",
+			Element_Config {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Top_To_Bottom,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
+			},
+		)
+		{
+			open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
+			close_element(&ctx)
+		}
+		close_element(&ctx)
+		end(&ctx)
+
+		panel_element := ctx.root_element.children[0]
+		text_element := panel_element.children[0]
+
+		testing.expect_value(
+			t,
+			text_element.size.x,
+			panel_size.x - panel_padding.left - panel_padding.right,
+		)
+	}
+
 }
