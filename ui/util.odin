@@ -54,3 +54,7 @@ lerp_color :: proc(a, b: Color, t: f32) -> Color {
 
 	return color
 }
+
+approx_equal :: proc(a: f32, b: f32, epsilon: f32) -> bool {
+	return math.abs(a - b) <= epsilon
+}
