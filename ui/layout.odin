@@ -6,6 +6,8 @@ import "core:mem"
 import "core:mem/virtual"
 import "core:testing"
 
+EPSILON :: 0.001
+
 Axis2 :: enum {
 	X,
 	Y,
@@ -233,11 +235,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		for child in element.children {
 			size_kind := child.sizing[axis].kind
 			if size_kind == .Grow {
-				if axis == .X {
-					child.size.x += (remaining_size - child.size.x)
-				} else {
-					child.size.y += (remaining_size - child.size.y)
-				}
+				child.size[axis] += (remaining_size - child.size[axis])
 			}
 		}
 	}
@@ -245,7 +243,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	grow_iter := 0
 	// Process growable children, only if we have collected any
 	if len(growables) > 0 {
-		for remaining_size > 0 {
+		for remaining_size > EPSILON {
 			assert(grow_iter < GROW_ITER_MAX)
 			grow_iter += 1
 			// Initialize with the first child's size
@@ -262,7 +260,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 					smallest = child_size
 				} else if child_size > smallest {
 					second_smallest = min(second_smallest, child_size)
-					size_to_add = second_smallest
+					size_to_add = second_smallest - smallest
 				}
 			}
 
@@ -272,12 +270,8 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			// Add size to the smallest elements
 			for child in growables {
 				child_size := child.size[axis]
-				if child_size == smallest {
-					if axis == .X {
-						child.size.x += size_to_add
-					} else {
-						child.size.y += size_to_add
-					}
+				if approx_equal(child_size, smallest, EPSILON) {
+					child.size[axis] += size_to_add
 					remaining_size -= size_to_add
 				}
 			}
@@ -321,7 +315,7 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 
 	shrink_iter := 0
-	for remaining_size < 0 && len(shrinkables) > 0 {
+	for remaining_size < -EPSILON && len(shrinkables) > 0 {
 		assert(shrink_iter < SHRINK_ITER_MAX)
 		shrink_iter += 1
 		largest := shrinkables[0].size[axis]
@@ -345,22 +339,13 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			prev_size := child.size[axis]
 			child_size := child.size[axis]
 			child_min_size := child.min_size[axis]
-			if child_size == largest {
+			if approx_equal(child_size, largest, EPSILON) {
 				child_size += size_to_add
-
-				if axis == .X {
-					child.size.x = child_size
-				} else {
-					child.size.y = child_size
-				}
+				child.size[axis] = child_size
 
 				if child_size <= child_min_size {
 					child_size = child_min_size
-					if axis == .X {
-						child.size.x = child_size
-					} else {
-						child.size.y = child_size
-					}
+					child.size[axis] = child_size
 					unordered_remove(&shrinkables, idx)
 				}
 				remaining_size -= (child_size - prev_size)
@@ -1080,7 +1065,7 @@ test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
 					{kind = .Fixed, value = panel_size.x},
 					{kind = .Fixed, value = panel_size.y},
 				},
-				layout_direction = .Top_To_Bottom,
+				layout_direction = .Left_To_Right,
 				padding = panel_padding,
 				child_gap = panel_child_gap,
 			},
@@ -1102,4 +1087,40 @@ test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
 		)
 	}
 
+	// Case 3: Multiple text elements grows
+	{
+		init(&ctx, persistent_allocator, frame_allocator)
+		defer deinit(&ctx)
+		begin(&ctx)
+		open_element(
+			&ctx,
+			"panel",
+			Element_Config {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
+			},
+		)
+		{
+			open_text_element(&ctx, "text", "AA", 10, 10)
+			close_element(&ctx)
+			open_text_element(&ctx, "text 2", "AA", 10, 10)
+			close_element(&ctx)
+		}
+		close_element(&ctx)
+		end(&ctx)
+
+		panel_element := ctx.root_element.children[0]
+		text_element_1 := panel_element.children[0]
+
+		testing.expect_value(
+			t,
+			text_element_1.size.x,
+			(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2,
+		)
+	}
 }
