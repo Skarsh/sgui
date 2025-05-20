@@ -448,6 +448,43 @@ calculate_positions :: proc(parent: ^UI_Element) {
 	}
 }
 
+// Helper to verify element size
+compare_element_size :: proc(
+	element: UI_Element,
+	expected_size: Vec2,
+	epsilon: f32 = EPSILON,
+) -> bool {
+	return approx_equal_vec2(element.size, expected_size, epsilon)
+}
+
+// Helper to verify element position
+compare_element_position :: proc(
+	element: UI_Element,
+	expected_pos: Vec2,
+	epsilon: f32 = EPSILON,
+) -> bool {
+	return approx_equal_vec2(element.position, expected_pos, epsilon)
+}
+
+// Helper to find an element in element hierarchy by id string
+find_element_by_id :: proc(root: ^UI_Element, id: string) -> ^UI_Element {
+	if root == nil {
+		return nil
+	}
+
+	if root.id_string == id {
+		return root
+	}
+
+	for child in root.children {
+		if result := find_element_by_id(child, id); result != nil {
+			return result
+		}
+	}
+
+	return nil
+}
+
 // TODO(Thomas): This test could become much nicer if we make a better
 // way of calculating the sizes, instead of manually doing it like now.
 @(test)
@@ -536,7 +573,9 @@ test_fit_sizing :: proc(t: ^testing.T) {
 
 		calculate_positions(ctx.root_element)
 
-		panel_element := ctx.root_element.children[0]
+		panel_element := find_element_by_id(ctx.root_element, "panel")
+		testing.expect(t, panel_element != nil)
+
 
 		// assert panel size
 		testing.expect_value(
@@ -667,7 +706,8 @@ test_fit_sizing :: proc(t: ^testing.T) {
 
 		calculate_positions(ctx.root_element)
 
-		panel_element := ctx.root_element.children[0]
+		panel_element := find_element_by_id(ctx.root_element, "panel")
+		testing.expect(t, panel_element != nil)
 
 		// assert panel size
 		testing.expect_value(
@@ -812,7 +852,7 @@ test_grow_sizing :: proc(t: ^testing.T) {
 
 		calculate_positions(ctx.root_element)
 
-		panel_element := ctx.root_element.children[0]
+		panel_element := find_element_by_id(ctx.root_element, "panel")
 
 		// assert panel size
 		testing.expect_value(t, panel_element.size.x, panel_size.x)
@@ -933,7 +973,7 @@ test_grow_sizing :: proc(t: ^testing.T) {
 		close_element(&ctx)
 		end(&ctx)
 		calculate_positions(ctx.root_element)
-		panel_element := ctx.root_element.children[0]
+		panel_element := find_element_by_id(ctx.root_element, "panel")
 
 		// assert panel size
 		testing.expect_value(t, panel_element.size.x, panel_size.x)
@@ -1042,7 +1082,7 @@ test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
 		close_element(&ctx)
 		end(&ctx)
 
-		panel_element := ctx.root_element.children[0]
+		panel_element := find_element_by_id(ctx.root_element, "panel")
 		text_element := panel_element.children[0]
 
 		testing.expect_value(
@@ -1116,11 +1156,56 @@ test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
 
 		panel_element := ctx.root_element.children[0]
 		text_element_1 := panel_element.children[0]
+		text_element_2 := panel_element.children[1]
 
-		testing.expect_value(
-			t,
-			text_element_1.size.x,
-			(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2,
+		expected_text_element_width :=
+			(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2
+		expected_text_element_height := panel_size.y - panel_padding.top - panel_padding.bottom
+		expected_size := Vec2{expected_text_element_width, expected_text_element_height}
+
+		testing.expect(t, compare_element_size(text_element_1^, expected_size))
+	}
+
+	// Case 4: Multiple text elements shrinks
+	{
+		init(&ctx, persistent_allocator, frame_allocator)
+		defer deinit(&ctx)
+		begin(&ctx)
+		open_element(
+			&ctx,
+			"panel",
+			Element_Config {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
+			},
 		)
+		{
+			open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
+			close_element(&ctx)
+			open_text_element(&ctx, "text 2", "AAAAA_AAAAA", 10, 10)
+			close_element(&ctx)
+		}
+		close_element(&ctx)
+		end(&ctx)
+
+		panel_element := find_element_by_id(ctx.root_element, "panel")
+		text_element_1 := panel_element.children[0]
+		text_element_2 := panel_element.children[1]
+
+		expected_text_element_width :=
+			(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2
+
+		expected_text_element_height :=
+			panel_element.size.y - panel_padding.top - panel_padding.bottom
+
+		expected_size := Vec2{expected_text_element_width, expected_text_element_height}
+
+		testing.expect(t, compare_element_size(text_element_1^, expected_size))
+		testing.expect(t, compare_element_size(text_element_2^, expected_size))
 	}
 }
