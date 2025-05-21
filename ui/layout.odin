@@ -114,22 +114,22 @@ open_text_element :: proc(
 	id: string,
 	content: string,
 	font_width: f32 = CHAR_WIDTH,
-	font_height: f32 = CHAR_WIDTH,
+	font_height: f32 = CHAR_HEIGHT,
+	min_width: f32 = 5 * CHAR_WIDTH,
+	min_height: f32 = CHAR_HEIGHT,
 ) -> bool {
 	str_len := len(content)
 	content_width: f32 = f32(str_len) * font_width
 	content_height: f32 = font_height
 	element, element_ok := make_element(
-	ctx,
-	id,
-	Element_Config {
-		sizing = {
-			// TODO(Thomas): This is just hardcoded for it too look like something that makes sense for now.
-			// This should be calculated based on the largest word in the string, or something like that.
-			{kind = .Grow, min_value = 5.0 * font_width},
-			{kind = .Grow, min_value = font_height},
+		ctx,
+		id,
+		Element_Config {
+			sizing = {
+				{kind = .Grow, min_value = min_width},
+				{kind = .Grow, min_value = min_height},
+			},
 		},
-	},
 	)
 	assert(element_ok)
 	element.size.x = f32(content_width)
@@ -1240,4 +1240,42 @@ test_multiple_text_element_shrink_ltr :: proc(t: ^testing.T) {
 
 	testing.expect(t, compare_element_size(text_element_1^, expected_size))
 	testing.expect(t, compare_element_size(text_element_2^, expected_size))
+}
+
+@(test)
+test_shrink_stops_at_min_size_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	panel_size := Vec2{200, 100}
+
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
+			},
+			layout_direction = .Left_To_Right,
+		},
+	)
+	{
+		open_text_element(&ctx, "text_1", "0123456789", 10, 10, min_width = 30)
+		close_element(&ctx)
+		open_text_element(&ctx, "text_2", "0123456789", 10, 10, min_width = 30)
+		close_element(&ctx)
+		open_text_element(&ctx, "text_3", "0123456789", 10, 10, min_width = 90)
+		close_element(&ctx)
+	}
+	close_element(&ctx)
+	end(&ctx)
+
+	text_element_1 := find_element_by_id(ctx.root_element, "text_1")
+	text_element_2 := find_element_by_id(ctx.root_element, "text_2")
+	text_element_3 := find_element_by_id(ctx.root_element, "text_3")
+
+	testing.expect_value(t, text_element_3.size.x, 90)
 }
