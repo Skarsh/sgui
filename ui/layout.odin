@@ -605,8 +605,8 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	testing.expect(t, panel_element != nil)
 
 
-	expected_panel_size := testing.expect_value(// assert panel size
-		t,
+	expected_panel_size := testing.expect_value(
+		t, // assert panel size
 		panel_element.size.x,
 		panel_padding.left +
 		container_1_size.x +
@@ -796,284 +796,262 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_grow_sizing :: proc(t: ^testing.T) {
+test_grow_sizing_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
 
-	ctx := Context{}
+	panel_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 10
+	panel_size := Vec2{600, 400}
+	container_1_size := Vec2{100, 100}
+	container_2_size := Vec2{600 - 150 - 100, 400}
+	container_3_size := Vec2{150, 150}
 
-	arena := virtual.Arena{}
-	arena_buffer := make([]u8, 100 * 1024)
-	arena_alloc_err := virtual.arena_init_buffer(&arena, arena_buffer)
-	assert(arena_alloc_err == .None)
-	arena_allocator := virtual.arena_allocator(&arena)
-	defer free_all(arena_allocator)
-	defer delete(arena_buffer)
+	begin(&ctx)
 
-	persistent_allocator := arena_allocator
-	frame_allocator := arena_allocator
-
-	// Left_To_Right layout direction
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
+			},
+			layout_direction = .Left_To_Right,
+			padding = panel_padding,
+			child_gap = 10,
+		},
+	)
 	{
-		panel_padding := Padding {
-			left   = 10,
-			top    = 10,
-			right  = 10,
-			bottom = 10,
-		}
-		panel_child_gap: f32 = 10
-		panel_size := Vec2{600, 400}
-		container_1_size := Vec2{100, 100}
-		container_2_size := Vec2{600 - 150 - 100, 400}
-		container_3_size := Vec2{150, 150}
-
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-
-		begin(&ctx)
-
 		open_element(
 			&ctx,
-			"panel",
+			"container_1",
 			Element_Config {
 				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
+					{kind = .Fixed, value = container_1_size.x},
+					{kind = .Fixed, value = container_1_size.y},
 				},
-				layout_direction = .Left_To_Right,
-				padding = panel_padding,
-				child_gap = 10,
 			},
 		)
-		{
-			open_element(
-				&ctx,
-				"container_1",
-				Element_Config {
-					sizing = {
-						{kind = .Fixed, value = container_1_size.x},
-						{kind = .Fixed, value = container_1_size.y},
-					},
-				},
-			)
-			close_element(&ctx)
-			open_element(
-				&ctx,
-				"container_2",
-				Element_Config{sizing = {{kind = .Grow}, {kind = .Grow}}},
-			)
-			close_element(&ctx)
-			open_element(
-				&ctx,
-				"container_3",
-				Element_Config {
-					sizing = {
-						{kind = .Fixed, value = container_3_size.x},
-						{kind = .Fixed, value = container_3_size.y},
-					},
-				},
-			)
-			close_element(&ctx)
-		}
-
 		close_element(&ctx)
-		end(&ctx)
-
-		calculate_positions(ctx.root_element)
-
-		panel_element := find_element_by_id(ctx.root_element, "panel")
-
-		// assert panel size
-		testing.expect_value(t, panel_element.size.x, panel_size.x)
-		testing.expect_value(t, panel_element.size.y, panel_size.y)
-
-		// assert panel positions
-		testing.expect_value(t, panel_element.position.x, 0)
-		testing.expect_value(t, panel_element.position.y, 0)
-
-		// assert container_1 size
-		container_1_element := panel_element.children[0]
-		testing.expect_value(t, container_1_element.size.x, container_1_size.x)
-		testing.expect_value(t, container_1_element.size.y, container_1_size.y)
-
-		// asert container_1 position
-		testing.expect_value(t, container_1_element.position.x, panel_padding.left)
-		testing.expect_value(t, container_1_element.position.y, panel_padding.top)
-
-		// assert container_2 size
-		container_2_element := panel_element.children[1]
-		testing.expect_value(
-			t,
-			container_2_element.size.x,
-			panel_size.x -
-			panel_padding.left -
-			panel_padding.right -
-			(2 * panel_child_gap) -
-			container_1_size.x -
-			container_3_size.x,
-		)
-		testing.expect_value(
-			t,
-			container_2_element.size.y,
-			panel_size.y - panel_padding.top - panel_padding.bottom,
-		)
-
-		// assert container_2 position
-		testing.expect_value(
-			t,
-			container_2_element.position.x,
-			container_1_element.position.x + container_1_element.size.x + panel_child_gap,
-		)
-		testing.expect_value(t, container_2_element.position.y, panel_padding.top)
-
-		// assert container_3 size
-		container_3_element := panel_element.children[2]
-		testing.expect_value(t, container_3_element.size.x, container_3_size.x)
-		testing.expect_value(t, container_3_element.size.y, container_3_size.y)
-
-		// assert container_3 position
-		testing.expect_value(
-			t,
-			container_3_element.position.x,
-			container_2_element.position.x + container_2_element.size.x + panel_child_gap,
-		)
-		testing.expect_value(t, container_3_element.position.y, panel_padding.top)
-	}
-	// Top_To_Bottom layout direction
-	{
-		panel_padding := Padding {
-			left   = 10,
-			top    = 10,
-			right  = 10,
-			bottom = 10,
-		}
-		panel_child_gap: f32 = 10
-		panel_size := Vec2{600, 400}
-		container_1_size := Vec2{100, 100}
-		container_2_size := Vec2{600, 400 - 150 - 100}
-		container_3_size := Vec2{150, 150}
-
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-		begin(&ctx)
 		open_element(
 			&ctx,
-			"panel",
+			"container_2",
+			Element_Config{sizing = {{kind = .Grow}, {kind = .Grow}}},
+		)
+		close_element(&ctx)
+		open_element(
+			&ctx,
+			"container_3",
 			Element_Config {
 				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
+					{kind = .Fixed, value = container_3_size.x},
+					{kind = .Fixed, value = container_3_size.y},
 				},
-				layout_direction = .Top_To_Bottom,
-				padding = panel_padding,
-				child_gap = 10,
 			},
 		)
-		{
-			open_element(
-				&ctx,
-				"container_1",
-				Element_Config {
-					sizing = {
-						{kind = .Fixed, value = container_1_size.x},
-						{kind = .Fixed, value = container_1_size.y},
-					},
-				},
-			)
-			close_element(&ctx)
-			open_element(
-				&ctx,
-				"container_2",
-				Element_Config{sizing = {{kind = .Grow}, {kind = .Grow}}},
-			)
-			close_element(&ctx)
-			open_element(
-				&ctx,
-				"container_3",
-				Element_Config {
-					sizing = {
-						{kind = .Fixed, value = container_3_size.x},
-						{kind = .Fixed, value = container_3_size.y},
-					},
-				},
-			)
-			close_element(&ctx)
-		}
 		close_element(&ctx)
-		end(&ctx)
-		calculate_positions(ctx.root_element)
-		panel_element := find_element_by_id(ctx.root_element, "panel")
-
-		// assert panel size
-		testing.expect_value(t, panel_element.size.x, panel_size.x)
-		testing.expect_value(t, panel_element.size.y, panel_size.y)
-
-		// assert panel positions
-		testing.expect_value(t, panel_element.position.x, 0)
-		testing.expect_value(t, panel_element.position.y, 0)
-
-		// assert container_1 size
-		container_1_element := panel_element.children[0]
-		testing.expect_value(t, container_1_element.size.x, container_1_size.x)
-		testing.expect_value(t, container_1_element.size.y, container_1_size.y)
-
-		// assert container_1 position
-		testing.expect_value(t, container_1_element.position.x, panel_padding.left)
-		testing.expect_value(t, container_1_element.position.y, panel_padding.top)
-
-		// assert container_2 size
-		container_2_element := panel_element.children[1]
-		testing.expect_value(
-			t,
-			container_2_element.size.x,
-			panel_size.x - panel_padding.left - panel_padding.right,
-		)
-		testing.expect_value(
-			t,
-			container_2_element.size.y,
-			panel_size.y -
-			panel_padding.top -
-			panel_padding.bottom -
-			(2 * panel_child_gap) -
-			container_1_size.y -
-			container_3_size.y,
-		)
-
-		// assert container_2 position
-		testing.expect_value(t, container_2_element.position.x, panel_padding.left)
-		testing.expect_value(
-			t,
-			container_2_element.position.y,
-			container_1_element.position.y + container_1_element.size.y + panel_child_gap,
-		)
-
-		// assert container_3 size
-		container_3_element := panel_element.children[2]
-		testing.expect_value(t, container_3_element.size.x, container_3_size.x)
-		testing.expect_value(t, container_3_element.size.y, container_3_size.y)
-
-		// assert container_3 position
-		testing.expect_value(t, container_3_element.position.x, panel_padding.left)
-		testing.expect_value(
-			t,
-			container_3_element.position.y,
-			container_2_element.position.y + container_2_element.size.y + panel_child_gap,
-		)
 	}
+
+	close_element(&ctx)
+	end(&ctx)
+
+	calculate_positions(ctx.root_element)
+
+	panel_element := find_element_by_id(ctx.root_element, "panel")
+
+	// assert panel size
+	testing.expect_value(t, panel_element.size.x, panel_size.x)
+	testing.expect_value(t, panel_element.size.y, panel_size.y)
+
+	// assert panel positions
+	testing.expect_value(t, panel_element.position.x, 0)
+	testing.expect_value(t, panel_element.position.y, 0)
+
+	// assert container_1 size
+	container_1_element := panel_element.children[0]
+	testing.expect_value(t, container_1_element.size.x, container_1_size.x)
+	testing.expect_value(t, container_1_element.size.y, container_1_size.y)
+
+	// asert container_1 position
+	testing.expect_value(t, container_1_element.position.x, panel_padding.left)
+	testing.expect_value(t, container_1_element.position.y, panel_padding.top)
+
+	// assert container_2 size
+	container_2_element := panel_element.children[1]
+	testing.expect_value(
+		t,
+		container_2_element.size.x,
+		panel_size.x -
+		panel_padding.left -
+		panel_padding.right -
+		(2 * panel_child_gap) -
+		container_1_size.x -
+		container_3_size.x,
+	)
+	testing.expect_value(
+		t,
+		container_2_element.size.y,
+		panel_size.y - panel_padding.top - panel_padding.bottom,
+	)
+
+	// assert container_2 position
+	testing.expect_value(
+		t,
+		container_2_element.position.x,
+		container_1_element.position.x + container_1_element.size.x + panel_child_gap,
+	)
+	testing.expect_value(t, container_2_element.position.y, panel_padding.top)
+
+	// assert container_3 size
+	container_3_element := panel_element.children[2]
+	testing.expect_value(t, container_3_element.size.x, container_3_size.x)
+	testing.expect_value(t, container_3_element.size.y, container_3_size.y)
+
+	// assert container_3 position
+	testing.expect_value(
+		t,
+		container_3_element.position.x,
+		container_2_element.position.x + container_2_element.size.x + panel_child_gap,
+	)
+	testing.expect_value(t, container_3_element.position.y, panel_padding.top)
 }
 
 @(test)
-test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
-	ctx := Context{}
+test_grow_sizing_ttb :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
 
-	arena := virtual.Arena{}
-	arena_buffer := make([]u8, 100 * 1024)
-	arena_alloc_err := virtual.arena_init_buffer(&arena, arena_buffer)
-	assert(arena_alloc_err == .None)
-	arena_allocator := virtual.arena_allocator(&arena)
-	defer free_all(arena_allocator)
-	defer delete(arena_buffer)
+	panel_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 10
+	panel_size := Vec2{600, 400}
+	container_1_size := Vec2{100, 100}
+	container_2_size := Vec2{600, 400 - 150 - 100}
+	container_3_size := Vec2{150, 150}
 
-	persistent_allocator := arena_allocator
-	frame_allocator := arena_allocator
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
+			},
+			layout_direction = .Top_To_Bottom,
+			padding = panel_padding,
+			child_gap = 10,
+		},
+	)
+	{
+		open_element(
+			&ctx,
+			"container_1",
+			Element_Config {
+				sizing = {
+					{kind = .Fixed, value = container_1_size.x},
+					{kind = .Fixed, value = container_1_size.y},
+				},
+			},
+		)
+		close_element(&ctx)
+		open_element(
+			&ctx,
+			"container_2",
+			Element_Config{sizing = {{kind = .Grow}, {kind = .Grow}}},
+		)
+		close_element(&ctx)
+		open_element(
+			&ctx,
+			"container_3",
+			Element_Config {
+				sizing = {
+					{kind = .Fixed, value = container_3_size.x},
+					{kind = .Fixed, value = container_3_size.y},
+				},
+			},
+		)
+		close_element(&ctx)
+	}
+	close_element(&ctx)
+	end(&ctx)
+	calculate_positions(ctx.root_element)
+	panel_element := find_element_by_id(ctx.root_element, "panel")
+
+	// assert panel size
+	testing.expect_value(t, panel_element.size.x, panel_size.x)
+	testing.expect_value(t, panel_element.size.y, panel_size.y)
+
+	// assert panel positions
+	testing.expect_value(t, panel_element.position.x, 0)
+	testing.expect_value(t, panel_element.position.y, 0)
+
+	// assert container_1 size
+	container_1_element := panel_element.children[0]
+	testing.expect_value(t, container_1_element.size.x, container_1_size.x)
+	testing.expect_value(t, container_1_element.size.y, container_1_size.y)
+
+	// assert container_1 position
+	testing.expect_value(t, container_1_element.position.x, panel_padding.left)
+	testing.expect_value(t, container_1_element.position.y, panel_padding.top)
+
+	// assert container_2 size
+	container_2_element := panel_element.children[1]
+	testing.expect_value(
+		t,
+		container_2_element.size.x,
+		panel_size.x - panel_padding.left - panel_padding.right,
+	)
+	testing.expect_value(
+		t,
+		container_2_element.size.y,
+		panel_size.y -
+		panel_padding.top -
+		panel_padding.bottom -
+		(2 * panel_child_gap) -
+		container_1_size.y -
+		container_3_size.y,
+	)
+
+	// assert container_2 position
+	testing.expect_value(t, container_2_element.position.x, panel_padding.left)
+	testing.expect_value(
+		t,
+		container_2_element.position.y,
+		container_1_element.position.y + container_1_element.size.y + panel_child_gap,
+	)
+
+	// assert container_3 size
+	container_3_element := panel_element.children[2]
+	testing.expect_value(t, container_3_element.size.x, container_3_size.x)
+	testing.expect_value(t, container_3_element.size.y, container_3_size.y)
+
+	// assert container_3 position
+	testing.expect_value(t, container_3_element.position.x, panel_padding.left)
+	testing.expect_value(
+		t,
+		container_3_element.position.y,
+		container_2_element.position.y + container_2_element.size.y + panel_child_gap,
+	)
+}
+
+@(test)
+test_single_text_element_grow_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
 
 	panel_size := Vec2{100, 100}
 	panel_padding := Padding {
@@ -1084,155 +1062,182 @@ test_text_grow_and_shrink_sizing :: proc(t: ^testing.T) {
 	}
 	panel_child_gap: f32 = 10
 
-	// Case 1: Simple text element grows
-	{
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-		begin(&ctx)
-		open_element(
-			&ctx,
-			"panel",
-			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
-				},
-				layout_direction = .Top_To_Bottom,
-				padding = panel_padding,
-				child_gap = panel_child_gap,
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
 			},
-		)
-		{
-			open_text_element(&ctx, "text", "AAAAA", 10, 10)
-			close_element(&ctx)
-		}
-		close_element(&ctx)
-		end(&ctx)
-
-		panel_element := find_element_by_id(ctx.root_element, "panel")
-		text_element := panel_element.children[0]
-
-		testing.expect_value(
-			t,
-			text_element.size.x,
-			panel_size.x - panel_padding.left - panel_padding.right,
-		)
-	}
-
-	// Case 2: Simple text element shrinks
+			layout_direction = .Top_To_Bottom,
+			padding = panel_padding,
+			child_gap = panel_child_gap,
+		},
+	)
 	{
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-		begin(&ctx)
-		open_element(
-			&ctx,
-			"panel",
-			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
-				},
-				layout_direction = .Left_To_Right,
-				padding = panel_padding,
-				child_gap = panel_child_gap,
-			},
-		)
-		{
-			open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
-			close_element(&ctx)
-		}
+		open_text_element(&ctx, "text", "AAAAA", 10, 10)
 		close_element(&ctx)
-		end(&ctx)
-
-		panel_element := ctx.root_element.children[0]
-		text_element := panel_element.children[0]
-
-		testing.expect_value(
-			t,
-			text_element.size.x,
-			panel_size.x - panel_padding.left - panel_padding.right,
-		)
 	}
+	close_element(&ctx)
+	end(&ctx)
 
-	// Case 3: Multiple text elements grows
+	panel_element := find_element_by_id(ctx.root_element, "panel")
+	text_element := panel_element.children[0]
+
+	testing.expect_value(
+		t,
+		text_element.size.x,
+		panel_size.x - panel_padding.left - panel_padding.right,
+	)
+}
+
+@(test)
+test_multiple_text_element_grow_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	panel_size := Vec2{100, 100}
+	panel_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 10
+
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
+			},
+			layout_direction = .Left_To_Right,
+			padding = panel_padding,
+			child_gap = panel_child_gap,
+		},
+	)
 	{
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-		begin(&ctx)
-		open_element(
-			&ctx,
-			"panel",
-			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
-				},
-				layout_direction = .Left_To_Right,
-				padding = panel_padding,
-				child_gap = panel_child_gap,
-			},
-		)
-		{
-			open_text_element(&ctx, "text", "AA", 10, 10)
-			close_element(&ctx)
-			open_text_element(&ctx, "text 2", "AA", 10, 10)
-			close_element(&ctx)
-		}
+		open_text_element(&ctx, "text", "AA", 10, 10)
 		close_element(&ctx)
-		end(&ctx)
-
-		panel_element := ctx.root_element.children[0]
-		text_element_1 := panel_element.children[0]
-		text_element_2 := panel_element.children[1]
-
-		expected_text_element_width :=
-			(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2
-		expected_text_element_height := panel_size.y - panel_padding.top - panel_padding.bottom
-		expected_size := Vec2{expected_text_element_width, expected_text_element_height}
-
-		testing.expect(t, compare_element_size(text_element_1^, expected_size))
+		open_text_element(&ctx, "text 2", "AA", 10, 10)
+		close_element(&ctx)
 	}
+	close_element(&ctx)
+	end(&ctx)
 
-	// Case 4: Multiple text elements shrinks
+	panel_element := ctx.root_element.children[0]
+	text_element_1 := panel_element.children[0]
+	text_element_2 := panel_element.children[1]
+
+	expected_text_element_width :=
+		(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2
+	expected_text_element_height := panel_size.y - panel_padding.top - panel_padding.bottom
+	expected_size := Vec2{expected_text_element_width, expected_text_element_height}
+
+	testing.expect(t, compare_element_size(text_element_1^, expected_size))
+}
+
+@(test)
+test_single_text_element_shrink_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	panel_size := Vec2{100, 100}
+	panel_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 10
+
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
+			},
+			layout_direction = .Left_To_Right,
+			padding = panel_padding,
+			child_gap = panel_child_gap,
+		},
+	)
 	{
-		init(&ctx, persistent_allocator, frame_allocator)
-		defer deinit(&ctx)
-		begin(&ctx)
-		open_element(
-			&ctx,
-			"panel",
-			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
-				},
-				layout_direction = .Left_To_Right,
-				padding = panel_padding,
-				child_gap = panel_child_gap,
-			},
-		)
-		{
-			open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
-			close_element(&ctx)
-			open_text_element(&ctx, "text 2", "AAAAA_AAAAA", 10, 10)
-			close_element(&ctx)
-		}
+		open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
 		close_element(&ctx)
-		end(&ctx)
-
-		panel_element := find_element_by_id(ctx.root_element, "panel")
-		text_element_1 := panel_element.children[0]
-		text_element_2 := panel_element.children[1]
-
-		expected_text_element_width :=
-			(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2
-
-		expected_text_element_height :=
-			panel_element.size.y - panel_padding.top - panel_padding.bottom
-
-		expected_size := Vec2{expected_text_element_width, expected_text_element_height}
-
-		testing.expect(t, compare_element_size(text_element_1^, expected_size))
-		testing.expect(t, compare_element_size(text_element_2^, expected_size))
 	}
+	close_element(&ctx)
+	end(&ctx)
+
+	panel_element := ctx.root_element.children[0]
+	text_element := panel_element.children[0]
+
+	testing.expect_value(
+		t,
+		text_element.size.x,
+		panel_size.x - panel_padding.left - panel_padding.right,
+	)
+}
+
+@(test)
+test_multiple_text_element_shrink_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	panel_size := Vec2{100, 100}
+	panel_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 10
+
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			sizing = {
+				{kind = .Fixed, value = panel_size.x},
+				{kind = .Fixed, value = panel_size.y},
+			},
+			layout_direction = .Left_To_Right,
+			padding = panel_padding,
+			child_gap = panel_child_gap,
+		},
+	)
+	{
+		open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
+		close_element(&ctx)
+		open_text_element(&ctx, "text 2", "AAAAA_AAAAA", 10, 10)
+		close_element(&ctx)
+	}
+	close_element(&ctx)
+	end(&ctx)
+
+	panel_element := find_element_by_id(ctx.root_element, "panel")
+	text_element_1 := panel_element.children[0]
+	text_element_2 := panel_element.children[1]
+
+	expected_text_element_width :=
+		(panel_size.x - panel_padding.left - panel_padding.right - panel_child_gap) / 2
+
+	expected_text_element_height := panel_element.size.y - panel_padding.top - panel_padding.bottom
+
+	expected_size := Vec2{expected_text_element_width, expected_text_element_height}
+
+	testing.expect(t, compare_element_size(text_element_1^, expected_size))
+	testing.expect(t, compare_element_size(text_element_2^, expected_size))
 }
