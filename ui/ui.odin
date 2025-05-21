@@ -78,8 +78,6 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 
-
-	// TODO(Thomas): Allocate from passed in allocator
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 }
 
