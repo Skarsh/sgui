@@ -109,6 +109,7 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 
 // TODO(Thomas): I don't think we should pass in the font sizes like we're doing now,
 // this is very permanent and mostly for testing while developing.
+// TODO(Thomas): Default value for min_width is just a temporary hack
 open_text_element :: proc(
 	ctx: ^Context,
 	id: string,
