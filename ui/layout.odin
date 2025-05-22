@@ -1287,5 +1287,5 @@ test_shrink_stops_at_min_size_ltr :: proc(t: ^testing.T) {
 	text_element_2 := find_element_by_id(ctx.root_element, "text_2")
 	text_element_3 := find_element_by_id(ctx.root_element, "text_3")
 
-	//testing.expect_value(t, text_element_3.size.x, 90)
+	testing.expect_value(t, text_element_3.size.x, 90)
 }
