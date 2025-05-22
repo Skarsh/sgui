@@ -92,21 +92,14 @@ main :: proc() {
 	ctx := ui.Context{}
 
 	persistent_arena := virtual.Arena{}
-	persistent_arena_buffer := make([]u8, 100 * 1024)
-	defer delete(persistent_arena_buffer)
-	persistent_arena_alloc_err := virtual.arena_init_buffer(
-		&persistent_arena,
-		persistent_arena_buffer,
-	)
-	assert(persistent_arena_alloc_err == .None)
+	arena_err := virtual.arena_init_static(&persistent_arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
 	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
 	defer free_all(persistent_arena_allocator)
 
 	frame_arena := virtual.Arena{}
-	frame_arena_buffer := make([]u8, 100 * 1024)
-	defer delete(frame_arena_buffer)
-	frame_arena_alloc_err := virtual.arena_init_buffer(&frame_arena, frame_arena_buffer)
-	assert(frame_arena_alloc_err == .None)
+	arena_err = virtual.arena_init_static(&frame_arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
 	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
 	defer free_all(frame_arena_allocator)
 
