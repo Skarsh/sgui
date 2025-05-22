@@ -512,8 +512,8 @@ setup_test_environment :: proc() -> ^Test_Environment {
 	env := new(Test_Environment)
 
 	// Setup arena and allocator
-	env.arena_buffer = make([]u8, 100 * 1024)
-	arena_alloc_err := virtual.arena_init_buffer(&env.arena, env.arena_buffer)
+	env.arena = virtual.Arena{}
+	arena_alloc_err := virtual.arena_init_static(&env.arena)
 	assert(arena_alloc_err == .None)
 	env.arena_allocator = virtual.arena_allocator(&env.arena)
 
