@@ -136,6 +136,8 @@ open_text_element :: proc(
 	assert(element_ok)
 	element.size.x = f32(content_width)
 	element.size.y = f32(content_height)
+	element.min_size.x = min_width
+	element.min_size.y = min_height
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
