@@ -10,7 +10,6 @@ Word :: struct {
 	length:       int,
 }
 
-// TODO(Thomas): This needs to be done per character instead, to better deal with spaces and newlines
 @(require_results)
 measure_text_words :: proc(
 	text: string,
@@ -24,24 +23,40 @@ measure_text_words :: proc(
 		return words[:]
 	}
 
-	splits: []string
-	splits, alloc_err = strings.split(text, " ", allocator)
-	assert(alloc_err == .None)
+	start := 0
+	i := 0
 
-	idx := 0
-	for split in splits {
-		// The split is just a whitespace
-		if len(split) == 0 {
-			idx += 1
+	for i < len(text) {
+		ch := text[i]
+
+		// Handle space
+		if ch == ' ' {
+			if i > start {
+				append(&words, Word{start_offset = start, length = i - start})
+			}
+			i += 1
+			start = i
 			continue
 		}
 
-		start := idx
-		str_len := len(split)
+		// Handle newline
+		if ch == '\n' {
+			if i > start {
+				append(&words, Word{start_offset = start, length = i - start})
+			}
+			i += 1
+			start = i
+			continue
+		}
 
-		// Add 1 for the whitespace
-		idx += str_len + 1
-		append(&words, Word{start_offset = start, length = str_len})
+		i += 1
+	}
+
+	// This handles the cases: 
+	// - There is no space or newline, just one continous word
+	// - The final word after a space or newline
+	if i > start {
+		append(&words, Word{start_offset = start, length = i - start})
 	}
 
 	return words[:]
@@ -198,5 +213,22 @@ test_measure_words_many_words :: proc(t: ^testing.T) {
 		{start_offset = 40, length = 4}, // nine
 		{start_offset = 45, length = 3}, // ten
 	}
+	expect_words(t, words, expected_words)
+}
+
+@(test)
+test_measure_words_only_newline :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+
+	text := "\n"
+
+	words := measure_text_words(
+		text,
+		Text_Element_Config{char_width = CHAR_WIDTH, char_height = CHAR_HEIGHT},
+		allocator,
+	)
+
+	expected_words := []Word{}
 	expect_words(t, words, expected_words)
 }
