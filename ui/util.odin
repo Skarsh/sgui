@@ -47,6 +47,7 @@ intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
 	return true
 }
 
+@(require_results)
 lerp_color :: proc(a, b: Color, t: f32) -> Color {
 	t_clamped := math.clamp(t, 0.0, 1.0)
 
