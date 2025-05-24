@@ -117,8 +117,8 @@ open_text_element :: proc(
 	content: string,
 	font_width: f32 = CHAR_WIDTH,
 	font_height: f32 = CHAR_HEIGHT,
-	min_width: f32 = 5 * CHAR_WIDTH,
-	min_height: f32 = CHAR_HEIGHT,
+	min_width: f32 = 0,
+	min_height: f32 = 0,
 ) -> bool {
 	str_len := len(content)
 	content_width: f32 = f32(str_len) * font_width
@@ -347,7 +347,9 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 		size_to_add = max(size_to_add, remaining_size / f32(len(small_array.slice(&shrinkables))))
 
-		for child, idx in small_array.slice(&shrinkables) {
+		// NOTE(Thomas): We iterate in reverse order to ensure that the idx
+		// after one removal will be valid.
+		#reverse for child, idx in small_array.slice(&shrinkables) {
 			prev_size := child.size[axis]
 			child_size := child.size[axis]
 			child_min_size := child.min_size[axis]
