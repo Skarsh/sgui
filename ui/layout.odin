@@ -32,6 +32,11 @@ Padding :: struct {
 	bottom: f32,
 }
 
+Element_Kind :: enum {
+	Container,
+	Text,
+}
+
 UI_Element :: struct {
 	parent:           ^UI_Element,
 	id_string:        string,
@@ -44,6 +49,8 @@ UI_Element :: struct {
 	child_gap:        f32,
 	children:         [dynamic]^UI_Element,
 	color:            Color,
+	kind:             Element_Kind,
+	text_config:      Text_Element_Config,
 }
 
 Sizing :: struct {
@@ -60,6 +67,15 @@ Element_Config :: struct {
 	color:            Color,
 }
 
+Text_Element_Config :: struct {
+	data:        string,
+	color:       Color,
+	font_size:   int,
+	char_width:  int,
+	char_height: int,
+	min_width:   int,
+	min_height:  int,
+}
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	return f32(len(element.children) - 1) * element.child_gap
@@ -102,6 +118,8 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
 	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
+	// TODO(Thomas): Move this into the make_element procedure?
+	element.kind = .Container
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -111,33 +129,33 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 // TODO(Thomas): I don't think we should pass in the font sizes like we're doing now,
 // this is very permanent and mostly for testing while developing.
 // TODO(Thomas): Default value for min_width is just a temporary hack
-open_text_element :: proc(
-	ctx: ^Context,
-	id: string,
-	content: string,
-	font_width: f32 = CHAR_WIDTH,
-	font_height: f32 = CHAR_HEIGHT,
-	min_width: f32 = 0,
-	min_height: f32 = 0,
-) -> bool {
-	str_len := len(content)
-	content_width: f32 = f32(str_len) * font_width
-	content_height: f32 = font_height
+open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
 	element, element_ok := make_element(
 		ctx,
 		id,
 		Element_Config {
 			sizing = {
-				{kind = .Grow, min_value = min_width},
-				{kind = .Grow, min_value = min_height},
+				{kind = .Grow, min_value = f32(text_config.min_width)},
+				{kind = .Grow, min_value = f32(text_config.min_height)},
 			},
 		},
 	)
 	assert(element_ok)
-	element.size.x = f32(content_width)
-	element.size.y = f32(content_height)
-	element.min_size.x = min_width
-	element.min_size.y = min_height
+
+
+	str_len := len(text_config.data)
+	char_width := text_config.char_width == 0 ? CHAR_WIDTH : text_config.char_width
+	char_height := text_config.char_height == 0 ? CHAR_HEIGHT : text_config.char_height
+	content_width: f32 = f32(str_len) * f32(char_width)
+	content_height: f32 = f32(char_height)
+
+	// TODO(Thomas): Move this into the make_element procedure?
+	element.size.x = content_width
+	element.size.y = content_height
+	element.min_size.x = f32(text_config.min_width)
+	element.min_size.y = f32(text_config.min_height)
+	element.kind = .Text
+	element.text_config = text_config
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -1091,7 +1109,11 @@ test_single_text_element_grow_ltr :: proc(t: ^testing.T) {
 		},
 	)
 	{
-		open_text_element(&ctx, "text", "AAAAA", 10, 10)
+		open_text_element(
+			&ctx,
+			"text",
+			Text_Element_Config{data = "AAAAA", char_width = 10, char_height = 10},
+		)
 		close_element(&ctx)
 	}
 	close_element(&ctx)
@@ -1137,9 +1159,17 @@ test_multiple_text_element_grow_ltr :: proc(t: ^testing.T) {
 		},
 	)
 	{
-		open_text_element(&ctx, "text", "AA", 10, 10)
+		open_text_element(
+			&ctx,
+			"text",
+			Text_Element_Config{data = "AA", char_width = 10, char_height = 10},
+		)
 		close_element(&ctx)
-		open_text_element(&ctx, "text 2", "AA", 10, 10)
+		open_text_element(
+			&ctx,
+			"text 2",
+			Text_Element_Config{data = "AA", char_width = 10, char_height = 10},
+		)
 		close_element(&ctx)
 	}
 	close_element(&ctx)
@@ -1187,7 +1217,11 @@ test_single_text_element_shrink_ltr :: proc(t: ^testing.T) {
 		},
 	)
 	{
-		open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
+		open_text_element(
+			&ctx,
+			"text",
+			Text_Element_Config{data = "AAAAA_AAAAA", char_width = 10, char_height = 10},
+		)
 		close_element(&ctx)
 	}
 	close_element(&ctx)
@@ -1233,9 +1267,17 @@ test_multiple_text_element_shrink_ltr :: proc(t: ^testing.T) {
 		},
 	)
 	{
-		open_text_element(&ctx, "text", "AAAAA_AAAAA", 10, 10)
+		open_text_element(
+			&ctx,
+			"text",
+			Text_Element_Config{data = "AAAAA_AAAAA", char_width = 10, char_height = 10},
+		)
 		close_element(&ctx)
-		open_text_element(&ctx, "text 2", "AAAAA_AAAAA", 10, 10)
+		open_text_element(
+			&ctx,
+			"text 2",
+			Text_Element_Config{data = "AAAAA_AAAAA", char_width = 10, char_height = 10},
+		)
 		close_element(&ctx)
 	}
 	close_element(&ctx)
@@ -1277,11 +1319,38 @@ test_shrink_stops_at_min_size_ltr :: proc(t: ^testing.T) {
 		},
 	)
 	{
-		open_text_element(&ctx, "text_1", "0123456789", 10, 10, min_width = 30)
+		open_text_element(
+			&ctx,
+			"text_1",
+			Text_Element_Config {
+				data = "0123456789",
+				char_width = 10,
+				char_height = 10,
+				min_width = 30,
+			},
+		)
 		close_element(&ctx)
-		open_text_element(&ctx, "text_2", "0123456789", 10, 10, min_width = 30)
+		open_text_element(
+			&ctx,
+			"text_2",
+			Text_Element_Config {
+				data = "0123456789",
+				char_width = 10,
+				char_height = 10,
+				min_width = 30,
+			},
+		)
 		close_element(&ctx)
-		open_text_element(&ctx, "text_3", "0123456789", 10, 10, min_width = 90)
+		open_text_element(
+			&ctx,
+			"text_3",
+			Text_Element_Config {
+				data = "0123456789",
+				char_width = 10,
+				char_height = 10,
+				min_width = 90,
+			},
+		)
 		close_element(&ctx)
 	}
 	close_element(&ctx)

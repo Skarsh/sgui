@@ -132,6 +132,10 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		element.color,
 	)
 
+	if element.kind == .Text {
+		draw_text(ctx, i32(element.position.x), i32(element.position.y), element.text_config.data)
+	}
+
 	for child in element.children {
 		draw_element(ctx, child)
 	}
