@@ -4,6 +4,7 @@ import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
+import "core:fmt"
 
 Word :: struct {
 	start_offset: int,
@@ -65,6 +66,7 @@ Text_Line :: struct {
 }
 
 calculate_text_lines :: proc(
+	text: string,
 	words: []Word,
 	config: Text_Element_Config,
 	allocator: mem.Allocator,
@@ -78,12 +80,26 @@ calculate_text_lines :: proc(
 
 	space_left := min_width
 
+	builder, err := strings.builder_make_none(context.temp_allocator);
+	assert(err == .None)
 	for word, idx in words {
 		word_width := word.length * char_width
 		space_width := char_width
 		if word_width + space_width > space_left {
-		}
+			// TODO(Thomas): Probably need to make substrings that we put into the Text_Line, we don't want to do any copying unless
+			// we absolute have to. 
+			str := strings.to_string(builder)
+			append(&lines, Text_Line{text = str})
+		} 
+		// TODO(Thomas): Not sure about using strings.substring here due to runes
+		word_str, ok := strings.substring(text, word.start_offset, word.start_offset + word.length)
+		strs := [2]string{word_str, " "}
+		assert(ok)
+		strings.write_string(&builder, strings.concatenate(strs[:]))
+
 	}
+
+	log.info("lines: ", lines)
 
 	return lines[:]
 }
@@ -248,3 +264,18 @@ test_measure_words_single_word_ends_with_whitespace_before_newline :: proc(t: ^t
 	expected_words := []Word{{start_offset = 0, length = 3}}
 	expect_words(t, words, expected_words)
 }
+
+
+@(test)
+test_wrapped_text_calculation :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+
+	text := "one two three\n"
+
+	words := measure_text_words(text, allocator)
+
+	calculate_text_lines(text, words, Text_Element_Config{char_width = CHAR_WIDTH, char_height = CHAR_HEIGHT, min_width = 20, min_height = 100}, allocator)
+
+}
+
