@@ -4,6 +4,7 @@ import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
+import "core:fmt"
 
 Word :: struct {
 	start_offset: int,
@@ -107,6 +108,8 @@ calculate_text_lines :: proc(
 			beginning_line_word_idx = end_line_word_idx
 		}
 	}
+
+	log.info("lines: ", lines)
 
 	return lines[:]
 }
