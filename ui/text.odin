@@ -10,6 +10,7 @@ Word :: struct {
 	length:       int,
 }
 
+// TODO(Thomas): What about CRLF?
 @(require_results)
 measure_text_words :: proc(text: string, allocator: mem.Allocator) -> []Word {
 	words, alloc_err := make([dynamic]Word, allocator)
@@ -64,7 +65,9 @@ Text_Line :: struct {
 	height: i32,
 }
 
+// TODO(Thomas): Deal with newlines
 calculate_text_lines :: proc(
+	text: string,
 	words: []Word,
 	config: Text_Element_Config,
 	allocator: mem.Allocator,
@@ -76,12 +79,32 @@ calculate_text_lines :: proc(
 	min_width := config.min_width
 	min_height := config.min_height
 
+	// TODO(Thomas): This is not correct, it should be the width of the element
 	space_left := min_width
 
+	beginning_line_word_idx := 0
+	end_line_word_idx := 0
 	for word, idx in words {
 		word_width := word.length * char_width
 		space_width := char_width
-		if word_width + space_width > space_left {
+		// We need to wrap onto a new line
+		if (word_width + space_width > space_left) || idx == len(words) - 1 {
+			// Make a substring from beginning_line_word_idx to idx of the text
+			end_line_word_idx = word.start_offset + word.length
+
+			line, ok := strings.substring(text, beginning_line_word_idx, end_line_word_idx)
+			assert(ok)
+
+			append(
+				&lines,
+				Text_Line {
+					text = line,
+					width = i32(len(line) * char_width),
+					height = i32(char_height),
+				},
+			)
+
+			beginning_line_word_idx = end_line_word_idx
 		}
 	}
 
@@ -92,6 +115,13 @@ expect_words :: proc(t: ^testing.T, words: []Word, expected_words: []Word) {
 	testing.expect_value(t, len(words), len(expected_words))
 	for word, idx in words {
 		testing.expect_value(t, word, expected_words[idx])
+	}
+}
+
+expect_lines :: proc(t: ^testing.T, lines: []Text_Line, expected_lines: []Text_Line) {
+	testing.expect_value(t, len(lines), len(expected_lines))
+	for line, idx in lines {
+		testing.expect_value(t, line, expected_lines[idx])
 	}
 }
 
@@ -247,4 +277,75 @@ test_measure_words_single_word_ends_with_whitespace_before_newline :: proc(t: ^t
 
 	expected_words := []Word{{start_offset = 0, length = 3}}
 	expect_words(t, words, expected_words)
+}
+
+@(test)
+test_calculate_text_lines_single_word :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+
+	text := "one\n"
+
+	words := measure_text_words(text, allocator)
+	expected_words := []Word{{start_offset = 0, length = 3}}
+
+	char_width := 10
+	char_height := 10
+	min_width := 100
+	min_height := 10
+	expected_line_text := "one"
+	expected_lines := []Text_Line {
+		{
+			text = expected_line_text,
+			width = i32(char_width * len(expected_line_text)),
+			height = i32(char_height),
+		},
+	}
+
+	lines := calculate_text_lines(
+		text,
+		words,
+		Text_Element_Config {
+			char_width = char_width,
+			char_height = char_height,
+			min_width = min_width,
+			min_height = min_height,
+		},
+		allocator,
+	)
+
+	expect_lines(t, lines, expected_lines)
+}
+
+@(test)
+test_calculate_text_lines_multiple_words :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+
+	text := "one two three\n"
+
+	words := measure_text_words(text, allocator)
+
+	char_width := 10
+	char_height := 10
+	min_width := 100
+	min_height := 10
+	expected_lines := []Text_Line {
+		{text = "one two", width = i32(char_width * len("one two")), height = i32(char_height)},
+		{text = "three", width = i32(char_width * len("three")), height = i32(char_height)},
+	}
+
+	lines := calculate_text_lines(
+		text,
+		words,
+		Text_Element_Config {
+			char_width = char_width,
+			char_height = char_height,
+			min_width = min_width,
+			min_height = min_height,
+		},
+		allocator,
+	)
+
+	expect_lines(t, lines, expected_lines)
 }
