@@ -85,14 +85,14 @@ calculate_text_lines :: proc(
 
 	beginning_line_word_idx := 0
 	end_line_word_idx := 0
+
 	for word, idx in words {
 		word_width := word.length * char_width
 		space_width := char_width
-		// We need to wrap onto a new line
-		if (word_width + space_width > space_left) || idx == len(words) - 1 {
-			// Make a substring from beginning_line_word_idx to idx of the text
-			end_line_word_idx = word.start_offset + word.length
 
+		// We need to wrap onto a new line
+		if (word_width + space_width > space_left) {
+			// Make a substring from beginning_line_word_idx to idx of the text
 			line, ok := strings.substring(text, beginning_line_word_idx, end_line_word_idx)
 			assert(ok)
 
@@ -106,10 +106,29 @@ calculate_text_lines :: proc(
 			)
 
 			beginning_line_word_idx = end_line_word_idx
-		}
-	}
+            space_left = min_width
 
-	log.info("lines: ", lines)
+            // If the last word is also running over the space left, we need to put the
+            // the last word on its own line.
+            if idx == len(words) - 1 {
+                end_line_word_idx = word.start_offset + word.length
+                line, ok := strings.substring(text, beginning_line_word_idx, end_line_word_idx)
+                assert(ok)
+
+                append(
+                    &lines,
+                    Text_Line {
+                        text = line,
+                        width = i32(len(line) * char_width),
+                        height = i32(char_height),
+                    },
+                )
+            }
+		} else {
+            space_left -= word_width + space_width
+            end_line_word_idx = word.start_offset + word.length
+        }
+	}
 
 	return lines[:]
 }
@@ -349,6 +368,8 @@ test_calculate_text_lines_multiple_words :: proc(t: ^testing.T) {
 		},
 		allocator,
 	)
+
+    log.info("lines: ", lines)
 
 	expect_lines(t, lines, expected_lines)
 }
