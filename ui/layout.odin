@@ -391,6 +391,19 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 }
 
+wrap_text :: proc(element: ^UI_Element) {
+    if element.kind == .Text {
+        defer free_all(context.temp_allocator)
+        words := measure_text_words(element.text_config.data, context.temp_allocator)
+        lines := calculate_text_lines(element.text_config.data, words, element.text_config, int(element.size.x), context.temp_allocator)
+        log.info("lines: ", lines)
+    }
+
+    for child in element.children {
+        wrap_text(child)
+    }
+}
+
 make_element :: proc(
 	ctx: ^Context,
 	id: string,

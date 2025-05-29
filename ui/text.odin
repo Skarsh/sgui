@@ -66,11 +66,19 @@ Text_Line :: struct {
 	height: i32,
 }
 
+make_and_push_line :: proc(lines: ^[dynamic]Text_Line, s: string, start: int, end: int, char_width: int, char_height: int) {
+    line, ok := strings.substring(s, start, end)
+    assert(ok)
+    trimmed_line := strings.trim_left_space(line)
+    append(lines, Text_Line{text = trimmed_line, width = i32(len(trimmed_line) * char_width), height = i32(char_height)})
+}
+
 // TODO(Thomas): Deal with newlines
 calculate_text_lines :: proc(
 	text: string,
 	words: []Word,
 	config: Text_Element_Config,
+    element_width: int,
 	allocator: mem.Allocator,
 ) -> []Text_Line {
 	lines := make([dynamic]Text_Line, allocator)
@@ -81,7 +89,7 @@ calculate_text_lines :: proc(
 	min_height := config.min_height
 
 	// TODO(Thomas): This is not correct, it should be the width of the element
-	space_left := min_width
+	space_left := element_width
 
 	beginning_line_word_idx := 0
 	end_line_word_idx := 0
@@ -92,18 +100,7 @@ calculate_text_lines :: proc(
 
 		// We need to wrap onto a new line
 		if (word_width + space_width > space_left) {
-			// Make a substring from beginning_line_word_idx to idx of the text
-			line, ok := strings.substring(text, beginning_line_word_idx, end_line_word_idx)
-			assert(ok)
-
-			append(
-				&lines,
-				Text_Line {
-					text = line,
-					width = i32(len(line) * char_width),
-					height = i32(char_height),
-				},
-			)
+            make_and_push_line(&lines, text, beginning_line_word_idx, end_line_word_idx, char_width, char_height)
 
 			beginning_line_word_idx = end_line_word_idx
             space_left = min_width
@@ -112,19 +109,15 @@ calculate_text_lines :: proc(
             // the last word on its own line.
             if idx == len(words) - 1 {
                 end_line_word_idx = word.start_offset + word.length
-                line, ok := strings.substring(text, beginning_line_word_idx, end_line_word_idx)
-                assert(ok)
 
-                append(
-                    &lines,
-                    Text_Line {
-                        text = line,
-                        width = i32(len(line) * char_width),
-                        height = i32(char_height),
-                    },
-                )
+                make_and_push_line(&lines, text, beginning_line_word_idx, end_line_word_idx, char_width, char_height)
             }
-		} else {
+		} else if idx == len(words) -1 {
+            end_line_word_idx = word.start_offset + word.length
+
+            make_and_push_line(&lines, text, beginning_line_word_idx, end_line_word_idx, char_width, char_height)
+
+        } else {
             space_left -= word_width + space_width
             end_line_word_idx = word.start_offset + word.length
         }
@@ -315,6 +308,7 @@ test_calculate_text_lines_single_word :: proc(t: ^testing.T) {
 	char_height := 10
 	min_width := 100
 	min_height := 10
+    element_width := min_width
 	expected_line_text := "one"
 	expected_lines := []Text_Line {
 		{
@@ -333,6 +327,7 @@ test_calculate_text_lines_single_word :: proc(t: ^testing.T) {
 			min_width = min_width,
 			min_height = min_height,
 		},
+        element_width,
 		allocator,
 	)
 
@@ -352,6 +347,7 @@ test_calculate_text_lines_multiple_words :: proc(t: ^testing.T) {
 	char_height := 10
 	min_width := 100
 	min_height := 10
+    element_width := min_width
 	expected_lines := []Text_Line {
 		{text = "one two", width = i32(char_width * len("one two")), height = i32(char_height)},
 		{text = "three", width = i32(char_width * len("three")), height = i32(char_height)},
@@ -366,10 +362,44 @@ test_calculate_text_lines_multiple_words :: proc(t: ^testing.T) {
 			min_width = min_width,
 			min_height = min_height,
 		},
+        element_width,
 		allocator,
 	)
 
-    log.info("lines: ", lines)
+	expect_lines(t, lines, expected_lines)
+}
+
+@(test)
+test_calculate_text_lines_two_lines_two_words_on_each :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+
+	text := "one two three four\n"
+
+	words := measure_text_words(text, allocator)
+
+	char_width := 10
+	char_height := 10
+	min_width := 100
+	min_height := 10
+    element_width := min_width
+	expected_lines := []Text_Line {
+		{text = "one two", width = i32(char_width * len("one two")), height = i32(char_height)},
+		{text = "three four", width = i32(char_width * len("three four")), height = i32(char_height)},
+	}
+
+	lines := calculate_text_lines(
+		text,
+		words,
+		Text_Element_Config {
+			char_width = char_width,
+			char_height = char_height,
+			min_width = min_width,
+			min_height = min_height,
+		},
+        element_width,
+		allocator,
+	)
 
 	expect_lines(t, lines, expected_lines)
 }

@@ -100,6 +100,14 @@ begin :: proc(ctx: ^Context) {
 }
 
 end :: proc(ctx: ^Context) {
+    // Order of the operations we need to follow:
+    // 1. Fit sizing widths
+    // 2. Grow & shrink sizing widths
+    // 3. Wrap text
+    // 4. Fit sizing heights
+    // 5. Grow & shrink sizing heights
+    // 6. Positions
+    // 7. Draw commands
 
 	// Close the root element
 	close_element(ctx)
@@ -110,6 +118,8 @@ end :: proc(ctx: ^Context) {
 
 	shrink_child_elements_for_axis(ctx.root_element, .X)
 	shrink_child_elements_for_axis(ctx.root_element, .Y)
+
+    wrap_text(ctx.root_element)
 
 	calculate_positions(ctx.root_element)
 

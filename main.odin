@@ -124,7 +124,8 @@ main :: proc() {
 		sdl.SetRenderDrawColor(g_renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(g_renderer)
 
-		build_and_render_ui(&app_state)
+		//build_and_render_ui(&app_state)
+        build_and_render_simple_text_ui(&app_state)
 
 		sdl.RenderPresent(g_renderer)
 
@@ -232,6 +233,38 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			)
 		}
 	}
+}
+
+build_and_render_simple_text_ui :: proc(app_state: ^App_State) {
+    ui.begin(&app_state.ctx)
+	ui.open_element(
+		&app_state.ctx,
+		"text_container",
+		{
+			sizing = {{kind = .Fixed, value = 200}, {kind = .Fit}},
+			color = ui.Color{0, 0, 255, 255},
+			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
+			child_gap = 10,
+			layout_direction = .Left_To_Right,
+		},
+	)
+    {
+        ui.open_text_element(
+            &app_state.ctx,
+            "text", 
+            {
+                data = "one two three four five six sevent eight nine ten",
+                char_width = ui.CHAR_WIDTH,
+                char_height = ui.CHAR_HEIGHT,
+                min_width = 100,
+                min_height = ui.CHAR_HEIGHT,
+            }
+        )
+        ui.close_element(&app_state.ctx)
+    }
+    ui.close_element(&app_state.ctx)
+    ui.end(&app_state.ctx)
+	render_draw_commands(app_state)
 }
 
 build_and_render_ui :: proc(app_state: ^App_State) {
