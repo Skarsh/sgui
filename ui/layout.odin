@@ -128,8 +128,6 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	return true
 }
 
-// TODO(Thomas): I don't think we should pass in the font sizes like we're doing now,
-// this is very permanent and mostly for testing while developing.
 open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
 	element, element_ok := make_element(
 		ctx,
@@ -144,7 +142,6 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 		},
 	)
 	assert(element_ok)
-
 
 	str_len := len(text_config.data)
 	char_width := text_config.char_width == 0 ? CHAR_WIDTH : text_config.char_width
