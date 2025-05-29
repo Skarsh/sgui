@@ -594,6 +594,51 @@ expect_element_pos :: proc(t: ^testing.T, element: ^UI_Element, expected_pos: Ve
 }
 
 @(test)
+test_fit_container_no_children :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	panel_padding := Padding {
+		left   = 10,
+		top    = 20,
+		right  = 15,
+		bottom = 25,
+	}
+
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"empty_panel",
+		Element_Config {
+			layout = {
+				sizing           = {{kind = .Fit}, {kind = .Fit}},
+				layout_direction = .Left_To_Right,
+				padding          = panel_padding,
+				child_gap        = 5, // child_gap is irrelevant with 0 children
+			},
+		},
+	)
+	close_element(&ctx)
+	end(&ctx)
+
+	calculate_positions(ctx.root_element)
+
+	panel := find_element_by_id(ctx.root_element, "empty_panel")
+	testing.expect(t, panel != nil, "Panel 'empty_panel' not found")
+
+	// Expected size is just the sum of padding.
+	expected_size := Vec2 {
+		panel_padding.left + panel_padding.right, // 10 + 15 = 25
+		panel_padding.top + panel_padding.bottom, // 20 + 25 = 45
+	}
+	expect_element_size(t, panel, expected_size)
+
+	// Assuming panel is the first element, its position is (0,0) relative to root/viewport.
+	expect_element_pos(t, panel, {0, 0})
+}
+
+@(test)
 test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	test_env := setup_test_environment()
 	defer cleanup_test_environment(test_env)
