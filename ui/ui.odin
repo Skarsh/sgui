@@ -121,7 +121,6 @@ end :: proc(ctx: ^Context) {
 	shrink_child_elements_for_axis(ctx.root_element, .X)
 
 	// Wrap text
-	// TODO(Thomas): Think more about how to allocate / deallocate the text
 	wrap_text(ctx.root_element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
@@ -156,7 +155,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	if element.kind == .Text {
 		for line, idx in element.text_lines {
-			// TODO(Thomas): Are we doing height the right way here
 			draw_text(
 				ctx,
 				i32(element.position.x),

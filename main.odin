@@ -117,7 +117,13 @@ main :: proc() {
 		text_len   = 0,
 	}
 
+    now :u32= 0
+    last :u32 = 0
 	for running {
+        last = now
+        now = sdl.GetTicks()
+        elapsed := now - last
+        log.infof("frame time: %dms", elapsed)
 		process_input(&app_state)
 
 		bg_color := ui.default_color_style[.Window_BG]
@@ -258,8 +264,6 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			"text",
 			{
 				data        = "one two three four five six seven eight nine ten",
-				//char_width = ui.CHAR_WIDTH,
-				char_height = ui.CHAR_HEIGHT,
 				min_width   = 100,
 				min_height  = ui.CHAR_HEIGHT,
 			},
