@@ -117,13 +117,12 @@ main :: proc() {
 		text_len   = 0,
 	}
 
-    now :u32= 0
-    last :u32 = 0
+	now: u32 = 0
+	last: u32 = 0
 	for running {
-        last = now
-        now = sdl.GetTicks()
-        elapsed := now - last
-        log.infof("frame time: %dms", elapsed)
+		last = now
+		now = sdl.GetTicks()
+		elapsed := now - last
 		process_input(&app_state)
 
 		bg_color := ui.default_color_style[.Window_BG]
@@ -263,9 +262,9 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			&app_state.ctx,
 			"text",
 			{
-				data        = "one two three four five six seven eight nine ten",
-				min_width   = 100,
-				min_height  = ui.CHAR_HEIGHT,
+				data = "one two three four five six seven eight nine ten",
+				min_width = 100,
+				min_height = ui.CHAR_HEIGHT,
 			},
 		)
 		ui.close_element(&app_state.ctx)

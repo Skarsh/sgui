@@ -135,6 +135,8 @@ end :: proc(ctx: ^Context) {
 	calculate_positions(ctx.root_element)
 
 	draw_all_elements(ctx)
+
+	free_all(ctx.frame_allocator)
 }
 
 draw_element :: proc(ctx: ^Context, element: ^UI_Element) {

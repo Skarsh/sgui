@@ -551,10 +551,11 @@ find_element_by_id :: proc(root: ^UI_Element, id: string) -> ^UI_Element {
 /////////////////////////////// Testing ///////////////////////////////
 
 Test_Environment :: struct {
-	ctx:             Context,
-	arena:           virtual.Arena,
-	arena_buffer:    []u8,
-	arena_allocator: mem.Allocator,
+	ctx:                        Context,
+	persistent_arena:           virtual.Arena,
+	persistent_arena_allocator: mem.Allocator,
+	frame_arena:                virtual.Arena,
+	frame_arena_allocator:      mem.Allocator,
 }
 
 // NOTE(Thomas): The reason we're returning a pointer to the 
@@ -564,20 +565,24 @@ setup_test_environment :: proc() -> ^Test_Environment {
 	env := new(Test_Environment)
 
 	// Setup arena and allocator
-	env.arena = virtual.Arena{}
-	arena_alloc_err := virtual.arena_init_static(&env.arena)
-	assert(arena_alloc_err == .None)
-	env.arena_allocator = virtual.arena_allocator(&env.arena)
+	env.persistent_arena = virtual.Arena{}
+	persistent_arena_alloc_err := virtual.arena_init_static(&env.persistent_arena)
+	assert(persistent_arena_alloc_err == .None)
+	env.persistent_arena_allocator = virtual.arena_allocator(&env.persistent_arena)
 
-	init(&env.ctx, env.arena_allocator, env.arena_allocator)
+	env.frame_arena = virtual.Arena{}
+	frame_arena_alloc_err := virtual.arena_init_static(&env.frame_arena)
+	assert(frame_arena_alloc_err == .None)
+	env.frame_arena_allocator = virtual.arena_allocator(&env.frame_arena)
+
+	init(&env.ctx, env.persistent_arena_allocator, env.frame_arena_allocator)
 
 	return env
 }
 
 cleanup_test_environment :: proc(env: ^Test_Environment) {
 	deinit(&env.ctx)
-	free_all(env.arena_allocator)
-	delete(env.arena_buffer)
+	free_all(env.persistent_arena_allocator)
 	free(env)
 }
 
