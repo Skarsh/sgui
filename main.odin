@@ -92,7 +92,7 @@ main :: proc() {
 	ctx := ui.Context{}
 
 	persistent_arena := virtual.Arena{}
-	arena_err := virtual.arena_init_static(&persistent_arena, 10 * mem.Kilobyte)
+	arena_err := virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
 	assert(arena_err == .None)
 	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
 	defer free_all(persistent_arena_allocator)
@@ -253,7 +253,7 @@ build_and_render_simple_text_ui :: proc(app_state: ^App_State) {
             &app_state.ctx,
             "text", 
             {
-                data = "one two three four five six sevent eight nine ten",
+                data = "one two three four five six seven eight nine ten",
                 char_width = ui.CHAR_WIDTH,
                 char_height = ui.CHAR_HEIGHT,
                 min_width = 100,

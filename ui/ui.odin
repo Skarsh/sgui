@@ -113,15 +113,25 @@ end :: proc(ctx: ^Context) {
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
+    // Fit sizing widths
+    fit_size_axis(ctx.root_element, .X)
+    // Grow sizing widths
 	grow_child_elements_for_axis(ctx.root_element, .X)
-	grow_child_elements_for_axis(ctx.root_element, .Y)
-
+    // Shrink sizing widths
 	shrink_child_elements_for_axis(ctx.root_element, .X)
-	shrink_child_elements_for_axis(ctx.root_element, .Y)
 
+    // Wrap text
     // TODO(Thomas): Think more about how to allocate / deallocate the text
     wrap_text(ctx.root_element, context.temp_allocator)
     defer free_all(context.temp_allocator)
+
+    // Fit sizing heights
+    fit_size_axis(ctx.root_element, .Y)
+
+    // Grow sizing heights
+	grow_child_elements_for_axis(ctx.root_element, .Y)
+    // Shrink sizing heights
+	shrink_child_elements_for_axis(ctx.root_element, .Y)
 
 	calculate_positions(ctx.root_element)
 

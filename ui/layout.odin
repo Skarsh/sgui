@@ -168,15 +168,17 @@ close_element :: proc(ctx: ^Context) {
 	assert(ok)
 	if ok {
 		ctx.current_parent = element.parent
-
-		if element.sizing.x.kind == .Fit {
-			calc_element_fit_size_for_axis(element, .X)
-		}
-
-		if element.sizing.y.kind == .Fit {
-			calc_element_fit_size_for_axis(element, .Y)
-		}
 	}
+}
+
+fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
+    for child in element.children {
+        fit_size_axis(child, axis)
+    }
+
+    if element.sizing[axis].kind == .Fit {
+        calc_element_fit_size_for_axis(element, axis)
+    }
 }
 
 update_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
@@ -397,6 +399,11 @@ wrap_text :: proc(element: ^UI_Element, allocator: mem.Allocator) {
         words := measure_text_words(element.text_config.data, context.temp_allocator)
         lines := calculate_text_lines(element.text_config.data, words, element.text_config, int(element.size.x), allocator)
         element.text_lines = lines
+        text_height: i32 = 0
+        for line in lines {
+            text_height += line.height
+        }
+        element.size.y += f32(text_height)
     }
 
     for child in element.children {

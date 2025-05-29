@@ -403,3 +403,35 @@ test_calculate_text_lines_two_lines_two_words_on_each :: proc(t: ^testing.T) {
 
 	expect_lines(t, lines, expected_lines)
 }
+
+@(test)
+test_calculate_text_line_with_copyright_symbol :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+
+	text := "© 2025 Dashboard System v1.0"
+
+	words := measure_text_words(text, allocator)
+
+	char_width := 10
+	char_height := 10
+	min_width := 100
+	min_height := 10
+    element_width := min_width
+	expected_lines := []Text_Line {}
+
+	lines := calculate_text_lines(
+		text,
+		words,
+		Text_Element_Config {
+			char_width = char_width,
+			char_height = char_height,
+			min_width = min_width,
+			min_height = min_height,
+		},
+        element_width,
+		allocator,
+	)
+
+	expect_lines(t, lines, expected_lines)
+}
