@@ -119,7 +119,9 @@ end :: proc(ctx: ^Context) {
 	shrink_child_elements_for_axis(ctx.root_element, .X)
 	shrink_child_elements_for_axis(ctx.root_element, .Y)
 
-    wrap_text(ctx.root_element)
+    // TODO(Thomas): Think more about how to allocate / deallocate the text
+    wrap_text(ctx.root_element, context.temp_allocator)
+    defer free_all(context.temp_allocator)
 
 	calculate_positions(ctx.root_element)
 
@@ -143,7 +145,10 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	)
 
 	if element.kind == .Text {
-		draw_text(ctx, i32(element.position.x), i32(element.position.y), element.text_config.data)
+        for line, idx in element.text_lines {
+            // TODO(Thomas): Are we doing height the right way here
+		    draw_text(ctx, i32(element.position.x), i32(element.position.y) + i32(idx) * line.height, line.text)
+        }
 	}
 
 	for child in element.children {

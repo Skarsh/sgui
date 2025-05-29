@@ -51,6 +51,7 @@ UI_Element :: struct {
 	color:            Color,
 	kind:             Element_Kind,
 	text_config:      Text_Element_Config,
+    text_lines:       []Text_Line,
 }
 
 Sizing :: struct {
@@ -391,16 +392,15 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 }
 
-wrap_text :: proc(element: ^UI_Element) {
+wrap_text :: proc(element: ^UI_Element, allocator: mem.Allocator) {
     if element.kind == .Text {
-        defer free_all(context.temp_allocator)
         words := measure_text_words(element.text_config.data, context.temp_allocator)
-        lines := calculate_text_lines(element.text_config.data, words, element.text_config, int(element.size.x), context.temp_allocator)
-        log.info("lines: ", lines)
+        lines := calculate_text_lines(element.text_config.data, words, element.text_config, int(element.size.x), allocator)
+        element.text_lines = lines
     }
 
     for child in element.children {
-        wrap_text(child)
+        wrap_text(child, allocator)
     }
 }
 
