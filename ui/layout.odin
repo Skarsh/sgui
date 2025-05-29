@@ -37,21 +37,25 @@ Element_Kind :: enum {
 	Text,
 }
 
-UI_Element :: struct {
-	parent:           ^UI_Element,
-	id_string:        string,
-	position:         Vec2,
-	min_size:         Vec2,
-	size:             Vec2,
+Layout_Config :: struct {
 	sizing:           [2]Sizing,
-	layout_direction: Layout_Direction,
 	padding:          Padding,
 	child_gap:        f32,
-	children:         [dynamic]^UI_Element,
-	color:            Color,
-	kind:             Element_Kind,
-	text_config:      Text_Element_Config,
-    text_lines:       []Text_Line,
+	layout_direction: Layout_Direction,
+}
+
+UI_Element :: struct {
+	parent:      ^UI_Element,
+	id_string:   string,
+	position:    Vec2,
+	min_size:    Vec2,
+	size:        Vec2,
+	layout:      Layout_Config,
+	children:    [dynamic]^UI_Element,
+	color:       Color,
+	kind:        Element_Kind,
+	text_config: Text_Element_Config,
+	text_lines:  []Text_Line,
 }
 
 Sizing :: struct {
@@ -61,11 +65,8 @@ Sizing :: struct {
 }
 
 Element_Config :: struct {
-	sizing:           [2]Sizing,
-	padding:          Padding,
-	child_gap:        f32,
-	layout_direction: Layout_Direction,
-	color:            Color,
+	layout: Layout_Config,
+	color:  Color,
 }
 
 Text_Element_Config :: struct {
@@ -79,18 +80,18 @@ Text_Element_Config :: struct {
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
-	return f32(len(element.children) - 1) * element.child_gap
+	return f32(len(element.children) - 1) * element.layout.child_gap
 }
 
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
-	padding := element.padding
+	padding := element.layout.padding
 	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
 	size: f32 = 0
 
 	child_gap := calc_child_gap(element^)
 
 	if axis == .X {
-		if element.layout_direction == .Left_To_Right {
+		if element.layout.layout_direction == .Left_To_Right {
 			for child in element.children {
 				size += child.size.x
 			}
@@ -101,7 +102,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 			}
 		}
 	} else {
-		if element.layout_direction == .Left_To_Right {
+		if element.layout.layout_direction == .Left_To_Right {
 			for child in element.children {
 				size = max(size, child.size.y)
 			}
@@ -129,15 +130,16 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 
 // TODO(Thomas): I don't think we should pass in the font sizes like we're doing now,
 // this is very permanent and mostly for testing while developing.
-// TODO(Thomas): Default value for min_width is just a temporary hack
 open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
 	element, element_ok := make_element(
 		ctx,
 		id,
 		Element_Config {
-			sizing = {
-				{kind = .Grow, min_value = f32(text_config.min_width)},
-				{kind = .Grow, min_value = f32(text_config.min_height)},
+			layout = {
+				sizing = {
+					{kind = .Grow, min_value = f32(text_config.min_width)},
+					{kind = .Grow, min_value = f32(text_config.min_height)},
+				},
 			},
 		},
 	)
@@ -157,6 +159,8 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 	element.min_size.y = f32(text_config.min_height)
 	element.kind = .Text
 	element.text_config = text_config
+	element.text_config.char_width = char_width
+	element.text_config.char_height = char_height
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -172,24 +176,24 @@ close_element :: proc(ctx: ^Context) {
 }
 
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
-    for child in element.children {
-        fit_size_axis(child, axis)
-    }
+	for child in element.children {
+		fit_size_axis(child, axis)
+	}
 
-    if element.sizing[axis].kind == .Fit {
-        calc_element_fit_size_for_axis(element, axis)
-    }
+	if element.layout.sizing[axis].kind == .Fit {
+		calc_element_fit_size_for_axis(element, axis)
+	}
 }
 
 update_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
-	if axis == .X && parent.layout_direction == .Left_To_Right {
+	if axis == .X && parent.layout.layout_direction == .Left_To_Right {
 		parent.size.x += element.size.x
 		parent.min_size.x += element.min_size.x
 		parent.size.y = max(element.size.y, parent.size.y)
 		parent.min_size.y = max(element.min_size.y, parent.min_size.y)
 
-	} else if axis == .Y && parent.layout_direction == .Top_To_Bottom {
+	} else if axis == .Y && parent.layout.layout_direction == .Top_To_Bottom {
 		parent.size.x = max(element.size.x, parent.size.x)
 		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
 		parent.size.y += element.size.y
@@ -212,7 +216,7 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
 	padding_sum :=
-		axis == .X ? element.padding.left + element.padding.right : element.padding.top + element.padding.bottom
+		axis == .X ? element.layout.padding.left + element.layout.padding.right : element.layout.padding.top + element.layout.padding.bottom
 
 	remaining_size := element.size[axis] - padding_sum
 	return remaining_size
@@ -221,8 +225,8 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 
 	is_primary_axis :=
-		(axis == .X && element.layout_direction == .Left_To_Right) ||
-		(axis == .Y && element.layout_direction == .Top_To_Bottom)
+		(axis == .X && element.layout.layout_direction == .Left_To_Right) ||
+		(axis == .Y && element.layout.layout_direction == .Top_To_Bottom)
 
 	return is_primary_axis
 }
@@ -250,7 +254,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if primary_axis {
 		child_gap := calc_child_gap(element^)
 		for child in element.children {
-			size_kind := child.sizing[axis].kind
+			size_kind := child.layout.sizing[axis].kind
 
 			if size_kind == .Grow {
 				// Add to growables
@@ -264,7 +268,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	} else {
 		// For secondary axis, directly distribute available space
 		for child in element.children {
-			size_kind := child.sizing[axis].kind
+			size_kind := child.layout.sizing[axis].kind
 			if size_kind == .Grow {
 				child.size[axis] += (remaining_size - child.size[axis])
 			}
@@ -328,7 +332,7 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if primary_axis {
 		child_gap := calc_child_gap(element^)
 		for child in element.children {
-			size_kind := child.sizing[axis].kind
+			size_kind := child.layout.sizing[axis].kind
 			if size_kind == .Grow {
 				// Find the shrinkable elements and
 				// add them to the shrinkables dynamic array
@@ -395,20 +399,26 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 wrap_text :: proc(element: ^UI_Element, allocator: mem.Allocator) {
-    if element.kind == .Text {
-        words := measure_text_words(element.text_config.data, context.temp_allocator)
-        lines := calculate_text_lines(element.text_config.data, words, element.text_config, int(element.size.x), allocator)
-        element.text_lines = lines
-        text_height: i32 = 0
-        for line in lines {
-            text_height += line.height
-        }
-        element.size.y += f32(text_height)
-    }
+	if element.kind == .Text {
+		words := measure_text_words(element.text_config.data, context.temp_allocator)
+		lines := calculate_text_lines(
+			element.text_config.data,
+			words,
+			element.text_config,
+			int(element.size.x),
+			allocator,
+		)
+		element.text_lines = lines
+		text_height: i32 = 0
+		for line in lines {
+			text_height += line.height
+		}
+		element.size.y += f32(text_height)
+	}
 
-    for child in element.children {
-        wrap_text(child, allocator)
-    }
+	for child in element.children {
+		wrap_text(child, allocator)
+	}
 }
 
 make_element :: proc(
@@ -443,22 +453,22 @@ make_element :: proc(
 	}
 
 	// We need to set this fields every frame
-	element.sizing = element_config.sizing
-	element.layout_direction = element_config.layout_direction
-	element.padding = element_config.padding
-	element.child_gap = element_config.child_gap
+	element.layout.sizing = element_config.layout.sizing
+	element.layout.layout_direction = element_config.layout.layout_direction
+	element.layout.padding = element_config.layout.padding
+	element.layout.child_gap = element_config.layout.child_gap
 	element.position.x = 0
 	element.position.y = 0
 	element.color = element_config.color
 
-	if element.sizing.x.kind == .Fixed {
-		element.min_size.x = element.sizing.x.min_value
-		element.size.x = element.sizing.x.value
+	if element.layout.sizing.x.kind == .Fixed {
+		element.min_size.x = element.layout.sizing.x.min_value
+		element.size.x = element.layout.sizing.x.value
 	}
 
-	if element.sizing.y.kind == .Fixed {
-		element.min_size.y = element.sizing.y.min_value
-		element.size.y = element.sizing.y.value
+	if element.layout.sizing.y.kind == .Fixed {
+		element.min_size.y = element.layout.sizing.y.min_value
+		element.size.y = element.layout.sizing.y.value
 	}
 
 	return element, true
@@ -470,8 +480,8 @@ calculate_positions :: proc(parent: ^UI_Element) {
 	}
 
 	// First, calculate positions of all children relative to the parent's content area
-	content_start_x := parent.position.x + parent.padding.left
-	content_start_y := parent.position.y + parent.padding.top
+	content_start_x := parent.position.x + parent.layout.padding.left
+	content_start_y := parent.position.y + parent.layout.padding.top
 
 	current_x := content_start_x
 	current_y := content_start_y
@@ -484,14 +494,14 @@ calculate_positions :: proc(parent: ^UI_Element) {
 		child.position.y = current_y
 
 		// Update position for next child based on layout direction
-		if parent.layout_direction == .Left_To_Right {
+		if parent.layout.layout_direction == .Left_To_Right {
 			if len(parent.children) >= 1 && i < len(parent.children) - 1 {
-				current_x += child.size.x + parent.child_gap
+				current_x += child.size.x + parent.layout.child_gap
 			} else {
 				current_x += child.size.x
 			}
 		} else { 	// Top_To_Bottom
-			current_y += child.size.y + parent.child_gap
+			current_y += child.size.y + parent.layout.child_gap
 		}
 	}
 
@@ -606,10 +616,12 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {{kind = .Fit}, {kind = .Fit}},
-			layout_direction = .Left_To_Right,
-			padding = panel_padding,
-			child_gap = 10,
+			layout = {
+				sizing = {{kind = .Fit}, {kind = .Fit}},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = 10,
+			},
 		},
 	)
 	{
@@ -617,9 +629,11 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			&ctx,
 			"container_1",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_1_size.x},
-					{kind = .Fixed, value = container_1_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_1_size.x},
+						{kind = .Fixed, value = container_1_size.y},
+					},
 				},
 			},
 		)
@@ -628,9 +642,11 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			&ctx,
 			"container_2",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_2_size.x},
-					{kind = .Fixed, value = container_2_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_2_size.x},
+						{kind = .Fixed, value = container_2_size.y},
+					},
 				},
 			},
 		)
@@ -639,9 +655,11 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			&ctx,
 			"container_3",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_3_size.x},
-					{kind = .Fixed, value = container_3_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_3_size.x},
+						{kind = .Fixed, value = container_3_size.y},
+					},
 				},
 			},
 		)
@@ -739,10 +757,12 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {{kind = .Fit}, {kind = .Fit}},
-			layout_direction = .Top_To_Bottom,
-			padding = panel_padding,
-			child_gap = 10,
+			layout = {
+				sizing = {{kind = .Fit}, {kind = .Fit}},
+				layout_direction = .Top_To_Bottom,
+				padding = panel_padding,
+				child_gap = 10,
+			},
 		},
 	)
 	{
@@ -750,9 +770,11 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 			&ctx,
 			"container_1",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_1_size.x},
-					{kind = .Fixed, value = container_1_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_1_size.x},
+						{kind = .Fixed, value = container_1_size.y},
+					},
 				},
 			},
 		)
@@ -761,9 +783,11 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 			&ctx,
 			"container_2",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_2_size.x},
-					{kind = .Fixed, value = container_2_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_2_size.x},
+						{kind = .Fixed, value = container_2_size.y},
+					},
 				},
 			},
 		)
@@ -772,9 +796,11 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 			&ctx,
 			"container_3",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_3_size.x},
-					{kind = .Fixed, value = container_3_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_3_size.x},
+						{kind = .Fixed, value = container_3_size.y},
+					},
 				},
 			},
 		)
@@ -871,13 +897,15 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = 10,
 			},
-			layout_direction = .Left_To_Right,
-			padding = panel_padding,
-			child_gap = 10,
 		},
 	)
 	{
@@ -885,9 +913,11 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 			&ctx,
 			"container_1",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_1_size.x},
-					{kind = .Fixed, value = container_1_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_1_size.x},
+						{kind = .Fixed, value = container_1_size.y},
+					},
 				},
 			},
 		)
@@ -895,16 +925,18 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 		open_element(
 			&ctx,
 			"container_2",
-			Element_Config{sizing = {{kind = .Grow}, {kind = .Grow}}},
+			Element_Config{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
 		)
 		close_element(&ctx)
 		open_element(
 			&ctx,
 			"container_3",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_3_size.x},
-					{kind = .Fixed, value = container_3_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_3_size.x},
+						{kind = .Fixed, value = container_3_size.y},
+					},
 				},
 			},
 		)
@@ -998,13 +1030,15 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Top_To_Bottom,
+				padding = panel_padding,
+				child_gap = 10,
 			},
-			layout_direction = .Top_To_Bottom,
-			padding = panel_padding,
-			child_gap = 10,
 		},
 	)
 	{
@@ -1012,9 +1046,11 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 			&ctx,
 			"container_1",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_1_size.x},
-					{kind = .Fixed, value = container_1_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_1_size.x},
+						{kind = .Fixed, value = container_1_size.y},
+					},
 				},
 			},
 		)
@@ -1022,16 +1058,18 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 		open_element(
 			&ctx,
 			"container_2",
-			Element_Config{sizing = {{kind = .Grow}, {kind = .Grow}}},
+			Element_Config{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
 		)
 		close_element(&ctx)
 		open_element(
 			&ctx,
 			"container_3",
 			Element_Config {
-				sizing = {
-					{kind = .Fixed, value = container_3_size.x},
-					{kind = .Fixed, value = container_3_size.y},
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_3_size.x},
+						{kind = .Fixed, value = container_3_size.y},
+					},
 				},
 			},
 		)
@@ -1119,13 +1157,15 @@ test_single_text_element_grow_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Top_To_Bottom,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
 			},
-			layout_direction = .Top_To_Bottom,
-			padding = panel_padding,
-			child_gap = panel_child_gap,
 		},
 	)
 	{
@@ -1169,13 +1209,15 @@ test_multiple_text_element_grow_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
 			},
-			layout_direction = .Left_To_Right,
-			padding = panel_padding,
-			child_gap = panel_child_gap,
 		},
 	)
 	{
@@ -1227,13 +1269,15 @@ test_single_text_element_shrink_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
 			},
-			layout_direction = .Left_To_Right,
-			padding = panel_padding,
-			child_gap = panel_child_gap,
 		},
 	)
 	{
@@ -1277,13 +1321,15 @@ test_multiple_text_element_shrink_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
 			},
-			layout_direction = .Left_To_Right,
-			padding = panel_padding,
-			child_gap = panel_child_gap,
 		},
 	)
 	{
@@ -1331,11 +1377,13 @@ test_shrink_stops_at_min_size_ltr :: proc(t: ^testing.T) {
 		&ctx,
 		"panel",
 		Element_Config {
-			sizing = {
-				{kind = .Fixed, value = panel_size.x},
-				{kind = .Fixed, value = panel_size.y},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
 			},
-			layout_direction = .Left_To_Right,
 		},
 	)
 	{

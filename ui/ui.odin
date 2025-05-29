@@ -91,7 +91,7 @@ begin :: proc(ctx: ^Context) {
 	root_open_ok := open_element(
 		ctx,
 		"root",
-		{color = Color{128, 128, 128, 255}, sizing = {{kind = .Fit}, {kind = .Fit}}},
+		{color = Color{128, 128, 128, 255}, layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
 	)
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
@@ -100,37 +100,37 @@ begin :: proc(ctx: ^Context) {
 }
 
 end :: proc(ctx: ^Context) {
-    // Order of the operations we need to follow:
-    // 1. Fit sizing widths
-    // 2. Grow & shrink sizing widths
-    // 3. Wrap text
-    // 4. Fit sizing heights
-    // 5. Grow & shrink sizing heights
-    // 6. Positions
-    // 7. Draw commands
+	// Order of the operations we need to follow:
+	// 1. Fit sizing widths
+	// 2. Grow & shrink sizing widths
+	// 3. Wrap text
+	// 4. Fit sizing heights
+	// 5. Grow & shrink sizing heights
+	// 6. Positions
+	// 7. Draw commands
 
 	// Close the root element
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
-    // Fit sizing widths
-    fit_size_axis(ctx.root_element, .X)
-    // Grow sizing widths
+	// Fit sizing widths
+	fit_size_axis(ctx.root_element, .X)
+	// Grow sizing widths
 	grow_child_elements_for_axis(ctx.root_element, .X)
-    // Shrink sizing widths
+	// Shrink sizing widths
 	shrink_child_elements_for_axis(ctx.root_element, .X)
 
-    // Wrap text
-    // TODO(Thomas): Think more about how to allocate / deallocate the text
-    wrap_text(ctx.root_element, context.temp_allocator)
-    defer free_all(context.temp_allocator)
+	// Wrap text
+	// TODO(Thomas): Think more about how to allocate / deallocate the text
+	wrap_text(ctx.root_element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
 
-    // Fit sizing heights
-    fit_size_axis(ctx.root_element, .Y)
+	// Fit sizing heights
+	fit_size_axis(ctx.root_element, .Y)
 
-    // Grow sizing heights
+	// Grow sizing heights
 	grow_child_elements_for_axis(ctx.root_element, .Y)
-    // Shrink sizing heights
+	// Shrink sizing heights
 	shrink_child_elements_for_axis(ctx.root_element, .Y)
 
 	calculate_positions(ctx.root_element)
@@ -155,10 +155,15 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	)
 
 	if element.kind == .Text {
-        for line, idx in element.text_lines {
-            // TODO(Thomas): Are we doing height the right way here
-		    draw_text(ctx, i32(element.position.x), i32(element.position.y) + i32(idx) * line.height, line.text)
-        }
+		for line, idx in element.text_lines {
+			// TODO(Thomas): Are we doing height the right way here
+			draw_text(
+				ctx,
+				i32(element.position.x),
+				i32(element.position.y) + i32(idx) * line.height,
+				line.text,
+			)
+		}
 	}
 
 	for child in element.children {

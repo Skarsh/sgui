@@ -124,8 +124,10 @@ main :: proc() {
 		sdl.SetRenderDrawColor(g_renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(g_renderer)
 
-		//build_and_render_ui(&app_state)
-        build_and_render_simple_text_ui(&app_state)
+		//build_ui(&app_state)
+		build_simple_text_ui(&app_state)
+
+		render_draw_commands(&app_state)
 
 		sdl.RenderPresent(g_renderer)
 
@@ -235,49 +237,52 @@ render_draw_commands :: proc(app_state: ^App_State) {
 	}
 }
 
-build_and_render_simple_text_ui :: proc(app_state: ^App_State) {
-    ui.begin(&app_state.ctx)
+build_simple_text_ui :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
 	ui.open_element(
 		&app_state.ctx,
 		"text_container",
 		{
-			sizing = {{kind = .Fixed, value = 200}, {kind = .Fit}},
+			layout = {
+				sizing = {{kind = .Fixed, value = 200}, {kind = .Fit}},
+				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
+				child_gap = 10,
+				layout_direction = .Left_To_Right,
+			},
 			color = ui.Color{0, 0, 255, 255},
-			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
-			child_gap = 10,
-			layout_direction = .Left_To_Right,
 		},
 	)
-    {
-        ui.open_text_element(
-            &app_state.ctx,
-            "text", 
-            {
-                data = "one two three four five six seven eight nine ten",
-                char_width = ui.CHAR_WIDTH,
-                char_height = ui.CHAR_HEIGHT,
-                min_width = 100,
-                min_height = ui.CHAR_HEIGHT,
-            }
-        )
-        ui.close_element(&app_state.ctx)
-    }
-    ui.close_element(&app_state.ctx)
-    ui.end(&app_state.ctx)
-	render_draw_commands(app_state)
+	{
+		ui.open_text_element(
+			&app_state.ctx,
+			"text",
+			{
+				data        = "one two three four five six seven eight nine ten",
+				//char_width = ui.CHAR_WIDTH,
+				char_height = ui.CHAR_HEIGHT,
+				min_width   = 100,
+				min_height  = ui.CHAR_HEIGHT,
+			},
+		)
+		ui.close_element(&app_state.ctx)
+	}
+	ui.close_element(&app_state.ctx)
+	ui.end(&app_state.ctx)
 }
 
-build_and_render_ui :: proc(app_state: ^App_State) {
+build_ui :: proc(app_state: ^App_State) {
 	ui.begin(&app_state.ctx)
 	ui.open_element(
 		&app_state.ctx,
 		"blue",
 		{
-			sizing = {{kind = .Fixed, value = 1200}, {kind = .Fit}},
+			layout = {
+				sizing = {{kind = .Fixed, value = 1200}, {kind = .Fit}},
+				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
+				child_gap = 10,
+				layout_direction = .Left_To_Right,
+			},
 			color = ui.Color{0, 0, 255, 255},
-			padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
-			child_gap = 10,
-			layout_direction = .Left_To_Right,
 		},
 	)
 	{
@@ -292,7 +297,7 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 			&app_state.ctx,
 			"yellow",
 			{
-				sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}},
+				layout = {sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}}},
 				color = ui.Color{255, 255, 0, 255},
 			},
 		)
@@ -308,8 +313,6 @@ build_and_render_ui :: proc(app_state: ^App_State) {
 	}
 	ui.close_element(&app_state.ctx)
 	ui.end(&app_state.ctx)
-
-	render_draw_commands(app_state)
 }
 
 process_input :: proc(app_state: ^App_State) {
