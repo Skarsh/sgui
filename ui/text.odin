@@ -328,6 +328,18 @@ test_measure_words_single_word_ends_with_whitespace_before_newline :: proc(t: ^t
 }
 
 @(test)
+test_measure_words_multi_byte_character :: proc(t: ^testing.T) {
+	allocator := context.temp_allocator
+	defer free_all(allocator)
+	text := "©"
+
+	words := measure_text_words(text, allocator)
+
+	expected_words := []Word{{start_offset = 0, length = 2}}
+	expect_words(t, words, expected_words)
+}
+
+@(test)
 test_calculate_text_lines_single_word :: proc(t: ^testing.T) {
 	allocator := context.temp_allocator
 	defer free_all(allocator)
