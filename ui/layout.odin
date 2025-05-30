@@ -80,7 +80,11 @@ Text_Element_Config :: struct {
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
-	return f32(len(element.children) - 1) * element.layout.child_gap
+	if len(element.children) == 0 {
+		return 0
+	} else {
+		return f32(len(element.children) - 1) * element.layout.child_gap
+	}
 }
 
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
