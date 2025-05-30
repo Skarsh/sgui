@@ -101,7 +101,6 @@ calculate_text_lines :: proc(
 	min_width := config.min_width
 	min_height := config.min_height
 
-	// TODO(Thomas): This is not correct, it should be the width of the element
 	space_left := element_width
 
 	beginning_line_word_idx := 0
@@ -112,7 +111,7 @@ calculate_text_lines :: proc(
 		space_width := char_width
 
 		// We need to wrap onto a new line
-		if (word_width + space_width > space_left) {
+		if (word_width + space_width >= space_left) {
 			make_and_push_line(
 				&lines,
 				text,
