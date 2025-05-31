@@ -49,8 +49,49 @@ Command_Text :: struct {
 	str:  string,
 }
 
-
 Color_Style :: [Color_Type]Color
+
+// Font-agnostic text measurement result
+Text_Metrics :: struct {
+	width:       f32,
+	height:      f32,
+	ascent:      f32,
+	descent:     f32,
+	line_height: f32,
+}
+
+// Font-agnostic glyph metrics
+Glyph_Metrics :: struct {
+	advance:      f32,
+	left_bearing: f32,
+	width:        f32,
+	height:       f32,
+}
+
+Font_Metrics :: struct {
+	size:        f32,
+	line_height: f32,
+	ascent:      f32,
+	descent:     f32,
+}
+
+// Function pointer types for text measurement
+Measure_Text_Proc :: proc(
+	text: string,
+	font_id: u16,
+	font_size: f32,
+	user_data: rawptr,
+) -> Text_Metrics
+
+// Function pointer for glyph measurement
+Measure_Glyph_Proc :: proc(
+	codepoint: rune,
+	font_id: u16,
+	font_size: f32,
+	user_data: rawptr,
+) -> Glyph_Metrics
+
+Get_Font_Metrics_Proc :: proc(font_id: u16, font_size: f32, user_data: rawptr) -> Font_Metrics
 
 Context :: struct {
 	persistent_allocator: mem.Allocator,
