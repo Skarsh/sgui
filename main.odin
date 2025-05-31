@@ -4,18 +4,15 @@ import "core:fmt"
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"
+import "core:strings"
 
 import sdl "vendor:sdl2"
 
 import "ui"
 
-g_window: ^sdl.Window
-g_renderer: ^sdl.Renderer
-
 // This example uses SDL2, but the immediate mode ui library should be 
 // rendering and windowing agnostic 
 
-running := true
 main :: proc() {
 	track: mem.Tracking_Allocator
 	mem.tracking_allocator_init(&track, context.allocator)
@@ -48,7 +45,7 @@ main :: proc() {
 
 	defer sdl.Quit()
 
-	g_window = sdl.CreateWindow(
+	window := sdl.CreateWindow(
 		"ImGUI",
 		sdl.WINDOWPOS_UNDEFINED,
 		sdl.WINDOWPOS_UNDEFINED,
@@ -57,37 +54,23 @@ main :: proc() {
 		sdl.WINDOW_SHOWN,
 	)
 
-	if g_window == nil {
+	if window == nil {
 		log.error("Unable to create window: ", sdl.GetError())
 		return
 	}
 
-	defer sdl.DestroyWindow(g_window)
-
-	g_renderer = sdl.CreateRenderer(g_window, -1, sdl.RENDERER_ACCELERATED)
-	if g_renderer == nil {
+	renderer := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
+	if renderer == nil {
 		log.error("Unable to create renderer: ", sdl.GetError())
 		return
 	}
-	defer sdl.DestroyRenderer(g_renderer)
 
-	// Load font atlas
-	surface := sdl.LoadBMP("data/font14x24.bmp")
-	if surface == nil {
-		log.error("Failed to load font atlas:", sdl.GetError())
+	font_atlas := Font_Atlas{}
+	font_atlas_ok := init_font_atlas(&font_atlas, renderer, "data/font14x24.bmp")
+	if !font_atlas_ok {
+		log.error("Failed to init font atlas ")
 		return
 	}
-	defer sdl.FreeSurface(surface)
-
-	// Set color key to make black (0) transparent
-	sdl.SetColorKey(surface, 1, 0)
-
-	font_atlas := sdl.CreateTextureFromSurface(g_renderer, surface)
-	if font_atlas == nil {
-		log.error("Failed to create texture:", sdl.GetError())
-		return
-	}
-	defer sdl.DestroyTexture(font_atlas)
 
 	ctx := ui.Context{}
 
@@ -110,31 +93,36 @@ main :: proc() {
 	// or something.
 	text_buf := make([]u8, 1024)
 	defer delete(text_buf)
+
 	app_state := App_State {
+		window     = window,
+		renderer   = renderer,
 		ctx        = ctx,
 		font_atlas = font_atlas,
 		text_buf   = text_buf,
 		text_len   = 0,
+		running    = true,
 	}
+	defer deinit_app_state(&app_state)
 
 	now: u32 = 0
 	last: u32 = 0
-	for running {
+	for app_state.running {
 		last = now
 		now = sdl.GetTicks()
 		elapsed := now - last
 		process_input(&app_state)
 
 		bg_color := ui.default_color_style[.Window_BG]
-		sdl.SetRenderDrawColor(g_renderer, bg_color.r, bg_color.g, bg_color.b, 255)
-		sdl.RenderClear(g_renderer)
+		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
+		sdl.RenderClear(renderer)
 
 		//build_ui(&app_state)
 		build_simple_text_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
-		sdl.RenderPresent(g_renderer)
+		sdl.RenderPresent(renderer)
 
 		sdl.Delay(10)
 	}
@@ -203,10 +191,19 @@ render_text :: proc(
 }
 
 App_State :: struct {
+	window:     ^sdl.Window,
+	renderer:   ^sdl.Renderer,
 	ctx:        ui.Context,
-	font_atlas: ^sdl.Texture,
+	font_atlas: Font_Atlas,
 	text_buf:   []u8,
 	text_len:   int,
+	running:    bool,
+}
+
+deinit_app_state :: proc(app_state: ^App_State) {
+	deinit_font_atlas(&app_state.font_atlas)
+	sdl.DestroyRenderer(app_state.renderer)
+	sdl.DestroyWindow(app_state.window)
 }
 
 render_draw_commands :: proc(app_state: ^App_State) {
@@ -225,13 +222,19 @@ render_draw_commands :: proc(app_state: ^App_State) {
 		switch val in command {
 		case ui.Command_Rect:
 			rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
-			sdl.SetRenderDrawColor(g_renderer, val.color.r, val.color.g, val.color.b, val.color.a)
-			sdl.RenderDrawRect(g_renderer, &rect)
-			sdl.RenderFillRect(g_renderer, &rect)
+			sdl.SetRenderDrawColor(
+				app_state.renderer,
+				val.color.r,
+				val.color.g,
+				val.color.b,
+				val.color.a,
+			)
+			sdl.RenderDrawRect(app_state.renderer, &rect)
+			sdl.RenderFillRect(app_state.renderer, &rect)
 		case ui.Command_Text:
 			render_text(
-				g_renderer,
-				app_state.font_atlas,
+				app_state.renderer,
+				app_state.font_atlas.texture,
 				val.x,
 				val.y,
 				ui.CHAR_WIDTH,
@@ -355,7 +358,7 @@ process_input :: proc(app_state: ^App_State) {
 
 			#partial switch event.key.keysym.sym {
 			case .ESCAPE:
-				running = false
+				app_state.running = false
 			}
 		case .KEYDOWN:
 			key := sdl_key_to_ui_key(event.key.keysym.sym)
@@ -366,7 +369,40 @@ process_input :: proc(app_state: ^App_State) {
 			text := string(cstring(&event.text.text[0]))
 			ui.handle_text(&app_state.ctx, text)
 		case .QUIT:
-			running = false
+			app_state.running = false
 		}
 	}
+}
+
+Font_Atlas :: struct {
+	surface: ^sdl.Surface,
+	texture: ^sdl.Texture,
+}
+
+init_font_atlas :: proc(font_atlas: ^Font_Atlas, renderer: ^sdl.Renderer, path: string) -> bool {
+	surface := sdl.LoadBMP(strings.clone_to_cstring(path, context.temp_allocator))
+	defer free_all(context.temp_allocator)
+	if surface == nil {
+		log.error("Failed to load font atlas:", sdl.GetError())
+		return false
+	}
+
+	// Set color key to make black (0) transparent
+	sdl.SetColorKey(surface, 1, 0)
+
+	texture := sdl.CreateTextureFromSurface(renderer, surface)
+	if texture == nil {
+		log.error("Failed to create texture:", sdl.GetError())
+		return false
+	}
+
+	font_atlas.surface = surface
+	font_atlas.texture = texture
+
+	return true
+}
+
+deinit_font_atlas :: proc(font_atlas: ^Font_Atlas) {
+	sdl.DestroyTexture(font_atlas.texture)
+	sdl.FreeSurface(font_atlas.surface)
 }
