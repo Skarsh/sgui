@@ -89,6 +89,24 @@ main :: proc() {
 	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator)
 	defer ui.deinit(&ctx)
 
+	font_info := Font_Info{}
+	stb_font_ctx := STB_Font_Context {
+		font_info = &font_info,
+	}
+
+	if !init_stb_font(stb_font_ctx.font_info, "data/font.ttf") {
+		log.error("failed to init stb_font")
+		return
+	}
+
+	ui.set_text_measurement_callbacks(
+		&ctx,
+		stb_measure_text,
+		stb_measure_glyph,
+		stb_get_font_metrics,
+		&stb_font_ctx,
+	)
+
 	// TODO(Thomas): When suitable, this should come from a fixed size buffer allocator
 	// or something.
 	text_buf := make([]u8, 1024)

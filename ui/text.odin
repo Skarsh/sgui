@@ -12,6 +12,22 @@ Word :: struct {
 	length:       int,
 }
 
+Word2 :: struct {
+	start_offset: int,
+	length:       int,
+	width:        f32,
+}
+
+measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16, font_size: f32) -> f32 {
+	assert(ctx.measure_text_proc != nil)
+	if ctx.measure_text_proc != nil {
+		metrics := ctx.measure_text_proc(text, font_id, font_size, ctx.font_user_data)
+		return metrics.width
+	}
+
+	return 0
+}
+
 word_to_string :: proc(text: string, word: Word) -> (string, bool) {
 	return strings.substring(text, word.start_offset, word.start_offset + word.length)
 }
