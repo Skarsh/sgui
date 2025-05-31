@@ -110,56 +110,52 @@ calculate_text_lines :: proc(
 
 	space_left := element_width
 
+	// Index of first word on current line
 	beginning_line_word_idx := 0
-	end_line_word_idx := 0
+	current_line_width := 0
 
 	for word, idx in words {
 		word_width := word.length * char_width
 		space_width := char_width
 
+		// Check if we need space before this word (not for first word on line)
+		needs_whitespace := idx > beginning_line_word_idx
+		width_with_word := current_line_width + (needs_whitespace ? space_width : 0) + word_width
+
 		// We need to wrap onto a new line
-		if (word_width + space_width >= space_left) {
-			make_and_push_line(
-				&lines,
-				text,
-				beginning_line_word_idx,
-				end_line_word_idx,
-				char_width,
-				char_height,
-			)
+		//if (word_width + space_width >= space_left) {
+		if width_with_word > element_width && idx > beginning_line_word_idx {
 
-			beginning_line_word_idx = end_line_word_idx
-			space_left = min_width
+			// Push the current line (from beginning_line_word_idx to current word exclusive)
+			first_word := words[beginning_line_word_idx]
+			last_word := words[idx - 1]
+			line_start := first_word.start_offset
+			line_end := last_word.start_offset + last_word.length
 
-			// If the last word is also running over the space left, we need to put the
-			// the last word on its own line.
-			if idx == len(words) - 1 {
-				end_line_word_idx = word.start_offset + word.length
+			make_and_push_line(&lines, text, line_start, line_end, char_width, char_height)
 
-				make_and_push_line(
-					&lines,
-					text,
-					beginning_line_word_idx,
-					end_line_word_idx,
-					char_width,
-					char_height,
-				)
-			}
-		} else if idx == len(words) - 1 {
-			end_line_word_idx = word.start_offset + word.length
-
-			make_and_push_line(
-				&lines,
-				text,
-				beginning_line_word_idx,
-				end_line_word_idx,
-				char_width,
-				char_height,
-			)
+			// Start new line with current word
+			beginning_line_word_idx = idx
+			current_line_width = word_width
+			space_left = element_width - word_width
 
 		} else {
-			space_left -= word_width + space_width
-			end_line_word_idx = word.start_offset + word.length
+			// Add word to current line
+			if needs_whitespace {
+				current_line_width += space_width
+			}
+			current_line_width += word_width
+			space_left = element_width - current_line_width
+		}
+
+		// Handle last word
+		if idx == len(words) - 1 {
+			first_word := words[beginning_line_word_idx]
+			last_word := words[idx]
+			line_start := first_word.start_offset
+			line_end := last_word.start_offset + last_word.length
+
+			make_and_push_line(&lines, text, line_start, line_end, char_width, char_height)
 		}
 	}
 
