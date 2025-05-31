@@ -531,12 +531,6 @@ test_calculate_text_line_with_copyright_symbol :: proc(t: ^testing.T) {
 	min_height := 10
 	element_width := min_width
 
-	for word in words {
-		str, ok := word_to_string(text, word)
-		assert(ok)
-		log.info("word_str: ", str)
-	}
-
 	expected_lines := []Text_Line {
 		{
 			text = "© 2025",
