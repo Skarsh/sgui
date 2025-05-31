@@ -4,10 +4,16 @@ import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
+import "core:unicode/utf8"
 
+// Both start_offset and length are in the amount of runes
 Word :: struct {
 	start_offset: int,
 	length:       int,
+}
+
+word_to_string :: proc(text: string, word: Word) -> (string, bool) {
+	return strings.substring(text, word.start_offset, word.start_offset + word.length)
 }
 
 // TODO(Thomas): What about CRLF?
@@ -23,11 +29,11 @@ measure_text_words :: proc(text: string, allocator: mem.Allocator) -> []Word {
 	start := 0
 	i := 0
 
-	for i < len(text) {
-		ch := text[i]
+	for r, idx in text {
+		//ch := text[i]
 
 		// Handle space
-		if ch == ' ' {
+		if r == ' ' {
 			if i > start {
 				append(&words, Word{start_offset = start, length = i - start})
 			}
@@ -37,7 +43,7 @@ measure_text_words :: proc(text: string, allocator: mem.Allocator) -> []Word {
 		}
 
 		// Handle newline
-		if ch == '\n' {
+		if r == '\n' {
 			if i > start {
 				append(&words, Word{start_offset = start, length = i - start})
 			}
@@ -76,11 +82,12 @@ make_and_push_line :: proc(
 	line, ok := strings.substring(s, start, end)
 	assert(ok)
 	trimmed_line := strings.trim_left_space(line)
+	rune_count := utf8.rune_count_in_string(trimmed_line)
 	append(
 		lines,
 		Text_Line {
 			text = trimmed_line,
-			width = i32(len(trimmed_line) * char_width),
+			width = i32(rune_count * char_width),
 			height = i32(char_height),
 		},
 	)
@@ -335,7 +342,7 @@ test_measure_words_multi_byte_character :: proc(t: ^testing.T) {
 
 	words := measure_text_words(text, allocator)
 
-	expected_words := []Word{{start_offset = 0, length = 2}}
+	expected_words := []Word{{start_offset = 0, length = 1}}
 	expect_words(t, words, expected_words)
 }
 
@@ -358,7 +365,7 @@ test_calculate_text_lines_single_word :: proc(t: ^testing.T) {
 	expected_lines := []Text_Line {
 		{
 			text = expected_line_text,
-			width = i32(char_width * len(expected_line_text)),
+			width = i32(char_width * utf8.rune_count_in_string(expected_line_text)),
 			height = i32(char_height),
 		},
 	}
@@ -394,8 +401,16 @@ test_calculate_text_lines_multiple_words :: proc(t: ^testing.T) {
 	min_height := 10
 	element_width := min_width
 	expected_lines := []Text_Line {
-		{text = "one two", width = i32(char_width * len("one two")), height = i32(char_height)},
-		{text = "three", width = i32(char_width * len("three")), height = i32(char_height)},
+		{
+			text = "one two",
+			width = i32(char_width * utf8.rune_count_in_string("one two")),
+			height = i32(char_height),
+		},
+		{
+			text = "three",
+			width = i32(char_width * utf8.rune_count_in_string("three")),
+			height = i32(char_height),
+		},
 	}
 
 	lines := calculate_text_lines(
@@ -429,10 +444,14 @@ test_calculate_text_lines_two_lines_two_words_on_each :: proc(t: ^testing.T) {
 	min_height := 10
 	element_width := min_width
 	expected_lines := []Text_Line {
-		{text = "one two", width = i32(char_width * len("one two")), height = i32(char_height)},
+		{
+			text = "one two",
+			width = i32(char_width * utf8.rune_count_in_string("one two")),
+			height = i32(char_height),
+		},
 		{
 			text = "three four",
-			width = i32(char_width * len("three four")),
+			width = i32(char_width * utf8.rune_count_in_string("three four")),
 			height = i32(char_height),
 		},
 	}
@@ -468,13 +487,21 @@ test_calculate_text_lines_last_word_should_fit_on_current_line :: proc(t: ^testi
 	min_height := 10
 	element_width := 100
 	expected_lines := []Text_Line {
-		{text = "one two", width = i32(char_width * len("one two")), height = i32(char_height)},
 		{
-			text = "three four",
-			width = i32(char_width * len("three four")),
+			text = "one two",
+			width = i32(char_width * utf8.rune_count_in_string("one two")),
 			height = i32(char_height),
 		},
-		{text = "five six", width = i32(char_width * len("five six")), height = i32(char_height)},
+		{
+			text = "three four",
+			width = i32(char_width * utf8.rune_count_in_string("three four")),
+			height = i32(char_height),
+		},
+		{
+			text = "five six",
+			width = i32(char_width * utf8.rune_count_in_string("five six")),
+			height = i32(char_height),
+		},
 	}
 
 	lines := calculate_text_lines(
@@ -507,7 +534,35 @@ test_calculate_text_line_with_copyright_symbol :: proc(t: ^testing.T) {
 	min_width := 100
 	min_height := 10
 	element_width := min_width
-	expected_lines := []Text_Line{}
+
+	for word in words {
+		str, ok := word_to_string(text, word)
+		assert(ok)
+		log.info("word_str: ", str)
+	}
+
+	expected_lines := []Text_Line {
+		{
+			text = "© 2025",
+			width = i32(char_width * utf8.rune_count_in_string("© 2025")),
+			height = i32(char_height),
+		},
+		{
+			text = "Dashboard",
+			width = i32(char_width * utf8.rune_count_in_string("Dashboard")),
+			height = i32(char_height),
+		},
+		{
+			text = "System",
+			width = i32(char_width * utf8.rune_count_in_string("System")),
+			height = i32(char_height),
+		},
+		{
+			text = "v1.0",
+			width = i32(char_width * utf8.rune_count_in_string("v1.0")),
+			height = i32(char_height),
+		},
+	}
 
 	lines := calculate_text_lines(
 		text,
