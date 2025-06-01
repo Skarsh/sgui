@@ -94,10 +94,11 @@ main :: proc() {
 		font_info = &font_info,
 	}
 
-	if !init_stb_font(stb_font_ctx.font_info, "data/font.ttf") {
+	if !init_stb_font_ctx(&stb_font_ctx, "data/font.ttf") {
 		log.error("failed to init stb_font")
 		return
 	}
+	defer deinit_stb_font_ctx(&stb_font_ctx)
 
 	ui.set_text_measurement_callbacks(
 		&ctx,

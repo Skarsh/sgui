@@ -9,15 +9,16 @@ import ui "ui"
 
 Font_Info :: stbtt.fontinfo
 
-init_stb_font :: proc(font_info: ^stbtt.fontinfo, path: string) -> bool {
+init_stb_font_ctx :: proc(ctx: ^STB_Font_Context, path: string) -> bool {
 	font_data, font_ok := os.read_entire_file_from_filename(path)
 	if !font_ok {
 		log.error("Failed to load font file")
 		return false
 	}
+	ctx.font_data = font_data
 
 	// Initialize font
-	if !stbtt.InitFont(font_info, raw_data(font_data), 0) {
+	if !stbtt.InitFont(ctx.font_info, raw_data(font_data), 0) {
 		log.error("Failed to initialize font")
 		return false
 	}
@@ -25,8 +26,13 @@ init_stb_font :: proc(font_info: ^stbtt.fontinfo, path: string) -> bool {
 	return true
 }
 
+deinit_stb_font_ctx :: proc(ctx: ^STB_Font_Context) {
+	delete(ctx.font_data)
+}
+
 STB_Font_Context :: struct {
 	font_info: ^stbtt.fontinfo,
+	font_data: []byte,
 }
 
 stb_measure_text :: proc(
