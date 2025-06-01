@@ -7,11 +7,15 @@ import "core:mem/virtual"
 import "core:strings"
 
 import sdl "vendor:sdl2"
+import stbtt "vendor:stb/truetype"
 
 import "ui"
 
 // This example uses SDL2, but the immediate mode ui library should be 
 // rendering and windowing agnostic 
+
+WINDOW_WIDTH :: 1920
+WINDOW_HEIGHT :: 1080
 
 main :: proc() {
 	track: mem.Tracking_Allocator
@@ -49,8 +53,8 @@ main :: proc() {
 		"ImGUI",
 		sdl.WINDOWPOS_UNDEFINED,
 		sdl.WINDOWPOS_UNDEFINED,
-		1920,
-		1080,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT,
 		sdl.WINDOW_SHOWN,
 	)
 
@@ -108,21 +112,14 @@ main :: proc() {
 		&stb_font_ctx,
 	)
 
-	metrics := stb_measure_text("one two", 0, 12, &stb_font_ctx)
-
-	// TODO(Thomas): When suitable, this should come from a fixed size buffer allocator
-	// or something.
-	text_buf := make([]u8, 1024)
-	defer delete(text_buf)
-
 	app_state := App_State {
-		window     = window,
-		renderer   = renderer,
-		ctx        = ctx,
-		font_atlas = font_atlas,
-		text_buf   = text_buf,
-		text_len   = 0,
-		running    = true,
+		window      = window,
+		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		renderer    = renderer,
+		ctx         = ctx,
+		font_atlas  = font_atlas,
+		font_info   = &font_info,
+		running     = true,
 	}
 	defer deinit_app_state(&app_state)
 
@@ -211,14 +208,133 @@ render_text :: proc(
 	}
 }
 
+get_text_dimensions :: proc(
+	font_info: ^stbtt.fontinfo,
+	text: string,
+	scale: f32,
+	font_size: f32,
+) -> (
+	width: i32,
+	height: i32,
+) {
+
+	x: f32 = 0
+	max_height: i32 = 0
+
+	for r in text {
+		advance, lsb: i32
+		stbtt.GetCodepointHMetrics(font_info, r, &advance, &lsb)
+
+		x0, y0, x1, y1: i32
+		stbtt.GetCodepointBitmapBox(font_info, r, scale, scale, &x0, &y0, &x1, &y1)
+
+		x += f32(advance) * scale
+
+		char_height := y1 - y0
+		if char_height >= max_height {
+			max_height = char_height
+		}
+	}
+
+	return i32(x), max_height + i32(font_size)
+}
+
+render_text_by_font :: proc(
+	renderer: ^sdl.Renderer,
+	font_info: ^stbtt.fontinfo,
+	x, y: i32,
+	text: string,
+	font_size: f32,
+) {
+	// Get font scale
+	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
+
+	text_width, text_height := get_text_dimensions(font_info, text, scale, font_size)
+
+	// allocate bitmap
+	bitmap := make([]u8, text_width * text_height, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	// Render each character
+	x_pos: f32 = 0
+	for r in text {
+		advance, lsb: i32
+		stbtt.GetCodepointHMetrics(font_info, r, &advance, &lsb)
+
+		x0, y0, x1, y1: i32
+		stbtt.GetCodepointBitmapBox(font_info, r, scale, scale, &x0, &y0, &x1, &y1)
+
+		y := i32(font_size) + y0
+		byte_offset := i32(x_pos) + lsb * i32(scale) + (y * text_width)
+
+		stbtt.MakeCodepointBitmap(
+			font_info,
+			&bitmap[byte_offset],
+			x1 - x0,
+			y1 - y0,
+			text_width,
+			scale,
+			scale,
+			r,
+		)
+
+		x_pos += f32(advance) * scale
+	}
+
+	// Create RGBA surface for bitmap,
+	rgba_pixels := make([]u8, text_width * text_height * 4, context.temp_allocator)
+	for i in 0 ..< text_width * text_height {
+		rgba_pixels[i * 4 + 0] = 255 // R
+		rgba_pixels[i * 4 + 1] = 255 // G 
+		rgba_pixels[i * 4 + 2] = 255 // B
+		rgba_pixels[i * 4 + 3] = bitmap[i] // A
+	}
+
+	// Create SDL surface and texture
+	surface := sdl.CreateRGBSurfaceFrom(
+		raw_data(rgba_pixels),
+		text_width,
+		text_height,
+		32,
+		text_width * 4,
+		0x000000FF,
+		0x0000FF00,
+		0x00FF0000,
+		0xFF000000,
+	)
+
+	if surface == nil {
+		log.error("Failed to create surface: ", sdl.GetError())
+	}
+	defer sdl.FreeSurface(surface)
+
+	texture := sdl.CreateTextureFromSurface(renderer, surface)
+	if texture == nil {
+		fmt.eprintln("Failed to create texture: ", sdl.GetError())
+		return
+	}
+	defer sdl.DestroyTexture(texture)
+
+	// Draw text centered
+	dst_rect := sdl.Rect {
+		x = x,
+		y = y,
+		w = text_width,
+		h = text_height,
+	}
+	sdl.RenderCopy(renderer, texture, nil, &dst_rect)
+	sdl.RenderPresent(renderer)
+
+}
+
 App_State :: struct {
-	window:     ^sdl.Window,
-	renderer:   ^sdl.Renderer,
-	ctx:        ui.Context,
-	font_atlas: Font_Atlas,
-	text_buf:   []u8,
-	text_len:   int,
-	running:    bool,
+	window:      ^sdl.Window,
+	window_size: [2]i32,
+	renderer:    ^sdl.Renderer,
+	ctx:         ui.Context,
+	font_atlas:  Font_Atlas,
+	font_info:   ^stbtt.fontinfo,
+	running:     bool,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
@@ -253,15 +369,16 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			sdl.RenderDrawRect(app_state.renderer, &rect)
 			sdl.RenderFillRect(app_state.renderer, &rect)
 		case ui.Command_Text:
-			render_text(
-				app_state.renderer,
-				app_state.font_atlas.texture,
-				val.x,
-				val.y,
-				ui.CHAR_WIDTH,
-				ui.CHAR_HEIGHT,
-				val.str,
-			)
+			//render_text(
+			//	app_state.renderer,
+			//	app_state.font_atlas.texture,
+			//	val.x,
+			//	val.y,
+			//	ui.CHAR_WIDTH,
+			//	ui.CHAR_HEIGHT,
+			//	val.str,
+			//)
+			render_text_by_font(app_state.renderer, app_state.font_info, val.x, val.y, val.str, 40)
 		}
 	}
 }
