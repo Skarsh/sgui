@@ -107,6 +107,8 @@ main :: proc() {
 		&stb_font_ctx,
 	)
 
+	metrics := stb_measure_text("one two", 0, 12, &stb_font_ctx)
+
 	// TODO(Thomas): When suitable, this should come from a fixed size buffer allocator
 	// or something.
 	text_buf := make([]u8, 1024)

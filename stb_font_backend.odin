@@ -10,12 +10,11 @@ import ui "ui"
 Font_Info :: stbtt.fontinfo
 
 init_stb_font :: proc(font_info: ^stbtt.fontinfo, path: string) -> bool {
-	font_data, font_ok := os.read_entire_file_from_filename(path, context.temp_allocator)
+	font_data, font_ok := os.read_entire_file_from_filename(path)
 	if !font_ok {
 		log.error("Failed to load font file")
 		return false
 	}
-	defer free_all(context.temp_allocator)
 
 	// Initialize font
 	if !stbtt.InitFont(font_info, raw_data(font_data), 0) {
@@ -76,7 +75,7 @@ stb_measure_glyph :: proc(
 	x0, y0, x1, y1: i32
 
 	return ui.Glyph_Metrics {
-		advance = f32(advance_width) * scale,
+		advance_width = f32(advance_width) * scale,
 		left_bearing = f32(left_side_bearing) * scale,
 		width = f32(x1 - x0),
 		height = f32(y1 - y0),

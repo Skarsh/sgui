@@ -32,6 +32,86 @@ word_to_string :: proc(text: string, word: Word) -> (string, bool) {
 	return strings.substring(text, word.start_offset, word.start_offset + word.length)
 }
 
+word_to_string_2 :: proc(text: string, word: Word2) -> (string, bool) {
+	return strings.substring(text, word.start_offset, word.start_offset + word.length)
+}
+
+// TODO(Thomas): We're losing the \n information here now.
+// Think about whether we should store an empty word signaling \n
+// Or we should split things int paragraphs in the calculate_text_lines instead.
+measure_text_words_2 :: proc(
+	ctx: ^Context,
+	text: string,
+	font_id: u16,
+	font_size: f32,
+	allocator: mem.Allocator,
+) -> []Word2 {
+	words, alloc_err := make([dynamic]Word2, allocator)
+	assert(alloc_err == .None)
+
+	if len(text) == 0 {
+		return words[:]
+	}
+
+	start := 0
+	i := 0
+	for r in text {
+		if r == ' ' || r == '\n' {
+			if i > start {
+				// Measure the word
+				word_text := text[start:i]
+				word_width := measure_string_width(ctx, word_text, font_id, font_size)
+				append(&words, Word2{start_offset = start, length = i - start, width = word_width})
+			}
+			start = i + 1
+		}
+
+		i += 1
+	}
+
+	if i > start {
+		word_width := measure_string_width(ctx, text[start:i], font_id, font_size)
+		append(&words, Word2{start_offset = start, length = i - start, width = word_width})
+	}
+
+	return words[:]
+}
+
+calculate_text_lines_2 :: proc(
+	ctx: ^Context,
+	text: string,
+	words: []Word2,
+	config: Text_Element_Config,
+	element_width: int,
+	font_id: u16,
+	font_size: f32,
+	allocator: mem.Allocator,
+) -> []Text_Line {
+	lines, alloc_err := make([dynamic]Text_Line, allocator)
+
+	if len(words) == 0 {
+		return lines[:]
+	}
+
+	min_width := config.min_width
+	min_height := config.min_height
+
+	space_left := element_width
+
+	// Index of first word on current line
+	beginning_line_word_idx := 0
+	current_line_width := 0
+	space_metrics := ctx.measure_glyph_proc(' ', font_id, font_size, ctx.font_user_data)
+	space_width := space_metrics.width
+
+	for word, idx in words {
+
+	}
+
+
+	return lines[:]
+}
+
 // TODO(Thomas): What about CRLF?
 @(require_results)
 measure_text_words :: proc(text: string, allocator: mem.Allocator) -> []Word {

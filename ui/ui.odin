@@ -62,10 +62,10 @@ Text_Metrics :: struct {
 
 // Font-agnostic glyph metrics
 Glyph_Metrics :: struct {
-	advance:      f32,
-	left_bearing: f32,
-	width:        f32,
-	height:       f32,
+	advance_width: f32,
+	left_bearing:  f32,
+	width:         f32,
+	height:        f32,
 }
 
 Font_Metrics :: struct {
@@ -179,7 +179,7 @@ end :: proc(ctx: ^Context) {
 	shrink_child_elements_for_axis(ctx.root_element, .X)
 
 	// Wrap text
-	wrap_text(ctx.root_element, context.temp_allocator)
+	wrap_text(ctx, ctx.root_element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
 	// Fit sizing heights
