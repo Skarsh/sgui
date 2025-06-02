@@ -44,24 +44,7 @@ stb_measure_text :: proc(
 	ctx := cast(^STB_Font_Context)user_data
 	font_info := ctx.font_info
 
-	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
-
-	width: f32 = 0
-	ascent, descent, line_gap: i32
-	stbtt.GetFontVMetrics(font_info, &ascent, &descent, &line_gap)
-
-	for r in text {
-		advance_width, left_side_bearing: i32
-		stbtt.GetCodepointHMetrics(font_info, r, &advance_width, &left_side_bearing)
-		width += f32(advance_width) * scale
-	}
-
-	return ui.Text_Metrics {
-		width = width,
-		height = f32(ascent - descent) * scale,
-		ascent = f32(ascent) * scale,
-		line_height = f32(ascent - descent + line_gap) * scale,
-	}
+	return ui.Text_Metrics{}
 }
 
 stb_measure_glyph :: proc(
@@ -73,32 +56,12 @@ stb_measure_glyph :: proc(
 	ctx := cast(^STB_Font_Context)user_data
 	font_info := ctx.font_info
 
-	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
-
-	advance_width, left_side_bearing: i32
-	stbtt.GetCodepointHMetrics(font_info, codepoint, &advance_width, &left_side_bearing)
-
-	x0, y0, x1, y1: i32
-
-	return ui.Glyph_Metrics {
-		advance_width = f32(advance_width) * scale,
-		left_bearing = f32(left_side_bearing) * scale,
-		width = f32(x1 - x0),
-		height = f32(y1 - y0),
-	}
+	return ui.Glyph_Metrics{}
 }
 
 stb_get_font_metrics :: proc(font_id: u16, font_size: f32, user_data: rawptr) -> ui.Font_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_info := ctx.font_info
-	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
-	ascent, descent, line_gap: i32
-	stbtt.GetFontVMetrics(font_info, &ascent, &descent, &line_gap)
 
-	return ui.Font_Metrics {
-		size = font_size,
-		line_height = f32(ascent - descent + line_gap) * scale,
-		ascent = f32(ascent) * scale,
-		descent = f32(descent) * scale,
-	}
+	return ui.Font_Metrics{}
 }
