@@ -116,7 +116,7 @@ main :: proc() {
 	// New font glyph atlas
 	font_glyph_atlas := Font_Glyph_Atlas{}
 	// TODO(Thomas): Pass in a more suitable allocator here
-	init_font_glyph_atlas(&font_glyph_atlas, "data/font.ttf", context.allocator)
+	init_font_glyph_atlas(&font_glyph_atlas, "data/font.ttf", 12, 512, 512, context.allocator)
 	defer deinit_font_glyph_atlas(&font_glyph_atlas)
 
 
