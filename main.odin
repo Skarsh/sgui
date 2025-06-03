@@ -76,6 +76,7 @@ main :: proc() {
 		return
 	}
 
+
 	ctx := ui.Context{}
 
 	persistent_arena := virtual.Arena{}
@@ -112,14 +113,21 @@ main :: proc() {
 		&stb_font_ctx,
 	)
 
+	// New font glyph atlas
+	font_glyph_atlas := Font_Glyph_Atlas{}
+	// TODO(Thomas): Pass in a more suitable allocator here
+	init_font_glyph_atlas(&font_glyph_atlas, "data/font.ttf", context.allocator)
+	defer deinit_font_glyph_atlas(&font_glyph_atlas)
+
+
 	app_state := App_State {
-		window      = window,
-		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		renderer    = renderer,
-		ctx         = ctx,
-		font_atlas  = font_atlas,
-		font_info   = &font_info,
-		running     = true,
+		window           = window,
+		window_size      = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		renderer         = renderer,
+		ctx              = ctx,
+		font_atlas       = font_atlas,
+		font_glyph_atlas = font_glyph_atlas,
+		running          = true,
 	}
 	defer deinit_app_state(&app_state)
 
@@ -328,13 +336,14 @@ render_text_by_font :: proc(
 }
 
 App_State :: struct {
-	window:      ^sdl.Window,
-	window_size: [2]i32,
-	renderer:    ^sdl.Renderer,
-	ctx:         ui.Context,
-	font_atlas:  Font_Atlas,
-	font_info:   ^stbtt.fontinfo,
-	running:     bool,
+	window:           ^sdl.Window,
+	window_size:      [2]i32,
+	renderer:         ^sdl.Renderer,
+	ctx:              ui.Context,
+	font_atlas:       Font_Atlas,
+	font_info:        ^stbtt.fontinfo,
+	font_glyph_atlas: Font_Glyph_Atlas,
+	running:          bool,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
@@ -378,7 +387,14 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			//	ui.CHAR_HEIGHT,
 			//	val.str,
 			//)
-			render_text_by_font(app_state.renderer, app_state.font_info, val.x, val.y, val.str, 40)
+			render_text_by_font(
+				app_state.renderer,
+				&app_state.font_glyph_atlas.font_info,
+				val.x,
+				val.y,
+				val.str,
+				40,
+			)
 		}
 	}
 }
