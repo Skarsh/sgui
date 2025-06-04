@@ -69,14 +69,6 @@ main :: proc() {
 		return
 	}
 
-	font_atlas := Font_Atlas{}
-	font_atlas_ok := init_font_atlas(&font_atlas, renderer, "data/font14x24.bmp")
-	if !font_atlas_ok {
-		log.error("Failed to init font atlas ")
-		return
-	}
-
-
 	ctx := ui.Context{}
 
 	persistent_arena := virtual.Arena{}
@@ -114,20 +106,27 @@ main :: proc() {
 	)
 
 	// New font glyph atlas
-	font_glyph_atlas := Font_Glyph_Atlas{}
+	font_atlas := Font_Atlas{}
 	// TODO(Thomas): Pass in a more suitable allocator here
-	init_font_glyph_atlas(&font_glyph_atlas, "data/font.ttf", 12, 512, 512, context.allocator)
-	defer deinit_font_glyph_atlas(&font_glyph_atlas)
+	init_font_glyph_atlas(
+		&font_atlas,
+		"data/font.ttf",
+		32,
+		1024,
+		1024,
+		renderer,
+		context.allocator,
+	)
+	defer deinit_font_glyph_atlas(&font_atlas)
 
 
 	app_state := App_State {
-		window           = window,
-		window_size      = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		renderer         = renderer,
-		ctx              = ctx,
-		font_atlas       = font_atlas,
-		font_glyph_atlas = font_glyph_atlas,
-		running          = true,
+		window      = window,
+		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		renderer    = renderer,
+		ctx         = ctx,
+		font_atlas  = font_atlas,
+		running     = true,
 	}
 	defer deinit_app_state(&app_state)
 
@@ -247,107 +246,67 @@ get_text_dimensions :: proc(
 	return i32(x), max_height + i32(font_size)
 }
 
+// Draw a debug line at the baseline
+debug_baseline :: proc(renderer: ^sdl.Renderer, atlas: ^Font_Atlas, x, y, width: i32) {
+	baseline_y := y + i32(f32(atlas.ascent) * atlas.scale)
+	sdl.SetRenderDrawColor(renderer, 255, 0, 0, 255)
+	sdl.RenderDrawLine(renderer, x, baseline_y, x + width, baseline_y)
+}
+
 render_text_by_font :: proc(
-	renderer: ^sdl.Renderer,
-	font_info: ^stbtt.fontinfo,
-	x, y: i32,
+	atlas: ^Font_Atlas,
 	text: string,
-	font_size: f32,
+	x, y: i32,
+	color: sdl.Color = {255, 255, 255, 255},
 ) {
-	// Get font scale
-	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
+	cursor_x := f32(x)
 
-	text_width, text_height := get_text_dimensions(font_info, text, scale, font_size)
+	sdl.SetTextureColorMod(atlas.texture, color.r, color.g, color.b)
+	sdl.SetTextureAlphaMod(atlas.texture, color.a)
 
-	// allocate bitmap
-	bitmap := make([]u8, text_width * text_height, context.temp_allocator)
-	defer free_all(context.temp_allocator)
+	for char in text {
+		glyph, found := get_glyph(atlas, char)
+		if !found && char != ' ' {
+			log.warn("Glyph not found for character:", char)
+		}
 
-	// Render each character
-	x_pos: f32 = 0
-	for r in text {
-		advance, lsb: i32
-		stbtt.GetCodepointHMetrics(font_info, r, &advance, &lsb)
+		glyph_width := glyph.x1 - glyph.x0
+		glyph_height := glyph.y1 - glyph.y0
 
-		x0, y0, x1, y1: i32
-		stbtt.GetCodepointBitmapBox(font_info, r, scale, scale, &x0, &y0, &x1, &y1)
+		dst_rect := sdl.Rect {
+			x = i32(cursor_x + glyph.x0),
+			y = y + i32(glyph.y0),
+			w = i32(glyph_width),
+			h = i32(glyph_height),
+		}
 
-		y := i32(font_size) + y0
-		byte_offset := i32(x_pos) + lsb * i32(scale) + (y * text_width)
+		// Calculate source rectangle
+		src_rect := sdl.Rect {
+			x = i32(glyph.u0 * f32(atlas.atlas_width)),
+			y = i32(glyph.v0 * f32(atlas.atlas_height)),
+			w = i32((glyph.u1 - glyph.u0) * f32(atlas.atlas_width)),
+			h = i32((glyph.v1 - glyph.v0) * f32(atlas.atlas_height)),
+		}
 
-		stbtt.MakeCodepointBitmap(
-			font_info,
-			&bitmap[byte_offset],
-			x1 - x0,
-			y1 - y0,
-			text_width,
-			scale,
-			scale,
-			r,
-		)
+		// Render the glyph
+		sdl.RenderCopy(atlas.renderer, atlas.texture, &src_rect, &dst_rect)
 
-		x_pos += f32(advance) * scale
+		// Advance cursor
+		cursor_x += glyph.x_advance
 	}
-
-	// Create RGBA surface for bitmap,
-	rgba_pixels := make([]u8, text_width * text_height * 4, context.temp_allocator)
-	for i in 0 ..< text_width * text_height {
-		rgba_pixels[i * 4 + 0] = 255 // R
-		rgba_pixels[i * 4 + 1] = 255 // G 
-		rgba_pixels[i * 4 + 2] = 255 // B
-		rgba_pixels[i * 4 + 3] = bitmap[i] // A
-	}
-
-	// Create SDL surface and texture
-	surface := sdl.CreateRGBSurfaceFrom(
-		raw_data(rgba_pixels),
-		text_width,
-		text_height,
-		32,
-		text_width * 4,
-		0x000000FF,
-		0x0000FF00,
-		0x00FF0000,
-		0xFF000000,
-	)
-
-	if surface == nil {
-		log.error("Failed to create surface: ", sdl.GetError())
-	}
-	defer sdl.FreeSurface(surface)
-
-	texture := sdl.CreateTextureFromSurface(renderer, surface)
-	if texture == nil {
-		fmt.eprintln("Failed to create texture: ", sdl.GetError())
-		return
-	}
-	defer sdl.DestroyTexture(texture)
-
-	// Draw text centered
-	dst_rect := sdl.Rect {
-		x = x,
-		y = y,
-		w = text_width,
-		h = text_height,
-	}
-	sdl.RenderCopy(renderer, texture, nil, &dst_rect)
-	sdl.RenderPresent(renderer)
-
 }
 
 App_State :: struct {
-	window:           ^sdl.Window,
-	window_size:      [2]i32,
-	renderer:         ^sdl.Renderer,
-	ctx:              ui.Context,
-	font_atlas:       Font_Atlas,
-	font_info:        ^stbtt.fontinfo,
-	font_glyph_atlas: Font_Glyph_Atlas,
-	running:          bool,
+	window:      ^sdl.Window,
+	window_size: [2]i32,
+	renderer:    ^sdl.Renderer,
+	ctx:         ui.Context,
+	font_info:   ^stbtt.fontinfo,
+	font_atlas:  Font_Atlas,
+	running:     bool,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
-	deinit_font_atlas(&app_state.font_atlas)
 	sdl.DestroyRenderer(app_state.renderer)
 	sdl.DestroyWindow(app_state.window)
 }
@@ -378,23 +337,14 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			sdl.RenderDrawRect(app_state.renderer, &rect)
 			sdl.RenderFillRect(app_state.renderer, &rect)
 		case ui.Command_Text:
-			//render_text(
-			//	app_state.renderer,
-			//	app_state.font_atlas.texture,
-			//	val.x,
-			//	val.y,
-			//	ui.CHAR_WIDTH,
-			//	ui.CHAR_HEIGHT,
-			//	val.str,
-			//)
 			render_text_by_font(
-				app_state.renderer,
-				&app_state.font_glyph_atlas.font_info,
+				&app_state.font_atlas,
+				val.str,
 				val.x,
 				val.y,
-				val.str,
-				40,
+				sdl.Color{255, 255, 255, 255},
 			)
+			debug_baseline(app_state.renderer, &app_state.font_atlas, val.x, val.y, 1000)
 		}
 	}
 }
@@ -526,37 +476,4 @@ process_input :: proc(app_state: ^App_State) {
 			app_state.running = false
 		}
 	}
-}
-
-Font_Atlas :: struct {
-	surface: ^sdl.Surface,
-	texture: ^sdl.Texture,
-}
-
-init_font_atlas :: proc(font_atlas: ^Font_Atlas, renderer: ^sdl.Renderer, path: string) -> bool {
-	surface := sdl.LoadBMP(strings.clone_to_cstring(path, context.temp_allocator))
-	defer free_all(context.temp_allocator)
-	if surface == nil {
-		log.error("Failed to load font atlas:", sdl.GetError())
-		return false
-	}
-
-	// Set color key to make black (0) transparent
-	sdl.SetColorKey(surface, 1, 0)
-
-	texture := sdl.CreateTextureFromSurface(renderer, surface)
-	if texture == nil {
-		log.error("Failed to create texture:", sdl.GetError())
-		return false
-	}
-
-	font_atlas.surface = surface
-	font_atlas.texture = texture
-
-	return true
-}
-
-deinit_font_atlas :: proc(font_atlas: ^Font_Atlas) {
-	sdl.DestroyTexture(font_atlas.texture)
-	sdl.FreeSurface(font_atlas.surface)
 }
