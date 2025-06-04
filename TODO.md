@@ -1,7 +1,9 @@
 # TODOs
 
+## Active
+* Text rendering
+
 ## Board
-* Investigate failing tests and fix the bugs
 * Figure out how to deal with Text Element vs "normal" Element. Currently we have kind field to keep track
     of which kind of Element it is.
 
