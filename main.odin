@@ -246,13 +246,6 @@ get_text_dimensions :: proc(
 	return i32(x), max_height + i32(font_size)
 }
 
-// Draw a debug line at the baseline
-debug_baseline :: proc(renderer: ^sdl.Renderer, atlas: ^Font_Atlas, x, y, width: i32) {
-	baseline_y := y + i32(f32(atlas.ascent) * atlas.scale)
-	sdl.SetRenderDrawColor(renderer, 255, 0, 0, 255)
-	sdl.RenderDrawLine(renderer, x, baseline_y, x + width, baseline_y)
-}
-
 render_text_by_font :: proc(
 	atlas: ^Font_Atlas,
 	text: string,
@@ -344,7 +337,6 @@ render_draw_commands :: proc(app_state: ^App_State) {
 				val.y,
 				sdl.Color{255, 255, 255, 255},
 			)
-			debug_baseline(app_state.renderer, &app_state.font_atlas, val.x, val.y, 1000)
 		}
 	}
 }

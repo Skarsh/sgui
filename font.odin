@@ -175,7 +175,6 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 			y1        = pc.yoff2,
 			x_advance = pc.xadvance,
 		}
-		log.info("glyph: ", glyph)
 		atlas.glyph_cache[r] = glyph
 	}
 
