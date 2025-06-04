@@ -253,6 +253,7 @@ render_text_by_font :: proc(
 	color: sdl.Color = {255, 255, 255, 255},
 ) {
 	cursor_x := f32(x)
+	cursor_y := f32(y)
 
 	sdl.SetTextureColorMod(atlas.texture, color.r, color.g, color.b)
 	sdl.SetTextureAlphaMod(atlas.texture, color.a)
@@ -268,7 +269,7 @@ render_text_by_font :: proc(
 
 		dst_rect := sdl.Rect {
 			x = i32(cursor_x + glyph.x0),
-			y = y + i32(glyph.y0),
+			y = i32(cursor_y + glyph.y0),
 			w = i32(glyph_width),
 			h = i32(glyph_height),
 		}
