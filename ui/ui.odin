@@ -1,9 +1,6 @@
 package ui
 
-import "core:log"
 import "core:mem"
-import "core:strings"
-import textedit "core:text/edit"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
 ELEMENT_STACK_SIZE :: #config(SUI_ELEMENT_STACK_SIZE, 64)

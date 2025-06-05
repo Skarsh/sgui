@@ -1,6 +1,5 @@
 package ui
 
-import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
@@ -88,26 +87,7 @@ calculate_text_lines_2 :: proc(
 	allocator: mem.Allocator,
 ) -> []Text_Line {
 	lines, alloc_err := make([dynamic]Text_Line, allocator)
-
-	if len(words) == 0 {
-		return lines[:]
-	}
-
-	min_width := config.min_width
-	min_height := config.min_height
-
-	space_left := element_width
-
-	// Index of first word on current line
-	beginning_line_word_idx := 0
-	current_line_width := 0
-	space_metrics := ctx.measure_glyph_proc(' ', font_id, font_size, ctx.font_user_data)
-	space_width := space_metrics.width
-
-	for word, idx in words {
-
-	}
-
+	assert(alloc_err == .None)
 
 	return lines[:]
 }
@@ -125,7 +105,7 @@ measure_text_words :: proc(text: string, allocator: mem.Allocator) -> []Word {
 	start := 0
 	i := 0
 
-	for r, idx in text {
+	for r in text {
 		// Handle space
 		if r == ' ' {
 			if i > start {
