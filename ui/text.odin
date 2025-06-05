@@ -126,8 +126,6 @@ measure_text_words :: proc(text: string, allocator: mem.Allocator) -> []Word {
 	i := 0
 
 	for r, idx in text {
-		//ch := text[i]
-
 		// Handle space
 		if r == ' ' {
 			if i > start {
@@ -446,7 +444,6 @@ test_calculate_text_lines_single_word :: proc(t: ^testing.T) {
 	text := "one\n"
 
 	words := measure_text_words(text, allocator)
-	expected_words := []Word{{start_offset = 0, length = 3}}
 
 	char_width := 10
 	char_height := 10

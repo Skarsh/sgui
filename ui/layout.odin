@@ -1298,6 +1298,7 @@ test_multiple_text_element_grow_ltr :: proc(t: ^testing.T) {
 	expected_size := Vec2{expected_text_element_width, expected_text_element_height}
 
 	testing.expect(t, compare_element_size(text_element_1^, expected_size))
+	testing.expect(t, compare_element_size(text_element_2^, expected_size))
 }
 
 @(test)
@@ -1479,5 +1480,7 @@ test_shrink_stops_at_min_size_ltr :: proc(t: ^testing.T) {
 	text_element_2 := find_element_by_id(ctx.root_element, "text_2")
 	text_element_3 := find_element_by_id(ctx.root_element, "text_3")
 
+	testing.expect_value(t, text_element_1.size.x, 55)
+	testing.expect_value(t, text_element_2.size.x, 55)
 	testing.expect_value(t, text_element_3.size.x, 90)
 }
