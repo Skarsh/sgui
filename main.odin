@@ -215,37 +215,6 @@ render_text :: proc(
 	}
 }
 
-get_text_dimensions :: proc(
-	font_info: ^stbtt.fontinfo,
-	text: string,
-	scale: f32,
-	font_size: f32,
-) -> (
-	width: i32,
-	height: i32,
-) {
-
-	x: f32 = 0
-	max_height: i32 = 0
-
-	for r in text {
-		advance, lsb: i32
-		stbtt.GetCodepointHMetrics(font_info, r, &advance, &lsb)
-
-		x0, y0, x1, y1: i32
-		stbtt.GetCodepointBitmapBox(font_info, r, scale, scale, &x0, &y0, &x1, &y1)
-
-		x += f32(advance) * scale
-
-		char_height := y1 - y0
-		if char_height >= max_height {
-			max_height = char_height
-		}
-	}
-
-	return i32(x), max_height + i32(font_size)
-}
-
 render_text_by_font :: proc(
 	atlas: ^Font_Atlas,
 	text: string,
