@@ -8,6 +8,13 @@ import "core:unicode/utf8"
 import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
 
+Metrics :: struct {
+	scale:    f32,
+	ascent:   i32,
+	descent:  i32,
+	line_gap: i32,
+}
+
 Font_Data :: struct {
 	// UV coordinates in the atlas texture
 	u0, v0, u1, v1: f32,
@@ -30,10 +37,7 @@ Font_Atlas :: struct {
 	atlas_width:  i32,
 	atlas_height: i32,
 	font_size:    f32,
-	scale:        f32,
-	ascent:       i32,
-	descent:      i32,
-	line_gap:     i32,
+	metrics:      Metrics,
 }
 
 init_font_glyph_atlas :: proc(
@@ -69,44 +73,22 @@ init_font_glyph_atlas :: proc(
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
 
+	// Set font dimensions
 	atlas.atlas_width = atlas_width
 	atlas.atlas_height = atlas_height
 	atlas.font_size = font_size
 
 	// Get font metrics
-	ascent, descent, line_gap: i32
-	stbtt.GetFontVMetrics(&atlas.font_info, &ascent, &descent, &line_gap)
-	scale := stbtt.ScaleForPixelHeight(&atlas.font_info, atlas.font_size)
-
-	atlas.scale = scale
-
-	// Scale Font VMetrics by scale
-	atlas.ascent = i32(f32(ascent) * scale)
-	atlas.descent = i32(f32(descent) * scale)
-	atlas.line_gap = i32(f32(line_gap) * scale)
-
+	atlas.metrics = get_font_metrics(&atlas.font_info, atlas.font_size)
 
 	// TODO(Thomas): What about passing in an alloc_context here?
-	stbtt.PackBegin(&atlas.pack_ctx, raw_data(atlas.bitmap), atlas_width, atlas_height, 0, 1, nil)
-	stbtt.PackSetOversampling(&atlas.pack_ctx, 2.0, 2.0)
-
-	pack_result := stbtt.PackFontRange(
-		&atlas.pack_ctx,
-		raw_data(atlas.font_data),
-		0,
-		font_size,
-		32, // first codepoint
-		num_chars,
-		raw_data(atlas.packed_chars),
-	)
-
-	if pack_result == 0 {
+	pack_ok := pack_font_glyphs(atlas, 32, num_chars, 0, 1, 2)
+	if !pack_ok {
 		log.error("Failed to pack font range")
 		return false
 	}
 
-
-	stbtt.PackEnd(&atlas.pack_ctx)
+	//stbtt.PackEnd(&atlas.pack_ctx)
 	// Create SDL texture from bitmap
 	if !create_texture_from_bitmap(atlas) {
 		log.error("Failed to create texture from bitmap")
@@ -117,6 +99,57 @@ init_font_glyph_atlas :: proc(
 	cache_packed_chars(atlas)
 
 	return true
+}
+
+get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Metrics {
+	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
+	ascent, descent, line_gap: i32
+	stbtt.GetFontVMetrics(font_info, &ascent, &descent, &line_gap)
+
+	// Scale Font VMetrics by scale
+	ascent = i32(f32(ascent) * scale)
+	descent = i32(f32(descent) * scale)
+	line_gap = i32(f32(line_gap) * scale)
+
+	return Metrics{scale = scale, ascent = ascent, descent = descent, line_gap = line_gap}
+}
+
+pack_font_glyphs :: proc(
+	atlas: ^Font_Atlas,
+	first_codepoint: i32,
+	num_chars: i32,
+	stride_in_bytes: i32,
+	padding: i32,
+	oversampling: u32 = 2,
+) -> bool {
+	// Begin packing
+	stbtt.PackBegin(
+		&atlas.pack_ctx,
+		raw_data(atlas.bitmap),
+		atlas.atlas_width,
+		atlas.atlas_height,
+		stride_in_bytes, // stride_in_bytes (0 = packed)
+		padding,
+		nil, // alloc_context - TODO: Consider passing allocator context
+	)
+
+	// Set oversampling for better quality
+	stbtt.PackSetOversampling(&atlas.pack_ctx, oversampling, oversampling)
+
+	// Pack font range
+	pack_result := stbtt.PackFontRange(
+		&atlas.pack_ctx,
+		raw_data(atlas.font_data),
+		0, // font_index
+		atlas.font_size,
+		first_codepoint,
+		num_chars,
+		raw_data(atlas.packed_chars),
+	)
+
+	stbtt.PackEnd(&atlas.pack_ctx)
+
+	return pack_result != 0
 }
 
 create_texture_from_bitmap :: proc(atlas: ^Font_Atlas) -> bool {
@@ -213,8 +246,8 @@ deinit_font_glyph_atlas :: proc(atlas: ^Font_Atlas) {
 
 // Query the atlas for a rune and get rendering information
 get_glyph :: proc(atlas: ^Font_Atlas, codepoint: rune) -> (Font_Data, bool) {
-	glyph, ok := atlas.glyph_cache[codepoint]
-	if ok {
+	glyph, glyph_ok := atlas.glyph_cache[codepoint]
+	if glyph_ok {
 		return glyph, true
 	}
 
@@ -230,7 +263,7 @@ get_glyph :: proc(atlas: ^Font_Atlas, codepoint: rune) -> (Font_Data, bool) {
 	}
 
 	// Return '?' character as fallback
-	if fallback, ok := atlas.glyph_cache['?']; ok {
+	if fallback, fallback_ok := atlas.glyph_cache['?']; fallback_ok {
 		return fallback, false
 	}
 

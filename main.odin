@@ -201,7 +201,7 @@ render_text_by_font :: proc(
 
 	// Add the ascent to make sure the text is moved down
 	// since y is going to be the top left corner of the element, for now.
-	baseline_y := f32(y) + f32(atlas.ascent)
+	baseline_y := f32(y) + f32(atlas.metrics.ascent)
 
 	sdl.SetTextureColorMod(atlas.texture, color.r, color.g, color.b)
 	sdl.SetTextureAlphaMod(atlas.texture, color.a)
