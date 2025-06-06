@@ -198,7 +198,10 @@ render_text_by_font :: proc(
 	color: sdl.Color = {255, 255, 255, 255},
 ) {
 	cursor_x := f32(x)
-	cursor_y := f32(y)
+
+	// Add the ascent to make sure the text is moved down
+	// since y is going to be the top left corner of the element, for now.
+	baseline_y := f32(y) + f32(atlas.ascent)
 
 	sdl.SetTextureColorMod(atlas.texture, color.r, color.g, color.b)
 	sdl.SetTextureAlphaMod(atlas.texture, color.a)
@@ -214,7 +217,7 @@ render_text_by_font :: proc(
 
 		dst_rect := sdl.Rect {
 			x = i32(cursor_x + glyph.x0),
-			y = i32(cursor_y + glyph.y0),
+			y = i32(baseline_y + glyph.y0),
 			w = i32(glyph_width),
 			h = i32(glyph_height),
 		}
