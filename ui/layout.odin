@@ -658,7 +658,6 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	container_1_size := Vec2{100, 100}
 	container_2_size := Vec2{50, 150}
 	container_3_size := Vec2{150, 150}
-	largest_container_x: f32 = 150
 	largest_container_y: f32 = 150
 
 	begin(&ctx)
@@ -725,9 +724,9 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	panel_element := find_element_by_id(ctx.root_element, "panel")
 	testing.expect(t, panel_element != nil)
 
-
-	expected_panel_size := testing.expect_value(
-		t, // assert panel size
+	// assert panel size
+	testing.expect_value(
+		t,
 		panel_element.size.x,
 		panel_padding.left +
 		container_1_size.x +
@@ -800,7 +799,6 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	container_2_size := Vec2{50, 150}
 	container_3_size := Vec2{150, 150}
 	largest_container_x: f32 = 150
-	largest_container_y: f32 = 150
 
 	begin(&ctx)
 
@@ -939,8 +937,16 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	panel_child_gap: f32 = 10
 	panel_size := Vec2{600, 400}
 	container_1_size := Vec2{100, 100}
-	container_2_size := Vec2{600 - 150 - 100, 400}
 	container_3_size := Vec2{150, 150}
+	container_2_size := Vec2 {
+		panel_size.x -
+		container_1_size.x -
+		container_3_size.x -
+		2 * panel_child_gap -
+		panel_padding.left -
+		panel_padding.right,
+		panel_size.y - panel_padding.top - panel_padding.bottom,
+	}
 
 	begin(&ctx)
 
@@ -1020,21 +1026,8 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 
 	// assert container_2 size
 	container_2_element := panel_element.children[1]
-	testing.expect_value(
-		t,
-		container_2_element.size.x,
-		panel_size.x -
-		panel_padding.left -
-		panel_padding.right -
-		(2 * panel_child_gap) -
-		container_1_size.x -
-		container_3_size.x,
-	)
-	testing.expect_value(
-		t,
-		container_2_element.size.y,
-		panel_size.y - panel_padding.top - panel_padding.bottom,
-	)
+	testing.expect_value(t, container_2_element.size.x, container_2_size.x)
+	testing.expect_value(t, container_2_element.size.y, container_2_size.y)
 
 	// assert container_2 position
 	testing.expect_value(
@@ -1073,8 +1066,16 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	panel_child_gap: f32 = 10
 	panel_size := Vec2{600, 400}
 	container_1_size := Vec2{100, 100}
-	container_2_size := Vec2{600, 400 - 150 - 100}
 	container_3_size := Vec2{150, 150}
+	container_2_size := Vec2 {
+		panel_size.x - panel_padding.left - panel_padding.right,
+		panel_size.y -
+		container_1_size.y -
+		container_3_size.y -
+		2 * panel_child_gap -
+		panel_padding.top -
+		panel_padding.bottom,
+	}
 
 	begin(&ctx)
 	open_element(
@@ -1150,21 +1151,8 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 
 	// assert container_2 size
 	container_2_element := panel_element.children[1]
-	testing.expect_value(
-		t,
-		container_2_element.size.x,
-		panel_size.x - panel_padding.left - panel_padding.right,
-	)
-	testing.expect_value(
-		t,
-		container_2_element.size.y,
-		panel_size.y -
-		panel_padding.top -
-		panel_padding.bottom -
-		(2 * panel_child_gap) -
-		container_1_size.y -
-		container_3_size.y,
-	)
+	testing.expect_value(t, container_2_element.size.x, container_2_size.x)
+	testing.expect_value(t, container_2_element.size.y, container_2_size.y)
 
 	// assert container_2 position
 	testing.expect_value(t, container_2_element.position.x, panel_padding.left)
