@@ -69,13 +69,22 @@ init_font_glyph_atlas :: proc(
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
 
-	// Get font metrics
-	stbtt.GetFontVMetrics(&atlas.font_info, &atlas.ascent, &atlas.descent, &atlas.line_gap)
-	atlas.scale = stbtt.ScaleForPixelHeight(&atlas.font_info, atlas.font_size)
-
-	// Set atlas dimensions
 	atlas.atlas_width = atlas_width
 	atlas.atlas_height = atlas_height
+	atlas.font_size = font_size
+
+	// Get font metrics
+	ascent, descent, line_gap: i32
+	stbtt.GetFontVMetrics(&atlas.font_info, &ascent, &descent, &line_gap)
+	scale := stbtt.ScaleForPixelHeight(&atlas.font_info, atlas.font_size)
+
+	atlas.scale = scale
+
+	// Scale Font VMetrics by scale
+	atlas.ascent = i32(f32(ascent) * scale)
+	atlas.descent = i32(f32(descent) * scale)
+	atlas.line_gap = i32(f32(line_gap) * scale)
+
 
 	// TODO(Thomas): What about passing in an alloc_context here?
 	stbtt.PackBegin(&atlas.pack_ctx, raw_data(atlas.bitmap), atlas_width, atlas_height, 0, 1, nil)
