@@ -17,10 +17,10 @@ Word2 :: struct {
 	width:        f32,
 }
 
-measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16, font_size: f32) -> f32 {
+measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {
 	assert(ctx.measure_text_proc != nil)
 	if ctx.measure_text_proc != nil {
-		metrics := ctx.measure_text_proc(text, font_id, font_size, ctx.font_user_data)
+		metrics := ctx.measure_text_proc(text, font_id, ctx.font_user_data)
 		return metrics.width
 	}
 
@@ -42,7 +42,6 @@ measure_text_words_2 :: proc(
 	ctx: ^Context,
 	text: string,
 	font_id: u16,
-	font_size: f32,
 	allocator: mem.Allocator,
 ) -> []Word2 {
 	words, alloc_err := make([dynamic]Word2, allocator)
@@ -59,7 +58,7 @@ measure_text_words_2 :: proc(
 			if i > start {
 				// Measure the word
 				word_text := text[start:i]
-				word_width := measure_string_width(ctx, word_text, font_id, font_size)
+				word_width := measure_string_width(ctx, word_text, font_id)
 				append(&words, Word2{start_offset = start, length = i - start, width = word_width})
 			}
 			start = i + 1
@@ -69,7 +68,7 @@ measure_text_words_2 :: proc(
 	}
 
 	if i > start {
-		word_width := measure_string_width(ctx, text[start:i], font_id, font_size)
+		word_width := measure_string_width(ctx, text[start:i], font_id)
 		append(&words, Word2{start_offset = start, length = i - start, width = word_width})
 	}
 

@@ -89,28 +89,25 @@ main :: proc() {
 	stb_font_ctx := STB_Font_Context {
 		font_info = &font_info,
 	}
+	font_size: f32 = 24
 
-	if !init_stb_font_ctx(&stb_font_ctx, "data/font.ttf") {
+	if !init_stb_font_ctx(&stb_font_ctx, "data/font.ttf", font_size) {
 		log.error("failed to init stb_font")
 		return
 	}
 	defer deinit_stb_font_ctx(&stb_font_ctx)
 
-	ui.set_text_measurement_callbacks(
-		&ctx,
-		stb_measure_text,
-		stb_measure_glyph,
-		stb_get_font_metrics,
-		&stb_font_ctx,
-	)
+	ui.set_text_measurement_callbacks(&ctx, stb_measure_text, stb_measure_glyph, &stb_font_ctx)
 
 	// New font glyph atlas
 	font_atlas := Font_Atlas{}
 	// TODO(Thomas): Pass in a more suitable allocator here
 	init_font_glyph_atlas(
 		&font_atlas,
+		stb_font_ctx.font_info,
+		stb_font_ctx.font_data,
 		"data/font.ttf",
-		32,
+		font_size,
 		1024,
 		1024,
 		renderer,
@@ -141,8 +138,8 @@ main :: proc() {
 		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(renderer)
 
-		//build_ui(&app_state)
-		build_simple_text_ui(&app_state)
+		build_ui(&app_state)
+		//build_simple_text_ui(&app_state)
 
 		render_draw_commands(&app_state)
 

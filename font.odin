@@ -2,13 +2,14 @@ package main
 
 import "core:log"
 import "core:mem"
-import "core:os"
 import "core:unicode/utf8"
 
 import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
 
-Metrics :: struct {
+// Ascent, descent and line_gap are stored
+// as scaled to pixel values.
+Font_Metrics :: struct {
 	scale:    f32,
 	ascent:   i32,
 	descent:  i32,
@@ -26,7 +27,7 @@ Font_Data :: struct {
 // TODO(Thomas): Ideally we'd like this to be rendering backend agnostic, but
 // we'll just use sdl.Texture for now.
 Font_Atlas :: struct {
-	font_info:    stbtt.fontinfo,
+	font_info:    ^stbtt.fontinfo,
 	font_data:    []u8,
 	pack_ctx:     stbtt.pack_context,
 	packed_chars: []stbtt.packedchar,
@@ -37,11 +38,13 @@ Font_Atlas :: struct {
 	atlas_width:  i32,
 	atlas_height: i32,
 	font_size:    f32,
-	metrics:      Metrics,
+	metrics:      Font_Metrics,
 }
 
 init_font_glyph_atlas :: proc(
 	atlas: ^Font_Atlas,
+	font_info: ^stbtt.fontinfo,
+	font_data: []u8,
 	path: string,
 	font_size: f32,
 	atlas_width: i32,
@@ -50,21 +53,8 @@ init_font_glyph_atlas :: proc(
 	allocator: mem.Allocator,
 ) -> bool {
 
-	font_info := stbtt.fontinfo{}
-	font_data, font_ok := os.read_entire_file_from_filename(path)
-	if !font_ok {
-		log.error("Failed to load font file")
-		return false
-	}
-	atlas.font_data = font_data
-
-	// Initialize font
-	if !stbtt.InitFont(&font_info, raw_data(font_data), 0) {
-		log.error("Failed to initialize font")
-		return false
-	}
-
 	atlas.font_info = font_info
+	atlas.font_data = font_data
 	atlas.pack_ctx = stbtt.pack_context{}
 	num_chars: i32 = 256
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars)
@@ -79,7 +69,7 @@ init_font_glyph_atlas :: proc(
 	atlas.font_size = font_size
 
 	// Get font metrics
-	atlas.metrics = get_font_metrics(&atlas.font_info, atlas.font_size)
+	atlas.metrics = get_font_metrics(atlas.font_info, atlas.font_size)
 
 	// TODO(Thomas): What about passing in an alloc_context here?
 	pack_ok := pack_font_glyphs(atlas, 32, num_chars, 0, 1, 2)
@@ -101,7 +91,7 @@ init_font_glyph_atlas :: proc(
 	return true
 }
 
-get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Metrics {
+get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Font_Metrics {
 	scale := stbtt.ScaleForPixelHeight(font_info, font_size)
 	ascent, descent, line_gap: i32
 	stbtt.GetFontVMetrics(font_info, &ascent, &descent, &line_gap)
@@ -111,7 +101,7 @@ get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Metrics 
 	descent = i32(f32(descent) * scale)
 	line_gap = i32(f32(line_gap) * scale)
 
-	return Metrics{scale = scale, ascent = ascent, descent = descent, line_gap = line_gap}
+	return Font_Metrics{scale = scale, ascent = ascent, descent = descent, line_gap = line_gap}
 }
 
 pack_font_glyphs :: proc(

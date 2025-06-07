@@ -51,7 +51,6 @@ Color_Style :: [Color_Type]Color
 // Font-agnostic text measurement result
 Text_Metrics :: struct {
 	width:       f32,
-	height:      f32,
 	ascent:      f32,
 	descent:     f32,
 	line_height: f32,
@@ -65,57 +64,36 @@ Glyph_Metrics :: struct {
 	height:        f32,
 }
 
-Font_Metrics :: struct {
-	size:        f32,
-	line_height: f32,
-	ascent:      f32,
-	descent:     f32,
-}
-
 // Function pointer types for text measurement
-Measure_Text_Proc :: proc(
-	text: string,
-	font_id: u16,
-	font_size: f32,
-	user_data: rawptr,
-) -> Text_Metrics
+Measure_Text_Proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text_Metrics
 
 // Function pointer for glyph measurement
-Measure_Glyph_Proc :: proc(
-	codepoint: rune,
-	font_id: u16,
-	font_size: f32,
-	user_data: rawptr,
-) -> Glyph_Metrics
+Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> Glyph_Metrics
 
-Get_Font_Metrics_Proc :: proc(font_id: u16, font_size: f32, user_data: rawptr) -> Font_Metrics
 
 Context :: struct {
-	persistent_allocator:  mem.Allocator,
-	frame_allocator:       mem.Allocator,
-	command_stack:         Stack(Command, COMMAND_STACK_SIZE),
-	element_stack:         Stack(^UI_Element, ELEMENT_STACK_SIZE),
-	current_parent:        ^UI_Element,
-	root_element:          ^UI_Element,
-	input:                 Input,
-	element_cache:         map[UI_Key]^UI_Element,
-	measure_text_proc:     Measure_Text_Proc,
-	measure_glyph_proc:    Measure_Glyph_Proc,
-	get_font_metrics_proc: Get_Font_Metrics_Proc,
-	font_user_data:        rawptr,
-	frame_index:           u64,
+	persistent_allocator: mem.Allocator,
+	frame_allocator:      mem.Allocator,
+	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
+	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	current_parent:       ^UI_Element,
+	root_element:         ^UI_Element,
+	input:                Input,
+	element_cache:        map[UI_Key]^UI_Element,
+	measure_text_proc:    Measure_Text_Proc,
+	measure_glyph_proc:   Measure_Glyph_Proc,
+	font_user_data:       rawptr,
+	frame_index:          u64,
 }
 
 set_text_measurement_callbacks :: proc(
 	ctx: ^Context,
 	measure_text: Measure_Text_Proc,
 	measure_glyph: Measure_Glyph_Proc,
-	get_font_metrics: Get_Font_Metrics_Proc,
 	user_data: rawptr,
 ) {
 	ctx.measure_text_proc = measure_text
 	ctx.measure_glyph_proc = measure_glyph
-	ctx.get_font_metrics_proc = get_font_metrics
 	ctx.font_user_data = user_data
 }
 
