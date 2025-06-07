@@ -1,5 +1,6 @@
 package ui
 
+import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
@@ -22,9 +23,21 @@ measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {
 	if ctx.measure_text_proc != nil {
 		metrics := ctx.measure_text_proc(text, font_id, ctx.font_user_data)
 		return metrics.width
+	} else {
+		log.error("measure_text_proc is nil")
+		return 0
 	}
+}
 
-	return 0
+measure_glyph_width :: proc(ctx: ^Context, codepoint: rune, font_id: u16) -> f32 {
+	assert(ctx.measure_glyph_proc != nil)
+	if ctx.measure_glyph_proc != nil {
+		metrics := ctx.measure_glyph_proc(codepoint, font_id, ctx.font_user_data)
+		return metrics.width
+	} else {
+		log.error("measure_glyph_proc is nil")
+		return 0
+	}
 }
 
 word_to_string :: proc(text: string, word: Word) -> (string, bool) {
@@ -75,18 +88,70 @@ measure_text_words_2 :: proc(
 	return words[:]
 }
 
+// TODO(Thomas): Handle newlines
 calculate_text_lines_2 :: proc(
 	ctx: ^Context,
 	text: string,
 	words: []Word2,
 	config: Text_Element_Config,
-	element_width: int,
+	element_width: f32,
 	font_id: u16,
 	font_size: f32,
 	allocator: mem.Allocator,
 ) -> []Text_Line {
 	lines, alloc_err := make([dynamic]Text_Line, allocator)
 	assert(alloc_err == .None)
+
+	min_width := config.min_width
+	min_height := config.min_height
+	space_left := element_width
+
+	first_word_on_line_idx := 0
+	current_line_width: f32 = 0
+	space_width := measure_glyph_width(ctx, ' ', font_id)
+
+	for word, idx in words {
+		word_width := word.width
+		// Check if we need whitespace before this word (not for first word on line)
+		needs_whitespace := idx > first_word_on_line_idx
+		width_with_word := current_line_width + (needs_whitespace ? space_width : 0) + word_width
+
+		// We need to wrap onto a new line
+		if width_with_word > element_width && idx > first_word_on_line_idx {
+			// Push the current line (from first_word_on_line_idx to current word exclusive)
+			first_word := words[first_word_on_line_idx]
+			last_word := words[idx - 1]
+			line_start := first_word.start_offset
+			line_end := last_word.start_offset + last_word.length
+
+			// TODO(Thomas): FONT_SIZE IS NOT CORRECT HERE, ITS JUST TO HAVE SOMETHING APPROXIMATELY
+			// RIGHT FOR TESTING
+			make_and_push_line_2(&lines, text, line_start, line_end, current_line_width, font_size)
+
+			// Start new line with current word
+			first_word_on_line_idx = idx
+			current_line_width = word.width
+			space_left = element_width - word_width
+
+		} else {
+			// Add word to current line
+			if needs_whitespace {
+				current_line_width += space_width
+			}
+			current_line_width += word_width
+			space_left = element_width - word_width
+		}
+
+		// Handle last word
+		if idx == len(words) - 1 {
+			first_word := words[first_word_on_line_idx]
+			last_word := words[idx]
+			line_start := first_word.start_offset
+			line_end := last_word.start_offset + last_word.length
+
+			make_and_push_line_2(&lines, text, line_start, line_end, current_line_width, font_size)
+		}
+	}
 
 	return lines[:]
 }
@@ -164,6 +229,21 @@ make_and_push_line :: proc(
 			height = i32(char_height),
 		},
 	)
+}
+
+make_and_push_line_2 :: proc(
+	lines: ^[dynamic]Text_Line,
+	s: string,
+	start: int,
+	end: int,
+	width: f32,
+	height: f32,
+) {
+	line, ok := strings.substring(s, start, end)
+	assert(ok)
+	trimmed_line := strings.trim_left_space(line)
+	rune_count := utf8.rune_count_in_string(trimmed_line)
+	append(lines, Text_Line{text = trimmed_line, width = i32(width), height = i32(height)})
 }
 
 // TODO(Thomas): Deal with newlines

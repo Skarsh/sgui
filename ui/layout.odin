@@ -401,20 +401,41 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 	if element.kind == .Text {
-		words := measure_text_words(element.text_config.data, context.temp_allocator)
-		lines := calculate_text_lines(
+		words_2 := measure_text_words_2(ctx, element.text_config.data, ctx.font_id, allocator)
+
+		lines_2 := calculate_text_lines_2(
+			ctx,
 			element.text_config.data,
-			words,
+			words_2,
 			element.text_config,
-			int(element.size.x),
+			element.size.x,
+			ctx.font_id,
+			ctx.font_size,
 			allocator,
 		)
-		element.text_lines = lines
+		element.text_lines = lines_2
 		text_height: i32 = 0
-		for line in lines {
+		for line in lines_2 {
 			text_height += line.height
 		}
 		element.size.y += f32(text_height)
+
+
+		// TODO(Thomas): Free temp allocator??
+		//words := measure_text_words(element.text_config.data, context.temp_allocator)
+		//lines := calculate_text_lines(
+		//	element.text_config.data,
+		//	words,
+		//	element.text_config,
+		//	int(element.size.x),
+		//	allocator,
+		//)
+		//element.text_lines = lines
+		//text_height: i32 = 0
+		//for line in lines {
+		//	text_height += line.height
+		//}
+		//element.size.y += f32(text_height)
 	}
 
 	for child in element.children {

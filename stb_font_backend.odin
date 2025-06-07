@@ -51,12 +51,11 @@ stb_measure_text :: proc(text: string, font_id: u16, user_data: rawptr) -> ui.Te
 	line_gap := font_metrics.line_gap
 	line_height := f32(ascent - descent + line_gap)
 
-	// TODO(Thomas): Think about caching this for each glyph instead
 	advance_width, left_side_bearing: i32
 	width: i32
 	for r in text {
 		stbtt.GetCodepointHMetrics(ctx.font_info, r, &advance_width, &left_side_bearing)
-		width += i32(f32(advance_width) * ctx.font_metrics.scale)
+		width += i32(f32(advance_width) * scale)
 	}
 
 	return ui.Text_Metrics {
@@ -70,6 +69,12 @@ stb_measure_text :: proc(text: string, font_id: u16, user_data: rawptr) -> ui.Te
 stb_measure_glyph :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> ui.Glyph_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_info := ctx.font_info
+	font_metrics := ctx.font_metrics
+	scale := font_metrics.scale
 
-	panic("Not implemented")
+	advance_width, left_side_bearing: i32
+	stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
+	width := i32(f32(advance_width) * scale)
+
+	return ui.Glyph_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
 }

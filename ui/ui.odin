@@ -58,10 +58,8 @@ Text_Metrics :: struct {
 
 // Font-agnostic glyph metrics
 Glyph_Metrics :: struct {
-	advance_width: f32,
-	left_bearing:  f32,
-	width:         f32,
-	height:        f32,
+	width:        f32,
+	left_bearing: f32,
 }
 
 // Function pointer types for text measurement
@@ -84,6 +82,9 @@ Context :: struct {
 	measure_glyph_proc:   Measure_Glyph_Proc,
 	font_user_data:       rawptr,
 	frame_index:          u64,
+	// TODO(Thomas): Does font size and font id belong here??
+	font_size:            f32,
+	font_id:              u16,
 }
 
 set_text_measurement_callbacks :: proc(
@@ -112,6 +113,14 @@ init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator
 	ctx.frame_allocator = frame_allocator
 
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
+}
+
+set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
+	ctx.font_size = font_size
+}
+
+set_ctx_font_id :: proc(ctx: ^Context, font_id: u16) {
+	ctx.font_id = font_id
 }
 
 deinit :: proc(ctx: ^Context) {

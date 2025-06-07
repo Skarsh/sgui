@@ -85,11 +85,15 @@ main :: proc() {
 	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator)
 	defer ui.deinit(&ctx)
 
+	font_size: f32 = 32
+	font_id: u16 = 0
+	ui.set_ctx_font_id(&ctx, font_id)
+	ui.set_ctx_font_size(&ctx, font_size)
+
 	font_info := Font_Info{}
 	stb_font_ctx := STB_Font_Context {
 		font_info = &font_info,
 	}
-	font_size: f32 = 24
 
 	if !init_stb_font_ctx(&stb_font_ctx, "data/font.ttf", font_size) {
 		log.error("failed to init stb_font")
