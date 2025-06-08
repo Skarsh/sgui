@@ -29,6 +29,17 @@ measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {
 	}
 }
 
+measure_string_line_height :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {
+	assert(ctx.measure_text_proc != nil)
+	if ctx.measure_text_proc != nil {
+		metrics := ctx.measure_text_proc(text, font_id, ctx.font_user_data)
+		return metrics.line_height
+	} else {
+		log.error("measure_text_proc is nil")
+		return 0
+	}
+}
+
 measure_glyph_width :: proc(ctx: ^Context, codepoint: rune, font_id: u16) -> f32 {
 	assert(ctx.measure_glyph_proc != nil)
 	if ctx.measure_glyph_proc != nil {
@@ -120,9 +131,16 @@ calculate_text_lines :: proc(
 			line_start := first_word.start_offset
 			line_end := last_word.start_offset + last_word.length
 
-			// TODO(Thomas): FONT_SIZE IS NOT CORRECT HERE, ITS JUST TO HAVE SOMETHING APPROXIMATELY
-			// RIGHT FOR TESTING
-			make_and_push_line(&lines, text, line_start, line_end, current_line_width, font_size)
+			line_text, line_text_ok := strings.substring(text, line_start, line_end)
+			assert(line_text_ok)
+			make_and_push_line(
+				&lines,
+				text,
+				line_start,
+				line_end,
+				current_line_width,
+				measure_string_line_height(ctx, line_text, font_id),
+			)
 
 			// Start new line with current word
 			first_word_on_line_idx = idx
@@ -142,7 +160,16 @@ calculate_text_lines :: proc(
 			line_start := first_word.start_offset
 			line_end := last_word.start_offset + last_word.length
 
-			make_and_push_line(&lines, text, line_start, line_end, current_line_width, font_size)
+			line_text, line_text_ok := strings.substring(text, line_start, line_end)
+			assert(line_text_ok)
+			make_and_push_line(
+				&lines,
+				text,
+				line_start,
+				line_end,
+				current_line_width,
+				measure_string_line_height(ctx, line_text, font_id),
+			)
 		}
 	}
 
@@ -161,13 +188,13 @@ make_and_push_line :: proc(
 	start: int,
 	end: int,
 	width: f32,
-	height: f32,
+	line_height: f32,
 ) {
 	line, ok := strings.substring(s, start, end)
 	assert(ok)
 	trimmed_line := strings.trim_left_space(line)
 	rune_count := utf8.rune_count_in_string(trimmed_line)
-	append(lines, Text_Line{text = trimmed_line, width = i32(width), height = i32(height)})
+	append(lines, Text_Line{text = trimmed_line, width = i32(width), height = i32(line_height)})
 }
 
 
