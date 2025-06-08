@@ -70,13 +70,11 @@ Element_Config :: struct {
 }
 
 Text_Element_Config :: struct {
-	data:        string,
-	color:       Color,
-	font_size:   int,
-	char_width:  int,
-	char_height: int,
-	min_width:   int,
-	min_height:  int,
+	data:       string,
+	color:      Color,
+	font_size:  int,
+	min_width:  int,
+	min_height: int,
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
@@ -148,20 +146,16 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 	assert(element_ok)
 
 	str_len := len(text_config.data)
-	char_width := text_config.char_width == 0 ? CHAR_WIDTH : text_config.char_width
-	char_height := text_config.char_height == 0 ? CHAR_HEIGHT : text_config.char_height
-	content_width: f32 = f32(str_len) * f32(char_width)
-	content_height: f32 = f32(char_height)
+
+	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
 
 	// TODO(Thomas): Move this into the make_element procedure?
-	element.size.x = content_width
-	element.size.y = content_height
+	element.size.x = text_metrics.width
+	element.size.y = text_metrics.line_height
 	element.min_size.x = f32(text_config.min_width)
 	element.min_size.y = f32(text_config.min_height)
 	element.kind = .Text
 	element.text_config = text_config
-	element.text_config.char_width = char_width
-	element.text_config.char_height = char_height
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -401,9 +395,9 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 	if element.kind == .Text {
-		words_2 := measure_text_words_2(ctx, element.text_config.data, ctx.font_id, allocator)
+		words_2 := measure_text_words(ctx, element.text_config.data, ctx.font_id, allocator)
 
-		lines_2 := calculate_text_lines_2(
+		lines_2 := calculate_text_lines(
 			ctx,
 			element.text_config.data,
 			words_2,

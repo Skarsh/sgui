@@ -313,7 +313,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			{
 				data = "one two three four five six seven eight nine ten",
 				min_width = 100,
-				min_height = ui.CHAR_HEIGHT,
+				min_height = 30,
 			},
 		)
 		ui.close_element(&app_state.ctx)
