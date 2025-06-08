@@ -104,7 +104,6 @@ calculate_text_lines_2 :: proc(
 
 	min_width := config.min_width
 	min_height := config.min_height
-	space_left := element_width
 
 	first_word_on_line_idx := 0
 	current_line_width: f32 = 0
@@ -117,7 +116,7 @@ calculate_text_lines_2 :: proc(
 		width_with_word := current_line_width + (needs_whitespace ? space_width : 0) + word_width
 
 		// We need to wrap onto a new line
-		if width_with_word > element_width && idx > first_word_on_line_idx {
+		if width_with_word >= element_width && idx > first_word_on_line_idx {
 			// Push the current line (from first_word_on_line_idx to current word exclusive)
 			first_word := words[first_word_on_line_idx]
 			last_word := words[idx - 1]
@@ -131,15 +130,12 @@ calculate_text_lines_2 :: proc(
 			// Start new line with current word
 			first_word_on_line_idx = idx
 			current_line_width = word.width
-			space_left = element_width - word_width
-
 		} else {
 			// Add word to current line
 			if needs_whitespace {
 				current_line_width += space_width
 			}
 			current_line_width += word_width
-			space_left = element_width - word_width
 		}
 
 		// Handle last word
