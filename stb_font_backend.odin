@@ -52,16 +52,16 @@ stb_measure_text :: proc(text: string, font_id: u16, user_data: rawptr) -> ui.Te
 	line_height := f32(ascent - descent + line_gap)
 
 	advance_width, left_side_bearing: i32
-	width: i32
+	width: f32
 	for r in text {
 		stbtt.GetCodepointHMetrics(ctx.font_info, r, &advance_width, &left_side_bearing)
-		width += i32(f32(advance_width) * scale)
+		width += f32(advance_width) * scale
 	}
 
 	return ui.Text_Metrics {
-		width = f32(width),
-		ascent = f32(ascent),
-		descent = f32(descent),
+		width = width,
+		ascent = ascent,
+		descent = descent,
 		line_height = line_height,
 	}
 }

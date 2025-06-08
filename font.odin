@@ -11,9 +11,9 @@ import stbtt "vendor:stb/truetype"
 // as scaled to pixel values.
 Font_Metrics :: struct {
 	scale:    f32,
-	ascent:   i32,
-	descent:  i32,
-	line_gap: i32,
+	ascent:   f32,
+	descent:  f32,
+	line_gap: f32,
 }
 
 Font_Data :: struct {
@@ -96,11 +96,16 @@ get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Font_Met
 	stbtt.GetFontVMetrics(font_info, &ascent, &descent, &line_gap)
 
 	// Scale Font VMetrics by scale
-	ascent = i32(f32(ascent) * scale)
-	descent = i32(f32(descent) * scale)
-	line_gap = i32(f32(line_gap) * scale)
+	scaled_ascent := f32(ascent) * scale
+	scaled_descent := f32(descent) * scale
+	scaled_line_gap := f32(line_gap) * scale
 
-	return Font_Metrics{scale = scale, ascent = ascent, descent = descent, line_gap = line_gap}
+	return Font_Metrics {
+		scale = scale,
+		ascent = scaled_ascent,
+		descent = scaled_descent,
+		line_gap = scaled_line_gap,
+	}
 }
 
 pack_font_glyphs :: proc(
