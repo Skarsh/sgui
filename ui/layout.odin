@@ -145,8 +145,6 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 	)
 	assert(element_ok)
 
-	str_len := len(text_config.data)
-
 	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
 
 	// TODO(Thomas): Move this into the make_element procedure?

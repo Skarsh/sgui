@@ -4,15 +4,8 @@ import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
-import "core:unicode/utf8"
 
-// Both start_offset and length are in the amount of runes
 Word :: struct {
-	start_offset: int,
-	length:       int,
-}
-
-Word2 :: struct {
 	start_offset: int,
 	length:       int,
 	width:        f32,
@@ -52,7 +45,7 @@ measure_glyph_width :: proc(ctx: ^Context, codepoint: rune, font_id: u16) -> f32
 }
 
 
-word_to_string :: proc(text: string, word: Word2) -> (string, bool) {
+word_to_string :: proc(text: string, word: Word) -> (string, bool) {
 	return strings.substring(text, word.start_offset, word.start_offset + word.length)
 }
 
@@ -64,8 +57,8 @@ measure_text_words :: proc(
 	text: string,
 	font_id: u16,
 	allocator: mem.Allocator,
-) -> []Word2 {
-	words, alloc_err := make([dynamic]Word2, allocator)
+) -> []Word {
+	words, alloc_err := make([dynamic]Word, allocator)
 	assert(alloc_err == .None)
 
 	if len(text) == 0 {
@@ -80,7 +73,7 @@ measure_text_words :: proc(
 				// Measure the word
 				word_text := text[start:i]
 				word_width := measure_string_width(ctx, word_text, font_id)
-				append(&words, Word2{start_offset = start, length = i - start, width = word_width})
+				append(&words, Word{start_offset = start, length = i - start, width = word_width})
 			}
 			start = i + 1
 		}
@@ -90,7 +83,7 @@ measure_text_words :: proc(
 
 	if i > start {
 		word_width := measure_string_width(ctx, text[start:i], font_id)
-		append(&words, Word2{start_offset = start, length = i - start, width = word_width})
+		append(&words, Word{start_offset = start, length = i - start, width = word_width})
 	}
 
 	return words[:]
@@ -100,7 +93,7 @@ measure_text_words :: proc(
 calculate_text_lines :: proc(
 	ctx: ^Context,
 	text: string,
-	words: []Word2,
+	words: []Word,
 	config: Text_Element_Config,
 	element_width: f32,
 	font_id: u16,
@@ -109,9 +102,6 @@ calculate_text_lines :: proc(
 ) -> []Text_Line {
 	lines, alloc_err := make([dynamic]Text_Line, allocator)
 	assert(alloc_err == .None)
-
-	min_width := config.min_width
-	min_height := config.min_height
 
 	first_word_on_line_idx := 0
 	current_line_width: f32 = 0
@@ -193,7 +183,6 @@ make_and_push_line :: proc(
 	line, ok := strings.substring(s, start, end)
 	assert(ok)
 	trimmed_line := strings.trim_left_space(line)
-	rune_count := utf8.rune_count_in_string(trimmed_line)
 	append(lines, Text_Line{text = trimmed_line, width = i32(width), height = i32(line_height)})
 }
 

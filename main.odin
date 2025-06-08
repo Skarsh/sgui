@@ -132,10 +132,15 @@ main :: proc() {
 
 	now: u32 = 0
 	last: u32 = 0
+	frame_counter := 0
 	for app_state.running {
+		frame_counter += 1
 		last = now
 		now = sdl.GetTicks()
 		elapsed := now - last
+		if frame_counter % 100 == 0 {
+			log.infof("elapsed: {}ms", elapsed)
+		}
 		process_input(&app_state)
 
 		bg_color := ui.default_color_style[.Window_BG]
