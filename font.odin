@@ -78,7 +78,6 @@ init_font_glyph_atlas :: proc(
 		return false
 	}
 
-	//stbtt.PackEnd(&atlas.pack_ctx)
 	// Create SDL texture from bitmap
 	if !create_texture_from_bitmap(atlas) {
 		log.error("Failed to create texture from bitmap")
@@ -189,8 +188,6 @@ create_texture_from_bitmap :: proc(atlas: ^Font_Atlas) -> bool {
 // We need to iterate over the packed chars and insert them 
 // into the glyph cache
 cache_packed_chars :: proc(atlas: ^Font_Atlas) {
-	//atlas_width := atlas.atlas_width
-	//atlas_height := atlas.atlas_height
 	// Cache ASCII printable characters
 	for i in 0 ..< 95 {
 		r := rune(32 + i)
