@@ -103,8 +103,8 @@ main :: proc() {
 
 	ui.set_text_measurement_callbacks(&ctx, stb_measure_text, stb_measure_glyph, &stb_font_ctx)
 
-	// New font glyph atlas
 	font_atlas := Font_Atlas{}
+
 	// TODO(Thomas): Pass in a more suitable allocator here
 	init_font_glyph_atlas(
 		&font_atlas,
