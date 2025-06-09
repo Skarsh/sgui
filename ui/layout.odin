@@ -93,29 +93,16 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
 	size: f32 = 0
 
-	child_gap := calc_child_gap(element^)
-
-	if axis == .X {
-		if element.layout.layout_direction == .Left_To_Right {
-			for child in element.children {
-				size += child.size.x
-			}
-			size += child_gap
-		} else {
-			for child in element.children {
-				size = max(size, child.size.x)
-			}
+	primary_axis := is_primary_axis(element^, axis)
+	if primary_axis {
+		for child in element.children {
+			size += child.size[axis]
 		}
+		child_gap := calc_child_gap(element^)
+		size += child_gap
 	} else {
-		if element.layout.layout_direction == .Left_To_Right {
-			for child in element.children {
-				size = max(size, child.size.y)
-			}
-		} else {
-			for child in element.children {
-				size += child.size.y
-			}
-			size += child_gap
+		for child in element.children {
+			size = max(size, child.size[axis])
 		}
 	}
 
@@ -125,12 +112,6 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
 	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
-	// TODO(Thomas): Move this into the make_element procedure?
-	element.kind = .Container
-	element.min_size.x = element_config.layout.sizing.x.min_value
-	element.min_size.y = element_config.layout.sizing.y.min_value
-	element.max_size.x = element_config.layout.sizing.x.max_value
-	element.max_size.y = element_config.layout.sizing.y.max_value
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -204,16 +185,11 @@ update_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
-	if axis == .X {
-		element.size.x = calculate_element_size_for_axis(element, axis)
-	} else {
-		element.size.y = calculate_element_size_for_axis(element, axis)
-	}
+	element.size[axis] = calculate_element_size_for_axis(element, axis)
 
 	if element.parent != nil {
 		update_element_fit_size_for_axis(element, axis)
 	}
-
 }
 
 calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
@@ -458,6 +434,8 @@ make_element :: proc(
 		ctx.element_cache[key] = element
 	}
 
+	// TODO(Thomas): Prune which of these fields actually has to be set every frame
+	// or which can be cached.
 	// We need to set this fields every frame
 	element.layout.sizing = element_config.layout.sizing
 	element.layout.layout_direction = element_config.layout.layout_direction
@@ -476,6 +454,12 @@ make_element :: proc(
 		element.min_size.y = element.layout.sizing.y.min_value
 		element.size.y = element.layout.sizing.y.value
 	}
+
+	element.kind = .Container
+	element.min_size.x = element_config.layout.sizing.x.min_value
+	element.min_size.y = element_config.layout.sizing.y.min_value
+	element.max_size.x = element_config.layout.sizing.x.max_value
+	element.max_size.y = element_config.layout.sizing.y.max_value
 
 	return element, true
 }
