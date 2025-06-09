@@ -88,6 +88,7 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	}
 }
 
+// Size of the element is capped at it's max size.
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.layout.padding
 	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
@@ -95,18 +96,32 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 
 	primary_axis := is_primary_axis(element^, axis)
 	if primary_axis {
+		child_sum_size: f32 = 0
 		for child in element.children {
-			size += child.size[axis]
+			child_sum_size += child.size[axis]
 		}
 		child_gap := calc_child_gap(element^)
-		size += child_gap
+		if size + child_sum_size + child_gap <= element.max_size[axis] {
+			size += child_sum_size + child_gap
+		} else {
+			size = element.max_size[axis]
+		}
 	} else {
 		for child in element.children {
-			size = max(size, child.size[axis])
+			max_value := max(size, child.size[axis])
+			if max_value <= element.max_size[axis] {
+				size = max_value
+			} else {
+				size = element.max_size[axis]
+			}
 		}
 	}
 
-	return size + padding_sum
+	if size + padding_sum <= element.max_size[axis] {
+		return size + padding_sum
+	} else {
+		return element.max_size[axis]
+	}
 }
 
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
@@ -168,7 +183,7 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
-update_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
 	if axis == .X && parent.layout.layout_direction == .Left_To_Right {
 		parent.size.x += element.size.x
@@ -188,7 +203,7 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	element.size[axis] = calculate_element_size_for_axis(element, axis)
 
 	if element.parent != nil {
-		update_element_fit_size_for_axis(element, axis)
+		update_parent_element_fit_size_for_axis(element, axis)
 	}
 }
 
@@ -458,8 +473,20 @@ make_element :: proc(
 	element.kind = .Container
 	element.min_size.x = element_config.layout.sizing.x.min_value
 	element.min_size.y = element_config.layout.sizing.y.min_value
-	element.max_size.x = element_config.layout.sizing.x.max_value
-	element.max_size.y = element_config.layout.sizing.y.max_value
+
+	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
+	// the user wants it to just fit whatever, so we set it to f32 max value
+	if approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
+		element.max_size.x = math.F32_MAX
+	} else {
+		element.max_size.x = element_config.layout.sizing.x.max_value
+	}
+
+	if approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
+		element.max_size.y = math.F32_MAX
+	} else {
+		element.max_size.y = element_config.layout.sizing.y.max_value
+	}
 
 	return element, true
 }
