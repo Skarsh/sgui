@@ -41,7 +41,7 @@ Font_Atlas :: struct {
 	metrics:      Font_Metrics,
 }
 
-init_font_glyph_atlas :: proc(
+init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
 	font_info: ^stbtt.fontinfo,
 	font_data: []u8,
@@ -57,7 +57,7 @@ init_font_glyph_atlas :: proc(
 	atlas.font_data = font_data
 	atlas.pack_ctx = stbtt.pack_context{}
 	num_chars: i32 = 256
-	atlas.packed_chars = make([]stbtt.packedchar, num_chars)
+	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
 	atlas.renderer = renderer
 	atlas.bitmap = make([]u8, atlas_width * atlas_height, allocator)
 
@@ -233,7 +233,8 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 }
 
 // TODO(Thomas): Cleanup and free resources properly
-deinit_font_glyph_atlas :: proc(atlas: ^Font_Atlas) {
+deinit_font_atlas :: proc(atlas: ^Font_Atlas) {
+	sdl.DestroyTexture(atlas.texture)
 }
 
 // Query the atlas for a rune and get rendering information

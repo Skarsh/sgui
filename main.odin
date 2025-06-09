@@ -70,8 +70,14 @@ main :: proc() {
 
 	ctx := ui.Context{}
 
+	app_arena := virtual.Arena{}
+	arena_err := virtual.arena_init_static(&app_arena, 10 * mem.Megabyte)
+	assert(arena_err == .None)
+	app_arena_allocator := virtual.arena_allocator(&app_arena)
+	defer free_all(app_arena_allocator)
+
 	persistent_arena := virtual.Arena{}
-	arena_err := virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
+	arena_err = virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
 	assert(arena_err == .None)
 	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
 	defer free_all(persistent_arena_allocator)
@@ -106,7 +112,7 @@ main :: proc() {
 	font_atlas := Font_Atlas{}
 
 	// TODO(Thomas): Pass in a more suitable allocator here
-	init_font_glyph_atlas(
+	init_font_atlas(
 		&font_atlas,
 		stb_font_ctx.font_info,
 		stb_font_ctx.font_data,
@@ -115,9 +121,9 @@ main :: proc() {
 		1024,
 		1024,
 		renderer,
-		context.allocator,
+		app_arena_allocator,
 	)
-	defer deinit_font_glyph_atlas(&font_atlas)
+	defer deinit_font_atlas(&font_atlas)
 
 
 	app_state := App_State {
