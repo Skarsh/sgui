@@ -111,7 +111,6 @@ main :: proc() {
 
 	font_atlas := Font_Atlas{}
 
-	// TODO(Thomas): Pass in a more suitable allocator here
 	init_font_atlas(
 		&font_atlas,
 		stb_font_ctx.font_info,
