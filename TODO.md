@@ -3,6 +3,9 @@
 ## Active
 * Text rendering
 
+## Bugs
+* Some glyphs are placed a little higher up from the baseline(?) than others, example is 't' seems to always be off.
+
 ## Backlog
 * Review integer types throughout the project. Especially font and text calculation related ones.
 
@@ -20,3 +23,4 @@
     that we know are supposed to be true holds. Examples are parent elements should always be bigger than their children etc.
 
 * Text alignment
+
