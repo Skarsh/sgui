@@ -49,6 +49,7 @@ UI_Element :: struct {
 	id_string:   string,
 	position:    Vec2,
 	min_size:    Vec2,
+	max_size:    Vec2,
 	size:        Vec2,
 	layout:      Layout_Config,
 	children:    [dynamic]^UI_Element,
@@ -61,6 +62,7 @@ UI_Element :: struct {
 Sizing :: struct {
 	kind:      Size_Kind,
 	min_value: f32,
+	max_value: f32,
 	value:     f32,
 }
 
@@ -72,9 +74,10 @@ Element_Config :: struct {
 Text_Element_Config :: struct {
 	data:       string,
 	color:      Color,
-	font_size:  int,
-	min_width:  int,
-	min_height: int,
+	min_width:  f32,
+	min_height: f32,
+	max_width:  f32,
+	max_height: f32,
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
@@ -124,6 +127,10 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	assert(element_ok)
 	// TODO(Thomas): Move this into the make_element procedure?
 	element.kind = .Container
+	element.min_size.x = element_config.layout.sizing.x.min_value
+	element.min_size.y = element_config.layout.sizing.y.min_value
+	element.max_size.x = element_config.layout.sizing.x.max_value
+	element.max_size.y = element_config.layout.sizing.y.max_value
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -150,8 +157,10 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 	// TODO(Thomas): Move this into the make_element procedure?
 	element.size.x = text_metrics.width
 	element.size.y = text_metrics.line_height
-	element.min_size.x = f32(text_config.min_width)
-	element.min_size.y = f32(text_config.min_height)
+	element.min_size.x = text_config.min_width
+	element.min_size.y = text_config.min_height
+	element.max_size.x = text_config.max_width
+	element.max_size.y = text_config.max_height
 	element.kind = .Text
 	element.text_config = text_config
 
