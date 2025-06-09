@@ -152,7 +152,8 @@ main :: proc() {
 		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(renderer)
 
-		build_ui(&app_state)
+		//build_ui(&app_state)
+		build_ui_2(&app_state)
 		//build_simple_text_ui(&app_state)
 
 		render_draw_commands(&app_state)
@@ -369,6 +370,44 @@ build_ui :: proc(app_state: ^App_State) {
 			"light blue",
 			ui.Text_Element_Config {
 				data = "Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen",
+			},
+		)
+		ui.close_element(&app_state.ctx)
+	}
+	ui.close_element(&app_state.ctx)
+	ui.end(&app_state.ctx)
+}
+
+build_ui_2 :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
+	ui.open_element(
+		&app_state.ctx,
+		"parent",
+		{
+			layout = {
+				sizing = {{kind = .Fit, min_value = 100, max_value = 200}, {kind = .Fit}},
+				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
+				child_gap = 10,
+			},
+			color = ui.Color{255, 255, 255, 255},
+		},
+	)
+	{
+		ui.open_element(
+			&app_state.ctx,
+			"child_1",
+			{
+				layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
+				color = ui.Color{255, 0, 0, 255},
+			},
+		)
+		ui.close_element(&app_state.ctx)
+		ui.open_element(
+			&app_state.ctx,
+			"child_2",
+			{
+				layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
+				color = ui.Color{0, 255, 0, 255},
 			},
 		)
 		ui.close_element(&app_state.ctx)
