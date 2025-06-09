@@ -7,9 +7,16 @@
 * Some glyphs are placed a little higher up from the baseline(?) than others, example is 't' seems to always be off.
 
 ## Backlog
+* Add max sizing of UI elements
+
+* Text alignment
+
+* Look into simplifying how to declare UI elements. E.g. not having to match open and close manually.
+    Also define layout and styling in a simpler way?
+
 * Review integer types throughout the project. Especially font and text calculation related ones.
 
-* Deal with new lines in one of the `measure_text_words` or `calculate_text_lines` procedures.
+* Deal with newlines in one of the `measure_text_words` or `calculate_text_lines` procedures.
 
 * Figure out how to deal with Text Element vs "normal" Element. Currently we have kind field to keep track
     of which kind of Element it is.
