@@ -73,7 +73,7 @@ init_font_atlas :: proc(
 	atlas.metrics = get_font_metrics(atlas.font_info, atlas.font_size)
 
 	// TODO(Thomas): What about passing in an alloc_context here?
-	pack_ok := pack_font_glyphs(atlas, 32, num_chars, 0, 1, 2)
+	pack_ok := pack_font_glyphs(atlas, 32, num_chars, 0, 1, 1)
 	if !pack_ok {
 		log.error("Failed to pack font range")
 		return false
@@ -115,7 +115,7 @@ pack_font_glyphs :: proc(
 	num_chars: i32,
 	stride_in_bytes: i32,
 	padding: i32,
-	oversampling: u32 = 2,
+	oversampling: u32 = 1,
 ) -> bool {
 	// Begin packing
 	stbtt.PackBegin(
