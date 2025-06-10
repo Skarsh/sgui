@@ -229,6 +229,9 @@ GROW_ITER_MAX :: 32
 @(private)
 SHRINK_ITER_MAX :: 32
 
+// TODO(Thomas): Pretty sure this procedure can be simplified, especially the
+// iterating over growables part. Also, it can be merged together with the
+// shrink procedure for one unified procedure that does both max and min sizing.
 grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	// NOTE(Thomas): The reason I went for using a Small_Array here instead
 	// of just a normal [dynamic]^UI_Element array is because dynamic arrays
@@ -270,41 +273,44 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 	grow_iter := 0
 	// Process growable children, only if we have collected any
-	if len(small_array.slice(&growables)) > 0 {
-		for remaining_size > EPSILON {
-			assert(grow_iter < GROW_ITER_MAX)
-			grow_iter += 1
-			// Initialize with the first child's size
-			smallest := small_array.get(growables, 0).size[axis]
-			second_smallest := math.INF_F32
-			size_to_add := remaining_size
+	for remaining_size > EPSILON && len(small_array.slice(&growables)) > 0 {
+		assert(grow_iter < GROW_ITER_MAX)
+		grow_iter += 1
+		// Initialize with the first child's size
+		smallest := small_array.get(growables, 0).size[axis]
+		second_smallest := math.INF_F32
+		size_to_add := remaining_size
 
-			// Find smallest and second-smallest sizes
-			for child in small_array.slice(&growables) {
-				child_size := child.size[axis]
+		// Find smallest and second-smallest sizes
+		for child in small_array.slice(&growables) {
+			child_size := child.size[axis]
 
-				if child_size < smallest {
-					second_smallest = smallest
-					smallest = child_size
-				} else if child_size > smallest {
-					second_smallest = min(second_smallest, child_size)
-					size_to_add = second_smallest - smallest
-				}
+			if child_size < smallest {
+				second_smallest = smallest
+				smallest = child_size
+			} else if child_size > smallest {
+				second_smallest = min(second_smallest, child_size)
+				size_to_add = second_smallest - smallest
 			}
+		}
 
-			// Calculate how much to add
-			size_to_add = min(
-				size_to_add,
-				remaining_size / f32(len(small_array.slice(&growables))),
-			)
+		// Calculate how much to add
+		size_to_add = min(size_to_add, remaining_size / f32(len(small_array.slice(&growables))))
 
-			// Add size to the smallest elements
-			for child in small_array.slice(&growables) {
-				child_size := child.size[axis]
-				if approx_equal(child_size, smallest, EPSILON) {
-					child.size[axis] += size_to_add
-					remaining_size -= size_to_add
+		// New implementation for max size on .Grow sizing
+		#reverse for child, idx in small_array.slice(&growables) {
+			prev_size := child.size[axis]
+			child_size := child.size[axis]
+			child_max_size := child.max_size[axis]
+			if approx_equal(child_size, smallest, EPSILON) {
+				child_size += size_to_add
+				child.size[axis] = child_size
+				if child_size >= child_max_size {
+					child_size = child_max_size
+					child.size[axis] = child_size
+					small_array.unordered_remove(&growables, idx)
 				}
+				remaining_size -= (child_size - prev_size)
 			}
 		}
 	}
@@ -1051,6 +1057,121 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 		container_2_element.position.x,
 		container_1_element.position.x + container_1_element.size.x + panel_child_gap,
 	)
+	testing.expect_value(t, container_2_element.position.y, panel_padding.top)
+
+	// assert container_3 size
+	container_3_element := panel_element.children[2]
+	testing.expect_value(t, container_3_element.size.x, container_3_size.x)
+	testing.expect_value(t, container_3_element.size.y, container_3_size.y)
+
+	// assert container_3 position
+	testing.expect_value(
+		t,
+		container_3_element.position.x,
+		container_2_element.position.x + container_2_element.size.x + panel_child_gap,
+	)
+	testing.expect_value(t, container_3_element.position.y, panel_padding.top)
+}
+
+@(test)
+test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	panel_padding := Padding {
+		left   = 11,
+		top    = 12,
+		right  = 13,
+		bottom = 14,
+	}
+	panel_child_gap: f32 = 10
+
+	panel_size := Vec2{600, 400}
+	container_1_expected_size := Vec2{150, panel_size.y - panel_padding.top - panel_padding.bottom}
+	container_3_size := Vec2{150, 150}
+	container_2_expected_size := Vec2{50, panel_size.y - panel_padding.top - panel_padding.bottom}
+
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
+			},
+		},
+	)
+	{
+		open_element(
+			&ctx,
+			"container_1",
+			Element_Config{layout = {sizing = {{kind = .Grow, max_value = 150}, {kind = .Grow}}}},
+		)
+		close_element(&ctx)
+
+		open_element(
+			&ctx,
+			"container_2",
+			Element_Config{layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}}},
+		)
+		close_element(&ctx)
+
+		open_element(
+			&ctx,
+			"container_3",
+			Element_Config {
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = container_3_size.x},
+						{kind = .Fixed, value = container_3_size.y},
+					},
+				},
+			},
+		)
+		close_element(&ctx)
+	}
+	close_element(&ctx)
+	end(&ctx)
+
+	calculate_positions(ctx.root_element)
+	panel_element := find_element_by_id(ctx.root_element, "panel")
+
+	// assert panel size
+	testing.expect_value(t, panel_element.size.x, panel_size.x)
+	testing.expect_value(t, panel_element.size.y, panel_size.y)
+
+	// assert panel positions
+	testing.expect_value(t, panel_element.position.x, 0)
+	testing.expect_value(t, panel_element.position.y, 0)
+
+	// assert container_1 size
+	container_1_element := panel_element.children[0]
+	testing.expect_value(t, container_1_element.size.x, container_1_expected_size.x)
+	testing.expect_value(t, container_1_element.size.y, container_1_expected_size.y)
+
+	// assert container_1 position
+	testing.expect_value(t, container_1_element.position.x, panel_padding.left)
+	testing.expect_value(t, container_1_element.position.y, panel_padding.top)
+
+	// assert container_2 size
+	container_2_element := panel_element.children[1]
+	testing.expect_value(t, container_2_element.size.x, container_2_expected_size.x)
+	testing.expect_value(t, container_2_element.size.y, container_2_expected_size.y)
+
+	// assert container_2 position
+	testing.expect_value(
+		t,
+		container_2_element.position.x,
+		container_1_element.position.x + container_1_element.size.x + panel_child_gap,
+	)
+
 	testing.expect_value(t, container_2_element.position.y, panel_padding.top)
 
 	// assert container_3 size
