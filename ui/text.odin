@@ -168,8 +168,8 @@ calculate_text_lines :: proc(
 
 Text_Line :: struct {
 	text:   string,
-	width:  i32,
-	height: i32,
+	width:  f32,
+	height: f32,
 }
 
 make_and_push_line :: proc(
@@ -183,7 +183,7 @@ make_and_push_line :: proc(
 	line, ok := strings.substring(s, start, end)
 	assert(ok)
 	trimmed_line := strings.trim_left_space(line)
-	append(lines, Text_Line{text = trimmed_line, width = i32(width), height = i32(line_height)})
+	append(lines, Text_Line{text = trimmed_line, width = width, height = line_height})
 }
 
 

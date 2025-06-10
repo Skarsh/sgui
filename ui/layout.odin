@@ -406,11 +406,11 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			allocator,
 		)
 		element.text_lines = lines
-		text_height: i32 = 0
+		text_height: f32 = 0
 		for line in lines {
 			text_height += line.height
 		}
-		element.size.y += f32(text_height)
+		element.size.y += text_height
 	}
 
 	for child in element.children {

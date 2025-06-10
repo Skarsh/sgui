@@ -153,8 +153,8 @@ main :: proc() {
 		sdl.RenderClear(renderer)
 
 		//build_ui(&app_state)
-		build_ui_2(&app_state)
-		//build_simple_text_ui(&app_state)
+		//build_ui_2(&app_state)
+		build_simple_text_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -203,50 +203,49 @@ sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
 	return key_mod
 }
 
-render_text_by_font :: proc(
-	atlas: ^Font_Atlas,
-	text: string,
-	x, y: i32,
-	color: sdl.Color = {255, 255, 255, 255},
-) {
-	cursor_x := f32(x)
+draw_debug_line :: proc(renderer: ^sdl.Renderer, x0, y0, x1, y1: f32, color: sdl.Color) {
+	sdl.SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a)
+	sdl.RenderDrawLine(renderer, i32(x0), i32(y0), i32(x1), i32(y1))
+}
 
-	// Add the ascent to make sure the text is moved down
-	// since y is going to be the top left corner of the element, for now.
-	baseline_y := f32(y) + f32(atlas.metrics.ascent)
+render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
+	start_x := x
+	start_y := y + atlas.metrics.ascent
 
-	sdl.SetTextureColorMod(atlas.texture, color.r, color.g, color.b)
-	sdl.SetTextureAlphaMod(atlas.texture, color.a)
-
-	for char in text {
-		glyph, found := get_glyph(atlas, char)
-		if !found && char != ' ' {
-			log.warn("Glyph not found for character:", char)
+	for r in text {
+		glyph, found := get_glyph(atlas, r)
+		if !found && r != ' ' {
+			log.warn("Glyph not found for rune:", r)
 		}
 
-		glyph_width := glyph.x1 - glyph.x0
-		glyph_height := glyph.y1 - glyph.y0
+		q: stbtt.aligned_quad
+
+		stbtt.GetPackedQuad(
+			&atlas.packed_chars[0],
+			atlas.atlas_width,
+			atlas.atlas_height,
+			glyph.pc_idx,
+			&start_x,
+			&start_y,
+			&q,
+			true,
+		)
+
+		src_rect := sdl.Rect {
+			x = i32(q.s0 * f32(atlas.atlas_width)),
+			y = i32(q.t0 * f32(atlas.atlas_height)),
+			w = i32((q.s1 - q.s0) * f32(atlas.atlas_width)),
+			h = i32((q.t1 - q.t0) * f32(atlas.atlas_height)),
+		}
 
 		dst_rect := sdl.Rect {
-			x = i32(cursor_x + glyph.x0),
-			y = i32(baseline_y + glyph.y0),
-			w = i32(glyph_width),
-			h = i32(glyph_height),
+			x = i32(q.x0),
+			y = i32(q.y0),
+			w = i32(q.x1 - q.x0),
+			h = i32(q.y1 - q.y0),
 		}
 
-		// Calculate source rectangle
-		src_rect := sdl.Rect {
-			x = i32(glyph.u0 * f32(atlas.atlas_width)),
-			y = i32(glyph.v0 * f32(atlas.atlas_height)),
-			w = i32((glyph.u1 - glyph.u0) * f32(atlas.atlas_width)),
-			h = i32((glyph.v1 - glyph.v0) * f32(atlas.atlas_height)),
-		}
-
-		// Render the glyph
 		sdl.RenderCopy(atlas.renderer, atlas.texture, &src_rect, &dst_rect)
-
-		// Advance cursor
-		cursor_x += glyph.x_advance
 	}
 }
 
@@ -291,13 +290,7 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			sdl.RenderDrawRect(app_state.renderer, &rect)
 			sdl.RenderFillRect(app_state.renderer, &rect)
 		case ui.Command_Text:
-			render_text_by_font(
-				&app_state.font_atlas,
-				val.str,
-				val.x,
-				val.y,
-				sdl.Color{255, 255, 255, 255},
-			)
+			render_text(&app_state.font_atlas, val.str, val.x, val.y)
 		}
 	}
 }
@@ -309,7 +302,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 		"text_container",
 		{
 			layout = {
-				sizing = {{kind = .Fixed, value = 200}, {kind = .Fit}},
+				sizing = {{kind = .Fit, value = 200}, {kind = .Fit}},
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 				layout_direction = .Left_To_Right,

@@ -40,7 +40,7 @@ Command_Rect :: struct {
 }
 
 Command_Text :: struct {
-	x, y: i32,
+	x, y: f32,
 	str:  string,
 }
 
@@ -199,8 +199,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		for line, idx in element.text_lines {
 			draw_text(
 				ctx,
-				i32(element.position.x),
-				i32(element.position.y) + i32(idx) * line.height,
+				element.position.x,
+				element.position.y + f32(idx) * line.height,
 				line.text,
 			)
 		}
@@ -221,6 +221,6 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 	push(&ctx.command_stack, Command_Rect{rect, color})
 }
 
-draw_text :: proc(ctx: ^Context, x, y: i32, str: string) {
+draw_text :: proc(ctx: ^Context, x, y: f32, str: string) {
 	push(&ctx.command_stack, Command_Text{x, y, str})
 }

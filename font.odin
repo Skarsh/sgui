@@ -22,6 +22,7 @@ Font_Data :: struct {
 	// Screen space positions
 	x0, y0, x1, y1: f32,
 	x_advance:      f32,
+	pc_idx:         i32,
 }
 
 // TODO(Thomas): Ideally we'd like this to be rendering backend agnostic, but
@@ -196,7 +197,8 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	// Cache ASCII printable characters
 	for i in 0 ..< 95 {
 		r := rune(32 + i)
-		pc := atlas.packed_chars[i]
+		pc_idx := i32(i)
+		pc := atlas.packed_chars[int(pc_idx)]
 
 		glyph := Font_Data {
 			u0        = f32(pc.x0) / f32(atlas.atlas_width),
@@ -208,6 +210,7 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 			x1        = pc.xoff2,
 			y1        = pc.yoff2,
 			x_advance = pc.xadvance,
+			pc_idx    = pc_idx,
 		}
 		atlas.glyph_cache[r] = glyph
 	}
@@ -215,7 +218,8 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	// Cache Latin-1 supplement characters
 	for i in 0 ..< 96 {
 		r := rune(160 + i)
-		pc := atlas.packed_chars[95 + i]
+		pc_idx := i32(95 + i)
+		pc := atlas.packed_chars[int(pc_idx)]
 
 		glyph := Font_Data {
 			u0        = f32(pc.x0) / f32(atlas.atlas_width),
@@ -227,6 +231,7 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 			x1        = pc.xoff2,
 			y1        = pc.yoff2,
 			x_advance = pc.xadvance,
+			pc_idx    = pc_idx,
 		}
 		atlas.glyph_cache[r] = glyph
 	}
