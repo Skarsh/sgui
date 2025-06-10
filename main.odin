@@ -154,7 +154,8 @@ main :: proc() {
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		build_simple_text_ui(&app_state)
+		//build_simple_text_ui(&app_state)
+		build_grow_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -407,6 +408,54 @@ build_ui_2 :: proc(app_state: ^App_State) {
 	}
 	ui.close_element(&app_state.ctx)
 	ui.end(&app_state.ctx)
+}
+
+build_grow_ui :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
+	ui.open_element(
+		&app_state.ctx,
+		"parent",
+		{
+			layout = {
+				sizing = {{kind = .Fixed, value = 400}, {kind = .Fit}},
+				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
+				child_gap = 10,
+			},
+			color = ui.Color{255, 255, 255, 255},
+		},
+	)
+	{
+		ui.open_element(
+			&app_state.ctx,
+			"child_1",
+			{
+				layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 100}}},
+				color = ui.Color{255, 0, 0, 255},
+			},
+		)
+		ui.close_element(&app_state.ctx)
+		ui.open_element(
+			&app_state.ctx,
+			"child_2",
+			{
+				layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
+				color = ui.Color{0, 255, 0, 255},
+			},
+		)
+		ui.close_element(&app_state.ctx)
+		ui.open_element(
+			&app_state.ctx,
+			"child_3",
+			{
+				layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}},
+				color = ui.Color{0, 0, 255, 255},
+			},
+		)
+		ui.close_element(&app_state.ctx)
+	}
+	ui.close_element(&app_state.ctx)
+	ui.end(&app_state.ctx)
+
 }
 
 process_input :: proc(app_state: ^App_State) {
