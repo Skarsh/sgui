@@ -495,7 +495,19 @@ build_complex_ui :: proc(app_state: ^App_State) {
 				},
 			)
 			{
-				ui.open_element(&app_state.ctx, strconv.itoa(buf[:], idx), {layout = {}})
+				ui.open_element(
+					&app_state.ctx,
+					strconv.itoa(buf[:], idx),
+					{layout = {sizing = {{kind = .Grow}, {kind = .Fit}}}},
+				)
+				{
+					ui.open_text_element(
+						&app_state.ctx,
+						strconv.itoa(buf[:], len(item_texts) + idx),
+						{data = item},
+					)
+					ui.close_element(&app_state.ctx)
+				}
 				ui.close_element(&app_state.ctx)
 			}
 			ui.close_element(&app_state.ctx)
