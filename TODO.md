@@ -19,6 +19,8 @@
 * Figure out how to deal with Text Element vs "normal" Element. Currently we have kind field to keep track
     of which kind of Element it is.
 
+* Unify Grow and Shrink procedure into a single one.
+
 * Upper Bound Limit Recursion
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
     and recursions.
