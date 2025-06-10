@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"
+import "core:strconv"
 
 import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
@@ -155,7 +156,8 @@ main :: proc() {
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
 		//build_simple_text_ui(&app_state)
-		build_grow_ui(&app_state)
+		//build_grow_ui(&app_state)
+		build_complex_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -456,6 +458,52 @@ build_grow_ui :: proc(app_state: ^App_State) {
 	ui.close_element(&app_state.ctx)
 	ui.end(&app_state.ctx)
 
+}
+
+build_complex_ui :: proc(app_state: ^App_State) {
+
+	item_texts := [5]string{"copy", "Paste", "Delete", "Look up in Dictionary", "Cut"}
+
+	buf: [32]u8
+
+	ui.begin(&app_state.ctx)
+	ui.open_element(
+		&app_state.ctx,
+		"parent",
+		{
+			layout = {
+				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
+				padding = {16, 16, 16, 16},
+				layout_direction = .Top_To_Bottom,
+				child_gap = 16,
+			},
+			color = {102, 51, 153, 255},
+		},
+	)
+	{
+		for item, idx in item_texts {
+			ui.open_element(
+				&app_state.ctx,
+				item,
+				{
+					layout = {
+						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
+						padding = {32, 32, 16, 16},
+						child_gap = 32,
+					},
+					color = {157, 125, 172, 255},
+				},
+			)
+			{
+				ui.open_element(&app_state.ctx, strconv.itoa(buf[:], idx), {layout = {}})
+				ui.close_element(&app_state.ctx)
+			}
+			ui.close_element(&app_state.ctx)
+		}
+
+	}
+	ui.close_element(&app_state.ctx)
+	ui.end(&app_state.ctx)
 }
 
 process_input :: proc(app_state: ^App_State) {
