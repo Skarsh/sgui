@@ -1,7 +1,7 @@
 # TODOs
 
 ## Active
-* Add max sizing of UI elements
+* Actually set the element size to the min size when fit sizing.
 
 ## Bugs
 
