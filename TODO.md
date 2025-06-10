@@ -1,13 +1,11 @@
 # TODOs
 
 ## Active
-* Text rendering
+* Add max sizing of UI elements
 
 ## Bugs
-* Some glyphs are placed a little higher up from the baseline(?) than others, example is 't' seems to always be off.
 
 ## Backlog
-* Add max sizing of UI elements
 
 * Text alignment
 
