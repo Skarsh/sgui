@@ -92,7 +92,7 @@ main :: proc() {
 	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator)
 	defer ui.deinit(&ctx)
 
-	font_size: f32 = 32
+	font_size: f32 = 48
 	font_id: u16 = 0
 	ui.set_ctx_font_id(&ctx, font_id)
 	ui.set_ctx_font_size(&ctx, font_size)
@@ -462,7 +462,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 
 build_complex_ui :: proc(app_state: ^App_State) {
 
-	item_texts := [5]string{"copy", "Paste", "Delete", "Look up in Dictionary", "Cut"}
+	item_texts := [5]string{"Copy", "Paste", "Delete", "Layer", "Comment"}
 
 	buf: [32]u8
 
@@ -498,7 +498,10 @@ build_complex_ui :: proc(app_state: ^App_State) {
 				ui.open_element(
 					&app_state.ctx,
 					strconv.itoa(buf[:], idx),
-					{layout = {sizing = {{kind = .Grow}, {kind = .Fit}}}},
+					{
+						layout = {sizing = {{kind = .Grow}, {kind = .Fit}}},
+						color = {157, 125, 172, 255},
+					},
 				)
 				{
 					ui.open_text_element(
