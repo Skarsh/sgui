@@ -184,17 +184,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	draw_rect(
-		ctx,
-		Rect {
-			i32(element.position.x),
-			i32(element.position.y),
-			i32(element.size.x),
-			i32(element.size.y),
-		},
-		element.color,
-	)
-
 	if element.kind == .Text {
 		for line, idx in element.text_lines {
 			draw_text(
@@ -204,6 +193,18 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				line.text,
 			)
 		}
+	} else {
+		draw_rect(
+			ctx,
+			Rect {
+				i32(element.position.x),
+				i32(element.position.y),
+				i32(element.size.x),
+				i32(element.size.y),
+			},
+			element.color,
+		)
+
 	}
 
 	for child in element.children {
