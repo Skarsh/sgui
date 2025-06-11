@@ -129,7 +129,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 }
 
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
-	element, element_ok := make_element(ctx, id, element_config)
+	element, element_ok := make_element(ctx, id, .Container, element_config)
 	assert(element_ok)
 
 	push(&ctx.element_stack, element) or_return
@@ -138,45 +138,32 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 }
 
 open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
+	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
 	element, element_ok := make_element(
 		ctx,
 		id,
+		.Text,
 		Element_Config {
 			layout = {
 				sizing = {
-					{kind = .Grow, min_value = f32(text_config.min_width)},
-					{kind = .Grow, min_value = f32(text_config.min_height)},
+					{
+						kind = .Grow,
+						min_value = text_config.min_width,
+						value = text_metrics.width,
+						max_value = text_config.max_width,
+					},
+					{
+						kind = .Grow,
+						min_value = text_config.min_height,
+						value = text_metrics.line_height,
+						max_value = text_config.max_height,
+					},
 				},
 			},
 		},
 	)
 	assert(element_ok)
 
-	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
-
-	// TODO(Thomas): Move this into the make_element procedure?
-	element.size.x = text_metrics.width
-	element.size.y = text_metrics.line_height
-	element.min_size.x = text_config.min_width
-	element.min_size.y = text_config.min_height
-
-	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
-	// the user wants it to just fit whatever, so we set it to f32 max value
-	// TODO(Thomas): Now we set the max size like this in different places depending
-	// on the Element Kind. That is just asking for bugs!!!
-	if approx_equal(text_config.max_width, 0, 0.001) {
-		element.max_size.x = math.F32_MAX
-	} else {
-		element.max_size.x = text_config.max_width
-	}
-
-	if approx_equal(text_config.max_height, 0, 0.001) {
-		element.max_size.y = math.F32_MAX
-	} else {
-		element.max_size.y = text_config.max_height
-	}
-
-	element.kind = .Text
 	element.text_config = text_config
 
 	push(&ctx.element_stack, element) or_return
@@ -446,6 +433,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 make_element :: proc(
 	ctx: ^Context,
 	id: string,
+	kind: Element_Kind,
 	element_config: Element_Config,
 ) -> (
 	^UI_Element,
@@ -477,6 +465,7 @@ make_element :: proc(
 	// TODO(Thomas): Prune which of these fields actually has to be set every frame
 	// or which can be cached.
 	// We need to set this fields every frame
+	element.kind = kind
 	element.layout.sizing = element_config.layout.sizing
 	element.layout.layout_direction = element_config.layout.layout_direction
 	element.layout.padding = element_config.layout.padding
@@ -485,22 +474,14 @@ make_element :: proc(
 	element.position.y = 0
 	element.color = element_config.color
 
-	if element.layout.sizing.x.kind == .Fixed {
-		element.size.x = element.layout.sizing.x.value
-	}
+	element.size.x = element.layout.sizing.x.value
+	element.size.y = element.layout.sizing.y.value
 
-	if element.layout.sizing.y.kind == .Fixed {
-		element.size.y = element.layout.sizing.y.value
-	}
-
-	element.kind = .Container
 	element.min_size.x = element_config.layout.sizing.x.min_value
 	element.min_size.y = element_config.layout.sizing.y.min_value
 
 	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
 	// the user wants it to just fit whatever, so we set it to f32 max value
-	// TODO(Thomas): Now we set the max size like this in different places depending
-	// on the Element Kind. That is just asking for bugs!!!
 	if approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
 		element.max_size.x = math.F32_MAX
 	} else {
