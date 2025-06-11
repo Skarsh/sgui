@@ -159,8 +159,23 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 	element.size.y = text_metrics.line_height
 	element.min_size.x = text_config.min_width
 	element.min_size.y = text_config.min_height
-	element.max_size.x = text_config.max_width
-	element.max_size.y = text_config.max_height
+
+	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
+	// the user wants it to just fit whatever, so we set it to f32 max value
+	// TODO(Thomas): Now we set the max size like this in different places depending
+	// on the Element Kind. That is just asking for bugs!!!
+	if approx_equal(text_config.max_width, 0, 0.001) {
+		element.max_size.x = math.F32_MAX
+	} else {
+		element.max_size.x = text_config.max_width
+	}
+
+	if approx_equal(text_config.max_height, 0, 0.001) {
+		element.max_size.y = math.F32_MAX
+	} else {
+		element.max_size.y = text_config.max_height
+	}
+
 	element.kind = .Text
 	element.text_config = text_config
 
@@ -484,6 +499,8 @@ make_element :: proc(
 
 	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
 	// the user wants it to just fit whatever, so we set it to f32 max value
+	// TODO(Thomas): Now we set the max size like this in different places depending
+	// on the Element Kind. That is just asking for bugs!!!
 	if approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
 		element.max_size.x = math.F32_MAX
 	} else {
