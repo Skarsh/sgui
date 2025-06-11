@@ -14,6 +14,12 @@ Axis2 :: enum {
 	Y,
 }
 
+Alignment :: enum {
+	Left,
+	Center,
+	Right,
+}
+
 Layout_Direction :: enum {
 	Left_To_Right,
 	Top_To_Bottom,
@@ -42,6 +48,7 @@ Layout_Config :: struct {
 	padding:          Padding,
 	child_gap:        f32,
 	layout_direction: Layout_Direction,
+	alignment:        [2]Alignment,
 }
 
 UI_Element :: struct {
@@ -78,6 +85,7 @@ Text_Element_Config :: struct {
 	min_height: f32,
 	max_width:  f32,
 	max_height: f32,
+	alignment:  [2]Alignment,
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
@@ -159,6 +167,7 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 						max_value = text_config.max_height,
 					},
 				},
+				alignment = text_config.alignment,
 			},
 		},
 	)
