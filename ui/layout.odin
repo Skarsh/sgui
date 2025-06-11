@@ -117,8 +117,12 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 		}
 	}
 
-	if size + padding_sum <= element.max_size[axis] {
-		return size + padding_sum
+	total_size := size + padding_sum
+
+	if total_size <= element.min_size[axis] {
+		return element.min_size[axis]
+	} else if total_size <= element.max_size[axis] {
+		return total_size
 	} else {
 		return element.max_size[axis]
 	}
@@ -467,12 +471,10 @@ make_element :: proc(
 	element.color = element_config.color
 
 	if element.layout.sizing.x.kind == .Fixed {
-		element.min_size.x = element.layout.sizing.x.min_value
 		element.size.x = element.layout.sizing.x.value
 	}
 
 	if element.layout.sizing.y.kind == .Fixed {
-		element.min_size.y = element.layout.sizing.y.min_value
 		element.size.y = element.layout.sizing.y.value
 	}
 
