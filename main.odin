@@ -490,8 +490,10 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
 						padding = {32, 32, 16, 16},
 						child_gap = 32,
+						alignment_x = .Center,
+						alignment_y = .Center,
 					},
-					color = {157, 125, 172, 255},
+					color = {255, 125, 172, 255},
 				},
 			)
 			{
@@ -499,7 +501,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 					&app_state.ctx,
 					strconv.itoa(buf[:], idx),
 					{
-						layout = {sizing = {{kind = .Grow}, {kind = .Fit}}},
+						layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
 						color = {157, 125, 172, 255},
 					},
 				)

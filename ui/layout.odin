@@ -14,11 +14,18 @@ Axis2 :: enum {
 	Y,
 }
 
-Alignment :: enum {
+Alignment_X :: enum {
 	Left,
 	Center,
 	Right,
 }
+
+Alignment_Y :: enum {
+	Top,
+	Center,
+	Bottom,
+}
+
 
 Layout_Direction :: enum {
 	Left_To_Right,
@@ -48,7 +55,8 @@ Layout_Config :: struct {
 	padding:          Padding,
 	child_gap:        f32,
 	layout_direction: Layout_Direction,
-	alignment:        [2]Alignment,
+	alignment_x:      Alignment_X,
+	alignment_y:      Alignment_Y,
 }
 
 UI_Element :: struct {
@@ -79,13 +87,14 @@ Element_Config :: struct {
 }
 
 Text_Element_Config :: struct {
-	data:       string,
-	color:      Color,
-	min_width:  f32,
-	min_height: f32,
-	max_width:  f32,
-	max_height: f32,
-	alignment:  [2]Alignment,
+	data:        string,
+	color:       Color,
+	min_width:   f32,
+	min_height:  f32,
+	max_width:   f32,
+	max_height:  f32,
+	alignment_x: Alignment_X,
+	alignment_y: Alignment_Y,
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
@@ -167,7 +176,8 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 						max_value = text_config.max_height,
 					},
 				},
-				alignment = text_config.alignment,
+				alignment_x = text_config.alignment_x,
+				alignment_y = text_config.alignment_y,
 			},
 		},
 	)
@@ -474,11 +484,14 @@ make_element :: proc(
 	// TODO(Thomas): Prune which of these fields actually has to be set every frame
 	// or which can be cached.
 	// We need to set this fields every frame
+	// TODO(Thomas): Why the heck just not set element.layout = element_config.layout?????
 	element.kind = kind
 	element.layout.sizing = element_config.layout.sizing
 	element.layout.layout_direction = element_config.layout.layout_direction
 	element.layout.padding = element_config.layout.padding
 	element.layout.child_gap = element_config.layout.child_gap
+	element.layout.alignment_x = element_config.layout.alignment_x
+	element.layout.alignment_y = element_config.layout.alignment_y
 	element.position.x = 0
 	element.position.y = 0
 	element.color = element_config.color
@@ -541,6 +554,71 @@ calculate_positions :: proc(parent: ^UI_Element) {
 	for child in parent.children {
 		calculate_positions(child)
 	}
+}
+
+calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
+	if parent == nil {
+		return
+	}
+
+	parent_child_gap := calc_child_gap(parent^)
+
+	remaining_size_x := parent.size.x
+	for child in parent.children {
+		remaining_size_x -= child.size.x
+	}
+	remaining_size_x -= parent.layout.padding.left + parent.layout.padding.right + parent_child_gap
+
+	// First, calculate positions of all children relative to the parent's content area
+	content_start_x := parent.position.x + parent.layout.padding.left
+	content_start_y := parent.position.y + parent.layout.padding.top
+
+	current_x := content_start_x
+	current_y := content_start_y
+
+	for i in 0 ..< len(parent.children) {
+		child := parent.children[i]
+
+		// Position this child
+		switch (parent.layout.alignment_x) {
+		case .Left:
+			child.position.x = current_x
+		case .Center:
+			child.position.x = current_x + (remaining_size_x / 2)
+		case .Right:
+			child.position.x = current_x + remaining_size_x
+		}
+
+		remaining_size_y :=
+			parent.size.y - child.size.y - parent.layout.padding.top - parent.layout.padding.bottom
+
+		switch (parent.layout.alignment_y) {
+		case .Top:
+			child.position.y = current_y
+		case .Center:
+			child.position.y = current_y + (remaining_size_y / 2)
+		case .Bottom:
+			child.position.y = current_y + remaining_size_y
+		}
+
+		// TODO(Thomas): This doesn't seem right for the Top_To_Bottom case at all
+		// Update position for next child based on layout direction
+		if parent.layout.layout_direction == .Left_To_Right {
+			if len(parent.children) >= 1 && i < len(parent.children) - 1 {
+				current_x += child.size.x + parent.layout.child_gap
+			} else {
+				current_x += child.size.x
+			}
+		} else { 	// Top_To_Bottom
+			current_y += child.size.y + parent.layout.child_gap
+		}
+	}
+
+	// Then recursively calculate positions for all children's children
+	for child in parent.children {
+		calculate_positions_and_alignment(child)
+	}
+
 }
 
 // Helper to verify element size
