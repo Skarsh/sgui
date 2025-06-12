@@ -172,7 +172,6 @@ end :: proc(ctx: ^Context) {
 	// Shrink sizing heights
 	shrink_child_elements_for_axis(ctx.root_element, .Y)
 
-	//calculate_positions(ctx.root_element)
 	calculate_positions_and_alignment(ctx.root_element)
 
 	draw_all_elements(ctx)

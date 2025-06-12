@@ -519,107 +519,132 @@ make_element :: proc(
 	return element, true
 }
 
-calculate_positions :: proc(parent: ^UI_Element) {
-	if parent == nil {
-		return
-	}
-
-	// First, calculate positions of all children relative to the parent's content area
-	content_start_x := parent.position.x + parent.layout.padding.left
-	content_start_y := parent.position.y + parent.layout.padding.top
-
-	current_x := content_start_x
-	current_y := content_start_y
-
-	for i in 0 ..< len(parent.children) {
-		child := parent.children[i]
-
-		// Position this child
-		child.position.x = current_x
-		child.position.y = current_y
-
-		// Update position for next child based on layout direction
-		if parent.layout.layout_direction == .Left_To_Right {
-			if len(parent.children) >= 1 && i < len(parent.children) - 1 {
-				current_x += child.size.x + parent.layout.child_gap
-			} else {
-				current_x += child.size.x
-			}
-		} else { 	// Top_To_Bottom
-			current_y += child.size.y + parent.layout.child_gap
-		}
-	}
-
-	// Then recursively calculate positions for all children's children
-	for child in parent.children {
-		calculate_positions(child)
-	}
-}
-
 calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	if parent == nil {
 		return
 	}
-
 	parent_child_gap := calc_child_gap(parent^)
 
-	remaining_size_x := parent.size.x
-	for child in parent.children {
-		remaining_size_x -= child.size.x
-	}
-	remaining_size_x -= parent.layout.padding.left + parent.layout.padding.right + parent_child_gap
-
-	// First, calculate positions of all children relative to the parent's content area
+	// Calculate content area bounds
 	content_start_x := parent.position.x + parent.layout.padding.left
 	content_start_y := parent.position.y + parent.layout.padding.top
 
-	current_x := content_start_x
-	current_y := content_start_y
+	layout_direction := parent.layout.layout_direction
+	if layout_direction == .Left_To_Right {
+		// Calculate total width used by all children
+		total_children_width: f32 = 0
+		for child in parent.children {
+			total_children_width += child.size.x
+		}
 
-	for i in 0 ..< len(parent.children) {
-		child := parent.children[i]
+		// Calculate remaining space after children and gaps
+		remaining_size_x :=
+			parent.size.x -
+			parent.layout.padding.left -
+			parent.layout.padding.right -
+			parent_child_gap -
+			total_children_width
 
-		// Position this child
-		switch (parent.layout.alignment_x) {
+		// Calculate starting X position based on alignment
+		start_x := content_start_x
+		switch parent.layout.alignment_x {
 		case .Left:
-			child.position.x = current_x
+			start_x = content_start_x
 		case .Center:
-			child.position.x = current_x + (remaining_size_x / 2)
+			start_x = content_start_x + (remaining_size_x / 2)
 		case .Right:
-			child.position.x = current_x + remaining_size_x
+			start_x = content_start_x + remaining_size_x
 		}
 
-		remaining_size_y :=
-			parent.size.y - child.size.y - parent.layout.padding.top - parent.layout.padding.bottom
+		current_x := start_x
+		for i in 0 ..< len(parent.children) {
+			child := parent.children[i]
+			child.position.x = current_x
 
-		switch (parent.layout.alignment_y) {
-		case .Top:
-			child.position.y = current_y
-		case .Center:
-			child.position.y = current_y + (remaining_size_y / 2)
-		case .Bottom:
-			child.position.y = current_y + remaining_size_y
-		}
+			// Y position alignment, in horizontal layout
+			// each child can have different alignment offset on the y axis
+			remaining_size_y :=
+				parent.size.y -
+				parent.layout.padding.top -
+				parent.layout.padding.bottom -
+				child.size.y
 
-		// TODO(Thomas): This doesn't seem right for the Top_To_Bottom case at all
-		// Update position for next child based on layout direction
-		if parent.layout.layout_direction == .Left_To_Right {
-			if len(parent.children) >= 1 && i < len(parent.children) - 1 {
-				current_x += child.size.x + parent.layout.child_gap
-			} else {
-				current_x += child.size.x
+			switch parent.layout.alignment_y {
+			case .Top:
+				child.position.y = content_start_y
+			case .Center:
+				child.position.y = content_start_y + (remaining_size_y / 2)
+			case .Bottom:
+				child.position.y = content_start_y + remaining_size_y
 			}
-		} else { 	// Top_To_Bottom
-			current_y += child.size.y + parent.layout.child_gap
+
+			// Move to next child position
+			if i < len(parent.children) - 1 {
+				current_x += child.size.x + parent.layout.child_gap
+			}
+		}
+
+	} else {
+
+		// Calculate total height used by all children
+		total_children_height: f32 = 0
+		for child in parent.children {
+			total_children_height += child.size.y
+		}
+
+		// Calculate remaining space after children and gaps
+		remaining_size_y :=
+			parent.size.y -
+			parent.layout.padding.top -
+			parent.layout.padding.bottom -
+			parent_child_gap -
+			total_children_height
+
+		// Calculate starting Y position based on alignment
+		start_y := content_start_y
+		switch parent.layout.alignment_y {
+		case .Top:
+			start_y = content_start_y
+		case .Center:
+			start_y = content_start_y + (remaining_size_y / 2)
+		case .Bottom:
+			start_y = content_start_y + remaining_size_y
+		}
+
+		current_y := start_y
+		for i in 0 ..< len(parent.children) {
+			child := parent.children[i]
+			child.position.y = current_y
+
+			// X position alignment, in vertical layout
+			// each child can have different alignment offset on the x axis
+			remaining_size_x :=
+				parent.size.x -
+				parent.layout.padding.left -
+				parent.layout.padding.right -
+				child.size.x
+
+			switch parent.layout.alignment_x {
+			case .Left:
+				child.position.x = content_start_x
+			case .Center:
+				child.position.x = content_start_x + (remaining_size_x / 2)
+			case .Right:
+				child.position.x = content_start_x + remaining_size_x
+			}
+
+			// Move to next child position
+			if i < len(parent.children) - 1 {
+				current_y += child.size.y + parent.layout.child_gap
+			}
 		}
 	}
-
-	// Then recursively calculate positions for all children's children
+	// Recursively calculate positions for all children's children
 	for child in parent.children {
 		calculate_positions_and_alignment(child)
 	}
-
 }
+
 
 // Helper to verify element size
 compare_element_size :: proc(
@@ -735,7 +760,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	close_element(&ctx)
 	end(&ctx)
 
-	calculate_positions(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element)
 
 	panel := find_element_by_id(ctx.root_element, "empty_panel")
 	testing.expect(t, panel != nil, "Panel 'empty_panel' not found")
@@ -828,7 +853,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	close_element(&ctx)
 	end(&ctx)
 
-	calculate_positions(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element)
 
 	panel_element := find_element_by_id(ctx.root_element, "panel")
 	testing.expect(t, panel_element != nil)
@@ -968,7 +993,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	close_element(&ctx)
 	end(&ctx)
 
-	calculate_positions(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element)
 
 	panel_element := find_element_by_id(ctx.root_element, "panel")
 	testing.expect(t, panel_element != nil)
@@ -1112,7 +1137,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	close_element(&ctx)
 	end(&ctx)
 
-	calculate_positions(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element)
 
 	panel_element := find_element_by_id(ctx.root_element, "panel")
 
@@ -1227,7 +1252,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	close_element(&ctx)
 	end(&ctx)
 
-	calculate_positions(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element)
 	panel_element := find_element_by_id(ctx.root_element, "panel")
 
 	// assert panel size
@@ -1353,7 +1378,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	}
 	close_element(&ctx)
 	end(&ctx)
-	calculate_positions(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element)
 	panel_element := find_element_by_id(ctx.root_element, "panel")
 
 	// assert panel size

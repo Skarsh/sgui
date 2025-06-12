@@ -475,6 +475,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
 				padding = {16, 16, 16, 16},
 				layout_direction = .Top_To_Bottom,
+				alignment_x = .Center,
 				child_gap = 16,
 			},
 			color = {102, 51, 153, 255},
