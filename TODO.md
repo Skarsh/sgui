@@ -1,13 +1,11 @@
 # TODOs
 
 ## Active
-* Actually set the element size to the min size when fit sizing.
+* Text alignment
 
 ## Bugs
 
 ## Backlog
-
-* Text alignment
 
 * Look into simplifying how to declare UI elements. E.g. not having to match open and close manually.
     Also define layout and styling in a simpler way?
