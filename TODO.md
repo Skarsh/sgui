@@ -4,6 +4,8 @@
 * Text alignment
 
 ## Bugs
+* Text element width doesn't care if there's a newline. The width of the element should only be as large
+    as the widest line in the text.
 
 ## Backlog
 
