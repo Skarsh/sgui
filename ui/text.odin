@@ -116,20 +116,13 @@ calculate_text_lines :: proc(
 		// We need to wrap onto a new line
 		if width_with_word >= element_width && idx > first_word_on_line_idx {
 			// Push the current line (from first_word_on_line_idx to current word exclusive)
-			first_word := words[first_word_on_line_idx]
-			last_word := words[idx - 1]
-			line_start := first_word.start_offset
-			line_end := last_word.start_offset + last_word.length
-
-			line_text, line_text_ok := strings.substring(text, line_start, line_end)
-			assert(line_text_ok)
 			make_and_push_line(
 				&lines,
 				text,
-				line_start,
-				line_end,
+				words[first_word_on_line_idx],
+				words[idx - 1],
 				current_line_width,
-				measure_string_line_height(ctx, line_text, font_id),
+				measure_string_line_height(ctx, text, font_id),
 			)
 
 			// Start new line with current word
@@ -145,20 +138,13 @@ calculate_text_lines :: proc(
 
 		// Handle last word
 		if idx == len(words) - 1 {
-			first_word := words[first_word_on_line_idx]
-			last_word := words[idx]
-			line_start := first_word.start_offset
-			line_end := last_word.start_offset + last_word.length
-
-			line_text, line_text_ok := strings.substring(text, line_start, line_end)
-			assert(line_text_ok)
 			make_and_push_line(
 				&lines,
 				text,
-				line_start,
-				line_end,
+				words[first_word_on_line_idx],
+				words[idx],
 				current_line_width,
-				measure_string_line_height(ctx, line_text, font_id),
+				measure_string_line_height(ctx, text, font_id),
 			)
 		}
 	}
@@ -175,12 +161,15 @@ Text_Line :: struct {
 make_and_push_line :: proc(
 	lines: ^[dynamic]Text_Line,
 	s: string,
-	start: int,
-	end: int,
+	first_word: Word,
+	last_word: Word,
 	width: f32,
 	line_height: f32,
 ) {
-	line, ok := strings.substring(s, start, end)
+
+	line_start := first_word.start_offset
+	line_end := last_word.start_offset + last_word.length
+	line, ok := strings.substring(s, line_start, line_end)
 	assert(ok)
 	trimmed_line := strings.trim_left_space(line)
 	append(lines, Text_Line{text = trimmed_line, width = width, height = line_height})
