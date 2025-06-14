@@ -348,7 +348,7 @@ build_ui :: proc(app_state: ^App_State) {
 		ui.open_text_element(
 			&app_state.ctx,
 			"red",
-			ui.Text_Element_Config{data = "One Two Three Four"},
+			ui.Text_Element_Config{data = "One Two\n Three Four\n"},
 		)
 		ui.close_element(&app_state.ctx)
 
@@ -365,7 +365,7 @@ build_ui :: proc(app_state: ^App_State) {
 			&app_state.ctx,
 			"light blue",
 			ui.Text_Element_Config {
-				data = "Five Six Seven Eight Nine Ten Eleven Twelve Thirteen Fourteen",
+				data = "Five Six Seven\n Eight\n\n Nine\n Ten Eleven Twelve \nThirteen Fourteen",
 			},
 		)
 		ui.close_element(&app_state.ctx)

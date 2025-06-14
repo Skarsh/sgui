@@ -4,6 +4,7 @@ import "core:log"
 import "core:mem"
 import "core:strings"
 import "core:testing"
+import "core:unicode/utf8"
 
 Word :: struct {
 	start_offset: int,
@@ -49,9 +50,6 @@ word_to_string :: proc(text: string, word: Word) -> (string, bool) {
 	return strings.substring(text, word.start_offset, word.start_offset + word.length)
 }
 
-// TODO(Thomas): We're losing the \n information here now.
-// Think about whether we should store an empty word signaling \n
-// Or we should split things int paragraphs in the calculate_text_lines instead.
 measure_text_words :: proc(
 	ctx: ^Context,
 	text: string,
@@ -68,17 +66,30 @@ measure_text_words :: proc(
 	start := 0
 	i := 0
 	for r in text {
-		if r == ' ' || r == '\n' {
+		rune_size := utf8.rune_size(r)
+		if r == ' ' {
 			if i > start {
 				// Measure the word
 				word_text := text[start:i]
 				word_width := measure_string_width(ctx, word_text, font_id)
 				append(&words, Word{start_offset = start, length = i - start, width = word_width})
 			}
-			start = i + 1
+			start = i + rune_size
+		} else if r == '\n' {
+			if i > start {
+				// Measure the word
+				word_text := text[start:i]
+				word_width := measure_string_width(ctx, word_text, font_id)
+				append(&words, Word{start_offset = start, length = i - start, width = word_width})
+			}
+			start = i + rune_size
+
+			// Append word with 0 width to signal that it's a newline
+			append(&words, Word{start_offset = start, length = 0, width = 0})
 		}
 
-		i += 1
+
+		i += rune_size
 	}
 
 	if i > start {
@@ -109,13 +120,8 @@ calculate_text_lines :: proc(
 
 	for word, idx in words {
 		word_width := word.width
-		// Check if we need whitespace before this word (not for first word on line)
-		needs_whitespace := idx > first_word_on_line_idx
-		width_with_word := current_line_width + (needs_whitespace ? space_width : 0) + word_width
-
-		// We need to wrap onto a new line
-		if width_with_word >= element_width && idx > first_word_on_line_idx {
-			// Push the current line (from first_word_on_line_idx to current word exclusive)
+		just_processed_newline := false
+		if word_width == 0 && word.length == 0 {
 			make_and_push_line(
 				&lines,
 				text,
@@ -124,20 +130,43 @@ calculate_text_lines :: proc(
 				current_line_width,
 				measure_string_line_height(ctx, text, font_id),
 			)
-
 			// Start new line with current word
 			first_word_on_line_idx = idx
 			current_line_width = word.width
+			just_processed_newline = true
 		} else {
-			// Add word to current line
-			if needs_whitespace {
-				current_line_width += space_width
+			// Check if we need whitespace before this word (not for first word on line)
+			needs_whitespace := idx > first_word_on_line_idx
+			width_with_word :=
+				current_line_width + (needs_whitespace ? space_width : 0) + word_width
+
+			// We need to wrap onto a new line
+			if width_with_word >= element_width && idx > first_word_on_line_idx {
+				// Push the current line (from first_word_on_line_idx to current word exclusive)
+				make_and_push_line(
+					&lines,
+					text,
+					words[first_word_on_line_idx],
+					words[idx - 1],
+					current_line_width,
+					measure_string_line_height(ctx, text, font_id),
+				)
+
+				// Start new line with current word
+				first_word_on_line_idx = idx
+				current_line_width = word.width
+			} else {
+				// Add word to current line
+				if needs_whitespace {
+					current_line_width += space_width
+				}
+				current_line_width += word_width
 			}
-			current_line_width += word_width
+
 		}
 
 		// Handle last word
-		if idx == len(words) - 1 {
+		if idx == len(words) - 1 && just_processed_newline == false {
 			make_and_push_line(
 				&lines,
 				text,
