@@ -6,6 +6,147 @@ import "core:strings"
 import "core:testing"
 import "core:unicode/utf8"
 
+Token_Kind :: enum u8 {
+	Word,
+	Whitespace,
+	Newline,
+}
+
+Text_Token :: struct {
+	start: int, // Byte start in original string
+	end:   int, // Byte end in original string
+	width: f32, // Measured width
+	kind:  Token_Kind,
+}
+
+Text_Line_2 :: struct {
+	start:  int, // Byte start in original string
+	end:    int, // Byte end in original string (before trimming)
+	width:  f32, // Vistual width
+	height: f32, // Line height
+}
+
+tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynamic]Text_Token) {
+	if len(text) == 0 {
+		return
+	}
+
+	clear_dynamic_array(tokens)
+
+	byte_pos := 0
+	for byte_pos < len(text) {
+		start_pos := byte_pos
+		c := text[byte_pos]
+		switch c {
+		case ' ', '\t':
+			// Collect whitespace
+			for byte_pos < len(text) && (text[byte_pos] == ' ' || text[byte_pos] == '\t') {
+				byte_pos += 1
+			}
+			// TODO(Thomas): What to do with '\t' when it comes to measuring string width here?
+			width := measure_string_width(ctx, text[start_pos:byte_pos], font_id)
+			append(
+				tokens,
+				Text_Token{start = start_pos, end = byte_pos, width = width, kind = .Whitespace},
+			)
+
+		case '\n':
+			// Single newline
+			byte_pos += 1
+			append(
+				tokens,
+				Text_Token{start = start_pos, end = byte_pos, width = 0, kind = .Newline},
+			)
+		case:
+			// Collect words (everything that's not space, tab or newline)
+			for byte_pos < len(text) {
+				b := text[byte_pos]
+				if b == ' ' || b == '\t' || b == '\n' {
+					// We've found a word boundary, so we break
+					break
+				}
+
+				// Handle UTF-8: if high bit set, skip continuation bytes
+				// 0x80 (0b10000000) is the high bit in UTF8, if this is set this means
+				// that we're dealing with a multi-byte non-ascii character.
+				if b >= 0x80 {
+					byte_pos += 1
+					// 0xC0 = 11000000 so we get the top two bits, then we check if
+					// it's equal to == 0x80, if that is true, the top two bits must be 10
+					// which in UTF-8 means that this is a continuation byte
+					for byte_pos < len(text) && (text[byte_pos] & 0xC0) == 0x80 {
+						byte_pos += 1
+					}
+				} else {
+					byte_pos += 1
+				}
+			}
+			width := measure_string_width(ctx, text[start_pos:byte_pos], font_id)
+			append(
+				tokens,
+				Text_Token{start = start_pos, end = byte_pos, width = width, kind = .Word},
+			)
+		}
+	}
+}
+
+layout_lines :: proc(
+	ctx: ^Context,
+	text: string,
+	tokens: []Text_Token,
+	max_width: f32,
+	line_height: f32,
+	lines: ^[dynamic]Text_Line_2,
+) {
+	// Iterate over each token
+	// check which type the token is
+	// Start with new line, because we need to handle that first.
+	// Newline kind automatic triggers the creation of a new Text_Line
+	// For the Word kind we need to check if it fits the current line
+	// if it does, we just increment "cursor" and keep going, if it
+	// doesn't we have to make a new Text_Line
+	// For the Whitespace kind we keep whichever is inserted manually after a newline
+	// and those that are inbetween words. Trailing whitespace we don't care about.
+
+	line_start_token := 0
+	line_end_token := 0
+	line_width: f32 = 0
+	line_word_idx := 0
+
+	for token, i in tokens {
+		switch token.kind {
+		case .Newline:
+			line := Text_Line_2 {
+				start  = tokens[line_start_token].start,
+				end    = tokens[line_end_token].end,
+				width  = line_width,
+				height = line_height,
+			}
+			append(lines, line)
+			line_width = 0
+			line_word_idx = 0
+		case .Word:
+			// Here we need to check if the word fits on the current line, if not we have to make a new line
+			// and put the word there
+			if line_width >= max_width && i > line_word_idx {
+				line := Text_Line_2 {
+					start  = tokens[line_start_token].start,
+					end    = tokens[line_end_token].end,
+					width  = line_width,
+					height = line_height,
+				}
+				append(lines, line)
+				line_width = 0
+				line_word_idx = 0
+			} else {
+				line_width += token.width
+				line_word_idx += 1
+			}
+		case .Whitespace:
+		}
+	}
+}
+
 Word :: struct {
 	start_offset: int,
 	length:       int,
