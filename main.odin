@@ -139,11 +139,6 @@ main :: proc() {
 	text_tokens := make([dynamic]ui.Text_Token)
 	defer delete(text_tokens)
 
-	ui.tokenize_text(&ctx, "Hello \n\t world, what is this\n\n, ajfdlkajf", 0, &text_tokens)
-	for token in text_tokens {
-		log.info("token: ", token)
-	}
-
 	now: u32 = 0
 	last: u32 = 0
 	frame_counter := 0
