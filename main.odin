@@ -156,9 +156,9 @@ main :: proc() {
 		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(renderer)
 
-		build_ui(&app_state)
+		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		//build_simple_text_ui(&app_state)
+		build_simple_text_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_complex_ui(&app_state)
 
@@ -313,7 +313,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 		"text_container",
 		{
 			layout = {
-				sizing = {{kind = .Fit, value = 200}, {kind = .Fit}},
+				sizing = {{kind = .Fit}, {kind = .Fit}},
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 				layout_direction = .Left_To_Right,

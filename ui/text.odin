@@ -145,7 +145,7 @@ layout_lines :: proc(
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
 			if line_width + token.width > max_width {
-
+				total_width := line_width + token.width
 				line_text := get_text_from_tokens(
 					text,
 					tokens[line_start_token],
@@ -168,7 +168,7 @@ layout_lines :: proc(
 				line_end_token = i
 			}
 		case .Whitespace:
-			if line_width + token.width >= max_width {
+			if line_width + token.width > max_width {
 				line_text := get_text_from_tokens(
 					text,
 					tokens[line_start_token],
@@ -185,7 +185,7 @@ layout_lines :: proc(
 				append(lines, line)
 				line_start_token = i
 				line_end_token = i
-				line_width = 0
+				line_width = token.width
 			} else {
 				line_width += token.width
 				line_end_token = i
@@ -194,6 +194,7 @@ layout_lines :: proc(
 	}
 
 	if len(tokens) > line_end_token {
+		line_end_token = len(tokens) - 1
 		line_text := get_text_from_tokens(text, tokens[line_start_token], tokens[line_end_token])
 		line := Text_Line_2 {
 			text   = line_text,
