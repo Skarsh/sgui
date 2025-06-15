@@ -20,6 +20,7 @@ Text_Token :: struct {
 }
 
 Text_Line_2 :: struct {
+	text:   string,
 	start:  int, // Byte start in original string
 	length: int, // Length of the string in bytes
 	width:  f32, // Vistual width
@@ -96,6 +97,18 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 	}
 }
 
+get_text_from_tokens :: proc(
+	text: string,
+	start_token: Text_Token,
+	end_token: Text_Token,
+) -> string {
+	start := start_token.start
+	end := end_token.start + end_token.length
+	str, ok := strings.substring(text, start, end)
+	assert(ok)
+	return str
+}
+
 layout_lines :: proc(
 	ctx: ^Context,
 	text: string,
@@ -104,6 +117,7 @@ layout_lines :: proc(
 	line_height: f32,
 	lines: ^[dynamic]Text_Line_2,
 ) {
+
 	line_start_token := 0
 	line_end_token := 0
 	line_width: f32 = 0
@@ -112,6 +126,11 @@ layout_lines :: proc(
 		switch token.kind {
 		case .Newline:
 			line := Text_Line_2 {
+				text   = get_text_from_tokens(
+					text,
+					tokens[line_start_token],
+					tokens[line_end_token],
+				),
 				start  = tokens[line_start_token].start,
 				length = (tokens[line_end_token].start +
 					tokens[line_end_token].length) - tokens[line_start_token].start,
@@ -127,6 +146,11 @@ layout_lines :: proc(
 			// and put the word there
 			if line_width + token.width >= max_width {
 				line := Text_Line_2 {
+					text   = get_text_from_tokens(
+						text,
+						tokens[line_start_token],
+						tokens[line_end_token],
+					),
 					start  = tokens[line_start_token].start,
 					length = (tokens[line_end_token].start +
 						tokens[line_end_token].length) - tokens[line_start_token].start,
@@ -144,6 +168,11 @@ layout_lines :: proc(
 		case .Whitespace:
 			if line_width + token.width >= max_width {
 				line := Text_Line_2 {
+					text   = get_text_from_tokens(
+						text,
+						tokens[line_start_token],
+						tokens[line_end_token],
+					),
 					start  = tokens[line_start_token].start,
 					length = (tokens[line_end_token].start +
 						tokens[line_end_token].length) - tokens[line_start_token].start,
@@ -163,6 +192,7 @@ layout_lines :: proc(
 
 	if len(tokens) > line_end_token {
 		line := Text_Line_2 {
+			text   = get_text_from_tokens(text, tokens[line_start_token], tokens[line_end_token]),
 			start  = tokens[line_start_token].start,
 			length = (tokens[line_end_token].start +
 				tokens[line_end_token].length) - tokens[line_start_token].start,
@@ -461,8 +491,14 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
 
 	expected_lines := []Text_Line_2 {
-		Text_Line_2{start = 0, length = 5, width = 5 * MOCK_CHAR_WIDTH, height = MOCK_LINE_HEIGHT},
-		Text_Line_2{start = 5, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
+		Text_Line_2 {
+			text = "Hello",
+			start = 0,
+			length = 5,
+			width = 5 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
+		Text_Line_2{text = "\n", start = 5, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
 	}
 
 	expect_lines_2(t, lines[:], expected_lines)
@@ -492,7 +528,13 @@ test_layout_lines_two_word_no_overflow :: proc(t: ^testing.T) {
 	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
 
 	expected_lines := []Text_Line_2 {
-		Text_Line_2{start = 0, length = 6, width = 6 * MOCK_CHAR_WIDTH, height = MOCK_LINE_HEIGHT},
+		Text_Line_2 {
+			text = "Hel lo",
+			start = 0,
+			length = 6,
+			width = 6 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
 	}
 
 	expect_lines_2(t, lines[:], expected_lines)
@@ -522,9 +564,21 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
 
 	expected_lines := []Text_Line_2 {
-		Text_Line_2{start = 0, length = 6, width = 6 * MOCK_CHAR_WIDTH, height = MOCK_LINE_HEIGHT},
-		Text_Line_2{start = 6, length = 5, width = 5 * MOCK_CHAR_WIDTH, height = MOCK_LINE_HEIGHT},
-		Text_Line_2{start = 11, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
+		Text_Line_2 {
+			text = "Hello ",
+			start = 0,
+			length = 6,
+			width = 6 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
+		Text_Line_2 {
+			text = "world",
+			start = 6,
+			length = 5,
+			width = 5 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
+		Text_Line_2{text = "\n", start = 11, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
 	}
 
 	expect_lines_2(t, lines[:], expected_lines)

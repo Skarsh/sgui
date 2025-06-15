@@ -60,18 +60,19 @@ Layout_Config :: struct {
 }
 
 UI_Element :: struct {
-	parent:      ^UI_Element,
-	id_string:   string,
-	position:    Vec2,
-	min_size:    Vec2,
-	max_size:    Vec2,
-	size:        Vec2,
-	layout:      Layout_Config,
-	children:    [dynamic]^UI_Element,
-	color:       Color,
-	kind:        Element_Kind,
-	text_config: Text_Element_Config,
-	text_lines:  []Text_Line,
+	parent:       ^UI_Element,
+	id_string:    string,
+	position:     Vec2,
+	min_size:     Vec2,
+	max_size:     Vec2,
+	size:         Vec2,
+	layout:       Layout_Config,
+	children:     [dynamic]^UI_Element,
+	color:        Color,
+	kind:         Element_Kind,
+	text_config:  Text_Element_Config,
+	text_lines:   []Text_Line,
+	text_lines_2: []Text_Line_2,
 }
 
 Sizing :: struct {
@@ -446,6 +447,32 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 
 	for child in element.children {
 		wrap_text(ctx, child, allocator)
+	}
+}
+
+wrap_text_2 :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
+
+	if element.kind == .Text {
+		text := element.text_config.data
+		tokens := make([dynamic]Text_Token, allocator)
+		tokenize_text(ctx, text, ctx.font_id, &tokens)
+
+		lines := make([dynamic]Text_Line_2, allocator)
+
+		// TODO(Thomas): This should be done per line in the layout_lines
+		line_height := measure_string_line_height(ctx, text, ctx.font_id)
+		layout_lines(ctx, text, tokens[:], element.size.x, line_height, &lines)
+
+		element.text_lines_2 = lines[:]
+		text_height: f32 = 0
+		for line in lines {
+			text_height += line.height
+		}
+		element.size.y += text_height
+	}
+
+	for child in element.children {
+		wrap_text_2(ctx, child, allocator)
 	}
 }
 

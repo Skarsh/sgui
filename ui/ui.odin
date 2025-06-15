@@ -1,5 +1,6 @@
 package ui
 
+import "core:log"
 import "core:mem"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
@@ -161,7 +162,8 @@ end :: proc(ctx: ^Context) {
 	shrink_child_elements_for_axis(ctx.root_element, .X)
 
 	// Wrap text
-	wrap_text(ctx, ctx.root_element, context.temp_allocator)
+	//wrap_text(ctx, ctx.root_element, context.temp_allocator)
+	wrap_text_2(ctx, ctx.root_element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
 	// Fit sizing heights
@@ -174,7 +176,8 @@ end :: proc(ctx: ^Context) {
 
 	calculate_positions_and_alignment(ctx.root_element)
 
-	draw_all_elements(ctx)
+	//draw_all_elements(ctx)
+	draw_all_elements_2(ctx)
 
 	free_all(ctx.frame_allocator)
 }
@@ -211,10 +214,49 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 }
 
+draw_element_2 :: proc(ctx: ^Context, element: ^UI_Element) {
+	if element == nil {
+		return
+	}
+
+	if element.kind == .Text {
+		for line, idx in element.text_lines_2 {
+			draw_text(
+				ctx,
+				element.position.x,
+				element.position.y + f32(idx) * line.height,
+				line.text,
+			)
+		}
+	} else {
+		draw_rect(
+			ctx,
+			Rect {
+				i32(element.position.x),
+				i32(element.position.y),
+				i32(element.size.x),
+				i32(element.size.y),
+			},
+			element.color,
+		)
+	}
+
+	for child in element.children {
+		draw_element_2(ctx, child)
+	}
+
+}
+
 draw_all_elements :: proc(ctx: ^Context) {
 	// pre-order traversal
 	// We know that at this point the only element left is the root element
 	draw_element(ctx, ctx.root_element)
+}
+
+draw_all_elements_2 :: proc(ctx: ^Context) {
+	// pre-order traversal
+	// We know that at this point the only element left is the root element
+	draw_element_2(ctx, ctx.root_element)
 }
 
 draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
