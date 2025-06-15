@@ -219,6 +219,11 @@ render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
 	start_y := y + atlas.metrics.ascent
 
 	for r in text {
+		// TODO(Thomas): What to do with \t and so on?
+		if r == '\n' {
+			continue
+		}
+
 		glyph, found := get_glyph(atlas, r)
 		if !found && r != ' ' {
 			log.warn("Glyph not found for rune:", r)
@@ -351,7 +356,7 @@ build_ui :: proc(app_state: ^App_State) {
 		ui.open_text_element(
 			&app_state.ctx,
 			"red",
-			ui.Text_Element_Config{data = "One Two\n Three Four\n"},
+			ui.Text_Element_Config{data = "One Two\nThree Four\n"},
 		)
 		ui.close_element(&app_state.ctx)
 
@@ -368,7 +373,7 @@ build_ui :: proc(app_state: ^App_State) {
 			&app_state.ctx,
 			"light blue",
 			ui.Text_Element_Config {
-				data = "Five Six Seven\n Eight\n\n Nine\n Ten Eleven Twelve \nThirteen Fourteen",
+				data = "Five Six Seven\nEight\n\nNine\nTen Eleven Twelve \nThirteen Fourteen",
 			},
 		)
 		ui.close_element(&app_state.ctx)
