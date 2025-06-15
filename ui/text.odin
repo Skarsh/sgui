@@ -121,9 +121,11 @@ layout_lines :: proc(
 	line_end_token := 0
 	line_width: f32 = 0
 
+	just_processed_newline := false
 	for token, i in tokens {
 		switch token.kind {
 		case .Newline:
+			line_end_token = i
 			line_text := get_text_from_tokens(
 				text,
 				tokens[line_start_token],
@@ -138,14 +140,16 @@ layout_lines :: proc(
 				height = measure_string_line_height(ctx, line_text, ctx.font_id),
 			}
 			append(lines, line)
-			line_start_token = i
-			line_end_token = i
+
+			line_start_token = i + 1
+			line_end_token = i + 1
 			line_width = 0
+			just_processed_newline = true
+
 		case .Word:
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
 			if line_width + token.width > max_width {
-				total_width := line_width + token.width
 				line_text := get_text_from_tokens(
 					text,
 					tokens[line_start_token],
@@ -193,7 +197,7 @@ layout_lines :: proc(
 		}
 	}
 
-	if len(tokens) > line_end_token {
+	if len(tokens) > line_end_token && just_processed_newline == false {
 		line_end_token = len(tokens) - 1
 		line_text := get_text_from_tokens(text, tokens[line_start_token], tokens[line_end_token])
 		line := Text_Line_2 {
@@ -529,13 +533,12 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line_2 {
 		Text_Line_2 {
-			text = "Hello",
+			text = "Hello\n",
 			start = 0,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
-		Text_Line_2{text = "\n", start = 5, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
 	}
 
 	expect_lines_2(t, lines[:], expected_lines)
@@ -609,13 +612,56 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 			height = MOCK_LINE_HEIGHT,
 		},
 		Text_Line_2 {
-			text = "world",
+			text = "world\n",
 			start = 6,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
-		Text_Line_2{text = "\n", start = 11, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
+	}
+
+	expect_lines_2(t, lines[:], expected_lines)
+}
+
+@(test)
+test_layout_lines_two_words_with_newline_inbetween :: proc(t: ^testing.T) {
+
+	ctx := Context{}
+
+	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	text := "Hello\n world\n"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(&ctx, text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{start = 0, length = 5, width = 5 * MOCK_CHAR_WIDTH, kind = .Word},
+		Text_Token{start = 5, length = 1, width = 0, kind = .Newline},
+		Text_Token{start = 6, length = 1, width = 1 * MOCK_CHAR_WIDTH, kind = .Whitespace},
+		Text_Token{start = 7, length = 5, width = 5 * MOCK_CHAR_WIDTH, kind = .Word},
+		Text_Token{start = 12, length = 1, width = 0, kind = .Newline},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+
+	lines := make([dynamic]Text_Line_2, context.temp_allocator)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
+
+	expected_lines := []Text_Line_2 {
+		Text_Line_2 {
+			text = "Hello\n",
+			start = 0,
+			length = 6,
+			width = 5 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
+		Text_Line_2 {
+			text = " world\n",
+			start = 6,
+			length = 7,
+			width = 6 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
 	}
 
 	expect_lines_2(t, lines[:], expected_lines)

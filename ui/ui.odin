@@ -1,6 +1,5 @@
 package ui
 
-import "core:log"
 import "core:mem"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
