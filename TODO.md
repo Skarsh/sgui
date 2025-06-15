@@ -6,6 +6,7 @@
 ## Bugs
 * Text element width doesn't care if there's a newline. The width of the element should only be as large
     as the widest line in the text.
+* The `build_simple_text_ui` after the tokenization / `layout_lines` refactor, seems to be now laying out it's line wrong.
 
 ## Backlog
 
