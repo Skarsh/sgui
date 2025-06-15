@@ -458,10 +458,7 @@ wrap_text_2 :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocato
 		tokenize_text(ctx, text, ctx.font_id, &tokens)
 
 		lines := make([dynamic]Text_Line_2, allocator)
-
-		// TODO(Thomas): This should be done per line in the layout_lines
-		line_height := measure_string_line_height(ctx, text, ctx.font_id)
-		layout_lines(ctx, text, tokens[:], element.size.x, line_height, &lines)
+		layout_lines(ctx, text, tokens[:], element.size.x, &lines)
 
 		element.text_lines_2 = lines[:]
 		text_height: f32 = 0

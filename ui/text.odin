@@ -114,7 +114,6 @@ layout_lines :: proc(
 	text: string,
 	tokens: []Text_Token,
 	max_width: f32,
-	line_height: f32,
 	lines: ^[dynamic]Text_Line_2,
 ) {
 
@@ -125,17 +124,18 @@ layout_lines :: proc(
 	for token, i in tokens {
 		switch token.kind {
 		case .Newline:
+			line_text := get_text_from_tokens(
+				text,
+				tokens[line_start_token],
+				tokens[line_end_token],
+			)
 			line := Text_Line_2 {
-				text   = get_text_from_tokens(
-					text,
-					tokens[line_start_token],
-					tokens[line_end_token],
-				),
+				text   = line_text,
 				start  = tokens[line_start_token].start,
 				length = (tokens[line_end_token].start +
 					tokens[line_end_token].length) - tokens[line_start_token].start,
 				width  = line_width,
-				height = line_height,
+				height = measure_string_line_height(ctx, line_text, ctx.font_id),
 			}
 			append(lines, line)
 			line_start_token = i
@@ -145,17 +145,19 @@ layout_lines :: proc(
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
 			if line_width + token.width > max_width {
+
+				line_text := get_text_from_tokens(
+					text,
+					tokens[line_start_token],
+					tokens[line_end_token],
+				)
 				line := Text_Line_2 {
-					text   = get_text_from_tokens(
-						text,
-						tokens[line_start_token],
-						tokens[line_end_token],
-					),
+					text   = line_text,
 					start  = tokens[line_start_token].start,
 					length = (tokens[line_end_token].start +
 						tokens[line_end_token].length) - tokens[line_start_token].start,
 					width  = line_width,
-					height = line_height,
+					height = measure_string_line_height(ctx, line_text, ctx.font_id),
 				}
 				append(lines, line)
 				line_start_token = i
@@ -167,17 +169,18 @@ layout_lines :: proc(
 			}
 		case .Whitespace:
 			if line_width + token.width >= max_width {
+				line_text := get_text_from_tokens(
+					text,
+					tokens[line_start_token],
+					tokens[line_end_token],
+				)
 				line := Text_Line_2 {
-					text   = get_text_from_tokens(
-						text,
-						tokens[line_start_token],
-						tokens[line_end_token],
-					),
+					text   = line_text,
 					start  = tokens[line_start_token].start,
 					length = (tokens[line_end_token].start +
 						tokens[line_end_token].length) - tokens[line_start_token].start,
 					width  = line_width,
-					height = line_height,
+					height = measure_string_line_height(ctx, line_text, ctx.font_id),
 				}
 				append(lines, line)
 				line_start_token = i
@@ -191,13 +194,14 @@ layout_lines :: proc(
 	}
 
 	if len(tokens) > line_end_token {
+		line_text := get_text_from_tokens(text, tokens[line_start_token], tokens[line_end_token])
 		line := Text_Line_2 {
-			text   = get_text_from_tokens(text, tokens[line_start_token], tokens[line_end_token]),
+			text   = line_text,
 			start  = tokens[line_start_token].start,
 			length = (tokens[line_end_token].start +
 				tokens[line_end_token].length) - tokens[line_start_token].start,
 			width  = line_width,
-			height = line_height,
+			height = measure_string_line_height(ctx, line_text, ctx.font_id),
 		}
 		append(lines, line)
 	}
@@ -485,7 +489,7 @@ text_layout_lines_single_word_no_newline :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line_2, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
 
 	expected_lines := []Text_Line_2 {
 		Text_Line_2 {
@@ -520,7 +524,7 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 
 
 	lines := make([dynamic]Text_Line_2, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
 
 	expected_lines := []Text_Line_2 {
 		Text_Line_2 {
@@ -557,7 +561,7 @@ test_layout_lines_two_word_no_overflow :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line_2, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
 
 	expected_lines := []Text_Line_2 {
 		Text_Line_2 {
@@ -593,7 +597,7 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line_2, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
 
 	expected_lines := []Text_Line_2 {
 		Text_Line_2 {
@@ -633,7 +637,7 @@ test_layout_lines_one_word_matches_max_width_exact :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line_2, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, MOCK_LINE_HEIGHT, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
 
 	expected_lines := []Text_Line_2 {
 		Text_Line_2 {
