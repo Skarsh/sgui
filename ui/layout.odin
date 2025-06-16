@@ -60,19 +60,18 @@ Layout_Config :: struct {
 }
 
 UI_Element :: struct {
-	parent:       ^UI_Element,
-	id_string:    string,
-	position:     Vec2,
-	min_size:     Vec2,
-	max_size:     Vec2,
-	size:         Vec2,
-	layout:       Layout_Config,
-	children:     [dynamic]^UI_Element,
-	color:        Color,
-	kind:         Element_Kind,
-	text_config:  Text_Element_Config,
-	text_lines:   []Text_Line,
-	text_lines_2: []Text_Line_2,
+	parent:      ^UI_Element,
+	id_string:   string,
+	position:    Vec2,
+	min_size:    Vec2,
+	max_size:    Vec2,
+	size:        Vec2,
+	layout:      Layout_Config,
+	children:    [dynamic]^UI_Element,
+	color:       Color,
+	kind:        Element_Kind,
+	text_config: Text_Element_Config,
+	text_lines:  []Text_Line,
 }
 
 Sizing :: struct {
@@ -423,21 +422,18 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 }
 
-wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
-	if element.kind == .Text {
-		words := measure_text_words(ctx, element.text_config.data, ctx.font_id, allocator)
 
-		lines := calculate_text_lines(
-			ctx,
-			element.text_config.data,
-			words,
-			element.text_config,
-			element.size.x,
-			ctx.font_id,
-			ctx.font_size,
-			allocator,
-		)
-		element.text_lines = lines
+wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
+
+	if element.kind == .Text {
+		text := element.text_config.data
+		tokens := make([dynamic]Text_Token, allocator)
+		tokenize_text(ctx, text, ctx.font_id, &tokens)
+
+		lines := make([dynamic]Text_Line, allocator)
+		layout_lines(ctx, text, tokens[:], element.size.x, &lines)
+
+		element.text_lines = lines[:]
 		text_height: f32 = 0
 		for line in lines {
 			text_height += line.height
@@ -447,29 +443,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 
 	for child in element.children {
 		wrap_text(ctx, child, allocator)
-	}
-}
-
-wrap_text_2 :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
-
-	if element.kind == .Text {
-		text := element.text_config.data
-		tokens := make([dynamic]Text_Token, allocator)
-		tokenize_text(ctx, text, ctx.font_id, &tokens)
-
-		lines := make([dynamic]Text_Line_2, allocator)
-		layout_lines(ctx, text, tokens[:], element.size.x, &lines)
-
-		element.text_lines_2 = lines[:]
-		text_height: f32 = 0
-		for line in lines {
-			text_height += line.height
-		}
-		element.size.y += text_height
-	}
-
-	for child in element.children {
-		wrap_text_2(ctx, child, allocator)
 	}
 }
 
