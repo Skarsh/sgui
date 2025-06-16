@@ -121,6 +121,13 @@ layout_lines :: proc(
 	line_end_token := 0
 	line_width: f32 = 0
 
+	// NOTE(Thomas): We use a epsilon when comparing to the max_width (which is the element width)
+	// This is necessary because for growing elements like text, the size we calculate here
+	// and the size it gets in the grow layout calculations will be very similar. So we add
+	// a epsilon to the max_width to make sure that if some text would fit on one line it will
+	// and numerical instability won't be an issue.
+	EPSILON :: 0.001
+
 	just_processed_newline := false
 	for token, i in tokens {
 		switch token.kind {
@@ -149,7 +156,8 @@ layout_lines :: proc(
 		case .Word:
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
-			if line_width + token.width > max_width {
+			//NOTE(Thomas): Add epsilon here to make sure that if it should fit on one line it will.
+			if line_width + token.width > max_width + EPSILON {
 				line_text := get_text_from_tokens(
 					text,
 					tokens[line_start_token],
@@ -172,7 +180,7 @@ layout_lines :: proc(
 				line_end_token = i
 			}
 		case .Whitespace:
-			if line_width + token.width > max_width {
+			if line_width + token.width > max_width + EPSILON {
 				line_text := get_text_from_tokens(
 					text,
 					tokens[line_start_token],
