@@ -16,8 +16,6 @@
 
 * Review integer types throughout the project. Especially font and text calculation related ones.
 
-* Deal with newlines in one of the `measure_text_words` or `calculate_text_lines` procedures.
-
 * Figure out how to deal with Text Element vs "normal" Element. Currently we have kind field to keep track
     of which kind of Element it is.
 
