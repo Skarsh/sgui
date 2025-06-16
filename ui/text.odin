@@ -107,6 +107,26 @@ get_text_from_tokens :: proc(
 	return str
 }
 
+flush_line :: proc(
+	ctx: ^Context,
+	original_text: string,
+	start_token: int,
+	end_token: int,
+	width: f32,
+	tokens: []Text_Token,
+	lines: ^[dynamic]Text_Line,
+) {
+	line_text := get_text_from_tokens(original_text, tokens[start_token], tokens[end_token])
+	line := Text_Line {
+		text   = line_text,
+		start  = tokens[start_token].start,
+		length = (tokens[end_token].start + tokens[end_token].length) - tokens[start_token].start,
+		width  = width,
+		height = measure_string_line_height(ctx, line_text, ctx.font_id),
+	}
+	append(lines, line)
+}
+
 layout_lines :: proc(
 	ctx: ^Context,
 	text: string,
@@ -131,20 +151,7 @@ layout_lines :: proc(
 		switch token.kind {
 		case .Newline:
 			line_end_token = i
-			line_text := get_text_from_tokens(
-				text,
-				tokens[line_start_token],
-				tokens[line_end_token],
-			)
-			line := Text_Line {
-				text   = line_text,
-				start  = tokens[line_start_token].start,
-				length = (tokens[line_end_token].start +
-					tokens[line_end_token].length) - tokens[line_start_token].start,
-				width  = line_width,
-				height = measure_string_line_height(ctx, line_text, ctx.font_id),
-			}
-			append(lines, line)
+			flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
 
 			line_start_token = i + 1
 			line_end_token = i + 1
@@ -156,20 +163,16 @@ layout_lines :: proc(
 			// and put the word there
 			//NOTE(Thomas): Add epsilon here to make sure that if it should fit on one line it will.
 			if line_width + token.width > max_width + EPSILON {
-				line_text := get_text_from_tokens(
+				flush_line(
+					ctx,
 					text,
-					tokens[line_start_token],
-					tokens[line_end_token],
+					line_start_token,
+					line_end_token,
+					line_width,
+					tokens[:],
+					lines,
 				)
-				line := Text_Line {
-					text   = line_text,
-					start  = tokens[line_start_token].start,
-					length = (tokens[line_end_token].start +
-						tokens[line_end_token].length) - tokens[line_start_token].start,
-					width  = line_width,
-					height = measure_string_line_height(ctx, line_text, ctx.font_id),
-				}
-				append(lines, line)
+
 				line_start_token = i
 				line_end_token = i
 				line_width = token.width
@@ -179,20 +182,16 @@ layout_lines :: proc(
 			}
 		case .Whitespace:
 			if line_width + token.width > max_width + EPSILON {
-				line_text := get_text_from_tokens(
+				flush_line(
+					ctx,
 					text,
-					tokens[line_start_token],
-					tokens[line_end_token],
+					line_start_token,
+					line_end_token,
+					line_width,
+					tokens[:],
+					lines,
 				)
-				line := Text_Line {
-					text   = line_text,
-					start  = tokens[line_start_token].start,
-					length = (tokens[line_end_token].start +
-						tokens[line_end_token].length) - tokens[line_start_token].start,
-					width  = line_width,
-					height = measure_string_line_height(ctx, line_text, ctx.font_id),
-				}
-				append(lines, line)
+
 				line_start_token = i
 				line_end_token = i
 				line_width = token.width
@@ -205,16 +204,7 @@ layout_lines :: proc(
 
 	if len(tokens) > line_end_token && just_processed_newline == false {
 		line_end_token = len(tokens) - 1
-		line_text := get_text_from_tokens(text, tokens[line_start_token], tokens[line_end_token])
-		line := Text_Line {
-			text   = line_text,
-			start  = tokens[line_start_token].start,
-			length = (tokens[line_end_token].start +
-				tokens[line_end_token].length) - tokens[line_start_token].start,
-			width  = line_width,
-			height = measure_string_line_height(ctx, line_text, ctx.font_id),
-		}
-		append(lines, line)
+		flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
 	}
 }
 
