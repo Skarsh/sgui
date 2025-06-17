@@ -198,6 +198,26 @@ close_element :: proc(ctx: ^Context) {
 	}
 }
 
+container :: proc(
+	ctx: ^Context,
+	id: string,
+	config: Element_Config,
+	body: proc(ctx: ^Context) = nil,
+) {
+	if open_element(ctx, id, config) {
+		defer close_element(ctx)
+		if body != nil {
+			body(ctx)
+		}
+	}
+}
+
+text :: proc(ctx: ^Context, id: string, config: Text_Element_Config) {
+	if open_text_element(ctx, id, config) {
+		close_element(ctx)
+	}
+}
+
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	for child in element.children {
 		fit_size_axis(child, axis)

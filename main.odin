@@ -158,8 +158,8 @@ main :: proc() {
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		build_simple_text_ui(&app_state)
-		//build_grow_ui(&app_state)
+		//build_simple_text_ui(&app_state)
+		build_grow_ui(&app_state)
 		//build_complex_ui(&app_state)
 
 		render_draw_commands(&app_state)
@@ -308,7 +308,7 @@ render_draw_commands :: proc(app_state: ^App_State) {
 
 build_simple_text_ui :: proc(app_state: ^App_State) {
 	ui.begin(&app_state.ctx)
-	ui.open_element(
+	ui.container(
 		&app_state.ctx,
 		"text_container",
 		{
@@ -320,26 +320,24 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			},
 			color = ui.Color{0, 0, 255, 255},
 		},
+		proc(ctx: ^ui.Context) {
+			ui.text(
+				ctx,
+				"text",
+				{
+					data = "one two three four five six seven eight nine ten",
+					min_width = 100,
+					min_height = 30,
+				},
+			)
+		},
 	)
-	{
-		ui.open_text_element(
-			&app_state.ctx,
-			"text",
-			{
-				data = "one two three four five six seven eight nine ten",
-				min_width = 100,
-				min_height = 30,
-			},
-		)
-		ui.close_element(&app_state.ctx)
-	}
-	ui.close_element(&app_state.ctx)
 	ui.end(&app_state.ctx)
 }
 
 build_ui :: proc(app_state: ^App_State) {
 	ui.begin(&app_state.ctx)
-	ui.open_element(
+	ui.container(
 		&app_state.ctx,
 		"blue",
 		{
@@ -351,40 +349,32 @@ build_ui :: proc(app_state: ^App_State) {
 			},
 			color = ui.Color{0, 0, 255, 255},
 		},
-	)
-	{
-		ui.open_text_element(
-			&app_state.ctx,
-			"red",
-			ui.Text_Element_Config{data = "One Two\nThree Four\n"},
-		)
-		ui.close_element(&app_state.ctx)
+		proc(ctx: ^ui.Context) {
+			ui.text(ctx, "red", {data = "One Two\nThree Four\n"})
 
-		ui.open_element(
-			&app_state.ctx,
-			"yellow",
-			{
-				layout = {sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}}},
-				color = ui.Color{255, 255, 0, 255},
-			},
-		)
-		ui.close_element(&app_state.ctx)
-		ui.open_text_element(
-			&app_state.ctx,
-			"light blue",
-			ui.Text_Element_Config {
-				data = "Five Six Seven\nEight\n\nNine\nTen Eleven Twelve \nThirteen Fourteen",
-			},
-		)
-		ui.close_element(&app_state.ctx)
-	}
-	ui.close_element(&app_state.ctx)
+			ui.container(
+				ctx,
+				"yellow",
+				{
+					layout = {
+						sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}},
+					},
+					color = ui.Color{255, 255, 0, 255},
+				},
+			)
+			ui.text(
+				ctx,
+				"light_blue",
+				{data = "Five Six Seven\nEight\n\nNine\nTen Eleven Twelve \nThirteen Fourteen"},
+			)
+		},
+	)
 	ui.end(&app_state.ctx)
 }
 
 build_ui_2 :: proc(app_state: ^App_State) {
 	ui.begin(&app_state.ctx)
-	ui.open_element(
+	ui.container(
 		&app_state.ctx,
 		"parent",
 		{
@@ -395,34 +385,35 @@ build_ui_2 :: proc(app_state: ^App_State) {
 			},
 			color = ui.Color{255, 255, 255, 255},
 		},
+		proc(ctx: ^ui.Context) {
+			ui.container(
+				ctx,
+				"child_1",
+				{
+					layout = {
+						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+					},
+					color = ui.Color{255, 0, 0, 255},
+				},
+			)
+			ui.container(
+				ctx,
+				"child_2",
+				{
+					layout = {
+						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+					},
+					color = ui.Color{0, 255, 0, 255},
+				},
+			)
+		},
 	)
-	{
-		ui.open_element(
-			&app_state.ctx,
-			"child_1",
-			{
-				layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
-				color = ui.Color{255, 0, 0, 255},
-			},
-		)
-		ui.close_element(&app_state.ctx)
-		ui.open_element(
-			&app_state.ctx,
-			"child_2",
-			{
-				layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
-				color = ui.Color{0, 255, 0, 255},
-			},
-		)
-		ui.close_element(&app_state.ctx)
-	}
-	ui.close_element(&app_state.ctx)
 	ui.end(&app_state.ctx)
 }
 
 build_grow_ui :: proc(app_state: ^App_State) {
 	ui.begin(&app_state.ctx)
-	ui.open_element(
+	ui.container(
 		&app_state.ctx,
 		"parent",
 		{
@@ -433,39 +424,39 @@ build_grow_ui :: proc(app_state: ^App_State) {
 			},
 			color = ui.Color{255, 255, 255, 255},
 		},
-	)
-	{
-		ui.open_element(
-			&app_state.ctx,
-			"child_1",
-			{
-				layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 100}}},
-				color = ui.Color{255, 0, 0, 255},
-			},
-		)
-		ui.close_element(&app_state.ctx)
-		ui.open_element(
-			&app_state.ctx,
-			"child_2",
-			{
-				layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
-				color = ui.Color{0, 255, 0, 255},
-			},
-		)
-		ui.close_element(&app_state.ctx)
-		ui.open_element(
-			&app_state.ctx,
-			"child_3",
-			{
-				layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}},
-				color = ui.Color{0, 0, 255, 255},
-			},
-		)
-		ui.close_element(&app_state.ctx)
-	}
-	ui.close_element(&app_state.ctx)
-	ui.end(&app_state.ctx)
+		proc(ctx: ^ui.Context) {
+			ui.container(
+				ctx,
+				"child_1",
+				{
+					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 100}}},
+					color = ui.Color{255, 0, 0, 255},
+				},
+			)
 
+			ui.container(
+				ctx,
+				"child_2",
+				{
+					layout = {
+						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+					},
+					color = ui.Color{0, 255, 0, 255},
+				},
+			)
+
+			ui.container(
+				ctx,
+				"child_3",
+				{
+					layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}},
+					color = ui.Color{0, 0, 255, 255},
+				},
+			)
+
+		},
+	)
+	ui.end(&app_state.ctx)
 }
 
 build_complex_ui :: proc(app_state: ^App_State) {
@@ -530,6 +521,60 @@ build_complex_ui :: proc(app_state: ^App_State) {
 	}
 	ui.close_element(&app_state.ctx)
 	ui.end(&app_state.ctx)
+
+	//ui.begin(&app_state.ctx)
+	//ui.container(
+	//	&app_state.ctx,
+	//	"parent",
+	//	{
+	//		layout = {
+	//			sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
+	//			padding = {16, 16, 16, 16},
+	//			layout_direction = .Top_To_Bottom,
+	//			alignment_x = .Center,
+	//			child_gap = 16,
+	//		},
+	//		color = {102, 51, 153, 255},
+	//	},
+	//	proc(ctx: ^ui.Context) {
+	//		for item, idx in item_texts {
+	//			ui.container(
+	//				ctx,
+	//				item,
+	//				&app_state.ctx,
+	//				item,
+	//				{
+	//					layout = {
+	//						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
+	//						padding = {32, 32, 16, 16},
+	//						child_gap = 32,
+	//						alignment_x = .Center,
+	//						alignment_y = .Center,
+	//					},
+	//					color = {255, 125, 172, 255},
+	//				},
+	//				proc(ctx, id, _) {
+	//					ui.container(
+	//						ctx,
+	//						strconv.itoa(buf[:], idx),
+	//						{
+	//							layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
+	//							color = {157, 125, 172, 255},
+	//						},
+	//						proc(ctx: ^ui.Context, ) {
+	//							ui.text(
+	//								ctx,
+	//								strconv.itoa(buf[:], len(item_texts) + idx),
+	//								{data = item},
+	//							)
+	//						},
+	//					)
+	//				},
+	//			)
+	//		}
+	//	},
+	//)
+	//ui.end(&app_state.ctx)
 }
 
 process_input :: proc(app_state: ^App_State) {
