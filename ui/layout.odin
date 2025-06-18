@@ -198,40 +198,16 @@ close_element :: proc(ctx: ^Context) {
 	}
 }
 
-Body_Proc :: proc(ctx: ^Context, user_idx: int, user_data: rawptr)
-Simple_Body_Proc :: proc(ctx: ^Context, user_idx: int)
-Data_Body_Proc :: proc(ctx: ^Context, data: rawptr)
-Empty_Body_Proc :: proc(ctx: ^Context)
-
-// Overloaded container procedures for different use cases
 container :: proc {
-	container_full,
-	container_simple,
-	container_data_only,
+	container_data,
 	container_empty,
-}
-
-container_full :: proc(
-	ctx: ^Context,
-	id: string,
-	config: Element_Config,
-	user_idx: int,
-	user_data: rawptr,
-	body: Body_Proc = nil,
-) {
-	if open_element(ctx, id, config) {
-		defer close_element(ctx)
-		if body != nil {
-			body(ctx, user_idx, user_data)
-		}
-	}
 }
 
 container_empty :: proc(
 	ctx: ^Context,
 	id: string,
 	config: Element_Config,
-	empty_body_proc: Empty_Body_Proc = nil,
+	empty_body_proc: proc(ctx: ^Context) = nil,
 ) {
 	if open_element(ctx, id, config) {
 		defer close_element(ctx)
@@ -241,37 +217,7 @@ container_empty :: proc(
 	}
 }
 
-container_simple :: proc(
-	ctx: ^Context,
-	id: string,
-	config: Element_Config,
-	user_idx: int,
-	simple_body_proc: Simple_Body_Proc = nil,
-) {
-	if open_element(ctx, id, config) {
-		defer close_element(ctx)
-		if simple_body_proc != nil {
-			simple_body_proc(ctx, user_idx)
-		}
-	}
-}
-
-container_data_only :: proc(
-	ctx: ^Context,
-	id: string,
-	config: Element_Config,
-	user_data: rawptr,
-	data_body_proc: Data_Body_Proc = nil,
-) {
-	if open_element(ctx, id, config) {
-		defer close_element(ctx)
-		if data_body_proc != nil {
-			data_body_proc(ctx, user_data)
-		}
-	}
-}
-
-container_new :: proc(
+container_data :: proc(
 	ctx: ^Context,
 	id: string,
 	config: Element_Config,

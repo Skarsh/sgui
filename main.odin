@@ -532,7 +532,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 
 	ui.begin(&app_state.ctx)
 
-	ui.container_new(
+	ui.container(
 		&app_state.ctx,
 		"parent",
 		{
@@ -549,7 +549,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 		proc(ctx: ^ui.Context, data: ^User_Data) {
 			for item, idx in data.items {
 				data.idx = idx
-				ui.container_new(
+				ui.container(
 					ctx,
 					item,
 					{
@@ -564,7 +564,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {
-						ui.container_new(
+						ui.container(
 							ctx,
 							strconv.itoa(data.buf[:], data.idx),
 							{
