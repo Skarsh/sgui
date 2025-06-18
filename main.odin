@@ -525,12 +525,14 @@ build_complex_ui :: proc(app_state: ^App_State) {
 	User_Data :: struct {
 		items: [5]string,
 		buf:   [32]u8,
+		idx:   int,
 	}
 
-	user_data := User_Data{item_texts, buf}
+	user_data := User_Data{item_texts, buf, 0}
 
 	ui.begin(&app_state.ctx)
-	ui.container(
+
+	ui.container_new(
 		&app_state.ctx,
 		"parent",
 		{
@@ -543,11 +545,11 @@ build_complex_ui :: proc(app_state: ^App_State) {
 			},
 			color = {102, 51, 153, 255},
 		},
-		rawptr(&user_data),
-		proc(ctx: ^ui.Context, user_data: rawptr) {
-			cast_user_data := cast(^User_Data)user_data
-			for item, idx in cast_user_data.items {
-				ui.container(
+		&user_data,
+		proc(ctx: ^ui.Context, data: ^User_Data) {
+			for item, idx in data.items {
+				data.idx = idx
+				ui.container_new(
 					ctx,
 					item,
 					{
@@ -560,28 +562,21 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						},
 						color = {255, 125, 172, 255},
 					},
-					idx,
-					user_data,
-					proc(ctx: ^ui.Context, idx: int, user_data: rawptr) {
-						cast_user_data := cast(^User_Data)user_data
-						ui.container(
+					data,
+					proc(ctx: ^ui.Context, data: ^User_Data) {
+						ui.container_new(
 							ctx,
-							strconv.itoa(cast_user_data.buf[:], idx),
+							strconv.itoa(data.buf[:], data.idx),
 							{
 								layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
 								color = {157, 125, 172, 255},
 							},
-							idx,
-							user_data,
-							proc(ctx: ^ui.Context, idx: int, user_data: rawptr) {
-								cast_user_data := cast(^User_Data)user_data
-								item := cast_user_data.items[idx]
+							data,
+							proc(ctx: ^ui.Context, data: ^User_Data) {
+								item := data.items[data.idx]
 								ui.text(
 									ctx,
-									strconv.itoa(
-										cast_user_data.buf[:],
-										len(cast_user_data.items) + idx,
-									),
+									strconv.itoa(data.buf[:], len(data.items) + data.idx),
 									{data = item},
 								)
 							},
@@ -592,6 +587,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 		},
 	)
 	ui.end(&app_state.ctx)
+
 }
 
 process_input :: proc(app_state: ^App_State) {

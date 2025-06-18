@@ -271,6 +271,21 @@ container_data_only :: proc(
 	}
 }
 
+container_new :: proc(
+	ctx: ^Context,
+	id: string,
+	config: Element_Config,
+	data: ^$T = nil,
+	body: proc(ctx: ^Context, data: ^T) = nil,
+) {
+	if open_element(ctx, id, config) {
+		defer close_element(ctx)
+		if body != nil {
+			body(ctx, data)
+		}
+	}
+}
+
 text :: proc(ctx: ^Context, id: string, config: Text_Element_Config) {
 	if open_text_element(ctx, id, config) {
 		close_element(ctx)
