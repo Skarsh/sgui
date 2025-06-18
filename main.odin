@@ -159,8 +159,8 @@ main :: proc() {
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
 		//build_simple_text_ui(&app_state)
-		build_grow_ui(&app_state)
-		//build_complex_ui(&app_state)
+		//build_grow_ui(&app_state)
+		build_complex_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -465,65 +465,8 @@ build_complex_ui :: proc(app_state: ^App_State) {
 
 	buf: [32]u8
 
-	ui.begin(&app_state.ctx)
-	ui.open_element(
-		&app_state.ctx,
-		"parent",
-		{
-			layout = {
-				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
-				padding = {16, 16, 16, 16},
-				layout_direction = .Top_To_Bottom,
-				alignment_x = .Center,
-				child_gap = 16,
-			},
-			color = {102, 51, 153, 255},
-		},
-	)
-	{
-		for item, idx in item_texts {
-			ui.open_element(
-				&app_state.ctx,
-				item,
-				{
-					layout = {
-						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
-						padding = {32, 32, 16, 16},
-						child_gap = 32,
-						alignment_x = .Center,
-						alignment_y = .Center,
-					},
-					color = {255, 125, 172, 255},
-				},
-			)
-			{
-				ui.open_element(
-					&app_state.ctx,
-					strconv.itoa(buf[:], idx),
-					{
-						layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
-						color = {157, 125, 172, 255},
-					},
-				)
-				{
-					ui.open_text_element(
-						&app_state.ctx,
-						strconv.itoa(buf[:], len(item_texts) + idx),
-						{data = item},
-					)
-					ui.close_element(&app_state.ctx)
-				}
-				ui.close_element(&app_state.ctx)
-			}
-			ui.close_element(&app_state.ctx)
-		}
-
-	}
-	ui.close_element(&app_state.ctx)
-	ui.end(&app_state.ctx)
-
 	//ui.begin(&app_state.ctx)
-	//ui.container(
+	//ui.open_element(
 	//	&app_state.ctx,
 	//	"parent",
 	//	{
@@ -536,45 +479,119 @@ build_complex_ui :: proc(app_state: ^App_State) {
 	//		},
 	//		color = {102, 51, 153, 255},
 	//	},
-	//	proc(ctx: ^ui.Context) {
-	//		for item, idx in item_texts {
-	//			ui.container(
-	//				ctx,
-	//				item,
-	//				&app_state.ctx,
-	//				item,
-	//				{
-	//					layout = {
-	//						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
-	//						padding = {32, 32, 16, 16},
-	//						child_gap = 32,
-	//						alignment_x = .Center,
-	//						alignment_y = .Center,
-	//					},
-	//					color = {255, 125, 172, 255},
+	//)
+	//{
+	//	for item, idx in item_texts {
+	//		ui.open_element(
+	//			&app_state.ctx,
+	//			item,
+	//			{
+	//				layout = {
+	//					sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
+	//					padding = {32, 32, 16, 16},
+	//					child_gap = 32,
+	//					alignment_x = .Center,
+	//					alignment_y = .Center,
 	//				},
-	//				proc(ctx, id, _) {
-	//					ui.container(
-	//						ctx,
-	//						strconv.itoa(buf[:], idx),
-	//						{
-	//							layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
-	//							color = {157, 125, 172, 255},
-	//						},
-	//						proc(ctx: ^ui.Context, ) {
-	//							ui.text(
-	//								ctx,
-	//								strconv.itoa(buf[:], len(item_texts) + idx),
-	//								{data = item},
-	//							)
-	//						},
-	//					)
+	//				color = {255, 125, 172, 255},
+	//			},
+	//		)
+	//		{
+	//			ui.open_element(
+	//				&app_state.ctx,
+	//				strconv.itoa(buf[:], idx),
+	//				{
+	//					layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
+	//					color = {157, 125, 172, 255},
 	//				},
 	//			)
+	//			{
+	//				ui.open_text_element(
+	//					&app_state.ctx,
+	//					strconv.itoa(buf[:], len(item_texts) + idx),
+	//					{data = item},
+	//				)
+	//				ui.close_element(&app_state.ctx)
+	//			}
+	//			ui.close_element(&app_state.ctx)
 	//		}
-	//	},
-	//)
+	//		ui.close_element(&app_state.ctx)
+	//	}
+
+	//}
+	//ui.close_element(&app_state.ctx)
 	//ui.end(&app_state.ctx)
+
+	User_Data :: struct {
+		items: [5]string,
+		buf:   [32]u8,
+	}
+
+	user_data := User_Data{item_texts, buf}
+
+	ui.begin(&app_state.ctx)
+	ui.container(
+		&app_state.ctx,
+		"parent",
+		{
+			layout = {
+				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
+				padding = {16, 16, 16, 16},
+				layout_direction = .Top_To_Bottom,
+				alignment_x = .Center,
+				child_gap = 16,
+			},
+			color = {102, 51, 153, 255},
+		},
+		rawptr(&user_data),
+		proc(ctx: ^ui.Context, user_data: rawptr) {
+			cast_user_data := cast(^User_Data)user_data
+			for item, idx in cast_user_data.items {
+				ui.container(
+					ctx,
+					item,
+					{
+						layout = {
+							sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
+							padding = {32, 32, 16, 16},
+							child_gap = 32,
+							alignment_x = .Center,
+							alignment_y = .Center,
+						},
+						color = {255, 125, 172, 255},
+					},
+					idx,
+					user_data,
+					proc(ctx: ^ui.Context, idx: int, user_data: rawptr) {
+						cast_user_data := cast(^User_Data)user_data
+						ui.container(
+							ctx,
+							strconv.itoa(cast_user_data.buf[:], idx),
+							{
+								layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
+								color = {157, 125, 172, 255},
+							},
+							idx,
+							user_data,
+							proc(ctx: ^ui.Context, idx: int, user_data: rawptr) {
+								cast_user_data := cast(^User_Data)user_data
+								item := cast_user_data.items[idx]
+								ui.text(
+									ctx,
+									strconv.itoa(
+										cast_user_data.buf[:],
+										len(cast_user_data.items) + idx,
+									),
+									{data = item},
+								)
+							},
+						)
+					},
+				)
+			}
+		},
+	)
+	ui.end(&app_state.ctx)
 }
 
 process_input :: proc(app_state: ^App_State) {
