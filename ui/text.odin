@@ -275,6 +275,7 @@ mock_measure_glyph_proc :: proc(
 	return Glyph_Metrics{width = width, left_bearing = left_bearing}
 }
 
+@(test)
 test_tokenize_text :: proc(t: ^testing.T) {
 	ctx := Context{}
 
@@ -286,8 +287,8 @@ test_tokenize_text :: proc(t: ^testing.T) {
 	defer free_all(context.temp_allocator)
 	tokenize_text(&ctx, text, 0, &tokens)
 	expected_tokens := []Text_Token {
-		Text_Token{start = 0, length = 3, width = 5 * MOCK_CHAR_WIDTH, kind = .Word},
-		Text_Token{start = 4, length = 2, width = 0, kind = .Newline},
+		Text_Token{start = 0, length = 5, width = 5 * MOCK_CHAR_WIDTH, kind = .Word},
+		Text_Token{start = 5, length = 1, width = 0, kind = .Newline},
 	}
 	expect_tokens(t, tokens[:], expected_tokens)
 
