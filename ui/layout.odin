@@ -1461,3 +1461,113 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 		container_2_element.position.y + container_2_element.size.y + panel_child_gap,
 	)
 }
+
+@(test)
+test_grow_sizing_with_mixed_elements_in_space_deficit :: proc(t: ^testing.T) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+	ctx := test_env.ctx
+
+	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	// Define layout properties
+	panel_size := Vec2{100, 100}
+	panel_padding := Padding {
+		left   = 10,
+		right  = 10,
+		top    = 10,
+		bottom = 10,
+	}
+	panel_child_gap: f32 = 5
+
+	text_1_min_width: f32 = 20
+	grow_box_min_width: f32 = 10
+	text_2_min_width: f32 = 15
+
+	// The panel is intentionally small.
+	// Natural width of children: 50 (text1) + 40 (text2) + 0 (grow_box) = 90
+	// Gaps: 5 * 2 = 10. Total needed: 100
+	// Panel inner width: 100 - 10 - 10 = 80. This is a deficit scenario.
+	// Which means that text_1 and text_2 has to shrink to accomodate for
+	// the grow box min width
+	begin(&ctx)
+	open_element(
+		&ctx,
+		"panel",
+		Element_Config {
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = panel_size.x},
+					{kind = .Fixed, value = panel_size.y},
+				},
+				layout_direction = .Left_To_Right,
+				padding = panel_padding,
+				child_gap = panel_child_gap,
+			},
+		},
+	)
+	{
+		text(&ctx, "text_1", Text_Element_Config{data = "First", min_width = text_1_min_width})
+
+		container_empty(
+			&ctx,
+			"grow_box",
+			Element_Config {
+				layout = {
+					sizing = {{kind = .Grow, min_value = grow_box_min_width}, {kind = .Grow}},
+				},
+			},
+		)
+
+		text(&ctx, "text_2", Text_Element_Config{data = "Last", min_width = text_2_min_width})
+	}
+	close_element(&ctx)
+	end(&ctx)
+
+	panel_element := find_element_by_id(ctx.root_element, "panel")
+	text_1_element := find_element_by_id(ctx.root_element, "text_1")
+	grow_box_element := find_element_by_id(ctx.root_element, "grow_box")
+	text_2_element := find_element_by_id(ctx.root_element, "text_2")
+
+	testing.expect(t, panel_element != nil, "Panel not found")
+	testing.expect(t, text_1_element != nil, "Text 1 not found")
+	testing.expect(t, grow_box_element != nil, "Grow box not found")
+	testing.expect(t, text_2_element != nil, "Text 2 not found")
+
+	// --- Calculate Expected Values ---
+	// Panel inner width = 100 (total) - 10 (pad_left) - 10 (pad_right) = 80
+	// Total gaps = 5 * 2 = 10
+	// Space available for children content = 80 - 10 = 70
+	available_width: f32 = 70
+
+	// Total minimum width = 20 (text_1) + 10 (grow_box) + 15 (text_2) = 45
+	total_min_width := text_1_min_width + grow_box_min_width + text_2_min_width
+
+	// Flexible space to distribute = 70 (available) - 45 (total_min) = 25
+	flexible_space := available_width - total_min_width
+
+	// Each of the 3 growable elements gets an equal share of the flexible space.
+	share_of_flexible_space := flexible_space / 3.0
+
+	// Expected widths are the minimum plus the shared flexible space.
+	expected_text_1_width := text_1_min_width + share_of_flexible_space
+	expected_grow_box_width := grow_box_min_width + share_of_flexible_space
+	expected_text_2_width := text_2_min_width + share_of_flexible_space
+
+	// Expected Y size (secondary axis grows to fill parent's inner height)
+	expected_child_height := panel_size.y - panel_padding.top - panel_padding.bottom
+
+	// --- Assert Sizes ---
+	expect_element_size(t, text_1_element, {expected_text_1_width, expected_child_height})
+	expect_element_size(t, grow_box_element, {expected_grow_box_width, expected_child_height})
+	expect_element_size(t, text_2_element, {expected_text_2_width, expected_child_height})
+
+	// --- Assert Positions ---
+	expected_text_1_pos := Vec2{panel_padding.left, panel_padding.top}
+	expected_grow_box_pos_x := expected_text_1_pos.x + expected_text_1_width + panel_child_gap
+	expected_text_2_pos_x := expected_grow_box_pos_x + expected_grow_box_width + panel_child_gap
+
+	expect_element_pos(t, text_1_element, expected_text_1_pos)
+	expect_element_pos(t, grow_box_element, {expected_grow_box_pos_x, panel_padding.top})
+	expect_element_pos(t, text_2_element, {expected_text_2_pos_x, panel_padding.top})
+}
