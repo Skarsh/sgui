@@ -142,7 +142,6 @@ layout_lines :: proc(
 	// and numerical instability won't be an issue.
 	EPSILON :: 0.001
 
-	just_processed_newline := false
 	for token, i in tokens {
 		switch token.kind {
 		case .Newline:
@@ -152,8 +151,6 @@ layout_lines :: proc(
 			line_start_token = i + 1
 			line_end_token = i + 1
 			line_width = 0
-			just_processed_newline = true
-
 		case .Word:
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
@@ -198,7 +195,7 @@ layout_lines :: proc(
 		}
 	}
 
-	if len(tokens) > line_end_token && just_processed_newline == false {
+	if line_start_token < len(tokens) {
 		line_end_token = len(tokens) - 1
 		flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
 	}
@@ -426,7 +423,7 @@ test_layout_lines_word_after_newline :: proc(t: ^testing.T) {
 		},
 		Text_Line {
 			text = "World",
-			start = 0,
+			start = 6,
 			length = 5,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
