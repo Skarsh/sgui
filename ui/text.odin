@@ -32,134 +32,62 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 		return
 	}
 
-	clear_dynamic_array(tokens)
-
-	byte_pos := 0
-	for byte_pos < len(text) {
-		start_pos := byte_pos
-		c := text[byte_pos]
-		switch c {
-		case ' ', '\t':
-			// Collect whitespace
-			for byte_pos < len(text) && (text[byte_pos] == ' ' || text[byte_pos] == '\t') {
-				byte_pos += 1
-			}
-			// TODO(Thomas): What to do with '\t' when it comes to measuring string width here?
-			length := byte_pos - start_pos
-			width := measure_string_width(ctx, text[start_pos:start_pos + length], font_id)
-			append(
-				tokens,
-				Text_Token{start = start_pos, length = length, width = width, kind = .Whitespace},
-			)
-
-		case '\n':
-			// Single newline
-			byte_pos += 1
-			length := byte_pos - start_pos
-			append(
-				tokens,
-				Text_Token{start = start_pos, length = length, width = 0, kind = .Newline},
-			)
-		case:
-			// Collect words (everything that's not space, tab or newline)
-			for byte_pos < len(text) {
-				b := text[byte_pos]
-				if b == ' ' || b == '\t' || b == '\n' {
-					// We've found a word boundary, so we break
-					break
-				}
-
-				// Handle UTF-8: if high bit set, skip continuation bytes
-				// 0x80 (0b10000000) is the high bit in UTF8, if this is set this means
-				// that we're dealing with a multi-byte non-ascii character.
-				// TODO(Thomas): This probably has some issues with properly dealing with
-				// utf8 multibyte characters. Think about whether we should implement that
-				// ourselves or somehow use Odin std for this.
-				if b >= 0x80 {
-					byte_pos += 1
-					for byte_pos < len(text) {
-						if (text[byte_pos] & 0xC0) != 0x80 {
-							break
-						}
-						byte_pos += 1
-					}
-				} else {
-					byte_pos += 1
-				}
-			}
-			length := byte_pos - start_pos
-			width := measure_string_width(ctx, text[start_pos:start_pos + length], font_id)
-			append(
-				tokens,
-				Text_Token{start = start_pos, length = length, width = width, kind = .Word},
-			)
-		}
-	}
-}
-
-tokenize_text_2 :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynamic]Text_Token) {
-	if len(text) == 0 {
-		return
-	}
-
-	clear_dynamic_array(tokens)
-
-	byte_pos := 0
-	for byte_pos < len(text) {
-		start_pos := byte_pos
-
-		// Decode the first rune of the potential token to determine its kind.
-		// This correctly handles multi-byte UTF-8 characters.
-		r, rune_width := utf8.decode_rune(text[start_pos:])
-		if rune_width == 0 {
-			// End of string or invalid UTF-8 sequence.
-			break
-		}
-
-		// NOTE(Thomas): It's important that the newline check comes first, 
-		// if not it will be eaten by the whitespace check
+	rune_pos := 0
+	start_pos := 0
+	rune_count := strings.rune_count(text)
+	for rune_pos < rune_count {
+		start_pos = rune_pos
+		r := utf8.rune_at_pos(text, rune_pos)
 		if r == '\n' {
-			byte_pos += rune_width
-			length := byte_pos - start_pos
+			rune_pos += 1
+			length := rune_pos - start_pos
 			append(
 				tokens,
 				Text_Token{start = start_pos, length = length, width = 0, kind = .Newline},
 			)
 		} else if unicode.is_space(r) {
-			byte_pos += rune_width
-
-			for byte_pos < len(text) {
-				next_r, next_width := utf8.decode_rune(text[byte_pos:])
-				if next_width == 0 || !unicode.is_space(next_r) || next_r == '\n' {
+			// Continue to eat whitespace until we've hit something that's not a whitespace rune
+			for rune_pos < rune_count {
+				peek_r := utf8.rune_at_pos(text, rune_pos)
+				if peek_r != '\n' && unicode.is_space(peek_r) {
+					rune_pos += 1
+				} else {
 					break
 				}
-				byte_pos += next_width
 			}
-			length := byte_pos - start_pos
 
-			// TODO(Thomas): What to do with '\t' when it comes to measuring string width here? This remains a valid concern.
-			width := measure_string_width(ctx, text[start_pos:byte_pos], font_id)
+			length := rune_pos - start_pos
+
+			// TODO(Thomas): What to do with '\t' when it comes to measuring string width here?
+			token_str, ok := strings.substring(text, start_pos, rune_pos)
+			assert(ok)
+			width := measure_string_width(ctx, token_str, font_id)
+
 			append(
 				tokens,
 				Text_Token{start = start_pos, length = length, width = width, kind = .Whitespace},
 			)
 		} else {
-			byte_pos += rune_width
-			for byte_pos < len(text) {
-				next_r, next_width := utf8.decode_rune(text[byte_pos:])
-				if next_width == 0 || unicode.is_space(next_r) {
+			// We accumulate all other runes that are not newline or whitespace into words
+			for rune_pos < rune_count {
+				peek_r := utf8.rune_at_pos(text, rune_pos)
+				if !unicode.is_space(peek_r) {
+					rune_pos += 1
+				} else {
 					break
 				}
-				byte_pos += next_width
 			}
-			length := byte_pos - start_pos
-			width := measure_string_width(ctx, text[start_pos:byte_pos], font_id)
+
+			length := rune_pos - start_pos
+
+			token_str, ok := strings.substring(text, start_pos, rune_pos)
+			assert(ok)
+			width := measure_string_width(ctx, token_str, font_id)
 			append(
 				tokens,
 				Text_Token{start = start_pos, length = length, width = width, kind = .Word},
 			)
 		}
-
 	}
 }
 
@@ -327,7 +255,7 @@ MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
 
 mock_measure_text_proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text_Metrics {
-	width: f32 = f32(len(text)) * MOCK_CHAR_WIDTH
+	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
 	line_height: f32 = MOCK_LINE_HEIGHT
 
 	return Text_Metrics{width = width, line_height = line_height}
@@ -382,7 +310,24 @@ test_tokenize_text_word_after_newline :: proc(t: ^testing.T) {
 }
 
 @(test)
-text_layout_lines_single_word_no_newline :: proc(t: ^testing.T) {
+test_tokenize_unicode_glyph :: proc(t: ^testing.T) {
+	ctx := Context{}
+
+	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	text := "©"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(&ctx, text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{start = 0, length = 1, width = 1 * MOCK_CHAR_WIDTH, kind = .Word},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+}
+
+@(test)
+test_layout_lines_single_word_no_newline :: proc(t: ^testing.T) {
 	ctx := Context{}
 
 	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
