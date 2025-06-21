@@ -4,6 +4,9 @@
 * Text alignment
 
 ## Bugs
+* A grow element with `min_width` between two text elements does not have its width respected.
+    Write a test that catches this, this looks to be a big flaw in how grow sizing works together
+    with text.
 * Text element width doesn't care if there's a newline. The width of the element should only be as large
     as the widest line in the text.
 
