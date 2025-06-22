@@ -1,6 +1,7 @@
 package ui
 
 import "core:container/small_array"
+import "core:fmt"
 import "core:log"
 import "core:math"
 import "core:mem"
@@ -774,6 +775,92 @@ expect_element_pos :: proc(t: ^testing.T, element: ^UI_Element, expected_pos: Ve
 	testing.expect_value(t, element.position.y, expected_pos.y)
 }
 
+Expected_Element :: struct {
+	id:       string,
+	pos:      Vec2,
+	size:     Vec2,
+	children: []Expected_Element,
+}
+
+run_layout_test :: proc(
+	t: ^testing.T,
+	build_ui: proc(ctx: ^Context, data: ^$T),
+	verify: proc(t: ^testing.T, root: ^UI_Element, data: ^T),
+	data: ^T,
+) {
+	test_env := setup_test_environment()
+	defer cleanup_test_environment(test_env)
+
+	ctx := &test_env.ctx
+
+	set_text_measurement_callbacks(ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	begin(ctx)
+	build_ui(ctx, data)
+	end(ctx)
+
+	verify(t, ctx.root_element, data)
+}
+
+expect_layout :: proc(
+	t: ^testing.T,
+	parent_element: ^UI_Element,
+	expected: Expected_Element,
+	epsilon: f32 = EPSILON,
+) {
+	// Find the actual element in the UI tree corresponding to the expected ID
+	element_to_check := find_element_by_id(parent_element, expected.id)
+
+	// Fail the test if the element doesn't exist
+	if element_to_check == nil {
+		testing.fail_now(t, fmt.tprintf("Element with id '%s' not found in layout", expected.id))
+	}
+
+	// Compare size and position with a small tolerance
+	size_ok := approx_equal_vec2(element_to_check.size, expected.size, epsilon)
+	pos_ok := approx_equal_vec2(element_to_check.position, expected.pos, epsilon)
+
+	if !size_ok {
+		testing.fail_now(
+			t,
+			fmt.tprintf(
+				"Element '%s' has wrong size. Expected %v, got %v",
+				expected.id,
+				expected.size,
+				element_to_check.size,
+			),
+		)
+	}
+
+	if !pos_ok {
+		testing.fail_now(
+			t,
+			fmt.tprintf(
+				"Element '%s' has wrong position. Expected %v, got %v",
+				expected.id,
+				expected.pos,
+				element_to_check.position,
+			),
+		)
+	}
+
+	if len(element_to_check.children) != len(expected.children) {
+		testing.fail_now(
+			t,
+			fmt.tprintf(
+				"Element '%s' has wrong number of children. Expected %d, got %d",
+				expected.id,
+				len(expected.children),
+				len(element_to_check.children),
+			),
+		)
+	}
+
+	for child in expected.children {
+		expect_layout(t, element_to_check, child, epsilon)
+	}
+}
+
 @(test)
 test_fit_container_no_children :: proc(t: ^testing.T) {
 	test_env := setup_test_environment()
@@ -1101,131 +1188,123 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 
 @(test)
 test_grow_sizing_ltr :: proc(t: ^testing.T) {
-	test_env := setup_test_environment()
-	defer cleanup_test_environment(test_env)
-	ctx := test_env.ctx
-
-	panel_padding := Padding {
-		left   = 10,
-		top    = 10,
-		right  = 10,
-		bottom = 10,
-	}
-	panel_child_gap: f32 = 10
-	panel_size := Vec2{600, 400}
-	container_1_size := Vec2{100, 100}
-	container_3_size := Vec2{150, 150}
-	container_2_size := Vec2 {
-		panel_size.x -
-		container_1_size.x -
-		container_3_size.x -
-		2 * panel_child_gap -
-		panel_padding.left -
-		panel_padding.right,
-		panel_size.y - panel_padding.top - panel_padding.bottom,
+	Test_Grow_Sizing_Ltr_Context :: struct {
+		panel_padding:    Padding,
+		panel_child_gap:  f32,
+		panel_size:       Vec2,
+		container_1_size: Vec2,
+		container_3_size: Vec2,
 	}
 
-	begin(&ctx)
+	// --- 1. Define the Test-Specific Context Data ---
+	test_context := Test_Grow_Sizing_Ltr_Context {
+		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		panel_size = {600, 400},
+		container_1_size = {100, 100},
+		container_3_size = {150, 150},
+	}
 
-	open_element(
-		&ctx,
-		"panel",
-		Element_Config {
-			layout = {
-				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
-				},
-				layout_direction = .Left_To_Right,
-				padding = panel_padding,
-				child_gap = 10,
-			},
-		},
-	)
-	{
-		open_element(
-			&ctx,
-			"container_1",
-			Element_Config {
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Grow_Sizing_Ltr_Context) {
+		container(
+			ctx,
+			"panel",
+			{
 				layout = {
 					sizing = {
-						{kind = .Fixed, value = container_1_size.x},
-						{kind = .Fixed, value = container_1_size.y},
+						{kind = .Fixed, value = data.panel_size.x},
+						{kind = .Fixed, value = data.panel_size.y},
+					},
+					layout_direction = .Left_To_Right,
+					padding = data.panel_padding,
+					child_gap = data.panel_child_gap,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Grow_Sizing_Ltr_Context) {
+				container(
+					ctx,
+					"container_1",
+					{
+						layout = {
+							sizing = {
+								{kind = .Fixed, value = data.container_1_size.x},
+								{kind = .Fixed, value = data.container_1_size.y},
+							},
+						},
+					},
+				)
+
+				container(
+					ctx,
+					"container_2",
+					{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
+				)
+
+				container(
+					ctx,
+					"container_3",
+					{
+						layout = {
+							sizing = {
+								{kind = .Fixed, value = data.container_3_size.x},
+								{kind = .Fixed, value = data.container_3_size.y},
+							},
+						},
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Grow_Sizing_Ltr_Context) {
+		inner_panel_w := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		inner_panel_h := data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+
+		total_fixed_w := data.container_1_size.x + data.container_3_size.x
+		total_gap_w := data.panel_child_gap * 2
+		container_2_w := inner_panel_w - total_fixed_w - total_gap_w
+
+		c1_pos_x := data.panel_padding.left
+		c2_pos_x := c1_pos_x + data.container_1_size.x + data.panel_child_gap
+		c3_pos_x := c2_pos_x + container_2_w + data.panel_child_gap
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "panel",
+					pos = {0, 0},
+					size = data.panel_size,
+					children = []Expected_Element {
+						{
+							id = "container_1",
+							pos = {c1_pos_x, data.panel_padding.top},
+							size = data.container_1_size,
+						},
+						{
+							id = "container_2",
+							pos = {c2_pos_x, data.panel_padding.top},
+							size = {container_2_w, inner_panel_h},
+						},
+						{
+							id = "container_3",
+							pos = {c3_pos_x, data.panel_padding.top},
+							size = data.container_3_size,
+						},
 					},
 				},
 			},
-		)
-		close_element(&ctx)
-		open_element(
-			&ctx,
-			"container_2",
-			Element_Config{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
-		)
-		close_element(&ctx)
-		open_element(
-			&ctx,
-			"container_3",
-			Element_Config {
-				layout = {
-					sizing = {
-						{kind = .Fixed, value = container_3_size.x},
-						{kind = .Fixed, value = container_3_size.y},
-					},
-				},
-			},
-		)
-		close_element(&ctx)
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+
 	}
 
-	close_element(&ctx)
-	end(&ctx)
-
-	calculate_positions_and_alignment(ctx.root_element)
-
-	panel_element := find_element_by_id(ctx.root_element, "panel")
-
-	// assert panel size
-	testing.expect_value(t, panel_element.size.x, panel_size.x)
-	testing.expect_value(t, panel_element.size.y, panel_size.y)
-
-	// assert panel positions
-	testing.expect_value(t, panel_element.position.x, 0)
-	testing.expect_value(t, panel_element.position.y, 0)
-
-	// assert container_1 size
-	container_1_element := panel_element.children[0]
-	testing.expect_value(t, container_1_element.size.x, container_1_size.x)
-	testing.expect_value(t, container_1_element.size.y, container_1_size.y)
-
-	// asert container_1 position
-	testing.expect_value(t, container_1_element.position.x, panel_padding.left)
-	testing.expect_value(t, container_1_element.position.y, panel_padding.top)
-
-	// assert container_2 size
-	container_2_element := panel_element.children[1]
-	testing.expect_value(t, container_2_element.size.x, container_2_size.x)
-	testing.expect_value(t, container_2_element.size.y, container_2_size.y)
-
-	// assert container_2 position
-	testing.expect_value(
-		t,
-		container_2_element.position.x,
-		container_1_element.position.x + container_1_element.size.x + panel_child_gap,
-	)
-	testing.expect_value(t, container_2_element.position.y, panel_padding.top)
-
-	// assert container_3 size
-	container_3_element := panel_element.children[2]
-	testing.expect_value(t, container_3_element.size.x, container_3_size.x)
-	testing.expect_value(t, container_3_element.size.y, container_3_size.y)
-
-	// assert container_3 position
-	testing.expect_value(
-		t,
-		container_3_element.position.x,
-		container_2_element.position.x + container_2_element.size.x + panel_child_gap,
-	)
-	testing.expect_value(t, container_3_element.position.y, panel_padding.top)
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_context)
 }
 
 @(test)
