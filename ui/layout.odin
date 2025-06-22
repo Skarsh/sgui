@@ -863,7 +863,7 @@ expect_layout :: proc(
 
 @(test)
 test_fit_container_no_children :: proc(t: ^testing.T) {
-	// --- 1. Define the Test-Specific Context Data ---
+	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
 		panel_padding: Padding,
 	}
@@ -904,7 +904,6 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	// Pass a pointer to our context struct as the user_data.
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
