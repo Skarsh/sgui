@@ -356,9 +356,7 @@ build_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"yellow",
 				{
-					layout = {
-						sizing = {{kind = .Fixed, value = 300}, {kind = .Fixed, value = 300}},
-					},
+					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 300}}},
 					color = ui.Color{255, 255, 0, 255},
 				},
 			)
