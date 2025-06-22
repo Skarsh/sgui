@@ -1419,127 +1419,122 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 
 @(test)
 test_grow_sizing_ttb :: proc(t: ^testing.T) {
-	test_env := setup_test_environment()
-	defer cleanup_test_environment(test_env)
-	ctx := test_env.ctx
 
-	panel_padding := Padding {
-		left   = 10,
-		top    = 10,
-		right  = 10,
-		bottom = 10,
-	}
-	panel_child_gap: f32 = 10
-	panel_size := Vec2{600, 400}
-	container_1_size := Vec2{100, 100}
-	container_3_size := Vec2{150, 150}
-	container_2_size := Vec2 {
-		panel_size.x - panel_padding.left - panel_padding.right,
-		panel_size.y -
-		container_1_size.y -
-		container_3_size.y -
-		2 * panel_child_gap -
-		panel_padding.top -
-		panel_padding.bottom,
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_padding:    Padding,
+		panel_child_gap:  f32,
+		panel_size:       Vec2,
+		container_1_size: Vec2,
+		container_3_size: Vec2,
 	}
 
-	begin(&ctx)
-	open_element(
-		&ctx,
-		"panel",
-		Element_Config {
-			layout = {
-				sizing = {
-					{kind = .Fixed, value = panel_size.x},
-					{kind = .Fixed, value = panel_size.y},
-				},
-				layout_direction = .Top_To_Bottom,
-				padding = panel_padding,
-				child_gap = 10,
-			},
-		},
-	)
-	{
-		open_element(
-			&ctx,
-			"container_1",
-			Element_Config {
+	test_data := Test_Data {
+		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		panel_size = {600, 400},
+		container_1_size = {100, 100},
+		container_3_size = {150, 150},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			{
 				layout = {
 					sizing = {
-						{kind = .Fixed, value = container_1_size.x},
-						{kind = .Fixed, value = container_1_size.y},
+						{kind = .Fixed, value = data.panel_size.x},
+						{kind = .Fixed, value = data.panel_size.y},
+					},
+					layout_direction = .Top_To_Bottom,
+					padding = data.panel_padding,
+					child_gap = 10,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"container_1",
+					{
+						layout = {
+							sizing = {
+								{kind = .Fixed, value = data.container_1_size.x},
+								{kind = .Fixed, value = data.container_1_size.y},
+							},
+						},
+					},
+				)
+				container(
+					ctx,
+					"container_2",
+					{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
+				)
+				container(
+					ctx,
+					"container_3",
+					{
+						layout = {
+							sizing = {
+								{kind = .Fixed, value = data.container_3_size.x},
+								{kind = .Fixed, value = data.container_3_size.y},
+							},
+						},
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+
+		inner_panel_w := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		inner_panel_h := data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+
+		total_fixed_h := data.container_1_size.y + data.container_3_size.y
+		total_gap_h := data.panel_child_gap * 2
+		container_2_h := inner_panel_h - total_fixed_h - total_gap_h
+
+		c1_pos_y := data.panel_padding.top
+		c2_pos_y := c1_pos_y + data.container_1_size.y + data.panel_child_gap
+		c3_pos_y := c2_pos_y + container_2_h + data.panel_child_gap
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "panel",
+					pos = {0, 0},
+					size = data.panel_size,
+					children = []Expected_Element {
+						{
+							id = "container_1",
+							pos = {data.panel_padding.left, c1_pos_y},
+							size = data.container_1_size,
+						},
+						{
+							id = "container_2",
+							pos = {data.panel_padding.left, c2_pos_y},
+							size = {inner_panel_w, container_2_h},
+						},
+						{
+							id = "container_3",
+							pos = {data.panel_padding.left, c3_pos_y},
+							size = data.container_3_size,
+						},
 					},
 				},
 			},
-		)
-		close_element(&ctx)
-		open_element(
-			&ctx,
-			"container_2",
-			Element_Config{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
-		)
-		close_element(&ctx)
-		open_element(
-			&ctx,
-			"container_3",
-			Element_Config {
-				layout = {
-					sizing = {
-						{kind = .Fixed, value = container_3_size.x},
-						{kind = .Fixed, value = container_3_size.y},
-					},
-				},
-			},
-		)
-		close_element(&ctx)
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
 	}
-	close_element(&ctx)
-	end(&ctx)
-	calculate_positions_and_alignment(ctx.root_element)
-	panel_element := find_element_by_id(ctx.root_element, "panel")
 
-	// assert panel size
-	testing.expect_value(t, panel_element.size.x, panel_size.x)
-	testing.expect_value(t, panel_element.size.y, panel_size.y)
-
-	// assert panel positions
-	testing.expect_value(t, panel_element.position.x, 0)
-	testing.expect_value(t, panel_element.position.y, 0)
-
-	// assert container_1 size
-	container_1_element := panel_element.children[0]
-	testing.expect_value(t, container_1_element.size.x, container_1_size.x)
-	testing.expect_value(t, container_1_element.size.y, container_1_size.y)
-
-	// assert container_1 position
-	testing.expect_value(t, container_1_element.position.x, panel_padding.left)
-	testing.expect_value(t, container_1_element.position.y, panel_padding.top)
-
-	// assert container_2 size
-	container_2_element := panel_element.children[1]
-	testing.expect_value(t, container_2_element.size.x, container_2_size.x)
-	testing.expect_value(t, container_2_element.size.y, container_2_size.y)
-
-	// assert container_2 position
-	testing.expect_value(t, container_2_element.position.x, panel_padding.left)
-	testing.expect_value(
-		t,
-		container_2_element.position.y,
-		container_1_element.position.y + container_1_element.size.y + panel_child_gap,
-	)
-
-	// assert container_3 size
-	container_3_element := panel_element.children[2]
-	testing.expect_value(t, container_3_element.size.x, container_3_size.x)
-	testing.expect_value(t, container_3_element.size.y, container_3_size.y)
-
-	// assert container_3 position
-	testing.expect_value(t, container_3_element.position.x, panel_padding.left)
-	testing.expect_value(
-		t,
-		container_3_element.position.y,
-		container_2_element.position.y + container_2_element.size.y + panel_child_gap,
-	)
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
