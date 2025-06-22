@@ -863,47 +863,49 @@ expect_layout :: proc(
 
 @(test)
 test_fit_container_no_children :: proc(t: ^testing.T) {
-	test_env := setup_test_environment()
-	defer cleanup_test_environment(test_env)
-	ctx := test_env.ctx
-
-	panel_padding := Padding {
-		left   = 10,
-		top    = 20,
-		right  = 15,
-		bottom = 25,
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_padding: Padding,
 	}
 
-	begin(&ctx)
-	open_element(
-		&ctx,
-		"empty_panel",
-		Element_Config {
-			layout = {
-				sizing           = {{kind = .Fit}, {kind = .Fit}},
-				layout_direction = .Left_To_Right,
-				padding          = panel_padding,
-				child_gap        = 5, // child_gap is irrelevant with 0 children
+	test_data := Test_Data {
+		panel_padding = Padding{left = 10, top = 20, right = 15, bottom = 25},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"empty_panel",
+			{
+				layout = {
+					sizing           = {{kind = .Fit}, {kind = .Fit}},
+					layout_direction = .Left_To_Right,
+					padding          = data.panel_padding,
+					child_gap        = 5, // child_gap is irrelevant with 0 children
+				},
 			},
-		},
-	)
-	close_element(&ctx)
-	end(&ctx)
-
-	calculate_positions_and_alignment(ctx.root_element)
-
-	panel := find_element_by_id(ctx.root_element, "empty_panel")
-	testing.expect(t, panel != nil, "Panel 'empty_panel' not found")
-
-	// Expected size is just the sum of padding.
-	expected_size := Vec2 {
-		panel_padding.left + panel_padding.right, // 10 + 15 = 25
-		panel_padding.top + panel_padding.bottom, // 20 + 25 = 45
+		)
 	}
-	expect_element_size(t, panel, expected_size)
 
-	// Assuming panel is the first element, its position is (0,0) relative to root/viewport.
-	expect_element_pos(t, panel, {0, 0})
+	// --- 3. Define the Verification Logic --- 
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		size := Vec2 {
+			data.panel_padding.left + data.panel_padding.right,
+			data.panel_padding.top + data.panel_padding.bottom,
+		}
+		pos := Vec2{0, 0}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element{{id = "empty_panel", pos = pos, size = size}},
+		}
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	// Pass a pointer to our context struct as the user_data.
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
