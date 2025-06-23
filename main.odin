@@ -156,11 +156,11 @@ main :: proc() {
 		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(renderer)
 
-		build_ui(&app_state)
+		//build_ui(&app_state)
 		//build_ui_2(&app_state)
 		//build_simple_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		//build_complex_ui(&app_state)
+		build_complex_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -290,6 +290,12 @@ render_draw_commands :: proc(app_state: ^App_State) {
 	#reverse for command in commands {
 		switch val in command {
 		case ui.Command_Rect:
+			// NOTE(Thomas): If it's completely transparent,
+			// we don't have to draw.
+			if val.color.a == 0 {
+				continue
+			}
+
 			rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 			sdl.SetRenderDrawColor(
 				app_state.renderer,
