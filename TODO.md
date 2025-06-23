@@ -4,9 +4,9 @@
 * Text alignment
 
 ## Bugs
-* A grow element with `min_width` between two text elements does not have its width respected.
-    Write a test that catches this, this looks to be a big flaw in how grow sizing works together
-    with text.
+* Currently we will make a newline even if there's a space crossing the "line border".
+    This means that if we split on the space after three in this string, "one two three \nfour five",
+    we'll end up with a completely empty line between "three" and "four" here.
 * Text element width doesn't care if there's a newline. The width of the element should only be as large
     as the widest line in the text.
 
