@@ -184,8 +184,9 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	if element.kind == .Text {
-		for line, idx in element.text_lines {
+	switch content in element.content {
+	case Text_Data:
+		for line, idx in content.lines {
 			draw_text(
 				ctx,
 				element.position.x,
@@ -193,7 +194,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				line.text,
 			)
 		}
-	} else {
+	case Content_None:
 		draw_rect(
 			ctx,
 			Rect {

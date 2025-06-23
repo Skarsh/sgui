@@ -46,9 +46,17 @@ Padding :: struct {
 	bottom: f32,
 }
 
-Element_Kind :: enum {
-	Container,
-	Text,
+Content_None :: struct {
+}
+
+Text_Data :: struct {
+	config: Text_Element_Config,
+	lines:  []Text_Line,
+}
+
+Element_Content :: union {
+	Content_None,
+	Text_Data,
 }
 
 Layout_Config :: struct {
@@ -61,18 +69,16 @@ Layout_Config :: struct {
 }
 
 UI_Element :: struct {
-	parent:      ^UI_Element,
-	id_string:   string,
-	position:    Vec2,
-	min_size:    Vec2,
-	max_size:    Vec2,
-	size:        Vec2,
-	layout:      Layout_Config,
-	children:    [dynamic]^UI_Element,
-	color:       Color,
-	kind:        Element_Kind,
-	text_config: Text_Element_Config,
-	text_lines:  []Text_Line,
+	parent:    ^UI_Element,
+	id_string: string,
+	position:  Vec2,
+	min_size:  Vec2,
+	max_size:  Vec2,
+	size:      Vec2,
+	layout:    Layout_Config,
+	children:  [dynamic]^UI_Element,
+	color:     Color,
+	content:   Element_Content,
 }
 
 Sizing :: struct {
@@ -147,8 +153,10 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 }
 
 open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
-	element, element_ok := make_element(ctx, id, .Container, element_config)
+	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
+
+	element.content = Content_None{}
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -160,7 +168,6 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 	element, element_ok := make_element(
 		ctx,
 		id,
-		.Text,
 		Element_Config {
 			layout = {
 				sizing = {
@@ -183,8 +190,13 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 		},
 	)
 	assert(element_ok)
+	if !element_ok {
+		return false
+	}
 
-	element.text_config = text_config
+	element.content = Text_Data {
+		config = text_config,
+	}
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
@@ -472,15 +484,16 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 
-	if element.kind == .Text {
-		text := element.text_config.data
+	#partial switch &content in element.content {
+	case Text_Data:
+		text := content.config.data
 		tokens := make([dynamic]Text_Token, allocator)
 		tokenize_text(ctx, text, ctx.font_id, &tokens)
 
 		lines := make([dynamic]Text_Line, allocator)
 		layout_lines(ctx, text, tokens[:], element.size.x, &lines)
 
-		element.text_lines = lines[:]
+		content.lines = lines[:]
 		text_height: f32 = 0
 		for line in lines {
 			text_height += line.height
@@ -496,7 +509,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 make_element :: proc(
 	ctx: ^Context,
 	id: string,
-	kind: Element_Kind,
 	element_config: Element_Config,
 ) -> (
 	^UI_Element,
@@ -529,7 +541,6 @@ make_element :: proc(
 	// or which can be cached.
 	// We need to set this fields every frame
 	// TODO(Thomas): Why the heck just not set element.layout = element_config.layout?????
-	element.kind = kind
 	element.layout.sizing = element_config.layout.sizing
 	element.layout.layout_direction = element_config.layout.layout_direction
 	element.layout.padding = element_config.layout.padding
