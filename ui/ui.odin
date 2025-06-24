@@ -186,13 +186,49 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	switch content in element.content {
 	case Text_Data:
-		for line, idx in content.lines {
-			draw_text(
-				ctx,
-				element.position.x,
-				element.position.y + f32(idx) * line.height,
-				line.text,
-			)
+		// Define the content area
+		content_area_x := element.position.x + element.layout.padding.left
+		content_area_y := element.position.y + element.layout.padding.top
+		content_area_w :=
+			element.size.x - element.layout.padding.left - element.layout.padding.right
+		content_area_h :=
+			element.size.y - element.layout.padding.top - element.layout.padding.bottom
+
+		// Calculate the total height of the entire text block
+		total_text_height: f32 = 0
+		for line in content.lines {
+			total_text_height += line.height
+		}
+
+		// Calculate the initial vertical offset for the whole block based on Aligment_Y
+		start_y: f32 = content_area_y
+		switch element.layout.alignment_y {
+		case .Top:
+			// Default, no change
+			start_y = content_area_y
+		case .Center:
+			start_y = content_area_y + (content_area_h - total_text_height) / 2
+		case .Bottom:
+			start_y = content_area_y + (content_area_h - total_text_height)
+		}
+
+		// Iterate through each line and draw it with the correct X and Y
+		current_y := start_y
+
+		for line in content.lines {
+			start_x: f32 = content_area_x
+			switch element.layout.alignment_x {
+			case .Left:
+				// Default, no change
+				start_x = content_area_x
+			case .Center:
+				start_x = content_area_x + (content_area_w - line.width) / 2
+			case .Right:
+				start_x = content_area_x + (content_area_w - line.width)
+			}
+
+			draw_text(ctx, start_x, current_y, line.text)
+			current_y += line.height
 		}
 	case Content_None:
 		draw_rect(

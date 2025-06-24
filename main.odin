@@ -523,7 +523,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 								ui.text(
 									ctx,
 									strconv.itoa(data.buf[:], len(data.items) + data.idx),
-									{data = item},
+									{data = item, alignment_x = .Center, alignment_y = .Center},
 								)
 							},
 						)
