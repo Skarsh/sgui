@@ -498,7 +498,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		for line in lines {
 			text_height += line.height
 		}
-		element.size.y += text_height
+		element.size.y = text_height
 	}
 
 	for child in element.children {
@@ -1643,6 +1643,56 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 						},
 					},
 				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+// TODO(Thomas): Add other tests where we overflow the max sizing within and outside
+// of a fit sizing container.
+@(test)
+test_basic_text_element_sizing :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_padding:   Padding,
+		panel_child_gap: f32,
+		panel_size:      Vec2,
+		text_min_width:  f32,
+		text_max_width:  f32,
+	}
+
+	test_data := Test_Data {
+		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		panel_size = Vec2{140, 100},
+		text_min_width = 50,
+		text_max_width = 100,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		text(
+			ctx,
+			"text",
+			{data = "012345", min_width = data.text_min_width, max_width = data.text_max_width},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		text_width: f32 = 6 * MOCK_CHAR_WIDTH
+		text_height: f32 = MOCK_LINE_HEIGHT
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{id = "text", pos = {0, 0}, size = {text_width, text_height}},
 			},
 		}
 
