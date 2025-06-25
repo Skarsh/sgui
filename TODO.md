@@ -13,11 +13,7 @@
     we'll end up with a completely empty line between "three" and "four" here.
 
 ## Backlog
-
-* Look into simplifying how to declare UI elements. E.g. not having to match open and close manually.
-    Also define layout and styling in a simpler way?
-
-* Review integer types throughout the project. Especially font and text calculation related ones.
+* Clip text that goes out of the element bounds
 
 * Unify Grow and Shrink procedure into a single one.
 
@@ -28,6 +24,4 @@
 * Property testing
     When the API has somewhat stabilized we should add property testing, e.g. generate Layout scenarios and assert properties
     that we know are supposed to be true holds. Examples are parent elements should always be bigger than their children etc.
-
-* Text alignment
 
