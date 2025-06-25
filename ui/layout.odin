@@ -163,8 +163,13 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	return true
 }
 
+// TODO(Thomas): Having min and max values for width in both Element_Config and Text_Element_Config
+// is a source of confusion. At least everything sizing related after opening / creation should use
+// the element sizing, but preferably all of this should be set in one place and then make it
+// obvious which one to use. Or maybe even impossible to use the wrong one.
 open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
 	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
+
 	element, element_ok := make_element(
 		ctx,
 		id,
@@ -175,13 +180,13 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 						kind = .Grow,
 						min_value = text_config.min_width,
 						value = text_metrics.width,
-						max_value = text_config.max_width,
+						max_value = approx_equal(text_config.max_width, 0, 0.001) ? math.F32_MAX : text_config.max_width,
 					},
 					{
 						kind = .Grow,
 						min_value = text_config.min_height,
 						value = text_metrics.line_height,
-						max_value = text_config.max_height,
+						max_value = approx_equal(text_config.max_height, 0, 0.001) ? math.F32_MAX : text_config.max_height,
 					},
 				},
 				alignment_x = text_config.alignment_x,
@@ -498,7 +503,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		for line in lines {
 			text_height += line.height
 		}
-		element.size.y = text_height
+		element.size.y = math.clamp(text_height, element.min_size.y, element.max_size.y)
 	}
 
 	for child in element.children {
@@ -1660,17 +1665,11 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
-		panel_padding:   Padding,
-		panel_child_gap: f32,
-		panel_size:      Vec2,
-		text_min_width:  f32,
-		text_max_width:  f32,
+		text_min_width: f32,
+		text_max_width: f32,
 	}
 
 	test_data := Test_Data {
-		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
-		panel_child_gap = 10,
-		panel_size = Vec2{140, 100},
 		text_min_width = 50,
 		text_max_width = 100,
 	}
@@ -1688,6 +1687,59 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 		text_width: f32 = 6 * MOCK_CHAR_WIDTH
 		text_height: f32 = MOCK_LINE_HEIGHT
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+
+@(test)
+test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		text_min_width:  f32,
+		text_max_width:  f32,
+		text_min_height: f32,
+		text_max_height: f32,
+	}
+
+	test_data := Test_Data {
+		text_min_width  = 50,
+		text_max_width  = 100,
+		text_min_height = 20,
+		text_max_height = 20,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		text(
+			ctx,
+			"text",
+			{
+				data = "01",
+				min_width = data.text_min_width,
+				max_width = data.text_max_width,
+				min_height = data.text_min_height,
+				max_height = data.text_max_height,
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		text_width: f32 = data.text_min_width
+		text_height: f32 = data.text_min_height
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
