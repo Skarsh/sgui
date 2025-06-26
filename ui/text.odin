@@ -587,3 +587,35 @@ test_layout_lines_one_word_matches_max_width_exact :: proc(t: ^testing.T) {
 
 	expect_lines(t, lines[:], expected_lines)
 }
+
+@(test)
+test_layout_lines_one_word_overflows_max_width :: proc(t: ^testing.T) {
+	ctx := Context{}
+
+	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	text := "01234567890"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(&ctx, text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{start = 0, length = 10, width = 10 * MOCK_CHAR_WIDTH, kind = .Word},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+	layout_lines(&ctx, text, tokens[:], 100, &lines)
+
+	expected_lines := []Text_Line {
+		Text_Line {
+			text = "0123456789",
+			start = 0,
+			length = 10,
+			width = 10 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
+	}
+
+	expect_lines(t, lines[:], expected_lines)
+}
