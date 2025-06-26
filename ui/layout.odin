@@ -46,8 +46,7 @@ Padding :: struct {
 	bottom: f32,
 }
 
-Content_None :: struct {
-}
+Content_None :: struct {}
 
 Text_Data :: struct {
 	config: Text_Element_Config,
@@ -170,24 +169,37 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
 	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
 
+	width := text_metrics.width
+	height := text_metrics.line_height
+
+	min_width := text_config.min_width
+	max_width :=
+		approx_equal(text_config.max_width, 0, 0.001) ? math.F32_MAX : text_config.max_width
+
+	if width < min_width {
+		width = min_width
+	} else if width > max_width {
+		width = max_width
+	}
+
+	min_height := text_config.min_height
+	max_height :=
+		approx_equal(text_config.max_height, 0, 0.001) ? math.F32_MAX : text_config.max_height
+
+	if height < min_height {
+		height = min_height
+	} else if height > max_height {
+		height = max_height
+	}
+
 	element, element_ok := make_element(
 		ctx,
 		id,
 		Element_Config {
 			layout = {
 				sizing = {
-					{
-						kind = .Grow,
-						min_value = text_config.min_width,
-						value = text_metrics.width,
-						max_value = approx_equal(text_config.max_width, 0, 0.001) ? math.F32_MAX : text_config.max_width,
-					},
-					{
-						kind = .Grow,
-						min_value = text_config.min_height,
-						value = text_metrics.line_height,
-						max_value = approx_equal(text_config.max_height, 0, 0.001) ? math.F32_MAX : text_config.max_height,
-					},
+					{kind = .Grow, min_value = min_width, value = width, max_value = max_width},
+					{kind = .Grow, min_value = min_height, value = height, max_value = max_height},
 				},
 				alignment_x = text_config.alignment_x,
 				alignment_y = text_config.alignment_y,

@@ -158,9 +158,9 @@ main :: proc() {
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		//build_simple_text_ui(&app_state)
+		build_simple_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		build_complex_ui(&app_state)
+		//build_complex_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -333,6 +333,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 				{
 					data = "one two three four five six seven eight nine ten",
 					min_width = 100,
+					max_width = 150,
 					min_height = 30,
 				},
 			)
