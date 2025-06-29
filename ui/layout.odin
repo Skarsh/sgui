@@ -46,7 +46,8 @@ Padding :: struct {
 	bottom: f32,
 }
 
-Content_None :: struct {}
+Content_None :: struct {
+}
 
 Text_Data :: struct {
 	config: Text_Element_Config,
