@@ -252,7 +252,7 @@ container_data :: proc(
 	ctx: ^Context,
 	id: string,
 	config: Element_Config,
-	data: ^$T = nil,
+	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 ) {
 	if open_element(ctx, id, config) {
