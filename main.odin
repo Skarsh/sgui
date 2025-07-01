@@ -158,7 +158,8 @@ main :: proc() {
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		build_simple_text_ui(&app_state)
+		//build_simple_text_ui(&app_state)
+		build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_complex_ui(&app_state)
 
@@ -335,6 +336,54 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 					min_width = 100,
 					max_width = 150,
 					min_height = 30,
+				},
+			)
+		},
+	)
+	ui.end(&app_state.ctx)
+}
+
+build_nested_text_ui :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
+	ui.container(
+		&app_state.ctx,
+		"parent",
+		{
+			layout = {
+				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
+				padding = {16, 16, 16, 16},
+				layout_direction = .Top_To_Bottom,
+				alignment_x = .Center,
+				child_gap = 16,
+			},
+			color = {102, 51, 153, 255},
+		},
+		proc(ctx: ^ui.Context) {
+			ui.container(
+				ctx,
+				"grow",
+				{
+					layout = {
+						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
+						padding = {32, 32, 16, 16},
+						child_gap = 32,
+						alignment_x = .Left,
+						alignment_y = .Center,
+					},
+					color = {255, 0, 0, 255},
+				},
+				proc(ctx: ^ui.Context) {
+					ui.container(
+						ctx,
+						"fit",
+						{
+							layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
+							color = {157, 125, 172, 255},
+						},
+						proc(ctx: ^ui.Context) {
+							ui.text(ctx, "text", {data = "one two three four"})
+						},
+					)
 				},
 			)
 		},
