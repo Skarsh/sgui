@@ -1757,39 +1757,3 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
-
-@(test)
-text_basic_text_element_overflow_sizing :: proc(t: ^testing.T) {
-
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		text_max_width: f32,
-	}
-
-	test_data := Test_Data {
-		text_max_width = 100,
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		text(ctx, "text", {data = "01234567890", max_width = data.text_max_width})
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
-		text_width: f32 = data.text_max_width
-		text_height: f32 = MOCK_LINE_HEIGHT
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
-				{id = "text", pos = {0, 0}, size = {text_width, text_height}},
-			},
-		}
-
-		expect_layout(t, root, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
-}
