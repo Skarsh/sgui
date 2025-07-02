@@ -68,6 +68,10 @@ Layout_Config :: struct {
 	alignment_y:      Alignment_Y,
 }
 
+Clip_Config :: struct {
+	clip_axes: [2]bool,
+}
+
 UI_Element :: struct {
 	parent:    ^UI_Element,
 	id_string: string,
@@ -89,8 +93,9 @@ Sizing :: struct {
 }
 
 Element_Config :: struct {
-	layout: Layout_Config,
-	color:  Color,
+	layout:           Layout_Config,
+	background_color: Color,
+	clip:             Clip_Config,
 }
 
 Text_Element_Config :: struct {
@@ -567,7 +572,7 @@ make_element :: proc(
 	element.layout.alignment_y = element_config.layout.alignment_y
 	element.position.x = 0
 	element.position.y = 0
-	element.color = element_config.color
+	element.color = element_config.background_color
 
 	element.size.x = element.layout.sizing.x.value
 	element.size.y = element.layout.sizing.y.value

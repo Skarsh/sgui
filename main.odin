@@ -309,6 +309,8 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			sdl.RenderFillRect(app_state.renderer, &rect)
 		case ui.Command_Text:
 			render_text(&app_state.font_atlas, val.str, val.x, val.y)
+		case ui.Command_Push_Scissor:
+		case ui.Command_Pop_Scissor:
 		}
 	}
 }
@@ -325,7 +327,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 				child_gap = 10,
 				layout_direction = .Left_To_Right,
 			},
-			color = ui.Color{0, 0, 255, 255},
+			background_color = ui.Color{0, 0, 255, 255},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(
@@ -356,7 +358,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 				alignment_x = .Center,
 				child_gap = 16,
 			},
-			color = {102, 51, 153, 255},
+			background_color = {102, 51, 153, 255},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
@@ -370,7 +372,8 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 						alignment_x = .Left,
 						alignment_y = .Center,
 					},
-					color = {255, 0, 0, 255},
+					background_color = {255, 0, 0, 255},
+					clip = {{true, false}},
 				},
 				proc(ctx: ^ui.Context) {
 					ui.container(
@@ -378,7 +381,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 						"fit",
 						{
 							layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
-							color = {157, 125, 172, 255},
+							background_color = {157, 125, 172, 255},
 						},
 						proc(ctx: ^ui.Context) {
 							ui.text(ctx, "text", {data = "one two three four"})
@@ -403,7 +406,7 @@ build_ui :: proc(app_state: ^App_State) {
 				child_gap = 10,
 				layout_direction = .Left_To_Right,
 			},
-			color = ui.Color{0, 0, 255, 255},
+			background_color = ui.Color{0, 0, 255, 255},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(ctx, "red", {data = "One Two\nThree Four\n"})
@@ -413,7 +416,7 @@ build_ui :: proc(app_state: ^App_State) {
 				"yellow",
 				{
 					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 300}}},
-					color = ui.Color{255, 255, 0, 255},
+					background_color = ui.Color{255, 255, 0, 255},
 				},
 			)
 			ui.text(
@@ -437,7 +440,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
-			color = ui.Color{255, 255, 255, 255},
+			background_color = ui.Color{255, 255, 255, 255},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
@@ -447,7 +450,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 					layout = {
 						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
 					},
-					color = ui.Color{255, 0, 0, 255},
+					background_color = ui.Color{255, 0, 0, 255},
 				},
 			)
 			ui.container(
@@ -457,7 +460,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 					layout = {
 						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
 					},
-					color = ui.Color{0, 255, 0, 255},
+					background_color = ui.Color{0, 255, 0, 255},
 				},
 			)
 		},
@@ -476,7 +479,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
-			color = ui.Color{255, 255, 255, 255},
+			background_color = ui.Color{255, 255, 255, 255},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
@@ -484,7 +487,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				"child_1",
 				{
 					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 100}}},
-					color = ui.Color{255, 0, 0, 255},
+					background_color = ui.Color{255, 0, 0, 255},
 				},
 			)
 
@@ -495,7 +498,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 					layout = {
 						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
 					},
-					color = ui.Color{0, 255, 0, 255},
+					background_color = ui.Color{0, 255, 0, 255},
 				},
 			)
 
@@ -504,7 +507,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				"child_3",
 				{
 					layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}},
-					color = ui.Color{0, 0, 255, 255},
+					background_color = ui.Color{0, 0, 255, 255},
 				},
 			)
 
@@ -539,7 +542,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 				alignment_x = .Center,
 				child_gap = 16,
 			},
-			color = {102, 51, 153, 255},
+			background_color = {102, 51, 153, 255},
 		},
 		&user_data,
 		proc(ctx: ^ui.Context, data: ^User_Data) {
@@ -556,7 +559,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 							alignment_x = .Center,
 							alignment_y = .Center,
 						},
-						color = {255, 125, 172, 255},
+						background_color = {255, 125, 172, 255},
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {
@@ -565,7 +568,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 							strconv.itoa(data.buf[:], data.idx),
 							{
 								layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
-								color = {157, 125, 172, 255},
+								background_color = {157, 125, 172, 255},
 							},
 							data,
 							proc(ctx: ^ui.Context, data: ^User_Data) {

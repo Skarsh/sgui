@@ -32,6 +32,8 @@ Rect :: struct {
 Command :: union {
 	Command_Rect,
 	Command_Text,
+	Command_Push_Scissor,
+	Command_Pop_Scissor,
 }
 
 Command_Rect :: struct {
@@ -42,6 +44,14 @@ Command_Rect :: struct {
 Command_Text :: struct {
 	x, y: f32,
 	str:  string,
+}
+
+
+Command_Push_Scissor :: struct {
+	rect: Rect,
+}
+
+Command_Pop_Scissor :: struct {
 }
 
 Color_Style :: [Color_Type]Color
@@ -131,7 +141,10 @@ begin :: proc(ctx: ^Context) {
 	root_open_ok := open_element(
 		ctx,
 		"root",
-		{color = Color{128, 128, 128, 255}, layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+		{
+			background_color = Color{128, 128, 128, 255},
+			layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
+		},
 	)
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
