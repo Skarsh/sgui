@@ -205,7 +205,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
-	padding := element.config.layout.padding
 	if clipping_this_element {
 		scissor_rect := Rect {
 			x = i32(element.position.x),
