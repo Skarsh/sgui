@@ -200,12 +200,11 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	switch content in element.content {
 	case Text_Data:
 		// Define the content area
-		content_area_x := element.position.x + element.layout.padding.left
-		content_area_y := element.position.y + element.layout.padding.top
-		content_area_w :=
-			element.size.x - element.layout.padding.left - element.layout.padding.right
-		content_area_h :=
-			element.size.y - element.layout.padding.top - element.layout.padding.bottom
+		padding := element.config.layout.padding
+		content_area_x := element.position.x + padding.left
+		content_area_y := element.position.y + padding.top
+		content_area_w := element.size.x - padding.left - padding.right
+		content_area_h := element.size.y - padding.top - padding.bottom
 
 		// Calculate the total height of the entire text block
 		total_text_height: f32 = 0
@@ -215,7 +214,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		// Calculate the initial vertical offset for the whole block based on Aligment_Y
 		start_y: f32 = content_area_y
-		switch element.layout.alignment_y {
+		switch element.config.layout.alignment_y {
 		case .Top:
 			// Default, no change
 			start_y = content_area_y
@@ -230,7 +229,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		for line in content.lines {
 			start_x: f32 = content_area_x
-			switch element.layout.alignment_x {
+			switch element.config.layout.alignment_x {
 			case .Left:
 				// Default, no change
 				start_x = content_area_x

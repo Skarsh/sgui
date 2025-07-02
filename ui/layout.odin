@@ -79,7 +79,7 @@ UI_Element :: struct {
 	min_size:  Vec2,
 	max_size:  Vec2,
 	size:      Vec2,
-	layout:    Layout_Config,
+	config:    Element_Config,
 	children:  [dynamic]^UI_Element,
 	color:     Color,
 	content:   Element_Content,
@@ -113,13 +113,13 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	if len(element.children) == 0 {
 		return 0
 	} else {
-		return f32(len(element.children) - 1) * element.layout.child_gap
+		return f32(len(element.children) - 1) * element.config.layout.child_gap
 	}
 }
 
 // Size of the element is capped at it's max size.
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
-	padding := element.layout.padding
+	padding := element.config.layout.padding
 	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
 	size: f32 = 0
 
@@ -279,20 +279,20 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		fit_size_axis(child, axis)
 	}
 
-	if element.layout.sizing[axis].kind == .Fit {
+	if element.config.layout.sizing[axis].kind == .Fit {
 		calc_element_fit_size_for_axis(element, axis)
 	}
 }
 
 update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
-	if axis == .X && parent.layout.layout_direction == .Left_To_Right {
+	if axis == .X && parent.config.layout.layout_direction == .Left_To_Right {
 		parent.size.x += element.size.x
 		parent.min_size.x += element.min_size.x
 		parent.size.y = max(element.size.y, parent.size.y)
 		parent.min_size.y = max(element.min_size.y, parent.min_size.y)
 
-	} else if axis == .Y && parent.layout.layout_direction == .Top_To_Bottom {
+	} else if axis == .Y && parent.config.layout.layout_direction == .Top_To_Bottom {
 		parent.size.x = max(element.size.x, parent.size.x)
 		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
 		parent.size.y += element.size.y
@@ -309,8 +309,8 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
-	padding_sum :=
-		axis == .X ? element.layout.padding.left + element.layout.padding.right : element.layout.padding.top + element.layout.padding.bottom
+	padding := element.config.layout.padding
+	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
 
 	remaining_size := element.size[axis] - padding_sum
 	return remaining_size
@@ -319,8 +319,8 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 
 	is_primary_axis :=
-		(axis == .X && element.layout.layout_direction == .Left_To_Right) ||
-		(axis == .Y && element.layout.layout_direction == .Top_To_Bottom)
+		(axis == .X && element.config.layout.layout_direction == .Left_To_Right) ||
+		(axis == .Y && element.config.layout.layout_direction == .Top_To_Bottom)
 
 	return is_primary_axis
 }
@@ -351,7 +351,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if primary_axis {
 		child_gap := calc_child_gap(element^)
 		for child in element.children {
-			size_kind := child.layout.sizing[axis].kind
+			size_kind := child.config.layout.sizing[axis].kind
 
 			if size_kind == .Grow {
 				small_array.push(&growables, child)
@@ -371,7 +371,7 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	} else {
 		// For secondary axis, directly distribute available space
 		for child in element.children {
-			size_kind := child.layout.sizing[axis].kind
+			size_kind := child.config.layout.sizing[axis].kind
 			if size_kind == .Grow {
 				child.size[axis] += (remaining_size - child.size[axis])
 			}
@@ -438,7 +438,7 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if primary_axis {
 		child_gap := calc_child_gap(element^)
 		for child in element.children {
-			size_kind := child.layout.sizing[axis].kind
+			size_kind := child.config.layout.sizing[axis].kind
 			if size_kind == .Grow {
 				// Find the shrinkable elements and
 				// add them to the shrinkables dynamic array
@@ -563,22 +563,17 @@ make_element :: proc(
 	// TODO(Thomas): Prune which of these fields actually has to be set every frame
 	// or which can be cached.
 	// We need to set this fields every frame
-	// TODO(Thomas): Why the heck just not set element.layout = element_config.layout?????
-	element.layout.sizing = element_config.layout.sizing
-	element.layout.layout_direction = element_config.layout.layout_direction
-	element.layout.padding = element_config.layout.padding
-	element.layout.child_gap = element_config.layout.child_gap
-	element.layout.alignment_x = element_config.layout.alignment_x
-	element.layout.alignment_y = element_config.layout.alignment_y
 	element.position.x = 0
 	element.position.y = 0
 	element.color = element_config.background_color
 
-	element.size.x = element.layout.sizing.x.value
-	element.size.y = element.layout.sizing.y.value
+	element.size.x = element_config.layout.sizing.x.value
+	element.size.y = element_config.layout.sizing.y.value
 
 	element.min_size.x = element_config.layout.sizing.x.min_value
 	element.min_size.y = element_config.layout.sizing.y.min_value
+
+	element.config = element_config
 
 	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
 	// the user wants it to just fit whatever, so we set it to f32 max value
@@ -604,10 +599,10 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	parent_child_gap := calc_child_gap(parent^)
 
 	// Calculate content area bounds
-	content_start_x := parent.position.x + parent.layout.padding.left
-	content_start_y := parent.position.y + parent.layout.padding.top
+	content_start_x := parent.position.x + parent.config.layout.padding.left
+	content_start_y := parent.position.y + parent.config.layout.padding.top
 
-	layout_direction := parent.layout.layout_direction
+	layout_direction := parent.config.layout.layout_direction
 	if layout_direction == .Left_To_Right {
 		// Calculate total width used by all children
 		total_children_width: f32 = 0
@@ -616,16 +611,13 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 		}
 
 		// Calculate remaining space after children and gaps
+		padding := parent.config.layout.padding
 		remaining_size_x :=
-			parent.size.x -
-			parent.layout.padding.left -
-			parent.layout.padding.right -
-			parent_child_gap -
-			total_children_width
+			parent.size.x - padding.left - padding.right - parent_child_gap - total_children_width
 
 		// Calculate starting X position based on alignment
 		start_x := content_start_x
-		switch parent.layout.alignment_x {
+		switch parent.config.layout.alignment_x {
 		case .Left:
 			start_x = content_start_x
 		case .Center:
@@ -641,13 +633,9 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 
 			// Y position alignment, in horizontal layout
 			// each child can have different alignment offset on the y axis
-			remaining_size_y :=
-				parent.size.y -
-				parent.layout.padding.top -
-				parent.layout.padding.bottom -
-				child.size.y
+			remaining_size_y := parent.size.y - padding.top - padding.bottom - child.size.y
 
-			switch parent.layout.alignment_y {
+			switch parent.config.layout.alignment_y {
 			case .Top:
 				child.position.y = content_start_y
 			case .Center:
@@ -658,7 +646,7 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 
 			// Move to next child position
 			if i < len(parent.children) - 1 {
-				current_x += child.size.x + parent.layout.child_gap
+				current_x += child.size.x + parent.config.layout.child_gap
 			}
 		}
 
@@ -671,16 +659,13 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 		}
 
 		// Calculate remaining space after children and gaps
+		padding := parent.config.layout.padding
 		remaining_size_y :=
-			parent.size.y -
-			parent.layout.padding.top -
-			parent.layout.padding.bottom -
-			parent_child_gap -
-			total_children_height
+			parent.size.y - padding.top - padding.bottom - parent_child_gap - total_children_height
 
 		// Calculate starting Y position based on alignment
 		start_y := content_start_y
-		switch parent.layout.alignment_y {
+		switch parent.config.layout.alignment_y {
 		case .Top:
 			start_y = content_start_y
 		case .Center:
@@ -696,13 +681,9 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 
 			// X position alignment, in vertical layout
 			// each child can have different alignment offset on the x axis
-			remaining_size_x :=
-				parent.size.x -
-				parent.layout.padding.left -
-				parent.layout.padding.right -
-				child.size.x
+			remaining_size_x := parent.size.x - padding.left - padding.right - child.size.x
 
-			switch parent.layout.alignment_x {
+			switch parent.config.layout.alignment_x {
 			case .Left:
 				child.position.x = content_start_x
 			case .Center:
@@ -713,7 +694,7 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 
 			// Move to next child position
 			if i < len(parent.children) - 1 {
-				current_y += child.size.y + parent.layout.child_gap
+				current_y += child.size.y + parent.config.layout.child_gap
 			}
 		}
 	}
