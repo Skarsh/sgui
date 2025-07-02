@@ -1,7 +1,8 @@
 # TODOs
 
 ## Active
-* Bug squashing text
+* Figure out address sanitizer issue
+* Clipping
 
 ## Bugs
 * In the `build_complex_ui` procedure, if the text is large enough it will completely overflow
@@ -13,8 +14,6 @@
     we'll end up with a completely empty line between "three" and "four" here.
 
 ## Backlog
-* Clip text that goes out of the element bounds
-
 * Unify Grow and Shrink procedure into a single one.
 
 * Upper Bound Limit Recursion
