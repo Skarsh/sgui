@@ -89,7 +89,7 @@ main :: proc() {
 	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
 	defer free_all(frame_arena_allocator)
 
-	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator)
+	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator, {WINDOW_WIDTH, WINDOW_HEIGHT})
 	defer ui.deinit(&ctx)
 
 	font_size: f32 = 48
@@ -127,12 +127,13 @@ main :: proc() {
 
 
 	app_state := App_State {
-		window      = window,
-		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		renderer    = renderer,
-		ctx         = ctx,
-		font_atlas  = font_atlas,
-		running     = true,
+		window        = window,
+		window_size   = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		renderer      = renderer,
+		ctx           = ctx,
+		scissor_stack = make([dynamic]sdl.Rect),
+		font_atlas    = font_atlas,
+		running       = true,
 	}
 	defer deinit_app_state(&app_state)
 
@@ -262,13 +263,15 @@ render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
 }
 
 App_State :: struct {
-	window:      ^sdl.Window,
-	window_size: [2]i32,
-	renderer:    ^sdl.Renderer,
-	ctx:         ui.Context,
-	font_info:   ^stbtt.fontinfo,
-	font_atlas:  Font_Atlas,
-	running:     bool,
+	window:        ^sdl.Window,
+	window_size:   [2]i32,
+	renderer:      ^sdl.Renderer,
+	ctx:           ui.Context,
+	// TODO(Thomas): Figure out how we wanna allocate this.
+	scissor_stack: [dynamic]sdl.Rect,
+	font_info:     ^stbtt.fontinfo,
+	font_atlas:    Font_Atlas,
+	running:       bool,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
@@ -277,6 +280,9 @@ deinit_app_state :: proc(app_state: ^App_State) {
 }
 
 render_draw_commands :: proc(app_state: ^App_State) {
+
+	clear(&app_state.scissor_stack)
+	sdl.RenderSetClipRect(app_state.renderer, nil)
 
 	commands := [ui.COMMAND_STACK_SIZE]ui.Command{}
 
@@ -310,9 +316,29 @@ render_draw_commands :: proc(app_state: ^App_State) {
 		case ui.Command_Text:
 			render_text(&app_state.font_atlas, val.str, val.x, val.y)
 		case ui.Command_Push_Scissor:
+			new_scissor_rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
+
+			if len(app_state.scissor_stack) > 0 {
+				parent_rect := app_state.scissor_stack[len(app_state.scissor_stack) - 1]
+				_ = sdl.IntersectRect(&parent_rect, &new_scissor_rect, &new_scissor_rect)
+			}
+
+			append(&app_state.scissor_stack, new_scissor_rect)
+			sdl.RenderSetClipRect(app_state.renderer, &new_scissor_rect)
+
 		case ui.Command_Pop_Scissor:
+			_ = pop(&app_state.scissor_stack)
+
+			if len(app_state.scissor_stack) > 0 {
+				previous_rect := app_state.scissor_stack[len(app_state.scissor_stack) - 1]
+				sdl.RenderSetClipRect(app_state.renderer, &previous_rect)
+			} else {
+				sdl.RenderSetClipRect(app_state.renderer, nil)
+			}
 		}
 	}
+
+	sdl.RenderSetClipRect(app_state.renderer, nil)
 }
 
 build_simple_text_ui :: proc(app_state: ^App_State) {

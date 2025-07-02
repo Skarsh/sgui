@@ -769,7 +769,7 @@ setup_test_environment :: proc() -> ^Test_Environment {
 	assert(frame_arena_alloc_err == .None)
 	env.frame_arena_allocator = virtual.arena_allocator(&env.frame_arena)
 
-	init(&env.ctx, env.persistent_arena_allocator, env.frame_arena_allocator)
+	init(&env.ctx, env.persistent_arena_allocator, env.frame_arena_allocator, {0, 0})
 
 	return env
 }

@@ -93,6 +93,7 @@ Context :: struct {
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:            f32,
 	font_id:              u16,
+	screen_size:          [2]i32,
 }
 
 set_text_measurement_callbacks :: proc(
@@ -115,10 +116,16 @@ default_color_style := Color_Style {
 	.Base         = {30, 30, 30, 255},
 }
 
-init :: proc(ctx: ^Context, persistent_allocator: mem.Allocator, frame_allocator: mem.Allocator) {
+init :: proc(
+	ctx: ^Context,
+	persistent_allocator: mem.Allocator,
+	frame_allocator: mem.Allocator,
+	screen_size: [2]i32,
+) {
 	ctx^ = {} // zero memory
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
+	ctx.screen_size = screen_size
 
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 }
@@ -197,6 +204,29 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
+	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
+	padding := element.config.layout.padding
+	if clipping_this_element {
+		scissor_rect := Rect {
+			x = i32(element.position.x),
+			y = i32(element.position.y),
+			w = i32(element.size.x),
+			h = i32(element.size.y),
+		}
+
+		if !element.config.clip.clip_axes.x {
+			scissor_rect.x = 0
+			scissor_rect.w = ctx.screen_size.x
+		}
+
+		if !element.config.clip.clip_axes.y {
+			scissor_rect.y = 0
+			scissor_rect.h = ctx.screen_size.y
+		}
+
+		push(&ctx.command_stack, Command_Push_Scissor{rect = scissor_rect})
+	}
+
 	switch content in element.content {
 	case Text_Data:
 		// Define the content area
@@ -257,6 +287,10 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	for child in element.children {
 		draw_element(ctx, child)
+
+		if clipping_this_element {
+			push(&ctx.command_stack, Command_Pop_Scissor{})
+		}
 	}
 
 }
