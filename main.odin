@@ -75,19 +75,16 @@ main :: proc() {
 	arena_err := virtual.arena_init_static(&app_arena, 10 * mem.Megabyte)
 	assert(arena_err == .None)
 	app_arena_allocator := virtual.arena_allocator(&app_arena)
-	defer free_all(app_arena_allocator)
 
 	persistent_arena := virtual.Arena{}
 	arena_err = virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
 	assert(arena_err == .None)
 	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
-	defer free_all(persistent_arena_allocator)
 
 	frame_arena := virtual.Arena{}
 	arena_err = virtual.arena_init_static(&frame_arena, 10 * mem.Kilobyte)
 	assert(arena_err == .None)
 	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
-	defer free_all(frame_arena_allocator)
 
 	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator, {WINDOW_WIDTH, WINDOW_HEIGHT})
 	defer ui.deinit(&ctx)
@@ -131,14 +128,11 @@ main :: proc() {
 		window_size   = {WINDOW_WIDTH, WINDOW_HEIGHT},
 		renderer      = renderer,
 		ctx           = ctx,
-		scissor_stack = make([dynamic]sdl.Rect),
+		scissor_stack = make([dynamic]sdl.Rect, app_arena_allocator),
 		font_atlas    = font_atlas,
 		running       = true,
 	}
 	defer deinit_app_state(&app_state)
-
-	text_tokens := make([dynamic]ui.Text_Token)
-	defer delete(text_tokens)
 
 	now: u32 = 0
 	last: u32 = 0
