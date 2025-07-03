@@ -580,6 +580,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 							alignment_y = .Center,
 						},
 						background_color = {255, 125, 172, 255},
+						clip = {{true, true}},
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {

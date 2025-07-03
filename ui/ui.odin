@@ -204,28 +204,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
-	if clipping_this_element {
-		scissor_rect := Rect {
-			x = i32(element.position.x),
-			y = i32(element.position.y),
-			w = i32(element.size.x),
-			h = i32(element.size.y),
-		}
-
-		if !element.config.clip.clip_axes.x {
-			scissor_rect.x = 0
-			scissor_rect.w = ctx.screen_size.x
-		}
-
-		if !element.config.clip.clip_axes.y {
-			scissor_rect.y = 0
-			scissor_rect.h = ctx.screen_size.y
-		}
-
-		push(&ctx.command_stack, Command_Push_Scissor{rect = scissor_rect})
-	}
-
 	switch content in element.content {
 	case Text_Data:
 		// Define the content area
@@ -284,12 +262,36 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		)
 	}
 
+	// NOTE(Thomas): We don't clip the current element, it's only for its children elements
+	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
+	padding := element.config.layout.padding
+	if clipping_this_element {
+		scissor_rect := Rect {
+			x = i32(element.position.x + padding.left),
+			y = i32(element.position.y + padding.top),
+			w = i32(element.size.x - padding.left - padding.right),
+			h = i32(element.size.y - padding.top - padding.bottom),
+		}
+
+		if !element.config.clip.clip_axes.x {
+			scissor_rect.x = 0
+			scissor_rect.w = ctx.screen_size.x
+		}
+
+		if !element.config.clip.clip_axes.y {
+			scissor_rect.y = 0
+			scissor_rect.h = ctx.screen_size.y
+		}
+
+		push(&ctx.command_stack, Command_Push_Scissor{rect = scissor_rect})
+	}
+
 	for child in element.children {
 		draw_element(ctx, child)
+	}
 
-		if clipping_this_element {
-			push(&ctx.command_stack, Command_Pop_Scissor{})
-		}
+	if clipping_this_element {
+		push(&ctx.command_stack, Command_Pop_Scissor{})
 	}
 
 }
