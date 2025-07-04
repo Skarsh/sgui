@@ -5,8 +5,10 @@ import "core:log"
 import "core:mem"
 import "core:mem/virtual"
 import "core:strconv"
+import "core:strings"
 
 import sdl "vendor:sdl2"
+import sdl_img "vendor:sdl2/image"
 import stbtt "vendor:stb/truetype"
 
 import "ui"
@@ -99,7 +101,7 @@ main :: proc() {
 		font_info = &font_info,
 	}
 
-	if !init_stb_font_ctx(&stb_font_ctx, "data/font.ttf", font_size) {
+	if !init_stb_font_ctx(&stb_font_ctx, "data/fonts/font.ttf", font_size) {
 		log.error("failed to init stb_font")
 		return
 	}
@@ -154,9 +156,9 @@ main :: proc() {
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
 		//build_simple_text_ui(&app_state)
-		build_nested_text_ui(&app_state)
+		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		//build_complex_ui(&app_state)
+		build_complex_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -254,6 +256,21 @@ render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
 
 		sdl.RenderCopy(atlas.renderer, atlas.texture, &src_rect, &dst_rect)
 	}
+}
+
+load_surface_from_image_file :: proc(image_path: string) -> ^sdl.Surface {
+	path := strings.clone_to_cstring(image_path, context.temp_allocator)
+	surface := new(sdl.Surface)
+	surface = sdl_img.Load(path)
+	if surface == nil {
+		log.errorf("Couldn't load %v", image_path)
+	}
+
+	return surface
+}
+
+render_image :: proc(renderer: ^sdl.Renderer, x, y, w, h: f32) {
+
 }
 
 App_State :: struct {

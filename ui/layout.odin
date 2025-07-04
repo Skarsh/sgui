@@ -54,9 +54,16 @@ Text_Data :: struct {
 	lines:  []Text_Line,
 }
 
+Image_Data :: struct {
+	data: rawptr,
+}
+
+// TODO(Thomas): This being a union will become problematic later when we have a Widget / UI element
+// that wants to say draw background texture with text on top. Many other such cases will come too.
 Element_Content :: union {
 	Content_None,
 	Text_Data,
+	Image_Data,
 }
 
 Layout_Config :: struct {

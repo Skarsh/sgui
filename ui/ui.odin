@@ -249,6 +249,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			draw_text(ctx, start_x, current_y, line.text)
 			current_y += line.height
 		}
+	case Image_Data:
 	case Content_None:
 		draw_rect(
 			ctx,
