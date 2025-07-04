@@ -1,8 +1,6 @@
 # TODOs
 
 ## Active
-* Figure out address sanitizer issue
-* Clipping
 
 ## Bugs
 * In the `build_complex_ui` procedure, if the text is large enough it will completely overflow
