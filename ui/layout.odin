@@ -1657,6 +1657,121 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
+@(test)
+test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_padding:      Padding,
+		panel_child_gap:    f32,
+		panel_size:         Vec2,
+		text_1_min_width:   f32,
+		grow_box_min_width: f32,
+		text_2_min_width:   f32,
+	}
+
+	test_data := Test_Data {
+		panel_padding = {left = 10, top = 11, right = 12, bottom = 13},
+		panel_child_gap = 10,
+		panel_size = Vec2{140, 100},
+		text_1_min_width = 10,
+		grow_box_min_width = 5,
+		text_2_min_width = 0,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			{
+				layout = {
+					sizing = {
+						{kind = .Fixed, value = data.panel_size.x},
+						{kind = .Fixed, value = data.panel_size.y},
+					},
+					layout_direction = .Top_To_Bottom,
+					padding = data.panel_padding,
+					child_gap = data.panel_child_gap,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+
+				text(ctx, "text_1", {data = "First", min_width = data.text_1_min_width})
+
+				container(
+					ctx,
+					"grow_box",
+					{
+						layout = {
+							sizing = {
+								{kind = .Grow, min_value = data.grow_box_min_width},
+								{kind = .Grow},
+							},
+						},
+					},
+				)
+
+				text(ctx, "text_2", {data = "Last", min_width = data.text_2_min_width})
+
+			},
+		)
+	}
+
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+
+		available_height :=
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			2 * data.panel_child_gap
+
+		expected_child_width :=
+			data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		expected_child_height := available_height / 3
+
+		c1_pos_y := data.panel_padding.top
+		c2_pos_y := c1_pos_y + expected_child_height + data.panel_child_gap
+		c3_pos_y := c2_pos_y + expected_child_height + data.panel_child_gap
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "panel",
+					pos = {0, 0},
+					size = data.panel_size,
+					children = []Expected_Element {
+						{
+							id = "text_1",
+							pos = {data.panel_padding.left, c1_pos_y},
+							size = {expected_child_width, expected_child_height},
+						},
+						{
+							id = "grow_box",
+							pos = {data.panel_padding.left, c2_pos_y},
+							size = {expected_child_width, expected_child_height},
+						},
+						{
+							id = "text_2",
+							pos = {data.panel_padding.left, c3_pos_y},
+							size = {expected_child_width, expected_child_height},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
 // TODO(Thomas): Add other tests where we overflow the max sizing within and outside
 // of a fit sizing container.
 @(test)
