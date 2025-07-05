@@ -47,8 +47,8 @@ Padding :: struct {
 }
 
 Text_Data :: struct {
-	config: Text_Element_Config,
-	lines:  []Text_Line,
+	text:  string,
+	lines: []Text_Line,
 }
 
 Image_Data :: struct {
@@ -73,6 +73,8 @@ Clip_Config :: struct {
 	clip_axes: [2]bool,
 }
 
+// TODO(Thomas): Redundant data between the Element_Config and fields in this struct
+// e.g. sizes, content etc.
 UI_Element :: struct {
 	parent:    ^UI_Element,
 	id_string: string,
@@ -94,22 +96,11 @@ Sizing :: struct {
 }
 
 Element_Config :: struct {
-	layout:              Layout_Config,
-	background_color:    Color,
-	clip:                Clip_Config,
-	text_element_config: Text_Element_Config,
-	capability_flags:    Capability_Flags,
-}
-
-Text_Element_Config :: struct {
-	data:        string,
-	color:       Color,
-	min_width:   f32,
-	min_height:  f32,
-	max_width:   f32,
-	max_height:  f32,
-	alignment_x: Alignment_X,
-	alignment_y: Alignment_Y,
+	layout:           Layout_Config,
+	background_color: Color,
+	clip:             Clip_Config,
+	capability_flags: Capability_Flags,
+	content:          Element_Content,
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
@@ -169,65 +160,6 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	return true
 }
 
-// TODO(Thomas): Having min and max values for width in both Element_Config and Text_Element_Config
-// is a source of confusion. At least everything sizing related after opening / creation should use
-// the element sizing, but preferably all of this should be set in one place and then make it
-// obvious which one to use. Or maybe even impossible to use the wrong one.
-open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_Config) -> bool {
-	text_metrics := ctx.measure_text_proc(text_config.data, ctx.font_id, ctx.font_user_data)
-
-	width := text_metrics.width
-	height := text_metrics.line_height
-
-	min_width := text_config.min_width
-	max_width :=
-		approx_equal(text_config.max_width, 0, 0.001) ? math.F32_MAX : text_config.max_width
-
-	if width < min_width {
-		width = min_width
-	} else if width > max_width {
-		width = max_width
-	}
-
-	min_height := text_config.min_height
-	max_height :=
-		approx_equal(text_config.max_height, 0, 0.001) ? math.F32_MAX : text_config.max_height
-
-	if height < min_height {
-		height = min_height
-	} else if height > max_height {
-		height = max_height
-	}
-
-	element, element_ok := make_element(
-		ctx,
-		id,
-		Element_Config {
-			layout = {
-				sizing = {
-					{kind = .Grow, min_value = min_width, value = width, max_value = max_width},
-					{kind = .Grow, min_value = min_height, value = height, max_value = max_height},
-				},
-				alignment_x = text_config.alignment_x,
-				alignment_y = text_config.alignment_y,
-			},
-			capability_flags = {.Text},
-		},
-	)
-	assert(element_ok)
-	if !element_ok {
-		return false
-	}
-
-	element.content.text_data = Text_Data {
-		config = text_config,
-	}
-
-	push(&ctx.element_stack, element) or_return
-	ctx.current_parent = element
-	return true
-}
-
 close_element :: proc(ctx: ^Context) {
 	element, ok := pop(&ctx.element_stack)
 	assert(ok)
@@ -270,8 +202,61 @@ container_data :: proc(
 	}
 }
 
-text :: proc(ctx: ^Context, id: string, config: Text_Element_Config) {
-	if open_text_element(ctx, id, config) {
+text :: proc(
+	ctx: ^Context,
+	id: string,
+	text: string,
+	min_width: f32 = 0,
+	min_height: f32 = 0,
+	max_width: f32 = math.F32_MAX,
+	max_height: f32 = math.F32_MAX,
+	alignment_x := Alignment_X.Left,
+	alignment_y := Alignment_Y.Top,
+) {
+	assert(min_width >= 0)
+	assert(min_height >= 0)
+
+	mut_config := Element_Config{}
+	mut_config.capability_flags |= {.Text}
+	mut_config.layout.alignment_x = alignment_x
+	mut_config.layout.alignment_y = alignment_y
+
+	text_metrics := ctx.measure_text_proc(text, ctx.font_id, ctx.font_user_data)
+
+	width := text_metrics.width
+	height := text_metrics.line_height
+
+	if width < min_width {
+		width = min_width
+	} else if width > max_width {
+		width = max_width
+	}
+
+	if height < min_height {
+		height = min_height
+	} else if height > max_height {
+		height = max_height
+	}
+
+	mut_config.layout.sizing.x = {
+		kind      = .Grow,
+		min_value = min_width,
+		value     = width,
+		max_value = max_width,
+	}
+
+	mut_config.layout.sizing.y = {
+		kind      = .Grow,
+		min_value = min_height,
+		value     = height,
+		max_value = max_height,
+	}
+
+	mut_config.content.text_data = Text_Data {
+		text = text,
+	}
+
+	if open_element(ctx, id, mut_config) {
 		close_element(ctx)
 	}
 }
@@ -510,8 +495,7 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 
 	if .Text in element.config.capability_flags {
-
-		text := element.content.text_data.config.data
+		text := element.config.content.text_data.text
 		tokens := make([dynamic]Text_Token, allocator)
 		tokenize_text(ctx, text, ctx.font_id, &tokens)
 
@@ -565,6 +549,9 @@ make_element :: proc(
 	// TODO(Thomas): Prune which of these fields actually has to be set every frame
 	// or which can be cached.
 	// We need to set this fields every frame
+	// TODO(Thomas): Every field that is set from the config here is essentially
+	// redundant. We should probably just set the config and then use that for further
+	// calculations? 
 	element.position.x = 0
 	element.position.y = 0
 	element.color = element_config.background_color
@@ -1584,7 +1571,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 
-				text(ctx, "text_1", {data = "First", min_width = data.text_1_min_width})
+				text(ctx, "text_1", "First", min_width = data.text_1_min_width)
 
 				container(
 					ctx,
@@ -1599,7 +1586,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					},
 				)
 
-				text(ctx, "text_2", {data = "Last", min_width = data.text_2_min_width})
+				text(ctx, "text_2", "Last", min_width = data.text_2_min_width)
 
 			},
 		)
@@ -1700,7 +1687,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 
-				text(ctx, "text_1", {data = "First", min_width = data.text_1_min_width})
+				text(ctx, "text_1", "First", min_width = data.text_1_min_width)
 
 				container(
 					ctx,
@@ -1715,7 +1702,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					},
 				)
 
-				text(ctx, "text_2", {data = "Last", min_width = data.text_2_min_width})
+				text(ctx, "text_2", "Last", min_width = data.text_2_min_width)
 
 			},
 		)
@@ -1795,7 +1782,9 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 		text(
 			ctx,
 			"text",
-			{data = "012345", min_width = data.text_min_width, max_width = data.text_max_width},
+			"012345",
+			min_width = data.text_min_width,
+			max_width = data.text_max_width,
 		)
 	}
 
@@ -1835,11 +1824,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		text(
-			ctx,
-			"text",
-			{data = "01", min_width = data.text_min_width, min_height = data.text_min_height},
-		)
+		text(ctx, "text", "01", min_width = data.text_min_width, min_height = data.text_min_height)
 	}
 
 	// --- 3. Define the Verification Logic ---

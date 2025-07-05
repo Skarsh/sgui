@@ -435,12 +435,10 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			ui.text(
 				ctx,
 				"text",
-				{
-					data = "one two three four five six seven eight nine ten",
-					min_width = 100,
-					max_width = 150,
-					min_height = 30,
-				},
+				"one two three four five six seven eight nine ten",
+				min_width = 100,
+				max_width = 150,
+				min_height = 30,
 			)
 		},
 	)
@@ -489,7 +487,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 							capability_flags = {.Background},
 						},
 						proc(ctx: ^ui.Context) {
-							ui.text(ctx, "text", {data = "one two three four"})
+							ui.text(ctx, "text", "one two three four")
 						},
 					)
 				},
@@ -515,7 +513,7 @@ build_ui :: proc(app_state: ^App_State) {
 			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
-			ui.text(ctx, "red", {data = "One Two\nThree Four\n"})
+			ui.text(ctx, "red", "One Two\nThree Four\n")
 
 			ui.container(
 				ctx,
@@ -529,7 +527,7 @@ build_ui :: proc(app_state: ^App_State) {
 			ui.text(
 				ctx,
 				"light_blue",
-				{data = "Five Six Seven\nEight\n\nNine\nTen Eleven Twelve \nThirteen Fourteen"},
+				"Five Six Seven\nEight\n\nNine\nTen Eleven Twelve \nThirteen Fourteen",
 			)
 		},
 	)
@@ -692,7 +690,9 @@ build_complex_ui :: proc(app_state: ^App_State) {
 								ui.text(
 									ctx,
 									strconv.itoa(data.buf[:], len(data.items) + data.idx),
-									{data = item, alignment_x = .Left, alignment_y = .Center},
+									item,
+									alignment_x = .Left,
+									alignment_y = .Center,
 								)
 							},
 						)
