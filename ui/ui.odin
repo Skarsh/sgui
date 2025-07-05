@@ -32,6 +32,7 @@ Rect :: struct {
 Command :: union {
 	Command_Rect,
 	Command_Text,
+	Command_Image,
 	Command_Push_Scissor,
 	Command_Pop_Scissor,
 }
@@ -46,6 +47,10 @@ Command_Text :: struct {
 	str:  string,
 }
 
+Command_Image :: struct {
+	x, y, w, h: f32,
+	data:       rawptr,
+}
 
 Command_Push_Scissor :: struct {
 	rect: Rect,
@@ -250,6 +255,14 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			current_y += line.height
 		}
 	case Image_Data:
+		draw_image(
+			ctx,
+			element.position.x,
+			element.position.y,
+			element.size.x,
+			element.size.y,
+			content.data,
+		)
 	case Content_None:
 		draw_rect(
 			ctx,
@@ -309,4 +322,8 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 
 draw_text :: proc(ctx: ^Context, x, y: f32, str: string) {
 	push(&ctx.command_stack, Command_Text{x, y, str})
+}
+
+draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
+	push(&ctx.command_stack, Command_Image{x, y, w, h, data})
 }

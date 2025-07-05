@@ -124,15 +124,21 @@ main :: proc() {
 	)
 	defer deinit_font_atlas(&font_atlas)
 
+	render_ctx := Render_Context {
+		renderer      = renderer,
+		textures      = make([dynamic]Texture_Asset, app_arena_allocator),
+		scissor_stack = make([dynamic]sdl.Rect, app_arena_allocator),
+	}
+
+	init_resources(&render_ctx)
 
 	app_state := App_State {
-		window        = window,
-		window_size   = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		renderer      = renderer,
-		ctx           = ctx,
-		scissor_stack = make([dynamic]sdl.Rect, app_arena_allocator),
-		font_atlas    = font_atlas,
-		running       = true,
+		window      = window,
+		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		ctx         = ctx,
+		render_ctx  = render_ctx,
+		font_atlas  = font_atlas,
+		running     = true,
 	}
 	defer deinit_app_state(&app_state)
 
@@ -258,42 +264,99 @@ render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
 	}
 }
 
-load_surface_from_image_file :: proc(image_path: string) -> ^sdl.Surface {
+init_resources :: proc(ctx: ^Render_Context) -> bool {
+	logo_surface, logo_ok := load_surface_from_image_file(
+		"./data/textures/skarsh_logo_192x192.png",
+	)
+	if !logo_ok {
+		return false
+	}
+
+	tex := sdl.CreateTextureFromSurface(ctx.renderer, logo_surface)
+	if tex == nil {
+		log.error("Failed to crate texture from surface")
+		return false
+	}
+
+	logo := Texture_Asset {
+		tex   = tex,
+		w     = logo_surface.w,
+		h     = logo_surface.h,
+		scale = 1.0,
+		pivot = {0.5, 0.5},
+	}
+
+	sdl.FreeSurface(logo_surface)
+
+	append(&ctx.textures, logo)
+
+	return true
+}
+
+load_surface_from_image_file :: proc(image_path: string) -> (^sdl.Surface, bool) {
 	path := strings.clone_to_cstring(image_path, context.temp_allocator)
 	surface := new(sdl.Surface)
 	surface = sdl_img.Load(path)
 	if surface == nil {
 		log.errorf("Couldn't load %v", image_path)
+		return nil, false
 	}
 
-	return surface
+	return surface, true
 }
 
-render_image :: proc(renderer: ^sdl.Renderer, x, y, w, h: f32) {
+render_image :: proc(ctx: ^Render_Context, x, y, w, h: f32) {
+	tex := ctx.textures[0]
+	r := sdl.Rect {
+		x = i32(x),
+		y = i32(y),
+		w = i32(w),
+		h = i32(w),
+	}
+	sdl.RenderCopy(ctx.renderer, tex.tex, nil, &r)
+}
 
+Texture_Asset :: struct {
+	tex:   ^sdl.Texture,
+	w:     i32,
+	h:     i32,
+	scale: f32,
+	pivot: struct {
+		x: f32,
+		y: f32,
+	},
+}
+
+Render_Context :: struct {
+	renderer:      ^sdl.Renderer,
+	textures:      [dynamic]Texture_Asset,
+	scissor_stack: [dynamic]sdl.Rect,
+}
+
+deinit_render_ctx :: proc(ctx: ^Render_Context) {
+	sdl.DestroyRenderer(ctx.renderer)
 }
 
 App_State :: struct {
-	window:        ^sdl.Window,
-	window_size:   [2]i32,
-	renderer:      ^sdl.Renderer,
-	ctx:           ui.Context,
+	window:      ^sdl.Window,
+	window_size: [2]i32,
+	ctx:         ui.Context,
+	render_ctx:  Render_Context,
 	// TODO(Thomas): Figure out how we wanna allocate this.
-	scissor_stack: [dynamic]sdl.Rect,
-	font_info:     ^stbtt.fontinfo,
-	font_atlas:    Font_Atlas,
-	running:       bool,
+	font_info:   ^stbtt.fontinfo,
+	font_atlas:  Font_Atlas,
+	running:     bool,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
-	sdl.DestroyRenderer(app_state.renderer)
 	sdl.DestroyWindow(app_state.window)
 }
 
 render_draw_commands :: proc(app_state: ^App_State) {
 
-	clear(&app_state.scissor_stack)
-	sdl.RenderSetClipRect(app_state.renderer, nil)
+	render_ctx := &app_state.render_ctx
+	clear(&render_ctx.scissor_stack)
+	sdl.RenderSetClipRect(render_ctx.renderer, nil)
 
 	commands := [ui.COMMAND_STACK_SIZE]ui.Command{}
 
@@ -316,40 +379,42 @@ render_draw_commands :: proc(app_state: ^App_State) {
 
 			rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 			sdl.SetRenderDrawColor(
-				app_state.renderer,
+				render_ctx.renderer,
 				val.color.r,
 				val.color.g,
 				val.color.b,
 				val.color.a,
 			)
-			sdl.RenderDrawRect(app_state.renderer, &rect)
-			sdl.RenderFillRect(app_state.renderer, &rect)
+			sdl.RenderDrawRect(render_ctx.renderer, &rect)
+			sdl.RenderFillRect(render_ctx.renderer, &rect)
 		case ui.Command_Text:
 			render_text(&app_state.font_atlas, val.str, val.x, val.y)
+		case ui.Command_Image:
+			render_image(&app_state.render_ctx, val.x, val.y, val.w, val.h)
 		case ui.Command_Push_Scissor:
 			new_scissor_rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 
-			if len(app_state.scissor_stack) > 0 {
-				parent_rect := app_state.scissor_stack[len(app_state.scissor_stack) - 1]
+			if len(render_ctx.scissor_stack) > 0 {
+				parent_rect := render_ctx.scissor_stack[len(render_ctx.scissor_stack) - 1]
 				_ = sdl.IntersectRect(&parent_rect, &new_scissor_rect, &new_scissor_rect)
 			}
 
-			append(&app_state.scissor_stack, new_scissor_rect)
-			sdl.RenderSetClipRect(app_state.renderer, &new_scissor_rect)
+			append(&render_ctx.scissor_stack, new_scissor_rect)
+			sdl.RenderSetClipRect(render_ctx.renderer, &new_scissor_rect)
 
 		case ui.Command_Pop_Scissor:
-			_ = pop(&app_state.scissor_stack)
+			_ = pop(&render_ctx.scissor_stack)
 
-			if len(app_state.scissor_stack) > 0 {
-				previous_rect := app_state.scissor_stack[len(app_state.scissor_stack) - 1]
-				sdl.RenderSetClipRect(app_state.renderer, &previous_rect)
+			if len(render_ctx.scissor_stack) > 0 {
+				previous_rect := render_ctx.scissor_stack[len(render_ctx.scissor_stack) - 1]
+				sdl.RenderSetClipRect(render_ctx.renderer, &previous_rect)
 			} else {
-				sdl.RenderSetClipRect(app_state.renderer, nil)
+				sdl.RenderSetClipRect(render_ctx.renderer, nil)
 			}
 		}
 	}
 
-	sdl.RenderSetClipRect(app_state.renderer, nil)
+	sdl.RenderSetClipRect(render_ctx.renderer, nil)
 }
 
 build_simple_text_ui :: proc(app_state: ^App_State) {
@@ -555,7 +620,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 
 build_complex_ui :: proc(app_state: ^App_State) {
 
-	item_texts := [5]string{"Copy", "Paste", "Delete", "Layer", "Comment"}
+	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
 
 	buf: [32]u8
 
@@ -593,7 +658,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 							sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
 							padding = {32, 32, 16, 16},
 							child_gap = 32,
-							alignment_x = .Center,
+							alignment_x = .Left,
 							alignment_y = .Center,
 						},
 						background_color = {255, 125, 172, 255},
@@ -601,21 +666,34 @@ build_complex_ui :: proc(app_state: ^App_State) {
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {
+
 						ui.container(
 							ctx,
 							strconv.itoa(data.buf[:], data.idx),
-							{
-								layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
-								background_color = {157, 125, 172, 255},
-							},
+							{layout = {sizing = {{kind = .Grow}, {}}}},
 							data,
 							proc(ctx: ^ui.Context, data: ^User_Data) {
+
 								item := data.items[data.idx]
 								ui.text(
 									ctx,
 									strconv.itoa(data.buf[:], len(data.items) + data.idx),
-									{data = item, alignment_x = .Center, alignment_y = .Center},
+									{data = item, alignment_x = .Left, alignment_y = .Center},
 								)
+							},
+						)
+
+						ui.container(
+							ctx,
+							strconv.itoa(data.buf[:], len(data.items) + data.idx + 13 * 100),
+							{
+								layout = {
+									sizing = {
+										{kind = .Fixed, value = 64},
+										{kind = .Fixed, value = 64},
+									},
+								},
+								image_data = true,
 							},
 						)
 					},

@@ -103,6 +103,7 @@ Element_Config :: struct {
 	layout:           Layout_Config,
 	background_color: Color,
 	clip:             Clip_Config,
+	image_data:       bool,
 }
 
 Text_Element_Config :: struct {
@@ -168,7 +169,12 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
 
-	element.content = Content_None{}
+	// TODO(Thomas): This is completely stupid and is just here for testing image drawing for now
+	if element_config.image_data {
+		element.content = Image_Data{}
+	} else {
+		element.content = Content_None{}
+	}
 
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
