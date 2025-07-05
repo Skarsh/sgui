@@ -295,8 +295,7 @@ init_resources :: proc(ctx: ^Render_Context) -> bool {
 
 load_surface_from_image_file :: proc(image_path: string) -> (^sdl.Surface, bool) {
 	path := strings.clone_to_cstring(image_path, context.temp_allocator)
-	surface := new(sdl.Surface)
-	surface = sdl_img.Load(path)
+	surface := sdl_img.Load(path)
 	if surface == nil {
 		log.errorf("Couldn't load %v", image_path)
 		return nil, false
@@ -430,6 +429,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 				layout_direction = .Left_To_Right,
 			},
 			background_color = ui.Color{0, 0, 255, 255},
+			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(
@@ -461,6 +461,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 				child_gap = 16,
 			},
 			background_color = {102, 51, 153, 255},
+			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
@@ -475,6 +476,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 						alignment_y = .Center,
 					},
 					background_color = {255, 0, 0, 255},
+					capability_flags = {.Background},
 					clip = {{true, false}},
 				},
 				proc(ctx: ^ui.Context) {
@@ -484,6 +486,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 						{
 							layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
 							background_color = {157, 125, 172, 255},
+							capability_flags = {.Background},
 						},
 						proc(ctx: ^ui.Context) {
 							ui.text(ctx, "text", {data = "one two three four"})
@@ -509,6 +512,7 @@ build_ui :: proc(app_state: ^App_State) {
 				layout_direction = .Left_To_Right,
 			},
 			background_color = ui.Color{0, 0, 255, 255},
+			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(ctx, "red", {data = "One Two\nThree Four\n"})
@@ -519,6 +523,7 @@ build_ui :: proc(app_state: ^App_State) {
 				{
 					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 300}}},
 					background_color = ui.Color{255, 255, 0, 255},
+					capability_flags = {.Background},
 				},
 			)
 			ui.text(
@@ -543,6 +548,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 				child_gap = 10,
 			},
 			background_color = ui.Color{255, 255, 255, 255},
+			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
@@ -553,6 +559,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
 					},
 					background_color = ui.Color{255, 0, 0, 255},
+					capability_flags = {.Background},
 				},
 			)
 			ui.container(
@@ -563,6 +570,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
 					},
 					background_color = ui.Color{0, 255, 0, 255},
+					capability_flags = {.Background},
 				},
 			)
 		},
@@ -582,6 +590,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				child_gap = 10,
 			},
 			background_color = ui.Color{255, 255, 255, 255},
+			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
@@ -590,6 +599,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				{
 					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 100}}},
 					background_color = ui.Color{255, 0, 0, 255},
+					capability_flags = {.Background},
 				},
 			)
 
@@ -601,6 +611,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
 					},
 					background_color = ui.Color{0, 255, 0, 255},
+					capability_flags = {.Background},
 				},
 			)
 
@@ -610,6 +621,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				{
 					layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}},
 					background_color = ui.Color{0, 0, 255, 255},
+					capability_flags = {.Background},
 				},
 			)
 
@@ -645,6 +657,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 				child_gap = 16,
 			},
 			background_color = {102, 51, 153, 255},
+			capability_flags = {.Background},
 		},
 		&user_data,
 		proc(ctx: ^ui.Context, data: ^User_Data) {
@@ -663,6 +676,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						},
 						background_color = {255, 125, 172, 255},
 						clip = {{true, true}},
+						capability_flags = {.Background},
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {
@@ -693,7 +707,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 										{kind = .Fixed, value = 64},
 									},
 								},
-								image_data = true,
+								capability_flags = {.Image},
 							},
 						)
 					},

@@ -101,6 +101,14 @@ Context :: struct {
 	screen_size:          [2]i32,
 }
 
+Capability :: enum {
+	Background,
+	Text,
+	Image,
+}
+
+Capability_Flags :: bit_set[Capability]
+
 set_text_measurement_callbacks :: proc(
 	ctx: ^Context,
 	measure_text: Measure_Text_Proc,
@@ -209,8 +217,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	switch content in element.content {
-	case Text_Data:
+	if .Text in element.config.capability_flags {
 		// Define the content area
 		padding := element.config.layout.padding
 		content_area_x := element.position.x + padding.left
@@ -220,7 +227,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		// Calculate the total height of the entire text block
 		total_text_height: f32 = 0
-		for line in content.lines {
+		for line in element.content.text_data.lines {
 			total_text_height += line.height
 		}
 
@@ -239,7 +246,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		// Iterate through each line and draw it with the correct X and Y
 		current_y := start_y
 
-		for line in content.lines {
+		for line in element.content.text_data.lines {
 			start_x: f32 = content_area_x
 			switch element.config.layout.alignment_x {
 			case .Left:
@@ -254,16 +261,20 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			draw_text(ctx, start_x, current_y, line.text)
 			current_y += line.height
 		}
-	case Image_Data:
+	}
+
+	if .Image in element.config.capability_flags {
 		draw_image(
 			ctx,
 			element.position.x,
 			element.position.y,
 			element.size.x,
 			element.size.y,
-			content.data,
+			nil,
 		)
-	case Content_None:
+	}
+
+	if .Background in element.config.capability_flags {
 		draw_rect(
 			ctx,
 			Rect {
@@ -275,6 +286,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			element.color,
 		)
 	}
+
 
 	// NOTE(Thomas): We don't clip the current element, it's only for its children elements
 	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y

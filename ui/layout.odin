@@ -46,9 +46,6 @@ Padding :: struct {
 	bottom: f32,
 }
 
-Content_None :: struct {
-}
-
 Text_Data :: struct {
 	config: Text_Element_Config,
 	lines:  []Text_Line,
@@ -58,12 +55,9 @@ Image_Data :: struct {
 	data: rawptr,
 }
 
-// TODO(Thomas): This being a union will become problematic later when we have a Widget / UI element
-// that wants to say draw background texture with text on top. Many other such cases will come too.
-Element_Content :: union {
-	Content_None,
-	Text_Data,
-	Image_Data,
+Element_Content :: struct {
+	text_data:  Text_Data,
+	image_data: Image_Data,
 }
 
 Layout_Config :: struct {
@@ -87,9 +81,9 @@ UI_Element :: struct {
 	max_size:  Vec2,
 	size:      Vec2,
 	config:    Element_Config,
+	content:   Element_Content,
 	children:  [dynamic]^UI_Element,
 	color:     Color,
-	content:   Element_Content,
 }
 
 Sizing :: struct {
@@ -100,10 +94,11 @@ Sizing :: struct {
 }
 
 Element_Config :: struct {
-	layout:           Layout_Config,
-	background_color: Color,
-	clip:             Clip_Config,
-	image_data:       bool,
+	layout:              Layout_Config,
+	background_color:    Color,
+	clip:                Clip_Config,
+	text_element_config: Text_Element_Config,
+	capability_flags:    Capability_Flags,
 }
 
 Text_Element_Config :: struct {
@@ -169,13 +164,6 @@ open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
 
-	// TODO(Thomas): This is completely stupid and is just here for testing image drawing for now
-	if element_config.image_data {
-		element.content = Image_Data{}
-	} else {
-		element.content = Content_None{}
-	}
-
 	push(&ctx.element_stack, element) or_return
 	ctx.current_parent = element
 	return true
@@ -223,6 +211,7 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 				alignment_x = text_config.alignment_x,
 				alignment_y = text_config.alignment_y,
 			},
+			capability_flags = {.Text},
 		},
 	)
 	assert(element_ok)
@@ -230,7 +219,7 @@ open_text_element :: proc(ctx: ^Context, id: string, text_config: Text_Element_C
 		return false
 	}
 
-	element.content = Text_Data {
+	element.content.text_data = Text_Data {
 		config = text_config,
 	}
 
@@ -520,16 +509,16 @@ shrink_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 
-	#partial switch &content in element.content {
-	case Text_Data:
-		text := content.config.data
+	if .Text in element.config.capability_flags {
+
+		text := element.content.text_data.config.data
 		tokens := make([dynamic]Text_Token, allocator)
 		tokenize_text(ctx, text, ctx.font_id, &tokens)
 
 		lines := make([dynamic]Text_Line, allocator)
 		layout_lines(ctx, text, tokens[:], element.size.x, &lines)
 
-		content.lines = lines[:]
+		element.content.text_data.lines = lines[:]
 		text_height: f32 = 0
 		for line in lines {
 			text_height += line.height
