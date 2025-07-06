@@ -164,7 +164,8 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		build_complex_ui(&app_state)
+		//build_complex_ui(&app_state)
+		build_iterated_texts(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -623,6 +624,29 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				},
 			)
 
+		},
+	)
+	ui.end(&app_state.ctx)
+}
+
+build_iterated_texts :: proc(app_state: ^App_State) {
+	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
+	User_Data :: struct {
+		items: [5]string,
+	}
+
+	data := User_Data{item_texts}
+
+	ui.begin(&app_state.ctx)
+	ui.container(
+		&app_state.ctx,
+		"parent",
+		{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+		&data,
+		proc(ctx: ^ui.Context, data: ^User_Data) {
+			for item in data.items {
+				ui.text(ctx, item, item)
+			}
 		},
 	)
 	ui.end(&app_state.ctx)

@@ -731,6 +731,19 @@ find_element_by_id :: proc(root: ^UI_Element, id: string) -> ^UI_Element {
 	return nil
 }
 
+// Helper to print all the element_ids in the hierarchy
+print_element_hierarchy :: proc(root: ^UI_Element) {
+	if root == nil {
+		return
+	}
+
+	fmt.printfln("%v", root.id_string)
+
+	for child in root.children {
+		print_element_hierarchy(child)
+	}
+}
+
 /////////////////////////////// Testing ///////////////////////////////
 
 Test_Environment :: struct {
