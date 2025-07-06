@@ -164,8 +164,8 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		//build_complex_ui(&app_state)
-		build_iterated_texts(&app_state)
+		build_complex_ui(&app_state)
+		//build_iterated_texts(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -656,15 +656,16 @@ build_complex_ui :: proc(app_state: ^App_State) {
 
 	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
 
-	buf: [32]u8
+	buf: [1024]u8
+	builder := strings.builder_from_bytes(buf[:])
 
 	User_Data :: struct {
-		items: [5]string,
-		buf:   [32]u8,
-		idx:   int,
+		items:   [5]string,
+		idx:     int,
+		builder: strings.Builder,
 	}
 
-	user_data := User_Data{item_texts, buf, 0}
+	user_data := User_Data{item_texts, 0, builder}
 
 	ui.begin(&app_state.ctx)
 	ui.container(
@@ -703,17 +704,20 @@ build_complex_ui :: proc(app_state: ^App_State) {
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {
 
+						strings.write_int(&data.builder, data.idx)
+						id := strings.to_string(data.builder)
 						ui.container(
 							ctx,
-							strconv.itoa(data.buf[:], data.idx),
+							id,
 							{layout = {sizing = {{kind = .Grow}, {}}}},
 							data,
 							proc(ctx: ^ui.Context, data: ^User_Data) {
-
 								item := data.items[data.idx]
+								strings.write_int(&data.builder, len(data.items) + data.idx)
+								text_id := strings.to_string(data.builder)
 								ui.text(
 									ctx,
-									strconv.itoa(data.buf[:], len(data.items) + data.idx),
+									text_id,
 									item,
 									alignment_x = .Left,
 									alignment_y = .Center,
@@ -721,9 +725,11 @@ build_complex_ui :: proc(app_state: ^App_State) {
 							},
 						)
 
+						strings.write_int(&data.builder, len(data.items) + data.idx + 13 * 100)
+						image_id := strings.to_string(data.builder)
 						ui.container(
 							ctx,
-							strconv.itoa(data.buf[:], len(data.items) + data.idx + 13 * 100),
+							image_id,
 							{
 								layout = {
 									sizing = {
