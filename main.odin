@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"
-import "core:strconv"
 import "core:strings"
 
 import sdl "vendor:sdl2"
