@@ -1858,3 +1858,57 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
+@(test)
+test_iterated_texts_layout :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		items: [5]string,
+	}
+
+	test_data := Test_Data {
+		items = {"One", "Two", "Three", "Four", "Five"},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"parent",
+			{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+
+				for item in data.items {
+					text(ctx, item, item)
+				}
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		expected_elements: [5]Expected_Element
+		width_offset: f32 = 0
+		for item, idx in data.items {
+			width := f32(len(item) * MOCK_CHAR_WIDTH)
+			expected_elements[idx] = Expected_Element {
+				id   = item,
+				pos  = {width_offset, 0},
+				size = {width, MOCK_LINE_HEIGHT},
+			}
+
+			width_offset += width
+		}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = expected_elements[:],
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}

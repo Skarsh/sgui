@@ -163,8 +163,8 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		build_complex_ui(&app_state)
-		//build_iterated_texts(&app_state)
+		//build_complex_ui(&app_state)
+		build_iterated_texts(&app_state)
 
 		render_draw_commands(&app_state)
 
