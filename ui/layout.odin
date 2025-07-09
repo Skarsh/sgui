@@ -345,6 +345,11 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 				// The minimum size is non-negotiable and contributes to the used space.
 				// Reset the element's size to its minimum before distribution.
+				// BUG(Thomas): There is a bug here, if you have multiple text element inside a fit container for example,
+				// this will make it so that even if one of the text elements are larger, they will be equally sized
+				// due to the equal distribution of the remaining size. We need to figure out another way of doing this.
+				// The trick is to still keep the effect where if we have 3 growable elements, they should grow
+				// up to the equal size if there is enough remaining size in the parent for that to happen.
 				child.size[axis] = child.min_size[axis]
 				remaining_size -= child.size[axis]
 
