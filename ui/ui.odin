@@ -56,8 +56,7 @@ Command_Push_Scissor :: struct {
 	rect: Rect,
 }
 
-Command_Pop_Scissor :: struct {
-}
+Command_Pop_Scissor :: struct {}
 
 Color_Style :: [Color_Type]Color
 
