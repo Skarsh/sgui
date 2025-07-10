@@ -339,20 +339,9 @@ grow_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		child_gap := calc_child_gap(element^)
 		for child in element.children {
 			size_kind := child.config.layout.sizing[axis].kind
-
 			if size_kind == .Grow {
 				small_array.push(&growables, child)
-
-				// The minimum size is non-negotiable and contributes to the used space.
-				// Reset the element's size to its minimum before distribution.
-				// BUG(Thomas): There is a bug here, if you have multiple text element inside a fit container for example,
-				// this will make it so that even if one of the text elements are larger, they will be equally sized
-				// due to the equal distribution of the remaining size. We need to figure out another way of doing this.
-				// The trick is to still keep the effect where if we have 3 growable elements, they should grow
-				// up to the equal size if there is enough remaining size in the parent for that to happen.
-				child.size[axis] = child.min_size[axis]
 				remaining_size -= child.size[axis]
-
 			} else {
 				// Handles .Fixed and .Fit, which have pre-determined sizes
 				remaining_size -= child.size[axis]
@@ -1564,7 +1553,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	test_data := Test_Data {
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
-		panel_size = Vec2{140, 100},
+		panel_size = Vec2{300, 100},
 		text_1_min_width = 10,
 		grow_box_min_width = 5,
 		text_2_min_width = 0,
@@ -1669,21 +1658,21 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
-		panel_padding:      Padding,
-		panel_child_gap:    f32,
-		panel_size:         Vec2,
-		text_1_min_width:   f32,
-		grow_box_min_width: f32,
-		text_2_min_width:   f32,
+		panel_padding:       Padding,
+		panel_child_gap:     f32,
+		panel_size:          Vec2,
+		text_1_min_height:   f32,
+		grow_box_min_height: f32,
+		text_2_min_height:   f32,
 	}
 
 	test_data := Test_Data {
 		panel_padding = {left = 10, top = 11, right = 12, bottom = 13},
 		panel_child_gap = 10,
-		panel_size = Vec2{140, 100},
-		text_1_min_width = 10,
-		grow_box_min_width = 5,
-		text_2_min_width = 0,
+		panel_size = Vec2{100, 100},
+		text_1_min_height = 10,
+		grow_box_min_height = 5,
+		text_2_min_height = 0,
 	}
 
 	// --- 2. Define the UI Building Logic ---
@@ -1705,7 +1694,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 
-				text(ctx, "text_1", "First", min_width = data.text_1_min_width)
+				text(ctx, "text_1", "First", min_height = data.text_1_min_height)
 
 				container(
 					ctx,
@@ -1713,14 +1702,14 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					{
 						layout = {
 							sizing = {
-								{kind = .Grow, min_value = data.grow_box_min_width},
+								{kind = .Grow, min_value = data.grow_box_min_height},
 								{kind = .Grow},
 							},
 						},
 					},
 				)
 
-				text(ctx, "text_2", "Last", min_width = data.text_2_min_width)
+				text(ctx, "text_2", "Last", min_width = data.text_2_min_height)
 
 			},
 		)

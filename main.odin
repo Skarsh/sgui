@@ -640,7 +640,7 @@ build_iterated_texts :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+		{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}, child_gap = 10}},
 		&data,
 		proc(ctx: ^ui.Context, data: ^User_Data) {
 			for item in data.items {
