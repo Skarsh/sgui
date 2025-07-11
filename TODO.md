@@ -1,7 +1,6 @@
 # TODOs
 
 ## Active
-* When a single long word causes wrap, the next line will have a duplicate of the word on it.
 * Text alignment top causes big gap between top and the text which causes clipping of the text in y-axis
 * Text alignment bottom causes big gap between bottom and the text which causes clipping of the text in y-axis
 
