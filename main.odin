@@ -160,11 +160,12 @@ main :: proc() {
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		build_simple_text_ui(&app_state)
+		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
+		build_alignment_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -744,6 +745,37 @@ build_complex_ui :: proc(app_state: ^App_State) {
 			}
 		},
 	)
+	ui.end(&app_state.ctx)
+}
+
+build_alignment_ui :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
+
+	ui.container(
+		&app_state.ctx,
+		"parent",
+		{
+			layout = {
+				sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+				alignment_x = .Right,
+				alignment_y = .Center,
+			},
+			capability_flags = {.Background},
+			background_color = {0, 0, 0, 255},
+		},
+		proc(ctx: ^ui.Context) {
+			ui.container(
+				ctx,
+				"container",
+				{
+					layout = {sizing = {{kind = .Fixed, value = 50}, {kind = .Fixed, value = 50}}},
+					capability_flags = {.Background},
+					background_color = {255, 0, 0, 255},
+				},
+			)
+		},
+	)
+
 	ui.end(&app_state.ctx)
 }
 

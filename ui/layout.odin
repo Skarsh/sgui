@@ -1906,3 +1906,210 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
+@(test)
+test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		parent_width:     f32,
+		parent_height:    f32,
+		parent_pos:       Vec2,
+		alignment_x:      Alignment_X,
+		alignment_y:      Alignment_Y,
+		container_width:  f32,
+		container_height: f32,
+		container_pos:    Vec2,
+	}
+
+	generate_test_data :: proc(
+		parent_height: f32,
+		parent_width: f32,
+		container_width: f32,
+		container_height: f32,
+		alignment_x: Alignment_X,
+		alignment_y: Alignment_Y,
+	) -> Test_Data {
+
+		container_pos: Vec2
+		switch alignment_x {
+		case .Left:
+			container_pos.x = 0
+		case .Center:
+			container_pos.x = (parent_width / 2) - (container_width / 2)
+		case .Right:
+			container_pos.x = parent_width - container_width
+		}
+
+		switch alignment_y {
+		case .Top:
+			container_pos.y = 0
+		case .Center:
+			container_pos.y = (parent_height / 2) - (container_height / 2)
+		case .Bottom:
+			container_pos.y = parent_height - container_height
+		}
+
+		return Test_Data {
+			parent_width = parent_width,
+			parent_height = parent_height,
+			parent_pos = Vec2{0, 0},
+			alignment_x = alignment_x,
+			alignment_y = alignment_y,
+			container_width = container_width,
+			container_height = container_height,
+			container_pos = container_pos,
+		}
+	}
+
+	parent_width: f32 = 100
+	parent_height: f32 = 100
+	container_width: f32 = 50
+	container_height: f32 = 50
+
+	tests_data := []Test_Data {
+		// Left-Top
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Left,
+			.Top,
+		),
+		// Center-Top
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Center,
+			.Top,
+		),
+		// Right-Top
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Right,
+			.Top,
+		),
+		// Left-Center
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Left,
+			.Center,
+		),
+		// Center-Center
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Center,
+			.Center,
+		),
+		// Right-Center
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Right,
+			.Center,
+		),
+		// Left-Bottom
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Left,
+			.Bottom,
+		),
+		// Center-Bottom
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Center,
+			.Bottom,
+		),
+		// Right-Bottom
+		generate_test_data(
+			parent_width,
+			parent_height,
+			container_width,
+			container_height,
+			.Right,
+			.Bottom,
+		),
+	}
+
+
+	for &test_data in tests_data {
+		// --- 2. Define the UI Building Logic ---
+		build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+			container(
+				ctx,
+				"parent",
+				{
+					layout = {
+						sizing = {
+							{kind = .Fixed, value = data.parent_width},
+							{kind = .Fixed, value = data.parent_height},
+						},
+						alignment_x = data.alignment_x,
+						alignment_y = data.alignment_y,
+					},
+				},
+				data,
+				proc(ctx: ^Context, data: ^Test_Data) {
+					container(
+						ctx,
+						"container",
+						{
+							layout = {
+								sizing = {
+									{kind = .Fixed, value = data.container_width},
+									{kind = .Fixed, value = data.container_height},
+								},
+							},
+						},
+					)
+				},
+			)
+		}
+
+		// --- 3. Define the Verification Logic ---
+		verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+			expected_layout_tree := Expected_Element {
+				id       = "root",
+				children = []Expected_Element {
+					{
+						id = "parent",
+						pos = data.parent_pos,
+						size = {data.parent_width, data.parent_height},
+						children = []Expected_Element {
+							{
+								id = "container",
+								pos = data.container_pos,
+								size = {data.container_width, data.container_height},
+							},
+						},
+					},
+				},
+			}
+
+			expect_layout(t, root, expected_layout_tree.children[0])
+		}
+
+		// --- 4. Run the Test ---
+		run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	}
+}
