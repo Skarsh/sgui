@@ -131,6 +131,7 @@ layout_lines :: proc(
 	lines: ^[dynamic]Text_Line,
 ) {
 
+	line_word_count: i32 = 0
 	line_start_token := 0
 	line_end_token := 0
 	line_width: f32 = 0
@@ -142,12 +143,14 @@ layout_lines :: proc(
 	// and numerical instability won't be an issue.
 	EPSILON :: 0.001
 
+
 	for token, i in tokens {
 		switch token.kind {
 		case .Newline:
 			line_end_token = i
 			flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
 
+			line_word_count = 0
 			line_start_token = i + 1
 			line_end_token = i + 1
 			line_width = 0
@@ -156,20 +159,36 @@ layout_lines :: proc(
 			// and put the word there
 			//NOTE(Thomas): Add epsilon here to make sure that if it should fit on one line it will.
 			if line_width + token.width > max_width + EPSILON {
-				flush_line(
-					ctx,
-					text,
-					line_start_token,
-					line_end_token,
-					line_width,
-					tokens[:],
-					lines,
-				)
+				// NOTE(Thomas): If the line is a single word we use the token.width
+				// instead of the line_width, since line_width would be 0.
+				if line_word_count == 0 {
+					flush_line(
+						ctx,
+						text,
+						line_start_token,
+						line_end_token,
+						token.width,
+						tokens[:],
+						lines,
+					)
+				} else {
+					flush_line(
+						ctx,
+						text,
+						line_start_token,
+						line_end_token,
+						line_width,
+						tokens[:],
+						lines,
+					)
+				}
 
+				line_word_count = 0
 				line_start_token = i
 				line_end_token = i
 				line_width = token.width
 			} else {
+				line_word_count += 1
 				line_width += token.width
 				line_end_token = i
 			}
@@ -185,6 +204,7 @@ layout_lines :: proc(
 					lines,
 				)
 
+				line_word_count = 0
 				line_start_token = i
 				line_end_token = i
 				line_width = token.width
@@ -195,7 +215,7 @@ layout_lines :: proc(
 		}
 	}
 
-	if line_start_token < len(tokens) {
+	if line_start_token < len(tokens) && line_word_count > 0 {
 		line_end_token = len(tokens) - 1
 		flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
 	}
@@ -586,4 +606,44 @@ test_layout_lines_one_word_matches_max_width_exact :: proc(t: ^testing.T) {
 	}
 
 	expect_lines(t, lines[:], expected_lines)
+}
+
+@(test)
+test_layout_lines_single_word_overflows_max_width :: proc(t: ^testing.T) {
+
+	ctx := Context{}
+
+	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	text := "01234567890"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(&ctx, text, 0, &tokens)
+
+
+	max_width: f32 = 100
+	expected_length := 11
+	expected_width: f32 = f32(expected_length * MOCK_CHAR_WIDTH)
+
+	expected_tokens := []Text_Token {
+		Text_Token{start = 0, length = expected_length, width = expected_width, kind = .Word},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+	layout_lines(&ctx, text, tokens[:], max_width, &lines)
+
+	expected_lines := []Text_Line {
+		Text_Line {
+			text = text,
+			start = 0,
+			length = expected_length,
+			width = expected_width,
+			height = MOCK_LINE_HEIGHT,
+		},
+	}
+
+	expect_lines(t, lines[:], expected_lines)
+
 }
