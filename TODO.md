@@ -1,12 +1,10 @@
 # TODOs
 
 ## Active
-
-## Bugs
-* In the `build_complex_ui` procedure, if the text is large enough it will completely overflow
-    both to the left and right.
 * Text element width doesn't care if there's a newline. The width of the element should only be as large
     as the widest line in the text.
+
+## Bugs
 * Currently we will make a newline even if there's a space crossing the "line border".
     This means that if we split on the space after three in this string, "one two three \nfour five",
     we'll end up with a completely empty line between "three" and "four" here.

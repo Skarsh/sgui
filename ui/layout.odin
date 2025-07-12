@@ -1814,6 +1814,41 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+@(test)
+test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		id:   string,
+		text: string,
+	}
+
+	test_data := Test_Data {
+		id   = "text",
+		text = "One\nTwo",
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		text(ctx, data.id, data.text)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		text_width: f32 = 3 * MOCK_CHAR_WIDTH
+		text_height: f32 = 2 * MOCK_LINE_HEIGHT
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{id = data.id, pos = Vec2{0, 0}, size = Vec2{text_width, text_height}},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
 
 @(test)
 test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
