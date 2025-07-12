@@ -709,7 +709,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						ui.container(
 							ctx,
 							id,
-							{layout = {sizing = {{kind = .Grow}, {}}}},
+							{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
 							data,
 							proc(ctx: ^ui.Context, data: ^User_Data) {
 								item := data.items[data.idx]
@@ -757,20 +757,19 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 		{
 			layout = {
 				sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
-				alignment_x = .Right,
-				alignment_y = .Center,
+				padding = {10, 10, 10, 10},
 			},
+			background_color = {255, 125, 172, 255},
+			clip = {{true, true}},
 			capability_flags = {.Background},
-			background_color = {0, 0, 0, 255},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
 				ctx,
-				"container",
-				{
-					layout = {sizing = {{kind = .Fixed, value = 50}, {kind = .Fixed, value = 50}}},
-					capability_flags = {.Background},
-					background_color = {255, 0, 0, 255},
+				"text_container",
+				{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
+				proc(ctx: ^ui.Context) {
+					ui.text(ctx, "text", "Text", alignment_x = .Left, alignment_y = .Center)
 				},
 			)
 		},

@@ -34,8 +34,8 @@ Layout_Direction :: enum {
 }
 
 Size_Kind :: enum {
-	Fixed,
 	Fit,
+	Fixed,
 	Grow,
 }
 
