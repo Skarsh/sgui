@@ -1,8 +1,6 @@
 # TODOs
 
 ## Active
-* Text element width doesn't care if there's a newline. The width of the element should only be as large
-    as the widest line in the text.
 
 ## Bugs
 * Currently we will make a newline even if there's a space crossing the "line border".
