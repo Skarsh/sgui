@@ -221,10 +221,38 @@ text :: proc(
 	mut_config.layout.alignment_x = alignment_x
 	mut_config.layout.alignment_y = alignment_y
 
-	text_metrics := ctx.measure_text_proc(text, ctx.font_id, ctx.font_user_data)
+	// NOTE(Thomas): We need to pre-calculate the line widths to make
+	// sure that the element gets a reasonable preferred sizing.
+	// We do this by doing the same line layout calculation we do in 
+	// `wrap_text`, but we pass in a very large `max_width`, so we
+	// will only split the lines based on `\n`.
+	// We need to do this before we're doing any proper sizing calculations
+	// so we're not screwing with that.
+	// TODO(Thomas): Cache the tokenization, we don't have to redo
+	// this for the `wrap_text` procedure.
+	// TODO(Thomas): Calculate a reasonable min_size for the text element too.
+	// Something like the smallest word in the tokens would make sense.
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
 
-	width := text_metrics.width
-	height := text_metrics.line_height
+	tokenize_text(ctx, text, ctx.font_id, &tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines)
+
+	largest_line_width: f32 = 0
+	text_height: f32 = 0
+	for line in lines {
+		if line.width > largest_line_width {
+			largest_line_width = line.width
+		}
+		text_height += line.height
+	}
+
+	width := largest_line_width
+	height := text_height
 
 	if width < min_width {
 		width = min_width
