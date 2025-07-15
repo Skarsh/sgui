@@ -187,10 +187,8 @@ end :: proc(ctx: ^Context) {
 
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
-	// Grow sizing widths
-	grow_child_elements_for_axis(ctx.root_element, .X)
-	// Shrink sizing widths
-	shrink_child_elements_for_axis(ctx.root_element, .X)
+	// Resize widths
+	resize_child_elements_for_axis(ctx.root_element, .X)
 
 	// Wrap text
 	wrap_text(ctx, ctx.root_element, context.temp_allocator)
@@ -199,10 +197,8 @@ end :: proc(ctx: ^Context) {
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)
 
-	// Grow sizing heights
-	grow_child_elements_for_axis(ctx.root_element, .Y)
-	// Shrink sizing heights
-	shrink_child_elements_for_axis(ctx.root_element, .Y)
+	// Resize heights
+	resize_child_elements_for_axis(ctx.root_element, .Y)
 
 	calculate_positions_and_alignment(ctx.root_element)
 
