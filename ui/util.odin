@@ -111,3 +111,19 @@ test_approx_equal_neg_1_and_neg_1 :: proc(t: ^testing.T) {
 	epsilon: f32 = 0.001
 	testing.expect_value(t, approx_equal(a, b, epsilon), true)
 }
+
+@(test)
+test_approx_equal_neg_1_and_neg_0999 :: proc(t: ^testing.T) {
+	a: f32 = -1
+	b: f32 = -0.999
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), true)
+}
+
+@(test)
+test_approx_equal_neg_1_and_neg_0998 :: proc(t: ^testing.T) {
+	a: f32 = -1
+	b: f32 = -0.998
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), false)
+}
