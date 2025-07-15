@@ -34,18 +34,6 @@ point_in_rect :: proc(p: Vector2i32, rect: Rect) -> bool {
 		return false
 	}
 	return true
-
-}
-
-@(require_results)
-intersect_rect :: proc(ctx: Context, rect: Rect) -> bool {
-	if ctx.input.mouse_pos.x < rect.x ||
-	   ctx.input.mouse_pos.y < rect.y ||
-	   ctx.input.mouse_pos.x >= rect.x + rect.w ||
-	   ctx.input.mouse_pos.y >= rect.y + rect.h {
-		return false
-	}
-	return true
 }
 
 @(require_results)
