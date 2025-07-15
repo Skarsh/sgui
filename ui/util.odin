@@ -1,6 +1,7 @@
 package ui
 
 import "core:math"
+import "core:testing"
 
 UI_Key :: struct {
 	hash: u64,
@@ -69,4 +70,44 @@ approx_equal :: proc(a: f32, b: f32, epsilon: f32) -> bool {
 @(require_results)
 approx_equal_vec2 :: proc(a: Vec2, b: Vec2, epsilon: f32) -> bool {
 	return approx_equal(a.x, b.x, epsilon) && approx_equal(a.y, b.y, epsilon)
+}
+
+@(test)
+test_approx_equal_0_and_0 :: proc(t: ^testing.T) {
+	a: f32 = 0
+	b: f32 = 0
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), true)
+}
+
+@(test)
+test_approx_equal_0_and_1 :: proc(t: ^testing.T) {
+	a: f32 = 0
+	b: f32 = 1
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), false)
+}
+
+@(test)
+test_approx_equal_neg_1_and_0 :: proc(t: ^testing.T) {
+	a: f32 = -1
+	b: f32 = 0
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), false)
+}
+
+@(test)
+test_approx_equal_neg_1_and_1 :: proc(t: ^testing.T) {
+	a: f32 = -1
+	b: f32 = 1
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), false)
+}
+
+@(test)
+test_approx_equal_neg_1_and_neg_1 :: proc(t: ^testing.T) {
+	a: f32 = -1
+	b: f32 = -1
+	epsilon: f32 = 0.001
+	testing.expect_value(t, approx_equal(a, b, epsilon), true)
 }
