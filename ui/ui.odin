@@ -1,5 +1,6 @@
 package ui
 
+import "core:log"
 import "core:mem"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
@@ -25,6 +26,7 @@ Color :: struct {
 	r, g, b, a: u8,
 }
 
+// x, y is the upper left corner of the rect
 Rect :: struct {
 	x, y, w, h: i32,
 }
@@ -205,6 +207,35 @@ end :: proc(ctx: ^Context) {
 	draw_all_elements(ctx)
 
 	free_all(ctx.frame_allocator)
+}
+
+handle_input :: proc(ctx: ^Context) {
+	intersection_elements := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	// TODO(Thomas): Two things here:
+	// 1. What is the performance cost of looping
+	// over key,value pairs in a map like this.
+	// 2. Is using the element_cache correct here?
+	for _, element in ctx.element_cache {
+		rect := Rect {
+			i32(element.position.x),
+			i32(element.position.y),
+			i32(element.size.x),
+			i32(element.size.y),
+		}
+
+		if point_in_rect(ctx.input.mouse_pos, rect) {
+			append(&intersection_elements, element)
+		}
+	}
+
+	// Sort the intersection elements based on z-index
+	// to figure out which element is the one we're interacting with.
+
+	for elem in intersection_elements {
+		log.info("elemn.id_string: ", elem.id_string)
+	}
 }
 
 draw_element :: proc(ctx: ^Context, element: ^UI_Element) {

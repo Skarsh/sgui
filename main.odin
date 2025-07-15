@@ -514,7 +514,7 @@ build_ui :: proc(app_state: ^App_State) {
 			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
-			ui.text(ctx, "red", "One Two\nThree Four\n")
+			ui.text(ctx, "text1", "One Two\nThree Four\n")
 
 			ui.container(
 				ctx,
@@ -527,12 +527,13 @@ build_ui :: proc(app_state: ^App_State) {
 			)
 			ui.text(
 				ctx,
-				"light_blue",
+				"text2",
 				"Five Six Seven\nEight\n\nNine\nTen Eleven Twelve \nThirteen Fourteen",
 			)
 		},
 	)
 	ui.end(&app_state.ctx)
+	ui.handle_input(&app_state.ctx)
 }
 
 build_ui_2 :: proc(app_state: ^App_State) {
