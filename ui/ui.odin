@@ -1,5 +1,6 @@
 package ui
 
+import "core:math"
 import "core:mem"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
@@ -95,6 +96,7 @@ Context :: struct {
 	measure_glyph_proc:   Measure_Glyph_Proc,
 	font_user_data:       rawptr,
 	frame_index:          u64,
+	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:            f32,
 	font_id:              u16,
@@ -105,6 +107,8 @@ Capability :: enum {
 	Background,
 	Text,
 	Image,
+	Active_Animation,
+	Hot_Animation,
 }
 
 Capability_Flags :: bit_set[Capability]
@@ -261,23 +265,38 @@ comm_from_element :: proc(ctx: ^Context, element: ^UI_Element) -> Comm {
 		element = element,
 	}
 
+	button_animation_time: f32 = 0.2
+	button_animation_rate_of_change: f32 = (1.0 / button_animation_time) * ctx.dt
+
 	if top_element != nil {
 		// TODO(Thomas): We should probably use the key for this instead
 		// of the id string.
 		if top_element.id_string == element.id_string {
 			// Since we're already intersecting, we're hovering too
 			comm.hovering = true
+			// TODO(Thomas): Animate this properly
+			// Also, is this the right place to do this?
+			element.hot += button_animation_rate_of_change
 
 			if is_mouse_pressed(ctx^, .Left) {
 				comm.clicked = true
+
+				// TODO(Thomas): Animate this properly
+				// Also, is this the right place to do this?
+				element.active = 1.0
 			}
 
 			if is_mouse_down(ctx^, .Left) {
 				comm.held = true
 			}
-
+		} else {
+			element.hot -= button_animation_rate_of_change
 		}
+	} else {
+		element.hot -= button_animation_rate_of_change
 	}
+
+	element.hot = math.clamp(element.hot, 0, 1)
 
 	return comm
 }
@@ -345,16 +364,30 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if .Background in element.config.capability_flags {
-		draw_rect(
-			ctx,
-			Rect {
-				i32(element.position.x),
-				i32(element.position.y),
-				i32(element.size.x),
-				i32(element.size.y),
-			},
-			element.color,
-		)
+		// TODO(Thomas): How to draw this if active??
+		if .Hot_Animation in element.config.capability_flags {
+			draw_rect(
+				ctx,
+				Rect {
+					i32(element.position.x),
+					i32(element.position.y),
+					i32(element.size.x),
+					i32(element.size.y),
+				},
+				lerp_color(element.color, default_color_style[.Hot], element.hot),
+			)
+		} else {
+			draw_rect(
+				ctx,
+				Rect {
+					i32(element.position.x),
+					i32(element.position.y),
+					i32(element.size.x),
+					i32(element.size.y),
+				},
+				element.color,
+			)
+		}
 	}
 
 
@@ -418,7 +451,7 @@ button :: proc(ctx: ^Context, id: string) -> Comm {
 		{
 			layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
 			background_color = {255, 255, 255, 255},
-			capability_flags = {.Background},
+			capability_flags = {.Background, .Active_Animation, .Hot_Animation},
 		},
 	)
 	if open_ok {

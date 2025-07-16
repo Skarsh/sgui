@@ -141,16 +141,20 @@ main :: proc() {
 	}
 	defer deinit_app_state(&app_state)
 
-	now: u32 = 0
-	last: u32 = 0
+	frequency := sdl.GetPerformanceFrequency()
+	now: u64 = 0
+	last: u64 = 0
+	dt: f32 = 0
 	frame_counter := 0
 	for app_state.running {
 		frame_counter += 1
 		last = now
-		now = sdl.GetTicks()
-		elapsed := now - last
+		now = sdl.GetPerformanceCounter()
+		dt = f32(f32(now - last) / f32(frequency))
+		app_state.ctx.dt = dt
+
 		if frame_counter % 100 == 0 {
-			log.infof("elapsed: {}ms", elapsed)
+			log.infof("dt: %.2fms", dt * 1000)
 		}
 		process_input(&app_state)
 
@@ -434,14 +438,8 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 		},
 		proc(ctx: ^ui.Context) {
 			comm1 := ui.button(ctx, "button1")
-			if comm1.hovering {
-				comm1.element.color = {0, 0, 255, 255}
-			}
 
 			comm2 := ui.button(ctx, "button2")
-			if comm2.hovering {
-				comm2.element.color = {255, 0, 0, 255}
-			}
 		},
 	)
 	ui.end(&app_state.ctx)

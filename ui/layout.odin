@@ -87,6 +87,8 @@ UI_Element :: struct {
 	children:  [dynamic]^UI_Element,
 	color:     Color,
 	z_index:   i32,
+	hot:       f32,
+	active:    f32,
 }
 
 Sizing :: struct {
