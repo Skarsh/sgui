@@ -86,6 +86,7 @@ UI_Element :: struct {
 	content:   Element_Content,
 	children:  [dynamic]^UI_Element,
 	color:     Color,
+	z_index:   i32,
 }
 
 Sizing :: struct {
@@ -151,13 +152,24 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 	}
 }
 
-open_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> bool {
+open_element :: proc(
+	ctx: ^Context,
+	id: string,
+	element_config: Element_Config,
+) -> (
+	^UI_Element,
+	bool,
+) {
 	element, element_ok := make_element(ctx, id, element_config)
 	assert(element_ok)
 
-	push(&ctx.element_stack, element) or_return
+	if push(&ctx.element_stack, element) {
+		element.z_index = ctx.element_stack.top
+	} else {
+		return nil, false
+	}
 	ctx.current_parent = element
-	return true
+	return element, true
 }
 
 close_element :: proc(ctx: ^Context) {
@@ -179,7 +191,9 @@ container_empty :: proc(
 	config: Element_Config,
 	empty_body_proc: proc(ctx: ^Context) = nil,
 ) {
-	if open_element(ctx, id, config) {
+	_, open_ok := open_element(ctx, id, config)
+	assert(open_ok)
+	if open_ok {
 		defer close_element(ctx)
 		if empty_body_proc != nil {
 			empty_body_proc(ctx)
@@ -194,7 +208,9 @@ container_data :: proc(
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 ) {
-	if open_element(ctx, id, config) {
+	_, open_ok := open_element(ctx, id, config)
+	assert(open_ok)
+	if open_ok {
 		defer close_element(ctx)
 		if body != nil {
 			body(ctx, data)
@@ -284,7 +300,9 @@ text :: proc(
 		text = text,
 	}
 
-	if open_element(ctx, id, mut_config) {
+	_, open_ok := open_element(ctx, id, mut_config)
+	assert(open_ok)
+	if open_ok {
 		close_element(ctx)
 	}
 }
@@ -543,8 +561,6 @@ make_element :: proc(
 	// TODO(Thomas): Every field that is set from the config here is essentially
 	// redundant. We should probably just set the config and then use that for further
 	// calculations? 
-	element.position.x = 0
-	element.position.y = 0
 	element.color = element_config.background_color
 
 	element.size.x = element_config.layout.sizing.x.value

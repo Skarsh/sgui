@@ -1,6 +1,5 @@
 package ui
 
-import "core:log"
 import "core:mem"
 
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
@@ -110,6 +109,13 @@ Capability :: enum {
 
 Capability_Flags :: bit_set[Capability]
 
+Comm :: struct {
+	element:  ^UI_Element,
+	clicked:  bool,
+	held:     bool,
+	hovering: bool,
+}
+
 set_text_measurement_callbacks :: proc(
 	ctx: ^Context,
 	measure_text: Measure_Text_Proc,
@@ -159,7 +165,7 @@ begin :: proc(ctx: ^Context) {
 	clear(&ctx.command_stack)
 
 	// Open the root element
-	root_open_ok := open_element(
+	_, root_open_ok := open_element(
 		ctx,
 		"root",
 		{
@@ -206,36 +212,74 @@ end :: proc(ctx: ^Context) {
 
 	draw_all_elements(ctx)
 
+	clear_input(ctx)
+
 	free_all(ctx.frame_allocator)
 }
 
-handle_input :: proc(ctx: ^Context) {
-	intersection_elements := make([dynamic]^UI_Element, context.temp_allocator)
+
+// TODO(Thomas): It is very wasteful to recalculate the intersection elements
+// for every element that will call `comm_from_element`. This should probably
+// only be done once, and cached in the Context for the next frame.
+// This is a temporary solution just to see how to code will look like.
+comm_from_element :: proc(ctx: ^Context, element: ^UI_Element) -> Comm {
+	intersection_elements, alloc_err := make([dynamic]^UI_Element, context.temp_allocator)
+	assert(alloc_err == .None)
 	defer free_all(context.temp_allocator)
 
 	// TODO(Thomas): Two things here:
 	// 1. What is the performance cost of looping
 	// over key,value pairs in a map like this.
-	// 2. Is using the element_cache correct here?
-	for _, element in ctx.element_cache {
+	// 2. Will it be an issue using the elements from the cache here?
+	// It should always be up-to-date.
+	for _, elem in ctx.element_cache {
 		rect := Rect {
-			i32(element.position.x),
-			i32(element.position.y),
-			i32(element.size.x),
-			i32(element.size.y),
+			i32(elem.position.x),
+			i32(elem.position.y),
+			i32(elem.size.x),
+			i32(elem.size.y),
 		}
 
 		if point_in_rect(ctx.input.mouse_pos, rect) {
-			append(&intersection_elements, element)
+			append(&intersection_elements, elem)
 		}
 	}
 
-	// Sort the intersection elements based on z-index
-	// to figure out which element is the one we're interacting with.
-
+	// Iterate through the intersection elements and find the one
+	// with the highest z_index
+	top_element: ^UI_Element
+	highest_z_index: i32 = 0
 	for elem in intersection_elements {
-		log.info("elemn.id_string: ", elem.id_string)
+		if elem.z_index > highest_z_index {
+			highest_z_index = elem.z_index
+			top_element = elem
+		}
 	}
+
+
+	comm := Comm {
+		element = element,
+	}
+
+	if top_element != nil {
+		// TODO(Thomas): We should probably use the key for this instead
+		// of the id string.
+		if top_element.id_string == element.id_string {
+			// Since we're already intersecting, we're hovering too
+			comm.hovering = true
+
+			if is_mouse_pressed(ctx^, .Left) {
+				comm.clicked = true
+			}
+
+			if is_mouse_down(ctx^, .Left) {
+				comm.held = true
+			}
+
+		}
+	}
+
+	return comm
 }
 
 draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
@@ -364,4 +408,22 @@ draw_text :: proc(ctx: ^Context, x, y: f32, str: string) {
 
 draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 	push(&ctx.command_stack, Command_Image{x, y, w, h, data})
+}
+
+// TODO(Thomas): Hardcoded layout / styling
+button :: proc(ctx: ^Context, id: string) -> Comm {
+	element, open_ok := open_element(
+		ctx,
+		id,
+		{
+			layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
+			background_color = {255, 255, 255, 255},
+			capability_flags = {.Background},
+		},
+	)
+	if open_ok {
+		close_element(ctx)
+	}
+	comm := comm_from_element(ctx, element)
+	return comm
 }

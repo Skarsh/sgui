@@ -158,7 +158,7 @@ main :: proc() {
 		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 		sdl.RenderClear(renderer)
 
-		build_ui(&app_state)
+		//build_ui(&app_state)
 		//build_ui_2(&app_state)
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
@@ -166,6 +166,7 @@ main :: proc() {
 		//build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
+		build_interactive_button_ui(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -417,6 +418,35 @@ render_draw_commands :: proc(app_state: ^App_State) {
 	sdl.RenderSetClipRect(render_ctx.renderer, nil)
 }
 
+build_interactive_button_ui :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
+	ui.container(
+		&app_state.ctx,
+		"container",
+		{
+			layout = {
+				sizing = {{kind = .Fit}, {kind = .Fit}},
+				padding = {10, 10, 10, 10},
+				child_gap = 10,
+			},
+			background_color = {48, 200, 128, 255},
+			capability_flags = {.Background},
+		},
+		proc(ctx: ^ui.Context) {
+			comm1 := ui.button(ctx, "button1")
+			if comm1.hovering {
+				comm1.element.color = {0, 0, 255, 255}
+			}
+
+			comm2 := ui.button(ctx, "button2")
+			if comm2.hovering {
+				comm2.element.color = {255, 0, 0, 255}
+			}
+		},
+	)
+	ui.end(&app_state.ctx)
+}
+
 build_simple_text_ui :: proc(app_state: ^App_State) {
 	ui.begin(&app_state.ctx)
 	ui.container(
@@ -533,7 +563,6 @@ build_ui :: proc(app_state: ^App_State) {
 		},
 	)
 	ui.end(&app_state.ctx)
-	ui.handle_input(&app_state.ctx)
 }
 
 build_ui_2 :: proc(app_state: ^App_State) {
