@@ -10,6 +10,8 @@
 
 ## Backlog
 * Take window size into consideration, elements should adapt accordingly
+* Styling - Style stacks? At least it needs to be a bit simpler.
+* Make our own Renderer, start with OpenGL
 * Upper Bound Limit Recursion
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
     and recursions.
