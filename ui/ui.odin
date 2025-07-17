@@ -291,9 +291,15 @@ comm_from_element :: proc(ctx: ^Context, element: ^UI_Element) -> Comm {
 			}
 		} else {
 			element.hot -= button_animation_rate_of_change
+			if is_mouse_pressed(ctx^, .Left) {
+				element.active = 0.0
+			}
 		}
 	} else {
 		element.hot -= button_animation_rate_of_change
+		if is_mouse_pressed(ctx^, .Left) {
+			element.active = 0.0
+		}
 	}
 
 	element.hot = math.clamp(element.hot, 0, 1)
@@ -306,7 +312,34 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	if .Text in element.config.capability_flags {
+	cap_flags := element.config.capability_flags
+
+	final_bg_color := element.color
+
+	if .Hot_Animation in cap_flags {
+		hot_color := default_color_style[.Hot]
+		final_bg_color = lerp_color(final_bg_color, hot_color, element.hot)
+	}
+
+	if .Active_Animation in cap_flags {
+		active_color := default_color_style[.Active]
+		final_bg_color = lerp_color(final_bg_color, active_color, element.active)
+	}
+
+	if .Background in element.config.capability_flags {
+		draw_rect(
+			ctx,
+			Rect {
+				i32(element.position.x),
+				i32(element.position.y),
+				i32(element.size.x),
+				i32(element.size.y),
+			},
+			final_bg_color,
+		)
+	}
+
+	if .Text in cap_flags {
 		// Define the content area
 		padding := element.config.layout.padding
 		content_area_x := element.position.x + padding.left
@@ -352,7 +385,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		}
 	}
 
-	if .Image in element.config.capability_flags {
+	if .Image in cap_flags {
 		draw_image(
 			ctx,
 			element.position.x,
@@ -361,33 +394,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			element.size.y,
 			nil,
 		)
-	}
-
-	if .Background in element.config.capability_flags {
-		// TODO(Thomas): How to draw this if active??
-		if .Hot_Animation in element.config.capability_flags {
-			draw_rect(
-				ctx,
-				Rect {
-					i32(element.position.x),
-					i32(element.position.y),
-					i32(element.size.x),
-					i32(element.size.y),
-				},
-				lerp_color(element.color, default_color_style[.Hot], element.hot),
-			)
-		} else {
-			draw_rect(
-				ctx,
-				Rect {
-					i32(element.position.x),
-					i32(element.position.y),
-					i32(element.size.x),
-					i32(element.size.y),
-				},
-				element.color,
-			)
-		}
 	}
 
 
