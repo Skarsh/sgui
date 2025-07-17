@@ -1,7 +1,9 @@
 # TODOs
 
 ## Active
-* Basic UI interactivity - click, hover, active etc
+* Next goal: A single button ui procedure that can make button with texture, text, clickable, hoverable / hot 
+    and active.
+
 
 ## Bugs
 * Currently we will make a newline even if there's a space crossing the "line border".
