@@ -339,6 +339,17 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		)
 	}
 
+	if .Image in cap_flags {
+		draw_image(
+			ctx,
+			element.position.x,
+			element.position.y,
+			element.size.x,
+			element.size.y,
+			nil,
+		)
+	}
+
 	if .Text in cap_flags {
 		// Define the content area
 		padding := element.config.layout.padding
@@ -383,17 +394,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			draw_text(ctx, start_x, current_y, line.text)
 			current_y += line.height
 		}
-	}
-
-	if .Image in cap_flags {
-		draw_image(
-			ctx,
-			element.position.x,
-			element.position.y,
-			element.size.x,
-			element.size.y,
-			nil,
-		)
 	}
 
 
@@ -450,19 +450,22 @@ draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 }
 
 // TODO(Thomas): Hardcoded layout / styling
-button :: proc(ctx: ^Context, id: string) -> Comm {
+button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 	element, open_ok := open_element(
 		ctx,
 		id,
 		{
-			layout = {sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}}},
-			background_color = {255, 255, 255, 255},
-			capability_flags = {.Background, .Active_Animation, .Hot_Animation},
+			layout = {sizing = {{kind = .Grow}, {kind = .Grow}}},
+			background_color = {24, 24, 24, 255},
+			capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
 		},
 	)
 	if open_ok {
 		close_element(ctx)
 	}
+
+	element_equip_text(ctx, element, text)
+
 	comm := comm_from_element(ctx, element)
 	return comm
 }

@@ -437,9 +437,9 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 			capability_flags = {.Background},
 		},
 		proc(ctx: ^ui.Context) {
-			ui.button(ctx, "button1")
+			ui.button(ctx, "button1", "Button text 1")
 
-			ui.button(ctx, "button2")
+			ui.button(ctx, "button2", "Button text 2")
 		},
 	)
 	ui.end(&app_state.ctx)

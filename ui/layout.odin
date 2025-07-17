@@ -106,6 +106,74 @@ Element_Config :: struct {
 	content:          Element_Content,
 }
 
+// TODO(Thomas): A lot of duplicated code between this and the text procedure!
+// An idea would be to have the text procedure just make an element, and then
+// equip the string. When style stacks are implemented, it could push those onto
+// aswell.
+element_equip_text :: proc(ctx: ^Context, element: ^UI_Element, text: string) {
+	element.config.capability_flags |= {.Text}
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	tokenize_text(ctx, text, ctx.font_id, &tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+
+	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines)
+
+	largest_line_width: f32 = 0
+	text_height: f32 = 0
+	for line in lines {
+		if line.width > largest_line_width {
+			largest_line_width = line.width
+		}
+		text_height += line.height
+	}
+
+	min_width := element.min_size.x
+	min_height := element.min_size.y
+
+	max_width := element.max_size.x
+	max_height := element.max_size.y
+
+	width := largest_line_width
+	height := text_height
+
+	if width < min_width {
+		width = min_width
+	} else if width > max_width {
+		width = max_width
+	}
+
+	if height < min_height {
+		height = min_height
+	} else if height > max_height {
+		height = max_height
+	}
+
+	element.size.x = width
+	element.size.y = height
+
+	element.config.layout.sizing.x = {
+		kind      = .Grow,
+		min_value = min_width,
+		value     = width,
+		max_value = max_width,
+	}
+
+	element.config.layout.sizing.y = {
+		kind      = .Grow,
+		min_value = min_height,
+		value     = height,
+		max_value = max_height,
+	}
+
+	element.config.content.text_data = Text_Data {
+		text = text,
+	}
+}
+
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	if len(element.children) == 0 {
 		return 0
@@ -256,7 +324,6 @@ text :: proc(
 	tokenize_text(ctx, text, ctx.font_id, &tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	defer free_all(context.temp_allocator)
 
 	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines)
 
