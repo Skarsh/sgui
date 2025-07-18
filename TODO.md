@@ -10,8 +10,7 @@
     complex further down. Due to this I will spend some significant time now trying to figure out a way to "unify"
     the text capability with the others.
     Issues found so far:
-        - Adding padding to an element and then equip string on its causes sizing issues
-        - Text needs its own type of aligment and padding, since it shouldn't be its own kind of element anymore.
+        - Interactivity issues when button is wrapped in a fixed size container.
 
 * Remove duplicate fields of `Element_Content` in `UI_Element` and `Element_Config`, it has already caused bugs.
 * Next goal: A single button ui procedure that can make button with texture, text, clickable, hoverable / hot 
