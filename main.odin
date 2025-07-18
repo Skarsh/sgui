@@ -170,7 +170,8 @@ main :: proc() {
 		//build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
-		build_interactive_button_ui(&app_state)
+		//build_interactive_button_ui(&app_state)
+		build_text_debugging(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -429,8 +430,9 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 		"container",
 		{
 			layout = {
-				sizing = {{kind = .Fit}, {kind = .Fit}},
-				padding = {10, 10, 10, 10},
+				//sizing = {{kind = .Fit}, {kind = .Fit}},
+				sizing    = {{kind = .Fixed, value = 300}, {kind = .Fit}},
+				padding   = {10, 10, 10, 10},
 				child_gap = 10,
 			},
 			background_color = {48, 200, 128, 255},
@@ -440,6 +442,34 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 		proc(ctx: ^ui.Context) {
 			ui.button(ctx, "button1", "Button 1")
 			ui.button(ctx, "button2", "Button 2")
+		},
+	)
+	ui.end(&app_state.ctx)
+}
+
+build_text_debugging :: proc(app_state: ^App_State) {
+	ui.begin(&app_state.ctx)
+	ui.container(
+		&app_state.ctx,
+		"container",
+		{
+			layout = {
+				sizing = {{kind = .Fixed, value = 150}, {kind = .Fit}},
+				padding = {10, 10, 10, 10},
+				child_gap = 10,
+			},
+			background_color = {48, 200, 128, 255},
+			capability_flags = {.Background},
+			clip = {{true, true}},
+		},
+		proc(ctx: ^ui.Context) {
+			ui.text(
+				ctx,
+				"text1",
+				"Button 1",
+				text_padding = {10, 10, 10, 10},
+				text_alignment_x = .Center,
+			)
 		},
 	)
 	ui.end(&app_state.ctx)

@@ -451,17 +451,18 @@ draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 // TODO(Thomas): Hardcoded layout / styling
 button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 	element, open_ok := open_element(
-		ctx,
-		id,
-		{
-			layout = {
-				sizing = {{kind = .Grow}, {kind = .Grow}},
-				text_padding = {left = 10, top = 10, right = 10, bottom = 10},
-				text_alignment_x = .Center,
-			},
-			background_color = {24, 24, 24, 255},
-			capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
+	ctx,
+	id,
+	{
+		layout = {
+			sizing = {{kind = .Grow}, {kind = .Grow}},
+			text_padding = {left = 10, top = 10, right = 10, bottom = 10},
+			text_alignment_x = .Center,
 		},
+		background_color = {24, 24, 24, 255},
+		//capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
+		capability_flags = {.Background, .Active_Animation, .Hot_Animation},
+	},
 	)
 	if open_ok {
 		close_element(ctx)

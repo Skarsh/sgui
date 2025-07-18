@@ -1941,6 +1941,69 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
+@(test)
+test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		container_id:      string,
+		container_padding: Padding,
+		text_id:           string,
+		text:              string,
+	}
+
+	test_data := Test_Data {
+		container_id = "container",
+		container_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
+		text_id = "text",
+		text = "Button 1",
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			data.container_id,
+			{
+				layout = {
+					sizing = {{kind = .Fixed, value = 60}, {kind = .Fit}},
+					padding = data.container_padding,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				text(ctx, data.text_id, data.text)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		padding := data.container_padding
+		container_size := Vec2{60, 2 * MOCK_LINE_HEIGHT + padding.top + padding.bottom}
+
+		// Space for text is size of the text minus paddings
+		text_size := Vec2{6 * MOCK_CHAR_WIDTH - padding.left - padding.right, 2 * MOCK_LINE_HEIGHT}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					data.container_id,
+					{0, 0},
+					container_size,
+					{{data.text_id, {padding.left, padding.top}, text_size, {}}},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
 @(test)
 test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 
