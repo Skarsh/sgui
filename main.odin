@@ -316,7 +316,7 @@ render_image :: proc(ctx: ^Render_Context, x, y, w, h: f32) {
 		x = i32(x),
 		y = i32(y),
 		w = i32(w),
-		h = i32(w),
+		h = i32(h),
 	}
 	sdl.RenderCopy(ctx.renderer, tex.tex, nil, &r)
 }
