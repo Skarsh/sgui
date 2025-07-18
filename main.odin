@@ -435,11 +435,11 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 			},
 			background_color = {48, 200, 128, 255},
 			capability_flags = {.Background},
+			clip = {{true, true}},
 		},
 		proc(ctx: ^ui.Context) {
-			ui.button(ctx, "button1", "Button text 1")
-
-			ui.button(ctx, "button2", "Button text 2")
+			ui.button(ctx, "button1", "Button 1")
+			ui.button(ctx, "button2", "Button 2")
 		},
 	)
 	ui.end(&app_state.ctx)
@@ -747,8 +747,8 @@ build_complex_ui :: proc(app_state: ^App_State) {
 									ctx,
 									text_id,
 									item,
-									alignment_x = .Left,
-									alignment_y = .Center,
+									text_alignment_x = .Left,
+									text_alignment_y = .Center,
 								)
 							},
 						)
@@ -797,7 +797,13 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 				"text_container",
 				{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
 				proc(ctx: ^ui.Context) {
-					ui.text(ctx, "text", "Text", alignment_x = .Left, alignment_y = .Center)
+					ui.text(
+						ctx,
+						"text",
+						"Text",
+						text_alignment_x = .Left,
+						text_alignment_y = .Center,
+					)
 				},
 			)
 		},

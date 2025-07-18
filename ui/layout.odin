@@ -67,6 +67,9 @@ Layout_Config :: struct {
 	layout_direction: Layout_Direction,
 	alignment_x:      Alignment_X,
 	alignment_y:      Alignment_Y,
+	text_padding:     Padding,
+	text_alignment_x: Alignment_X,
+	text_alignment_y: Alignment_Y,
 }
 
 Clip_Config :: struct {
@@ -137,8 +140,9 @@ element_equip_text :: proc(ctx: ^Context, element: ^UI_Element, text: string) {
 	max_width := element.max_size.x
 	max_height := element.max_size.y
 
-	width := largest_line_width
-	height := text_height
+	text_padding := element.config.layout.text_padding
+	width := largest_line_width + text_padding.left + text_padding.right
+	height := text_height + text_padding.top + text_padding.bottom
 
 	if width < min_width {
 		width = min_width
@@ -296,16 +300,18 @@ text :: proc(
 	min_height: f32 = 0,
 	max_width: f32 = math.F32_MAX,
 	max_height: f32 = math.F32_MAX,
-	alignment_x := Alignment_X.Left,
-	alignment_y := Alignment_Y.Top,
+	text_padding: Padding = {},
+	text_alignment_x := Alignment_X.Left,
+	text_alignment_y := Alignment_Y.Top,
 ) {
 	assert(min_width >= 0)
 	assert(min_height >= 0)
 
 	mut_config := Element_Config{}
+	mut_config.layout.text_padding = text_padding
 	mut_config.capability_flags |= {.Text}
-	mut_config.layout.alignment_x = alignment_x
-	mut_config.layout.alignment_y = alignment_y
+	mut_config.layout.text_alignment_x = text_alignment_x
+	mut_config.layout.text_alignment_y = text_alignment_y
 
 	// NOTE(Thomas): We need to pre-calculate the line widths to make
 	// sure that the element gets a reasonable preferred sizing.
@@ -336,8 +342,8 @@ text :: proc(
 		text_height += line.height
 	}
 
-	width := largest_line_width
-	height := text_height
+	width := largest_line_width + text_padding.left + text_padding.right
+	height := text_height + text_padding.top + text_padding.bottom
 
 	if width < min_width {
 		width = min_width
@@ -573,19 +579,22 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 
 	if .Text in element.config.capability_flags {
+		text_padding := element.config.layout.text_padding
 		text := element.config.content.text_data.text
 		tokens := make([dynamic]Text_Token, allocator)
 		tokenize_text(ctx, text, ctx.font_id, &tokens)
 
 		lines := make([dynamic]Text_Line, allocator)
-		layout_lines(ctx, text, tokens[:], element.size.x, &lines)
+		available_width := element.size.x - text_padding.left - text_padding.right
+		layout_lines(ctx, text, tokens[:], available_width, &lines)
 
 		element.content.text_data.lines = lines[:]
 		text_height: f32 = 0
 		for line in lines {
 			text_height += line.height
 		}
-		element.size.y = math.clamp(text_height, element.min_size.y, element.max_size.y)
+		final_height := text_height + text_padding.top + text_padding.bottom
+		element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
 	}
 
 	for child in element.children {

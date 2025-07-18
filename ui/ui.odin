@@ -351,14 +351,11 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if .Text in cap_flags {
-		// Define the content area
-		padding := element.config.layout.padding
-
-		// TODO(Thomas): Add in text specific padding here
-		content_area_x := element.position.x
-		content_area_y := element.position.y
-		content_area_w := element.size.x
-		content_area_h := element.size.y
+		text_padding := element.config.layout.text_padding
+		content_area_x := element.position.x + text_padding.left
+		content_area_y := element.position.y + text_padding.top
+		content_area_w := element.size.x - text_padding.left - text_padding.right
+		content_area_h := element.size.y - text_padding.top - text_padding.bottom
 
 		// Calculate the total height of the entire text block
 		total_text_height: f32 = 0
@@ -368,7 +365,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		// Calculate the initial vertical offset for the whole block based on Aligment_Y
 		start_y: f32 = content_area_y
-		switch element.config.layout.alignment_y {
+		switch element.config.layout.text_alignment_y {
 		case .Top:
 			// Default, no change
 			start_y = content_area_y
@@ -383,7 +380,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		for line in element.content.text_data.lines {
 			start_x: f32 = content_area_x
-			switch element.config.layout.alignment_x {
+			switch element.config.layout.text_alignment_x {
 			case .Left:
 				// Default, no change
 				start_x = content_area_x
@@ -457,7 +454,11 @@ button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 		ctx,
 		id,
 		{
-			layout = {sizing = {{kind = .Grow}, {kind = .Grow}}, padding = {10, 10, 10, 10}},
+			layout = {
+				sizing = {{kind = .Grow}, {kind = .Grow}},
+				text_padding = {left = 10, top = 10, right = 10, bottom = 10},
+				text_alignment_x = .Center,
+			},
 			background_color = {24, 24, 24, 255},
 			capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
 		},
