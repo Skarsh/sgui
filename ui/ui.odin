@@ -353,10 +353,12 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	if .Text in cap_flags {
 		// Define the content area
 		padding := element.config.layout.padding
-		content_area_x := element.position.x + padding.left
-		content_area_y := element.position.y + padding.top
-		content_area_w := element.size.x - padding.left - padding.right
-		content_area_h := element.size.y - padding.top - padding.bottom
+
+		// TODO(Thomas): Add in text specific padding here
+		content_area_x := element.position.x
+		content_area_y := element.position.y
+		content_area_w := element.size.x
+		content_area_h := element.size.y
 
 		// Calculate the total height of the entire text block
 		total_text_height: f32 = 0
@@ -455,7 +457,7 @@ button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 		ctx,
 		id,
 		{
-			layout = {sizing = {{kind = .Grow}, {kind = .Grow}}},
+			layout = {sizing = {{kind = .Grow}, {kind = .Grow}}, padding = {10, 10, 10, 10}},
 			background_color = {24, 24, 24, 255},
 			capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
 		},
