@@ -173,15 +173,15 @@ layout_lines :: proc(
 					)
 
 					// TODO(Thomas): Uncomment when regression test that catches the bug is in place
-					//line_word_count = 0
-					//if i < len(tokens) - 1 {
-					//	line_start_token = i + 1
-					//	line_end_token = i + 1
-					//} else {
-					//	line_start_token = i
-					//	line_end_token = i
-					//}
-					//line_width = 0
+					line_word_count = 0
+					if i < len(tokens) - 1 {
+						line_start_token = i + 1
+						line_end_token = i + 1
+					} else {
+						line_start_token = i
+						line_end_token = i
+					}
+					line_width = 0
 				} else {
 					flush_line(
 						ctx,
@@ -194,18 +194,11 @@ layout_lines :: proc(
 					)
 
 					// TODO(Thomas): Uncomment when regression test that catches the bug is in place
-					//line_word_count = 0
-					//line_start_token = i
-					//line_end_token = i
-					//line_width = token.width
+					line_word_count = 0
+					line_start_token = i
+					line_end_token = i
+					line_width = token.width
 				}
-
-				// TODO(Thomas): Remove when regression test that catches the bug is in place
-				line_word_count = 0
-				line_start_token = i
-				line_end_token = i
-				line_width = token.width
-
 			} else {
 				line_word_count += 1
 				line_width += token.width
