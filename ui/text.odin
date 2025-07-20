@@ -308,6 +308,92 @@ mock_measure_glyph_proc :: proc(
 	return Glyph_Metrics{width = width, left_bearing = left_bearing}
 }
 
+// ------------ TESTS -------------
+
+@(test)
+test_token_in_middle :: proc(t: ^testing.T) {
+	text := "Hello, wonderful world!"
+	token := Text_Token {
+		start  = 7,
+		length = 9,
+		width  = 0,
+		kind   = .Word,
+	}
+	expected := "wonderful"
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
+@(test)
+test_token_at_start :: proc(t: ^testing.T) {
+	text := "Odin is a great language."
+	token := Text_Token {
+		start  = 0,
+		length = 4,
+		width  = 0,
+		kind   = .Word,
+	}
+	expected := "Odin"
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
+@(test)
+test_token_at_end :: proc(t: ^testing.T) {
+	text := "Programming is fun."
+	token := Text_Token {
+		start  = 15,
+		length = 4,
+		width  = 0,
+		kind   = .Word,
+	}
+	expected := "fun."
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
+@(test)
+test_token_is_entire_string :: proc(t: ^testing.T) {
+	text := "Complete"
+	token := Text_Token {
+		start  = 0,
+		length = 8,
+		width  = 0,
+		kind   = .Word,
+	}
+	expected := "Complete"
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
+@(test)
+test_zero_length_token :: proc(t: ^testing.T) {
+	text := "An empty token"
+	token := Text_Token {
+		start  = 3,
+		length = 0,
+		width  = 0,
+		kind   = .Whitespace,
+	}
+	expected := ""
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
+@(test)
+test_single_characther_token :: proc(t: ^testing.T) {
+	text := "1"
+	token := Text_Token {
+		start  = 0,
+		length = 1,
+		width  = 0,
+		kind   = .Word,
+	}
+	expected := "1"
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
 @(test)
 test_tokenize_text :: proc(t: ^testing.T) {
 	ctx := Context{}
