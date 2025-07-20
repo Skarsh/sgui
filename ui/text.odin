@@ -164,62 +164,42 @@ layout_lines :: proc(
 		case .Newline:
 			line_state.end_token_idx = i
 			flush_line(ctx, text, line_state, tokens, lines)
-
-			line_state.word_count = 0
-			line_state.start_token_idx = i + 1
-			line_state.end_token_idx = i + 1
-			line_state.width = 0
-		case .Word:
+			line_state = Line_State {
+				start_token_idx = i + 1,
+				end_token_idx   = i + 1,
+			}
+		case .Word, .Whitespace:
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
 			//NOTE(Thomas): Add epsilon here to make sure that if it should fit on one line it will.
 			if line_state.width + token.width > max_width + EPSILON {
+
 				// NOTE(Thomas): If the line is a single word we use the token.width
 				// instead of the line_width, since line_width would be 0.
 				if line_state.word_count == 0 {
 					line_state.width = token.width
 					flush_line(ctx, text, line_state, tokens, lines)
-
-					if i < len(tokens) - 1 {
-						line_state.word_count = 1
-						line_state.start_token_idx = i + 1
-						line_state.end_token_idx = i + 1
-					} else {
-						line_state.word_count = 0
-						line_state.start_token_idx = i
-						line_state.end_token_idx = i
+					line_state = Line_State {
+						word_count      = 1,
+						start_token_idx = i + 1,
+						end_token_idx   = i + 1,
 					}
-
-					line_state.width = 0
 				} else {
-
 					flush_line(ctx, text, line_state, tokens, lines)
-
-					if i < len(tokens) - 1 {
-						line_state.word_count = 0
-					} else {
-						line_state.word_count = 1
+					line_state = Line_State {
+						start_token_idx = i,
+						end_token_idx   = i,
+						width           = token.width,
+						word_count      = 1,
 					}
-					line_state.start_token_idx = i
-					line_state.end_token_idx = i
-					line_state.width = token.width
 				}
-			} else {
-				line_state.word_count += 1
-				line_state.width += token.width
-				line_state.end_token_idx = i
-			}
-		case .Whitespace:
-			if line_state.width + token.width > max_width + EPSILON {
-				flush_line(ctx, text, line_state, tokens, lines)
 
-				line_state.word_count = 0
-				line_state.start_token_idx = i
-				line_state.end_token_idx = i
-				line_state.width = token.width
 			} else {
 				line_state.width += token.width
 				line_state.end_token_idx = i
+				if token.kind == .Word {
+					line_state.word_count += 1
+				}
 			}
 		}
 	}
