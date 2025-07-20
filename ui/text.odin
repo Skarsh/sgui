@@ -27,8 +27,8 @@ token_to_string :: proc(text: string, token: Text_Token) -> string {
 
 Text_Line :: struct {
 	text:   string,
-	start:  int, // Byte start in original string
-	length: int, // Length of the string in bytes
+	start:  int, // Starting token idx
+	length: int, // Length in number of tokens
 	width:  f32, // Visual width
 	height: f32, // Line height
 }
