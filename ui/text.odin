@@ -19,11 +19,17 @@ Text_Token :: struct {
 	kind:   Token_Kind,
 }
 
+token_to_string :: proc(text: string, token: Text_Token) -> string {
+	str, ok := strings.substring(text, token.start, token.start + token.length)
+	assert(ok)
+	return str
+}
+
 Text_Line :: struct {
 	text:   string,
 	start:  int, // Byte start in original string
 	length: int, // Length of the string in bytes
-	width:  f32, // Vistual width
+	width:  f32, // Visual width
 	height: f32, // Line height
 }
 
@@ -143,7 +149,6 @@ layout_lines :: proc(
 	// and numerical instability won't be an issue.
 	EPSILON :: 0.001
 
-
 	for token, i in tokens {
 		switch token.kind {
 		case .Newline:
@@ -172,12 +177,12 @@ layout_lines :: proc(
 						lines,
 					)
 
-					// TODO(Thomas): Uncomment when regression test that catches the bug is in place
-					line_word_count = 0
 					if i < len(tokens) - 1 {
+						line_word_count = 1
 						line_start_token = i + 1
 						line_end_token = i + 1
 					} else {
+						line_word_count = 0
 						line_start_token = i
 						line_end_token = i
 					}
@@ -193,8 +198,11 @@ layout_lines :: proc(
 						lines,
 					)
 
-					// TODO(Thomas): Uncomment when regression test that catches the bug is in place
-					line_word_count = 0
+					if i < len(tokens) - 1 {
+						line_word_count = 0
+					} else {
+						line_word_count = 1
+					}
 					line_start_token = i
 					line_end_token = i
 					line_width = token.width
