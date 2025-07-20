@@ -109,21 +109,34 @@ get_text_from_tokens :: proc(
 	return str
 }
 
+Line_State :: struct {
+	word_count:      int,
+	start_token_idx: int,
+	end_token_idx:   int,
+	width:           f32,
+}
+
 flush_line :: proc(
 	ctx: ^Context,
 	original_text: string,
-	start_token: int,
-	end_token: int,
-	width: f32,
+	line_state: Line_State,
 	tokens: []Text_Token,
 	lines: ^[dynamic]Text_Line,
 ) {
-	line_text := get_text_from_tokens(original_text, tokens[start_token], tokens[end_token])
+	assert(line_state.start_token_idx < len(tokens))
+	assert(line_state.end_token_idx < len(tokens))
+	assert(line_state.start_token_idx <= line_state.end_token_idx)
+	line_text := get_text_from_tokens(
+		original_text,
+		tokens[line_state.start_token_idx],
+		tokens[line_state.end_token_idx],
+	)
 	line := Text_Line {
 		text   = line_text,
-		start  = tokens[start_token].start,
-		length = (tokens[end_token].start + tokens[end_token].length) - tokens[start_token].start,
-		width  = width,
+		start  = tokens[line_state.start_token_idx].start,
+		length = (tokens[line_state.end_token_idx].start +
+			tokens[line_state.end_token_idx].length) - tokens[line_state.start_token_idx].start,
+		width  = line_state.width,
 		height = measure_string_line_height(ctx, line_text, ctx.font_id),
 	}
 	append(lines, line)
@@ -137,10 +150,7 @@ layout_lines :: proc(
 	lines: ^[dynamic]Text_Line,
 ) {
 
-	line_word_count: i32 = 0
-	line_start_token := 0
-	line_end_token := 0
-	line_width: f32 = 0
+	line_state := Line_State{}
 
 	// NOTE(Thomas): We use a epsilon when comparing to the max_width (which is the element width)
 	// This is necessary because for growing elements like text, the size we calculate here
@@ -152,92 +162,71 @@ layout_lines :: proc(
 	for token, i in tokens {
 		switch token.kind {
 		case .Newline:
-			line_end_token = i
-			flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
+			line_state.end_token_idx = i
+			flush_line(ctx, text, line_state, tokens, lines)
 
-			line_word_count = 0
-			line_start_token = i + 1
-			line_end_token = i + 1
-			line_width = 0
+			line_state.word_count = 0
+			line_state.start_token_idx = i + 1
+			line_state.end_token_idx = i + 1
+			line_state.width = 0
 		case .Word:
 			// Here we need to check if the word fits on the current line, if not we have to make a new line
 			// and put the word there
 			//NOTE(Thomas): Add epsilon here to make sure that if it should fit on one line it will.
-			if line_width + token.width > max_width + EPSILON {
+			if line_state.width + token.width > max_width + EPSILON {
 				// NOTE(Thomas): If the line is a single word we use the token.width
 				// instead of the line_width, since line_width would be 0.
-				if line_word_count == 0 {
-					flush_line(
-						ctx,
-						text,
-						line_start_token,
-						line_end_token,
-						token.width,
-						tokens[:],
-						lines,
-					)
+				if line_state.word_count == 0 {
+					line_state.width = token.width
+					flush_line(ctx, text, line_state, tokens, lines)
 
 					if i < len(tokens) - 1 {
-						line_word_count = 1
-						line_start_token = i + 1
-						line_end_token = i + 1
+						line_state.word_count = 1
+						line_state.start_token_idx = i + 1
+						line_state.end_token_idx = i + 1
 					} else {
-						line_word_count = 0
-						line_start_token = i
-						line_end_token = i
+						line_state.word_count = 0
+						line_state.start_token_idx = i
+						line_state.end_token_idx = i
 					}
-					line_width = 0
+
+					line_state.width = 0
 				} else {
-					flush_line(
-						ctx,
-						text,
-						line_start_token,
-						line_end_token,
-						line_width,
-						tokens[:],
-						lines,
-					)
+
+					flush_line(ctx, text, line_state, tokens, lines)
 
 					if i < len(tokens) - 1 {
-						line_word_count = 0
+						line_state.word_count = 0
 					} else {
-						line_word_count = 1
+						line_state.word_count = 1
 					}
-					line_start_token = i
-					line_end_token = i
-					line_width = token.width
+					line_state.start_token_idx = i
+					line_state.end_token_idx = i
+					line_state.width = token.width
 				}
 			} else {
-				line_word_count += 1
-				line_width += token.width
-				line_end_token = i
+				line_state.word_count += 1
+				line_state.width += token.width
+				line_state.end_token_idx = i
 			}
 		case .Whitespace:
-			if line_width + token.width > max_width + EPSILON {
-				flush_line(
-					ctx,
-					text,
-					line_start_token,
-					line_end_token,
-					line_width,
-					tokens[:],
-					lines,
-				)
+			if line_state.width + token.width > max_width + EPSILON {
+				flush_line(ctx, text, line_state, tokens, lines)
 
-				line_word_count = 0
-				line_start_token = i
-				line_end_token = i
-				line_width = token.width
+				line_state.word_count = 0
+				line_state.start_token_idx = i
+				line_state.end_token_idx = i
+				line_state.width = token.width
 			} else {
-				line_width += token.width
-				line_end_token = i
+				line_state.width += token.width
+				line_state.end_token_idx = i
 			}
 		}
 	}
 
-	if line_start_token < len(tokens) && line_word_count > 0 {
-		line_end_token = len(tokens) - 1
-		flush_line(ctx, text, line_start_token, line_end_token, line_width, tokens[:], lines)
+	if line_state.start_token_idx < len(tokens) && line_state.word_count > 0 {
+		line_state.end_token_idx = len(tokens) - 1
+		flush_line(ctx, text, line_state, tokens, lines)
 	}
 }
 
