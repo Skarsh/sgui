@@ -92,6 +92,7 @@ Context :: struct {
 	root_element:         ^UI_Element,
 	input:                Input,
 	element_cache:        map[UI_Key]^UI_Element,
+	interactive_elements: [dynamic]^UI_Element,
 	measure_text_proc:    Measure_Text_Proc,
 	measure_glyph_proc:   Measure_Glyph_Proc,
 	font_user_data:       rawptr,
@@ -152,6 +153,7 @@ init :: proc(
 	ctx.screen_size = screen_size
 
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
+	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
 }
 
 set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
@@ -167,6 +169,7 @@ deinit :: proc(ctx: ^Context) {
 
 begin :: proc(ctx: ^Context) {
 	clear(&ctx.command_stack)
+	clear_dynamic_array(&ctx.interactive_elements)
 
 	// Open the root element
 	_, root_open_ok := open_element(
@@ -192,6 +195,7 @@ end :: proc(ctx: ^Context) {
 	// 5. Grow & shrink sizing heights
 	// 6. Positions
 	// 7. Draw commands
+	// 8. Process interactions
 
 	// Close the root element
 	close_element(ctx)
@@ -214,6 +218,8 @@ end :: proc(ctx: ^Context) {
 
 	calculate_positions_and_alignment(ctx.root_element)
 
+	process_interactions(ctx)
+
 	draw_all_elements(ctx)
 
 	clear_input(ctx)
@@ -221,21 +227,9 @@ end :: proc(ctx: ^Context) {
 	free_all(ctx.frame_allocator)
 }
 
-
-// TODO(Thomas): It is very wasteful to recalculate the intersection elements
-// for every element that will call `comm_from_element`. This should probably
-// only be done once, and cached in the Context for the next frame.
-// This is a temporary solution just to see how to code will look like.
-comm_from_element :: proc(ctx: ^Context, element: ^UI_Element) -> Comm {
-	intersection_elements, alloc_err := make([dynamic]^UI_Element, context.temp_allocator)
-	assert(alloc_err == .None)
-	defer free_all(context.temp_allocator)
-
-	// TODO(Thomas): Two things here:
-	// 1. What is the performance cost of looping
-	// over key,value pairs in a map like this.
-	// 2. Will it be an issue using the elements from the cache here?
-	// It should always be up-to-date.
+process_interactions :: proc(ctx: ^Context) {
+	top_element: ^UI_Element
+	highest_z_index: i32 = -1
 	for _, elem in ctx.element_cache {
 		rect := Rect {
 			i32(elem.position.x),
@@ -245,44 +239,28 @@ comm_from_element :: proc(ctx: ^Context, element: ^UI_Element) -> Comm {
 		}
 
 		if point_in_rect(ctx.input.mouse_pos, rect) {
-			append(&intersection_elements, elem)
+			if elem.z_index > highest_z_index {
+				highest_z_index = elem.z_index
+				top_element = elem
+			}
 		}
 	}
 
-	// Iterate through the intersection elements and find the one
-	// with the highest z_index
-	top_element: ^UI_Element
-	highest_z_index: i32 = 0
-	for elem in intersection_elements {
-		if elem.z_index > highest_z_index {
-			highest_z_index = elem.z_index
-			top_element = elem
+	for element in ctx.interactive_elements {
+		comm := Comm {
+			element = element,
 		}
-	}
 
+		button_animation_rate_of_change := (1.0 / 0.2) * ctx.dt
 
-	comm := Comm {
-		element = element,
-	}
+		is_top_element := (top_element != nil && top_element.id_string == element.id_string)
 
-	button_animation_time: f32 = 0.2
-	button_animation_rate_of_change: f32 = (1.0 / button_animation_time) * ctx.dt
-
-	if top_element != nil {
-		// TODO(Thomas): We should probably use the key for this instead
-		// of the id string.
-		if top_element.id_string == element.id_string {
-			// Since we're already intersecting, we're hovering too
+		if is_top_element {
 			comm.hovering = true
-			// TODO(Thomas): Animate this properly
-			// Also, is this the right place to do this?
 			element.hot += button_animation_rate_of_change
 
 			if is_mouse_pressed(ctx^, .Left) {
 				comm.clicked = true
-
-				// TODO(Thomas): Animate this properly
-				// Also, is this the right place to do this?
 				element.active = 1.0
 			}
 
@@ -290,21 +268,17 @@ comm_from_element :: proc(ctx: ^Context, element: ^UI_Element) -> Comm {
 				comm.held = true
 			}
 		} else {
+			// This element is not the top one, so it's not hot or active from this frame's input.
 			element.hot -= button_animation_rate_of_change
 			if is_mouse_pressed(ctx^, .Left) {
 				element.active = 0.0
 			}
 		}
-	} else {
-		element.hot -= button_animation_rate_of_change
-		if is_mouse_pressed(ctx^, .Left) {
-			element.active = 0.0
-		}
+
+		element.hot = math.clamp(element.hot, 0, 1)
+
+		element.last_comm = comm
 	}
-
-	element.hot = math.clamp(element.hot, 0, 1)
-
-	return comm
 }
 
 draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
@@ -431,8 +405,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 }
 
 draw_all_elements :: proc(ctx: ^Context) {
-	// pre-order traversal
-	// We know that at this point the only element left is the root element
 	draw_element(ctx, ctx.root_element)
 }
 
@@ -464,12 +436,14 @@ button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 		capability_flags = {.Background, .Active_Animation, .Hot_Animation},
 	},
 	)
+
+	element_equip_text(ctx, element, text)
+
 	if open_ok {
 		close_element(ctx)
 	}
 
-	element_equip_text(ctx, element, text)
+	append(&ctx.interactive_elements, element)
 
-	comm := comm_from_element(ctx, element)
-	return comm
+	return element.last_comm
 }

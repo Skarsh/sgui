@@ -92,6 +92,7 @@ UI_Element :: struct {
 	z_index:   i32,
 	hot:       f32,
 	active:    f32,
+	last_comm: Comm,
 }
 
 Sizing :: struct {
