@@ -185,12 +185,20 @@ layout_lines :: proc(
 						end_token_idx   = i + 1,
 					}
 				} else {
-					flush_line(ctx, text, line_state, tokens, lines)
-					line_state = Line_State {
-						start_token_idx = i,
-						end_token_idx   = i,
-						width           = token.width,
-						word_count      = 1,
+					// NOTE(Thomas): We don't split on whitespaces.
+					// I don't think this is perfect, but its at least a 
+					// simple way of handling issues like, a whitespace is put on
+					// a line by itself then a word comes that will overflow, so we'll
+					// just get an empty line. Will probably have to redo this later when
+					// things have solidified more.
+					if token.kind == .Word {
+						flush_line(ctx, text, line_state, tokens, lines)
+						line_state = Line_State {
+							start_token_idx = i,
+							end_token_idx   = i,
+							width           = token.width,
+							word_count      = 1,
+						}
 					}
 				}
 

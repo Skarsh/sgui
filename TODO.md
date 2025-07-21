@@ -17,9 +17,6 @@
     and active.
 
 ## Bugs
-* Currently we will make a newline even if there's a space crossing the "line border".
-    This means that if we split on the space after three in this string, "one two three \nfour five",
-    we'll end up with a completely empty line between "three" and "four" here.
 
 ## Backlog
 * Prune "dead" ui elements

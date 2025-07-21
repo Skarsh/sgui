@@ -164,14 +164,14 @@ main :: proc() {
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
-		//build_simple_text_ui(&app_state)
+		build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
 		//build_interactive_button_ui(&app_state)
-		build_text_debugging(&app_state)
+		//build_text_debugging(&app_state)
 
 		render_draw_commands(&app_state)
 
@@ -494,9 +494,10 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			ui.text(
 				ctx,
 				"text",
-				"one two three four five six seven eight nine ten",
+				"one two three four five six seven eight  nine ten",
+				//"one two three four",
 				min_width = 100,
-				max_width = 150,
+				max_width = 100,
 				min_height = 30,
 			)
 		},
