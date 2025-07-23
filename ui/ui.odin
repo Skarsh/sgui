@@ -192,18 +192,22 @@ begin :: proc(ctx: ^Context) {
 
 end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
-	// 1. Fit sizing widths
-	// 2. Grow & shrink sizing widths
-	// 3. Wrap text
-	// 4. Fit sizing heights
-	// 5. Grow & shrink sizing heights
-	// 6. Positions
-	// 7. Draw commands
-	// 8. Process interactions
+	// 1. Percentage of parent
+	// 2. Fit sizing widths
+	// 3. Grow & shrink sizing widths
+	// 4. Wrap text
+	// 5. Fit sizing heights
+	// 6. Grow & shrink sizing heights
+	// 7. Positions
+	// 8. Draw commands
+	// 9. Process interactions
 
 	// Close the root element
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
+
+	// Percentage of parent sizing
+	resolve_percentage_sizing(ctx.root_element, .X)
 
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
@@ -213,6 +217,9 @@ end :: proc(ctx: ^Context) {
 	// Wrap text
 	wrap_text(ctx, ctx.root_element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
+
+	// Percentage of parent sizing
+	resolve_percentage_sizing(ctx.root_element, .Y)
 
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)

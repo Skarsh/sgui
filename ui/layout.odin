@@ -37,6 +37,7 @@ Size_Kind :: enum {
 	Fit,
 	Fixed,
 	Grow,
+	Percentage_Of_Parent,
 }
 
 Padding :: struct {
@@ -575,6 +576,30 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	for child in element.children {
 		resize_child_elements_for_axis(child, axis)
 	}
+}
+
+resolve_percentage_sizing :: proc(element: ^UI_Element, axis: Axis2) {
+	if element == nil {
+		return
+	}
+
+	parent_content_size: Vec2
+	if element.parent != nil {
+		parent_padding := element.parent.config.layout.padding
+		parent_content_size.x = element.parent.size.x - parent_padding.left - parent_padding.right
+		parent_content_size.y = element.parent.size.y - parent_padding.top - parent_padding.bottom
+
+		sizing_info := element.config.layout.sizing[axis]
+		if sizing_info.kind == .Percentage_Of_Parent {
+			percentage := sizing_info.value
+			element.size[axis] = parent_content_size[axis] * percentage
+		}
+	}
+
+	for child in element.children {
+		resolve_percentage_sizing(child, axis)
+	}
+
 }
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {

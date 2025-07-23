@@ -430,9 +430,11 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 		"container",
 		{
 			layout = {
-				//sizing = {{kind = .Fit}, {kind = .Fit}},
-				sizing    = {{kind = .Fixed, value = 300}, {kind = .Fit}},
-				padding   = {10, 10, 10, 10},
+				sizing = {
+					{kind = .Percentage_Of_Parent, value = 1.0},
+					{kind = .Percentage_Of_Parent, value = 1.0},
+				},
+				padding = {10, 10, 10, 10},
 				child_gap = 10,
 			},
 			background_color = {48, 200, 128, 255},
