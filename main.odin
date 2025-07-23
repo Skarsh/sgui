@@ -56,7 +56,7 @@ main :: proc() {
 		sdl.WINDOWPOS_UNDEFINED,
 		WINDOW_WIDTH,
 		WINDOW_HEIGHT,
-		sdl.WINDOW_SHOWN,
+		sdl.WINDOW_SHOWN | sdl.WINDOW_RESIZABLE,
 	)
 
 	if window == nil {
