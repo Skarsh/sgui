@@ -12,7 +12,6 @@
     Issues found so far:
         - Interactivity issues when button is wrapped in a fixed size container.
 
-* Remove duplicate fields of `Element_Content` in `UI_Element` and `Element_Config`, it has already caused bugs.
 * Next goal: A single button ui procedure that can make button with texture, text, clickable, hoverable / hot 
     and active.
 

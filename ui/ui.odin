@@ -344,7 +344,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		// Calculate the total height of the entire text block
 		total_text_height: f32 = 0
-		for line in element.content.text_data.lines {
+		for line in element.config.content.text_data.lines {
 			total_text_height += line.height
 		}
 
@@ -363,7 +363,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		// Iterate through each line and draw it with the correct X and Y
 		current_y := start_y
 
-		for line in element.content.text_data.lines {
+		for line in element.config.content.text_data.lines {
 			start_x: f32 = content_area_x
 			switch element.config.layout.text_alignment_x {
 			case .Left:
