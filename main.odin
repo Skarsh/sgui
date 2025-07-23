@@ -156,7 +156,7 @@ main :: proc() {
 		if frame_counter % 100 == 0 {
 			log.infof("dt: %.2fms", dt * 1000)
 		}
-		process_input(&app_state)
+		process_events(&app_state)
 
 		bg_color := ui.default_color_style[.Window_BG]
 		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
@@ -843,7 +843,7 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 	ui.end(&app_state.ctx)
 }
 
-process_input :: proc(app_state: ^App_State) {
+process_events :: proc(app_state: ^App_State) {
 	// Process input
 	event := sdl.Event{}
 	for sdl.PollEvent(&event) {
@@ -890,6 +890,12 @@ process_input :: proc(app_state: ^App_State) {
 		case .TEXTINPUT:
 			text := string(cstring(&event.text.text[0]))
 			ui.handle_text(&app_state.ctx, text)
+		case .WINDOWEVENT:
+			#partial switch event.window.event {
+			case .SIZE_CHANGED:
+				app_state.ctx.window_size.x = event.window.data1
+				app_state.ctx.window_size.y = event.window.data2
+			}
 		case .QUIT:
 			app_state.running = false
 		}
