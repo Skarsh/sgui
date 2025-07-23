@@ -1,6 +1,5 @@
 package ui
 
-import "core:log"
 import "core:math"
 import "core:mem"
 
@@ -178,7 +177,12 @@ begin :: proc(ctx: ^Context) {
 		"root",
 		{
 			background_color = Color{128, 128, 128, 255},
-			layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
+			layout = {
+				sizing = {
+					{kind = .Fixed, value = f32(ctx.window_size.x)},
+					{kind = .Fixed, value = f32(ctx.window_size.y)},
+				},
+			},
 		},
 	)
 	assert(root_open_ok)

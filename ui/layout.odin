@@ -1862,6 +1862,9 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 
 // TODO(Thomas): Add other tests where we overflow the max sizing within and outside
 // of a fit sizing container.
+// TODO(Thomas): This test has a text_fit_wrapper container
+// to make sure that it doesn't have to deal with the root's
+// fixed size. I'm not sure if that's exactly what we want.
 @(test)
 test_basic_text_element_sizing :: proc(t: ^testing.T) {
 
@@ -1878,12 +1881,20 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		text(
+		container(
 			ctx,
-			"text",
-			"012345",
-			min_width = data.text_min_width,
-			max_width = data.text_max_width,
+			"text_fit_wrapper",
+			{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				text(
+					ctx,
+					"text",
+					"012345",
+					min_width = data.text_min_width,
+					max_width = data.text_max_width,
+				)
+			},
 		)
 	}
 
@@ -1895,7 +1906,14 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 		expected_layout_tree := Expected_Element {
 			id       = "root",
 			children = []Expected_Element {
-				{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+				{
+					id = "text_fit_wrapper",
+					pos = {0, 0},
+					size = {text_width, text_height},
+					children = []Expected_Element {
+						{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+					},
+				},
 			},
 		}
 
@@ -1906,6 +1924,9 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+// TODO(Thomas): This test has a text_fit_wrapper container
+// to make sure that it doesn't have to deal with the root's
+// fixed size. I'm not sure if that's exactly what we want.
 @(test)
 test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
@@ -1921,17 +1942,34 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		text(ctx, data.id, data.text)
+		container(
+			ctx,
+			"text_fit_wrapper",
+			{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				text(ctx, data.id, data.text)
+			},
+		)
+
 	}
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 		text_width: f32 = 3 * MOCK_CHAR_WIDTH
 		text_height: f32 = 2 * MOCK_LINE_HEIGHT
+
 		expected_layout_tree := Expected_Element {
 			id       = "root",
 			children = []Expected_Element {
-				{id = data.id, pos = Vec2{0, 0}, size = Vec2{text_width, text_height}},
+				{
+					id = "text_fit_wrapper",
+					pos = {0, 0},
+					size = {text_width, text_height},
+					children = []Expected_Element {
+						{id = data.id, pos = {0, 0}, size = {text_width, text_height}},
+					},
+				},
 			},
 		}
 
@@ -2005,6 +2043,9 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+// TODO(Thomas): This test has a text_fit_wrapper container
+// to make sure that it doesn't have to deal with the root's
+// fixed size. I'm not sure if that's exactly what we want.
 @(test)
 test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 
@@ -2021,7 +2062,22 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		text(ctx, "text", "01", min_width = data.text_min_width, min_height = data.text_min_height)
+
+		container(
+			ctx,
+			"text_fit_wrapper",
+			{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}}},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				text(
+					ctx,
+					"text",
+					"01",
+					min_width = data.text_min_width,
+					min_height = data.text_min_height,
+				)
+			},
+		)
 	}
 
 	// --- 3. Define the Verification Logic ---
@@ -2032,7 +2088,14 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 		expected_layout_tree := Expected_Element {
 			id       = "root",
 			children = []Expected_Element {
-				{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+				{
+					id = "text_fit_wrapper",
+					pos = {0, 0},
+					size = {text_width, text_height},
+					children = []Expected_Element {
+						{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+					},
+				},
 			},
 		}
 
