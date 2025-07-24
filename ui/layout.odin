@@ -117,6 +117,17 @@ Element_Config :: struct {
 element_equip_text :: proc(ctx: ^Context, element: ^UI_Element, text: string) {
 	element.config.capability_flags |= {.Text}
 
+	// NOTE(Thomas): We need to pre-calculate the line widths to make
+	// sure that the element gets a reasonable preferred sizing.
+	// We do this by doing the same line layout calculation we do in 
+	// `wrap_text`, but we pass in a very large `max_width`, so we
+	// will only split the lines based on `\n`.
+	// We need to do this before we're doing any proper sizing calculations
+	// so we're not screwing with that.
+	// TODO(Thomas): Cache the tokenization, we don't have to redo
+	// this for the `wrap_text` procedure.
+	// TODO(Thomas): Calculate a reasonable min_size for the text element too.
+	// Something like the smallest word in the tokens would make sense.
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
@@ -308,77 +319,20 @@ text :: proc(
 	assert(min_width >= 0)
 	assert(min_height >= 0)
 
-	mut_config := Element_Config{}
-	mut_config.layout.text_padding = text_padding
-	mut_config.capability_flags |= {.Text}
-	mut_config.layout.text_alignment_x = text_alignment_x
-	mut_config.layout.text_alignment_y = text_alignment_y
-
-	// NOTE(Thomas): We need to pre-calculate the line widths to make
-	// sure that the element gets a reasonable preferred sizing.
-	// We do this by doing the same line layout calculation we do in 
-	// `wrap_text`, but we pass in a very large `max_width`, so we
-	// will only split the lines based on `\n`.
-	// We need to do this before we're doing any proper sizing calculations
-	// so we're not screwing with that.
-	// TODO(Thomas): Cache the tokenization, we don't have to redo
-	// this for the `wrap_text` procedure.
-	// TODO(Thomas): Calculate a reasonable min_size for the text element too.
-	// Something like the smallest word in the tokens would make sense.
-	tokens := make([dynamic]Text_Token, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-
-	tokenize_text(ctx, text, ctx.font_id, &tokens)
-
-	lines := make([dynamic]Text_Line, context.temp_allocator)
-
-	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines)
-
-	largest_line_width: f32 = 0
-	text_height: f32 = 0
-	for line in lines {
-		if line.width > largest_line_width {
-			largest_line_width = line.width
-		}
-		text_height += line.height
+	config := Element_Config{}
+	config.layout.text_padding = text_padding
+	config.layout.sizing = {
+		{min_value = min_width, max_value = max_width},
+		{min_value = min_height, max_value = max_height},
 	}
+	config.capability_flags |= {.Text}
+	config.layout.text_alignment_x = text_alignment_x
+	config.layout.text_alignment_y = text_alignment_y
 
-	width := largest_line_width + text_padding.left + text_padding.right
-	height := text_height + text_padding.top + text_padding.bottom
-
-	if width < min_width {
-		width = min_width
-	} else if width > max_width {
-		width = max_width
-	}
-
-	if height < min_height {
-		height = min_height
-	} else if height > max_height {
-		height = max_height
-	}
-
-	mut_config.layout.sizing.x = {
-		kind      = .Grow,
-		min_value = min_width,
-		value     = width,
-		max_value = max_width,
-	}
-
-	mut_config.layout.sizing.y = {
-		kind      = .Grow,
-		min_value = min_height,
-		value     = height,
-		max_value = max_height,
-	}
-
-	mut_config.content.text_data = Text_Data {
-		text = text,
-	}
-
-	_, open_ok := open_element(ctx, id, mut_config)
+	element, open_ok := open_element(ctx, id, config)
 	assert(open_ok)
 	if open_ok {
+		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
 }
