@@ -442,8 +442,28 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 			clip = {{true, true}},
 		},
 		proc(ctx: ^ui.Context) {
-			ui.button(ctx, "button1", "Button 1")
-			ui.button(ctx, "button2", "Button 2")
+			comm := ui.button(ctx, "button1", "Button 1")
+			if comm.active {
+				ui.container(
+					ctx,
+					"panel",
+					{
+						layout = {
+							sizing = {{kind = .Grow}, {kind = .Grow}},
+							layout_direction = .Top_To_Bottom,
+							padding = {10, 10, 10, 10},
+							child_gap = 10,
+						},
+						background_color = {75, 75, 75, 255},
+						capability_flags = {.Background},
+					},
+					proc(ctx: ^ui.Context) {
+						ui.button(ctx, "button2", "Button 2")
+						ui.button(ctx, "button3", "Button 3")
+						ui.button(ctx, "button4", "Button 4")
+					},
+				)
+			}
 		},
 	)
 	ui.end(&app_state.ctx)

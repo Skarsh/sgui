@@ -80,19 +80,20 @@ Clip_Config :: struct {
 // TODO(Thomas): Redundant data between the Element_Config and fields in this struct
 // e.g. sizes, etc.
 UI_Element :: struct {
-	parent:    ^UI_Element,
-	id_string: string,
-	position:  Vec2,
-	min_size:  Vec2,
-	max_size:  Vec2,
-	size:      Vec2,
-	config:    Element_Config,
-	children:  [dynamic]^UI_Element,
-	color:     Color,
-	z_index:   i32,
-	hot:       f32,
-	active:    f32,
-	last_comm: Comm,
+	parent:         ^UI_Element,
+	id_string:      string,
+	position:       Vec2,
+	min_size:       Vec2,
+	max_size:       Vec2,
+	size:           Vec2,
+	config:         Element_Config,
+	children:       [dynamic]^UI_Element,
+	color:          Color,
+	z_index:        i32,
+	hot:            f32,
+	active:         f32,
+	last_comm:      Comm,
+	last_frame_idx: u64,
 }
 
 Sizing :: struct {
@@ -602,14 +603,15 @@ make_element :: proc(
 			log.error("failed to allocate UI_Element")
 			return nil, false
 		}
-		element.parent = ctx.current_parent
-		element.id_string = id
 		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
-		if element.parent != nil {
-			append(&element.parent.children, element)
-		}
-
 		ctx.element_cache[key] = element
+	}
+
+	element.parent = ctx.current_parent
+	element.id_string = id
+	clear_dynamic_array(&element.children)
+	if element.parent != nil {
+		append(&element.parent.children, element)
 	}
 
 	// TODO(Thomas): Prune which of these fields actually has to be set every frame
@@ -618,6 +620,7 @@ make_element :: proc(
 	// TODO(Thomas): Every field that is set from the config here is essentially
 	// redundant. We should probably just set the config and then use that for further
 	// calculations? 
+	element.last_frame_idx = ctx.frame_idx
 	element.color = element_config.background_color
 
 	element.size.x = element_config.layout.sizing.x.value

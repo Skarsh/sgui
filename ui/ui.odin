@@ -1,5 +1,6 @@
 package ui
 
+import "core:container/queue"
 import "core:math"
 import "core:mem"
 
@@ -96,7 +97,7 @@ Context :: struct {
 	measure_text_proc:    Measure_Text_Proc,
 	measure_glyph_proc:   Measure_Glyph_Proc,
 	font_user_data:       rawptr,
-	frame_index:          u64,
+	frame_idx:            u64,
 	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:            f32,
@@ -116,6 +117,8 @@ Capability_Flags :: bit_set[Capability]
 
 Comm :: struct {
 	element:  ^UI_Element,
+	active:   bool,
+	hot:      bool,
 	clicked:  bool,
 	held:     bool,
 	hovering: bool,
@@ -235,24 +238,46 @@ end :: proc(ctx: ^Context) {
 
 	clear_input(ctx)
 
+	ctx.frame_idx += 1
+
 	free_all(ctx.frame_allocator)
 }
+
 
 process_interactions :: proc(ctx: ^Context) {
 	top_element: ^UI_Element
 	highest_z_index: i32 = -1
-	for _, elem in ctx.element_cache {
-		rect := Rect {
-			i32(elem.position.x),
-			i32(elem.position.y),
-			i32(elem.size.x),
-			i32(elem.size.y),
-		}
+
+	// BFS traversal, we're traversing the layout hierarchy instead
+	// of iterating over the element_cache because in this way we
+	// know we'll always just have fresh and existing UI_Elements.
+	q := queue.Queue(^UI_Element){}
+	queue.init(&q, allocator = ctx.frame_allocator)
+	visited := make([dynamic]^UI_Element, ctx.frame_allocator)
+
+	queue.push_back(&q, ctx.root_element)
+	for queue.len(q) > 0 {
+		v := queue.pop_front(&q)
+
+		rect := Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
 
 		if point_in_rect(ctx.input.mouse_pos, rect) {
-			if elem.z_index > highest_z_index {
-				highest_z_index = elem.z_index
-				top_element = elem
+			if v.z_index > highest_z_index {
+				highest_z_index = v.z_index
+				top_element = v
+			}
+		}
+
+		for child in v.children {
+			found := false
+			for n in visited {
+				if child.id_string == n.id_string {
+					found = true
+				}
+			}
+			if !found {
+				append(&visited, child)
+				queue.push_back(&q, child)
 			}
 		}
 	}
@@ -287,6 +312,14 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 
 		element.hot = math.clamp(element.hot, 0, 1)
+
+		if approx_equal(element.active, 1.0, 0.001) {
+			comm.active = true
+		}
+
+		if approx_equal(element.hot, 1.0, 0.001) {
+			comm.hot = true
+		}
 
 		element.last_comm = comm
 	}
