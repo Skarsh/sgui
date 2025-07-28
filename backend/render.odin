@@ -1,8 +1,8 @@
-package main
+package backend
 
 import "core:log"
 import "core:strings"
-import "ui"
+import ui "../ui"
 import sdl "vendor:sdl2"
 import sdl_img "vendor:sdl2/image"
 import stbtt "vendor:stb/truetype"

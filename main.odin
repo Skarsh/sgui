@@ -8,6 +8,7 @@ import "core:strings"
 
 import sdl "vendor:sdl2"
 
+import "backend"
 import "ui"
 
 // This example uses SDL2, but the immediate mode ui library should be 
@@ -87,51 +88,52 @@ main :: proc() {
 	ui.set_ctx_font_id(&ctx, font_id)
 	ui.set_ctx_font_size(&ctx, font_size)
 
-	font_info := Font_Info{}
-	stb_font_ctx := STB_Font_Context {
+	font_info := backend.Font_Info{}
+	stb_font_ctx := backend.STB_Font_Context {
 		font_info = &font_info,
 	}
 
-	if !init_stb_font_ctx(&stb_font_ctx, "data/fonts/font.ttf", font_size) {
+	if !backend.init_stb_font_ctx(&stb_font_ctx, "data/fonts/font.ttf", font_size) {
 		log.error("failed to init stb_font")
 		return
 	}
-	defer deinit_stb_font_ctx(&stb_font_ctx)
+	defer backend.deinit_stb_font_ctx(&stb_font_ctx)
 
-	ui.set_text_measurement_callbacks(&ctx, stb_measure_text, stb_measure_glyph, &stb_font_ctx)
+	ui.set_text_measurement_callbacks(
+		&ctx,
+		backend.stb_measure_text,
+		backend.stb_measure_glyph,
+		&stb_font_ctx,
+	)
 
-	render_ctx := Render_Context{}
-	init_render_ctx(&render_ctx, window, stb_font_ctx, font_size, app_arena_allocator)
+	render_ctx := backend.Render_Context{}
+	backend.init_render_ctx(&render_ctx, window, stb_font_ctx, font_size, app_arena_allocator)
 
-	init_resources(&render_ctx)
+	backend.init_resources(&render_ctx)
+
+	io := backend.Io{}
+	backend.init_io(&io)
 
 	app_state := App_State {
 		window      = window,
 		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
 		ctx         = ctx,
 		render_ctx  = render_ctx,
+		io          = io,
 		running     = true,
 	}
 	defer deinit_app_state(&app_state)
 
-	frequency := sdl.GetPerformanceFrequency()
-	now: u64 = 0
-	last: u64 = 0
-	dt: f32 = 0
-	frame_counter := 0
-	for app_state.running {
-		frame_counter += 1
-		last = now
-		now = sdl.GetPerformanceCounter()
-		dt = f32(f32(now - last) / f32(frequency))
-		app_state.ctx.dt = dt
 
-		if frame_counter % 100 == 0 {
-			log.infof("dt: %.2fms", dt * 1000)
+	for app_state.running {
+		backend.time(&io)
+		if io.frame_time.counter % 100 == 0 {
+			log.infof("dt: %.2fms", io.frame_time.dt * 1000)
 		}
+
 		process_events(&app_state)
 
-		render_begin(&app_state.render_ctx)
+		backend.render_begin(&app_state.render_ctx)
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
@@ -144,7 +146,7 @@ main :: proc() {
 		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
 
-		render_end(&app_state.render_ctx, &app_state.ctx.command_stack)
+		backend.render_end(&app_state.render_ctx, &app_state.ctx.command_stack)
 
 		sdl.Delay(10)
 	}
@@ -193,7 +195,8 @@ App_State :: struct {
 	window:      ^sdl.Window,
 	window_size: [2]i32,
 	ctx:         ui.Context,
-	render_ctx:  Render_Context,
+	render_ctx:  backend.Render_Context,
+	io:          backend.Io,
 	running:     bool,
 }
 

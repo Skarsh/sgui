@@ -1,4 +1,4 @@
-package main
+package backend
 
 import "core:log"
 import "core:mem"

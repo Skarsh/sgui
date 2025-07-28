@@ -1,11 +1,11 @@
-package main
+package backend
 
 import "core:log"
 import "core:os"
 
 import stbtt "vendor:stb/truetype"
 
-import ui "ui"
+import ui "../ui"
 
 Font_Info :: stbtt.fontinfo
 
