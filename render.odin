@@ -65,10 +65,8 @@ deinit_render_ctx :: proc(ctx: ^Render_Context) {
 	sdl.DestroyRenderer(ctx.renderer)
 }
 
-init_resources :: proc(ctx: ^Render_Context) -> bool {
-	logo_surface, logo_ok := load_surface_from_image_file(
-		"./data/textures/skarsh_logo_192x192.png",
-	)
+load_texture :: proc(ctx: ^Render_Context, full_path: string) -> bool {
+	logo_surface, logo_ok := load_surface_from_image_file(full_path)
 	if !logo_ok {
 		return false
 	}
@@ -94,6 +92,17 @@ init_resources :: proc(ctx: ^Render_Context) -> bool {
 	return true
 }
 
+init_resources :: proc(ctx: ^Render_Context) -> bool {
+	load_texture(ctx, "./data/textures/skarsh_logo_192x192.png")
+	load_texture(ctx, "./data/textures/copy_icon.png")
+	load_texture(ctx, "./data/textures/paste_icon.png")
+	load_texture(ctx, "./data/textures/delete_icon.png")
+	load_texture(ctx, "./data/textures/comment_icon.png")
+	load_texture(ctx, "./data/textures/cut_icon.png")
+
+	return true
+}
+
 load_surface_from_image_file :: proc(image_path: string) -> (^sdl.Surface, bool) {
 	path := strings.clone_to_cstring(image_path, context.temp_allocator)
 	surface := sdl_img.Load(path)
@@ -110,8 +119,9 @@ render_line :: proc(renderer: ^sdl.Renderer, x0, y0, x1, y1: f32, color: sdl.Col
 	sdl.RenderDrawLine(renderer, i32(x0), i32(y0), i32(x1), i32(y1))
 }
 
-render_image :: proc(ctx: ^Render_Context, x, y, w, h: f32) {
-	tex := ctx.textures[0]
+render_image :: proc(ctx: ^Render_Context, x, y, w, h: f32, data: rawptr) {
+	tex_idx := cast(^int)data
+	tex := ctx.textures[tex_idx^]
 	r := sdl.Rect {
 		x = i32(x),
 		y = i32(y),
@@ -205,7 +215,7 @@ render_draw_commands :: proc(
 		case ui.Command_Text:
 			render_text(&render_ctx.font_atlas, val.str, val.x, val.y)
 		case ui.Command_Image:
-			render_image(render_ctx, val.x, val.y, val.w, val.h)
+			render_image(render_ctx, val.x, val.y, val.w, val.h, val.data)
 		case ui.Command_Push_Scissor:
 			new_scissor_rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 

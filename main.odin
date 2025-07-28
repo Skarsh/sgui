@@ -138,10 +138,10 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		//build_complex_ui(&app_state)
+		build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
-		build_interactive_button_ui(&app_state)
+		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
 
 		render_end(&app_state.render_ctx, &app_state.ctx.command_stack)
@@ -511,20 +511,26 @@ build_iterated_texts :: proc(app_state: ^App_State) {
 	ui.end(&app_state.ctx)
 }
 
+
+// TODO(Thomas): This is a quickfix to circumvent the lifetime issue
+// of the item_texture_idx passed as rawptr for the image_data
+User_Data :: struct {
+	items:             [5]string,
+	item_texture_idxs: [5]int,
+	idx:               int,
+	builder:           strings.Builder,
+}
+item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
+item_texture_idxs := [5]int{1, 2, 3, 4, 5}
+user_data := User_Data{}
+
 build_complex_ui :: proc(app_state: ^App_State) {
-
-	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
-
 	buf: [1024]u8
 	builder := strings.builder_from_bytes(buf[:])
 
-	User_Data :: struct {
-		items:   [5]string,
-		idx:     int,
-		builder: strings.Builder,
-	}
-
-	user_data := User_Data{item_texts, 0, builder}
+	user_data.items = item_texts
+	user_data.item_texture_idxs = item_texture_idxs
+	user_data.builder = builder
 
 	ui.begin(&app_state.ctx)
 	ui.container(
@@ -532,7 +538,10 @@ build_complex_ui :: proc(app_state: ^App_State) {
 		"parent",
 		{
 			layout = {
-				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
+				sizing = {
+					{kind = .Percentage_Of_Parent, value = 1.0},
+					{kind = .Percentage_Of_Parent, value = 1.0},
+				},
 				padding = {16, 16, 16, 16},
 				layout_direction = .Top_To_Bottom,
 				alignment_x = .Center,
@@ -597,6 +606,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 									},
 								},
 								capability_flags = {.Image},
+								content = {image_data = rawptr(&data.item_texture_idxs[data.idx])},
 							},
 						)
 					},

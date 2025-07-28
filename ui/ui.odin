@@ -364,7 +364,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			element.position.y,
 			element.size.x,
 			element.size.y,
-			nil,
+			element.config.content.image_data,
 		)
 	}
 

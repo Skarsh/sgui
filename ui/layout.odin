@@ -53,12 +53,12 @@ Text_Data :: struct {
 }
 
 Image_Data :: struct {
-	data: rawptr,
+	texture_idx: int,
 }
 
 Element_Content :: struct {
 	text_data:  Text_Data,
-	image_data: Image_Data,
+	image_data: rawptr,
 }
 
 Layout_Config :: struct {
