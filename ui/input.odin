@@ -1,8 +1,5 @@
 package ui
 
-import "core:strings"
-import textedit "core:text/edit"
-
 Mouse :: enum u32 {
 	Unknown,
 	Left,
@@ -180,10 +177,6 @@ Input :: struct {
 	key_down_bits:       Key_Set,
 	key_pressed_bits:    Key_Set,
 	keymod_down_bits:    Keymod_Set,
-	// Text
-	_text_store:         [MAX_TEXT_STORE]u8,
-	text:                strings.Builder,
-	textbox_state:       textedit.State,
 }
 
 handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {
@@ -224,10 +217,6 @@ handle_key_up :: proc(ctx: ^Context, key: Key) {
 	ctx.input.key_down_bits -= {key}
 }
 
-handle_text :: proc(ctx: ^Context, text: string) {
-	strings.write_string(&ctx.input.text, text)
-}
-
 is_mouse_down :: proc(ctx: Context, mouse: Mouse) -> bool {
 	return mouse in ctx.input.mouse_down_bits
 }
@@ -247,5 +236,4 @@ is_key_pressed :: proc(ctx: Context, key: Key) -> bool {
 clear_input :: proc(ctx: ^Context) {
 	ctx.input.key_pressed_bits = {}
 	ctx.input.mouse_pressed_bits = {}
-	strings.builder_reset(&ctx.input.text)
 }

@@ -909,9 +909,6 @@ process_events :: proc(app_state: ^App_State) {
 			ui.handle_key_down(&app_state.ctx, key)
 			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
 			ui.handle_keymod_up(&app_state.ctx, keymod)
-		case .TEXTINPUT:
-			text := string(cstring(&event.text.text[0]))
-			ui.handle_text(&app_state.ctx, text)
 		case .WINDOWEVENT:
 			#partial switch event.window.event {
 			case .SIZE_CHANGED:
