@@ -22,9 +22,46 @@ Render_Context :: struct {
 	renderer:      ^sdl.Renderer,
 	textures:      [dynamic]Texture_Asset,
 	scissor_stack: [dynamic]sdl.Rect,
+	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
+	font_atlas:    Font_Atlas,
+}
+
+init_render_ctx :: proc(
+	ctx: ^Render_Context,
+	window: ^sdl.Window,
+	stb_font_ctx: STB_Font_Context,
+	font_size: f32,
+	allocator := context.allocator,
+) -> bool {
+	renderer := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
+	if renderer == nil {
+		log.error("Unable to create renderer: ", sdl.GetError())
+		return false
+	}
+
+	font_atlas := Font_Atlas{}
+	init_font_atlas(
+		&font_atlas,
+		stb_font_ctx.font_info,
+		stb_font_ctx.font_data,
+		"data/font.ttf",
+		font_size,
+		1024,
+		1024,
+		renderer,
+		allocator,
+	)
+
+	ctx.renderer = renderer
+	ctx.textures = make([dynamic]Texture_Asset, allocator)
+	ctx.scissor_stack = make([dynamic]sdl.Rect, allocator)
+	ctx.font_atlas = font_atlas
+
+	return true
 }
 
 deinit_render_ctx :: proc(ctx: ^Render_Context) {
+	deinit_font_atlas(&ctx.font_atlas)
 	sdl.DestroyRenderer(ctx.renderer)
 }
 
@@ -130,18 +167,18 @@ render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
 	}
 }
 
-render_draw_commands :: proc(app_state: ^App_State) {
+render_draw_commands :: proc(
+	render_ctx: ^Render_Context,
+	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
+) {
 
-	render_ctx := &app_state.render_ctx
 	clear(&render_ctx.scissor_stack)
 	sdl.RenderSetClipRect(render_ctx.renderer, nil)
 
 	commands := [ui.COMMAND_STACK_SIZE]ui.Command{}
 
 	idx := 0
-	for command, ok := ui.pop(&app_state.ctx.command_stack);
-	    ok;
-	    command, ok = ui.pop(&app_state.ctx.command_stack) {
+	for command, ok := ui.pop(command_stack); ok; command, ok = ui.pop(command_stack) {
 		commands[idx] = command
 		idx += 1
 	}
@@ -166,9 +203,9 @@ render_draw_commands :: proc(app_state: ^App_State) {
 			sdl.RenderDrawRect(render_ctx.renderer, &rect)
 			sdl.RenderFillRect(render_ctx.renderer, &rect)
 		case ui.Command_Text:
-			render_text(&app_state.font_atlas, val.str, val.x, val.y)
+			render_text(&render_ctx.font_atlas, val.str, val.x, val.y)
 		case ui.Command_Image:
-			render_image(&app_state.render_ctx, val.x, val.y, val.w, val.h)
+			render_image(render_ctx, val.x, val.y, val.w, val.h)
 		case ui.Command_Push_Scissor:
 			new_scissor_rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 
@@ -193,4 +230,19 @@ render_draw_commands :: proc(app_state: ^App_State) {
 	}
 
 	sdl.RenderSetClipRect(render_ctx.renderer, nil)
+}
+
+render_begin :: proc(render_ctx: ^Render_Context) {
+	bg_color := ui.default_color_style[.Window_BG]
+	sdl.SetRenderDrawColor(render_ctx.renderer, bg_color.r, bg_color.g, bg_color.b, 255)
+	sdl.RenderClear(render_ctx.renderer)
+}
+
+// TODO(Thomas): The command_stack could just be a member of render_ctx instead??
+render_end :: proc(
+	render_ctx: ^Render_Context,
+	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
+) {
+	render_draw_commands(render_ctx, command_stack)
+	sdl.RenderPresent(render_ctx.renderer)
 }

@@ -7,7 +7,6 @@ import "core:mem/virtual"
 import "core:strings"
 
 import sdl "vendor:sdl2"
-import stbtt "vendor:stb/truetype"
 
 import "ui"
 
@@ -63,12 +62,6 @@ main :: proc() {
 		return
 	}
 
-	renderer := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
-	if renderer == nil {
-		log.error("Unable to create renderer: ", sdl.GetError())
-		return
-	}
-
 	ctx := ui.Context{}
 
 	app_arena := virtual.Arena{}
@@ -107,26 +100,8 @@ main :: proc() {
 
 	ui.set_text_measurement_callbacks(&ctx, stb_measure_text, stb_measure_glyph, &stb_font_ctx)
 
-	font_atlas := Font_Atlas{}
-
-	init_font_atlas(
-		&font_atlas,
-		stb_font_ctx.font_info,
-		stb_font_ctx.font_data,
-		"data/font.ttf",
-		font_size,
-		1024,
-		1024,
-		renderer,
-		app_arena_allocator,
-	)
-	defer deinit_font_atlas(&font_atlas)
-
-	render_ctx := Render_Context {
-		renderer      = renderer,
-		textures      = make([dynamic]Texture_Asset, app_arena_allocator),
-		scissor_stack = make([dynamic]sdl.Rect, app_arena_allocator),
-	}
+	render_ctx := Render_Context{}
+	init_render_ctx(&render_ctx, window, stb_font_ctx, font_size, app_arena_allocator)
 
 	init_resources(&render_ctx)
 
@@ -135,7 +110,6 @@ main :: proc() {
 		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
 		ctx         = ctx,
 		render_ctx  = render_ctx,
-		font_atlas  = font_atlas,
 		running     = true,
 	}
 	defer deinit_app_state(&app_state)
@@ -157,9 +131,7 @@ main :: proc() {
 		}
 		process_events(&app_state)
 
-		bg_color := ui.default_color_style[.Window_BG]
-		sdl.SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, 255)
-		sdl.RenderClear(renderer)
+		render_begin(&app_state.render_ctx)
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
@@ -172,9 +144,7 @@ main :: proc() {
 		build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
 
-		render_draw_commands(&app_state)
-
-		sdl.RenderPresent(renderer)
+		render_end(&app_state.render_ctx, &app_state.ctx.command_stack)
 
 		sdl.Delay(10)
 	}
@@ -224,9 +194,6 @@ App_State :: struct {
 	window_size: [2]i32,
 	ctx:         ui.Context,
 	render_ctx:  Render_Context,
-	// TODO(Thomas): Figure out how we wanna allocate this.
-	font_info:   ^stbtt.fontinfo,
-	font_atlas:  Font_Atlas,
 	running:     bool,
 }
 
