@@ -127,6 +127,7 @@ main :: proc() {
 
 	for app_state.running {
 		backend.time(&io)
+		app_state.ctx.dt = io.frame_time.dt
 		if io.frame_time.counter % 100 == 0 {
 			log.infof("dt: %.2fms", io.frame_time.dt * 1000)
 		}
@@ -140,10 +141,10 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		build_complex_ui(&app_state)
+		//build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
-		//build_interactive_button_ui(&app_state)
+		build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
 
 		backend.render_end(&app_state.render_ctx, &app_state.ctx.command_stack)
