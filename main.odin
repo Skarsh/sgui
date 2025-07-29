@@ -88,45 +88,29 @@ main :: proc() {
 	ui.set_ctx_font_id(&ctx, font_id)
 	ui.set_ctx_font_size(&ctx, font_size)
 
-	font_info := backend.Font_Info{}
-	stb_font_ctx := backend.STB_Font_Context {
-		font_info = &font_info,
-	}
-
-	if !backend.init_stb_font_ctx(&stb_font_ctx, "data/fonts/font.ttf", font_size) {
-		log.error("failed to init stb_font")
-		return
-	}
-	defer backend.deinit_stb_font_ctx(&stb_font_ctx)
+	backend_ctx := backend.Context{}
+	backend.init_ctx(&backend_ctx, window, font_size, app_arena_allocator)
 
 	ui.set_text_measurement_callbacks(
 		&ctx,
 		backend.stb_measure_text,
 		backend.stb_measure_glyph,
-		&stb_font_ctx,
+		&backend_ctx.stb_font_ctx,
 	)
-
-	render_ctx := backend.Render_Context{}
-	backend.init_render_ctx(&render_ctx, window, stb_font_ctx, font_size, app_arena_allocator)
-
-	backend.init_resources(&render_ctx)
-
-	io := backend.Io{}
-	backend.init_io(&io)
 
 	app_state := App_State {
 		window      = window,
 		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
 		ctx         = ctx,
-		render_ctx  = render_ctx,
-		io          = io,
+		backend_ctx = backend_ctx,
 		running     = true,
 	}
 	defer deinit_app_state(&app_state)
 
 
+	io := &app_state.backend_ctx.io
 	for app_state.running {
-		backend.time(&io)
+		backend.time(io)
 		app_state.ctx.dt = io.frame_time.dt
 		if io.frame_time.counter % 100 == 0 {
 			log.infof("dt: %.2fms", io.frame_time.dt * 1000)
@@ -134,7 +118,7 @@ main :: proc() {
 
 		process_events(&app_state)
 
-		backend.render_begin(&app_state.render_ctx)
+		backend.render_begin(&app_state.backend_ctx.render_ctx)
 
 		//build_ui(&app_state)
 		//build_ui_2(&app_state)
@@ -147,7 +131,7 @@ main :: proc() {
 		build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
 
-		backend.render_end(&app_state.render_ctx, &app_state.ctx.command_stack)
+		backend.render_end(&app_state.backend_ctx.render_ctx, &app_state.ctx.command_stack)
 
 		sdl.Delay(10)
 	}
@@ -196,12 +180,12 @@ App_State :: struct {
 	window:      ^sdl.Window,
 	window_size: [2]i32,
 	ctx:         ui.Context,
-	render_ctx:  backend.Render_Context,
-	io:          backend.Io,
+	backend_ctx: backend.Context,
 	running:     bool,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
+	backend.deinit(&app_state.backend_ctx)
 	sdl.DestroyWindow(app_state.window)
 }
 
