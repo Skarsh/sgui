@@ -141,45 +141,6 @@ main :: proc() {
 	}
 }
 
-sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
-	key := ui.Key.Unknown
-	// TODO(Thomas): Complete more of this switch
-	#partial switch sdl_key {
-	case .ESCAPE:
-		key = ui.Key.Escape
-	case .TAB:
-		key = ui.Key.Tab
-	case .RETURN:
-		key = ui.Key.Return
-	case .UP:
-		key = ui.Key.Up
-	case .DOWN:
-		key = ui.Key.Down
-	case .LSHIFT:
-		key = ui.Key.Left_Shift
-	case .RSHIFT:
-		key = ui.Key.Right_Shift
-	case .BACKSPACE:
-		key = ui.Key.Backspace
-	}
-	return key
-}
-
-sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
-	key_mod := ui.KMOD_NONE
-
-	// TODO(Thomas): Do this for the complete set of modifiers
-	if .LSHIFT in sdl_key_mod {
-		key_mod = ui.KMOD_LSHIFT
-	} else if .RSHIFT in sdl_key_mod {
-		key_mod = ui.KMOD_RSHIFT
-	} else if .LSHIFT in sdl_key_mod && .RSHIFT in sdl_key_mod {
-		key_mod = ui.KMOD_SHIFT
-	}
-
-	return key_mod
-}
-
 App_State :: struct {
 	window:      ^sdl.Window,
 	window_size: [2]i32,
@@ -645,6 +606,7 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 	ui.end(&app_state.ctx)
 }
 
+// TODO(Thomas): Input handling for ui library shouldn't happen here.
 process_events :: proc(app_state: ^App_State) {
 	// Process input
 	event := sdl.Event{}
@@ -675,9 +637,9 @@ process_events :: proc(app_state: ^App_State) {
 			}
 			ui.handle_mouse_up(&app_state.ctx, event.motion.x, event.motion.y, btn)
 		case .KEYUP:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
+			key := backend.sdl_key_to_ui_key(event.key.keysym.sym)
 			ui.handle_key_up(&app_state.ctx, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+			keymod := backend.sdl_keymod_to_ui_keymod(event.key.keysym.mod)
 			ui.handle_keymod_up(&app_state.ctx, keymod)
 
 			#partial switch event.key.keysym.sym {
@@ -685,9 +647,9 @@ process_events :: proc(app_state: ^App_State) {
 				app_state.running = false
 			}
 		case .KEYDOWN:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
+			key := backend.sdl_key_to_ui_key(event.key.keysym.sym)
 			ui.handle_key_down(&app_state.ctx, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+			keymod := backend.sdl_keymod_to_ui_keymod(event.key.keysym.mod)
 			ui.handle_keymod_up(&app_state.ctx, keymod)
 		case .WINDOWEVENT:
 			#partial switch event.window.event {

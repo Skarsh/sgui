@@ -2,6 +2,8 @@ package backend
 
 import sdl "vendor:sdl2"
 
+import ui "../ui"
+
 Frame_Time :: struct {
 	counter:   u64,
 	frequency: u64,
@@ -26,4 +28,43 @@ time :: proc(io: ^Io) {
 	)
 
 	io.frame_time.counter += 1
+}
+
+sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
+	key := ui.Key.Unknown
+	// TODO(Thomas): Complete more of this switch
+	#partial switch sdl_key {
+	case .ESCAPE:
+		key = ui.Key.Escape
+	case .TAB:
+		key = ui.Key.Tab
+	case .RETURN:
+		key = ui.Key.Return
+	case .UP:
+		key = ui.Key.Up
+	case .DOWN:
+		key = ui.Key.Down
+	case .LSHIFT:
+		key = ui.Key.Left_Shift
+	case .RSHIFT:
+		key = ui.Key.Right_Shift
+	case .BACKSPACE:
+		key = ui.Key.Backspace
+	}
+	return key
+}
+
+sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
+	key_mod := ui.KMOD_NONE
+
+	// TODO(Thomas): Do this for the complete set of modifiers
+	if .LSHIFT in sdl_key_mod {
+		key_mod = ui.KMOD_LSHIFT
+	} else if .RSHIFT in sdl_key_mod {
+		key_mod = ui.KMOD_RSHIFT
+	} else if .LSHIFT in sdl_key_mod && .RSHIFT in sdl_key_mod {
+		key_mod = ui.KMOD_SHIFT
+	}
+
+	return key_mod
 }
