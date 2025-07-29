@@ -80,13 +80,18 @@ main :: proc() {
 	assert(arena_err == .None)
 	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
 
-	ui.init(&ctx, persistent_arena_allocator, frame_arena_allocator, {WINDOW_WIDTH, WINDOW_HEIGHT})
-	defer ui.deinit(&ctx)
-
 	font_size: f32 = 48
 	font_id: u16 = 0
-	ui.set_ctx_font_id(&ctx, font_id)
-	ui.set_ctx_font_size(&ctx, font_size)
+
+	ui.init(
+		&ctx,
+		persistent_arena_allocator,
+		frame_arena_allocator,
+		{WINDOW_WIDTH, WINDOW_HEIGHT},
+		font_id,
+		font_size,
+	)
+	defer ui.deinit(&ctx)
 
 	backend_ctx := backend.Context{}
 	backend.init_ctx(&backend_ctx, window, font_size, app_arena_allocator)
@@ -106,7 +111,6 @@ main :: proc() {
 		running     = true,
 	}
 	defer deinit_app_state(&app_state)
-
 
 	io := &app_state.backend_ctx.io
 	for app_state.running {

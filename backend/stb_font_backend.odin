@@ -22,7 +22,6 @@ init_stb_font_ctx :: proc(ctx: ^STB_Font_Context, path: string, font_size: f32) 
 		return false
 	}
 
-	log.info("font_size: ", font_size)
 	ctx.font_data = font_data
 	ctx.font_size = font_size
 	ctx.font_metrics = get_font_metrics(ctx.font_info, font_size)

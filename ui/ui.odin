@@ -59,7 +59,8 @@ Command_Push_Scissor :: struct {
 	rect: Rect,
 }
 
-Command_Pop_Scissor :: struct {}
+Command_Pop_Scissor :: struct {
+}
 
 Color_Style :: [Color_Type]Color
 
@@ -149,11 +150,15 @@ init :: proc(
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
 	screen_size: [2]i32,
+	font_id: u16,
+	font_size: f32,
 ) {
 	ctx^ = {} // zero memory
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 	ctx.window_size = screen_size
+	ctx.font_id = font_id
+	ctx.font_size = font_size
 
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
