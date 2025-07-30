@@ -1,6 +1,7 @@
 package backend
 
 import "core:log"
+import "core:mem"
 import sdl "vendor:sdl2"
 
 Context :: struct {
@@ -13,7 +14,8 @@ init_ctx :: proc(
 	ctx: ^Context,
 	window: ^sdl.Window,
 	font_size: f32,
-	allocator := context.allocator,
+	allocator: mem.Allocator,
+	io_allocator: mem.Allocator,
 ) -> bool {
 
 	font_info := new(Font_Info, allocator)
@@ -36,7 +38,7 @@ init_ctx :: proc(
 	init_resources(&render_ctx)
 
 	io := Io{}
-	init_io(&io)
+	init_io(&io, io_allocator)
 
 	ctx.stb_font_ctx = stb_font_ctx
 	ctx.render_ctx = render_ctx

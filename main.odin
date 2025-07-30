@@ -80,6 +80,11 @@ main :: proc() {
 	assert(arena_err == .None)
 	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
 
+	io_arena := virtual.Arena{}
+	arena_err = virtual.arena_init_static(&io_arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
+	io_arena_allocator := virtual.arena_allocator(&io_arena)
+
 	font_size: f32 = 48
 	font_id: u16 = 0
 
@@ -94,7 +99,7 @@ main :: proc() {
 	defer ui.deinit(&ctx)
 
 	backend_ctx := backend.Context{}
-	backend.init_ctx(&backend_ctx, window, font_size, app_arena_allocator)
+	backend.init_ctx(&backend_ctx, window, font_size, app_arena_allocator, io_arena_allocator)
 
 	ui.set_text_measurement_callbacks(
 		&ctx,
@@ -121,6 +126,7 @@ main :: proc() {
 		}
 
 		process_events(&app_state)
+		backend.process_events(&app_state.backend_ctx.io, &app_state.ctx)
 
 		backend.render_begin(&app_state.backend_ctx.render_ctx)
 
@@ -606,56 +612,16 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 	ui.end(&app_state.ctx)
 }
 
-// TODO(Thomas): Input handling for ui library shouldn't happen here.
 process_events :: proc(app_state: ^App_State) {
 	// Process input
 	event := sdl.Event{}
 	for sdl.PollEvent(&event) {
+		backend.enqueue_sdl_event(&app_state.backend_ctx.io, event)
 		#partial switch event.type {
-		case .MOUSEMOTION:
-			ui.handle_mouse_move(&app_state.ctx, event.motion.x, event.motion.y)
-		case .MOUSEBUTTONDOWN:
-			btn: ui.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
-			}
-			ui.handle_mouse_down(&app_state.ctx, event.motion.x, event.motion.y, btn)
-		case .MOUSEBUTTONUP:
-			btn: ui.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
-			}
-			ui.handle_mouse_up(&app_state.ctx, event.motion.x, event.motion.y, btn)
 		case .KEYUP:
-			key := backend.sdl_key_to_ui_key(event.key.keysym.sym)
-			ui.handle_key_up(&app_state.ctx, key)
-			keymod := backend.sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			ui.handle_keymod_up(&app_state.ctx, keymod)
-
 			#partial switch event.key.keysym.sym {
 			case .ESCAPE:
 				app_state.running = false
-			}
-		case .KEYDOWN:
-			key := backend.sdl_key_to_ui_key(event.key.keysym.sym)
-			ui.handle_key_down(&app_state.ctx, key)
-			keymod := backend.sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			ui.handle_keymod_up(&app_state.ctx, keymod)
-		case .WINDOWEVENT:
-			#partial switch event.window.event {
-			case .SIZE_CHANGED:
-				app_state.ctx.window_size.x = event.window.data1
-				app_state.ctx.window_size.y = event.window.data2
 			}
 		case .QUIT:
 			app_state.running = false

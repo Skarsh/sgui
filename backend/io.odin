@@ -1,5 +1,8 @@
 package backend
 
+import "core:container/queue"
+import "core:log"
+import "core:mem"
 import sdl "vendor:sdl2"
 
 import ui "../ui"
@@ -13,11 +16,21 @@ Frame_Time :: struct {
 }
 
 Io :: struct {
-	frame_time: Frame_Time,
+	allocator:   mem.Allocator,
+	frame_time:  Frame_Time,
+	input_queue: queue.Queue(sdl.Event),
 }
 
-init_io :: proc(io: ^Io) {
+init_io :: proc(io: ^Io, allocator: mem.Allocator) -> bool {
 	io.frame_time.frequency = sdl.GetPerformanceFrequency()
+	io.allocator = allocator
+	alloc_err := queue.init(&io.input_queue, 32, io.allocator)
+	assert(alloc_err == .None)
+	if alloc_err != .None {
+		log.error("Failed to init input queue")
+		return false
+	}
+	return true
 }
 
 time :: proc(io: ^Io) {
@@ -28,6 +41,63 @@ time :: proc(io: ^Io) {
 	)
 
 	io.frame_time.counter += 1
+}
+
+enqueue_sdl_event :: proc(io: ^Io, event: sdl.Event) {
+	queue.push_back(&io.input_queue, event)
+}
+
+process_events :: proc(io: ^Io, ctx: ^ui.Context) {
+	for {
+		event, ok := queue.pop_front_safe(&io.input_queue)
+		if !ok {
+			break
+		}
+
+		#partial switch event.type {
+		case .MOUSEMOTION:
+			ui.handle_mouse_move(ctx, event.motion.x, event.motion.y)
+		case .MOUSEBUTTONDOWN:
+			btn: ui.Mouse
+			switch event.button.button {
+			case sdl.BUTTON_LEFT:
+				btn = .Left
+			case sdl.BUTTON_RIGHT:
+				btn = .Right
+			case sdl.BUTTON_MIDDLE:
+				btn = .Middle
+			}
+			ui.handle_mouse_down(ctx, event.motion.x, event.motion.y, btn)
+		case .MOUSEBUTTONUP:
+			btn: ui.Mouse
+			switch event.button.button {
+			case sdl.BUTTON_LEFT:
+				btn = .Left
+			case sdl.BUTTON_RIGHT:
+				btn = .Right
+			case sdl.BUTTON_MIDDLE:
+				btn = .Middle
+			}
+			ui.handle_mouse_up(ctx, event.motion.x, event.motion.y, btn)
+		case .KEYUP:
+			key := sdl_key_to_ui_key(event.key.keysym.sym)
+			ui.handle_key_up(ctx, key)
+			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+			ui.handle_keymod_up(ctx, keymod)
+		case .KEYDOWN:
+			key := sdl_key_to_ui_key(event.key.keysym.sym)
+			ui.handle_key_down(ctx, key)
+			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+			ui.handle_keymod_up(ctx, keymod)
+		case .WINDOWEVENT:
+			#partial switch event.window.event {
+			case .SIZE_CHANGED:
+				ctx.window_size.x = event.window.data1
+				ctx.window_size.y = event.window.data2
+			}
+		}
+	}
+	free_all(io.allocator)
 }
 
 sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
