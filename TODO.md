@@ -1,24 +1,12 @@
 # TODOs
 
 ## Active
-* Text needs to become "just" a capability of an element, not it's own specific type of element as it kind of is now.
-    This means that the Text capability needs to compose well together with the other ones.
-    How this would work currently is that a text element will be on top, causing problems for interactivity
-    checks as hover etc. This could be circumvented by skipping text elements for interactivity, but that
-    makes it hard then to have embossed animation on the text on hover etc. I think this just shows that even if its
-    simple layout wise to have text as its own special kind of element, its gonna make things much harder and more
-    complex further down. Due to this I will spend some significant time now trying to figure out a way to "unify"
-    the text capability with the others.
-    Issues found so far:
-        - Interactivity issues when button is wrapped in a fixed size container.
-
-* Next goal: A single button ui procedure that can make button with texture, text, clickable, hoverable / hot 
-    and active.
+* Colored text
 
 ## Bugs
 
 ## Backlog
-* Prune "dead" ui elements
+* Prune "dead" ui elements (they're still cached in the map)
 * Styling - Style stacks? At least it needs to be a bit simpler.
 * Make our own Renderer, start with OpenGL
 * Upper Bound Limit Recursion
