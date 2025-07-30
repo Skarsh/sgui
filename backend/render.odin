@@ -136,9 +136,12 @@ render_image :: proc(ctx: ^Render_Context, x, y, w, h: f32, data: rawptr) {
 	sdl.RenderCopy(ctx.renderer, tex.tex, nil, &r)
 }
 
-render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
+render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a: u8) {
 	start_x := x
 	start_y := y + atlas.metrics.ascent
+
+	sdl.SetTextureColorMod(atlas.texture, r, g, b)
+	sdl.SetTextureAlphaMod(atlas.texture, a)
 
 	for r in text {
 		// TODO(Thomas): What to do with \t and so on?
@@ -180,6 +183,10 @@ render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32) {
 
 		sdl.RenderCopy(atlas.renderer, atlas.texture, &src_rect, &dst_rect)
 	}
+
+	// TODO(Thomas): Should this be popped off a stack instead??
+	sdl.SetTextureColorMod(atlas.texture, 255, 255, 255)
+	sdl.SetTextureAlphaMod(atlas.texture, 255)
 }
 
 render_draw_commands :: proc(
@@ -218,7 +225,16 @@ render_draw_commands :: proc(
 			sdl.RenderDrawRect(render_ctx.renderer, &rect)
 			sdl.RenderFillRect(render_ctx.renderer, &rect)
 		case ui.Command_Text:
-			render_text(&render_ctx.font_atlas, val.str, val.x, val.y)
+			render_text(
+				&render_ctx.font_atlas,
+				val.str,
+				val.x,
+				val.y,
+				val.color.r,
+				val.color.g,
+				val.color.b,
+				val.color.a,
+			)
 		case ui.Command_Image:
 			render_image(render_ctx, val.x, val.y, val.w, val.h, val.data)
 		case ui.Command_Push_Scissor:

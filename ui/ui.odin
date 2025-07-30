@@ -46,8 +46,9 @@ Command_Rect :: struct {
 }
 
 Command_Text :: struct {
-	x, y: f32,
-	str:  string,
+	x, y:  f32,
+	str:   string,
+	color: Color,
 }
 
 Command_Image :: struct {
@@ -59,8 +60,7 @@ Command_Push_Scissor :: struct {
 	rect: Rect,
 }
 
-Command_Pop_Scissor :: struct {
-}
+Command_Pop_Scissor :: struct {}
 
 Color_Style :: [Color_Type]Color
 
@@ -413,7 +413,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				start_x = content_area_x + (content_area_w - line.width)
 			}
 
-			draw_text(ctx, start_x, current_y, line.text)
+			draw_text(ctx, start_x, current_y, line.text, element.config.text_color)
 			current_y += line.height
 		}
 	}
@@ -461,8 +461,8 @@ draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
 	push(&ctx.command_stack, Command_Rect{rect, color})
 }
 
-draw_text :: proc(ctx: ^Context, x, y: f32, str: string) {
-	push(&ctx.command_stack, Command_Text{x, y, str})
+draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: Color) {
+	push(&ctx.command_stack, Command_Text{x, y, str, color})
 }
 
 draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
@@ -481,6 +481,7 @@ button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 			text_alignment_x = .Center,
 		},
 		background_color = {24, 24, 24, 255},
+		text_color = {255, 128, 255, 128},
 		//capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
 		capability_flags = {.Background, .Active_Animation, .Hot_Animation},
 	},

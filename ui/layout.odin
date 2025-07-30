@@ -106,6 +106,7 @@ Sizing :: struct {
 Element_Config :: struct {
 	layout:           Layout_Config,
 	background_color: Color,
+	text_color:       Color,
 	clip:             Clip_Config,
 	capability_flags: Capability_Flags,
 	content:          Element_Content,
