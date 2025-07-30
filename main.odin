@@ -99,13 +99,13 @@ main :: proc() {
 	defer ui.deinit(&ctx)
 
 	backend_ctx := backend.Context{}
-	backend.init_ctx(&backend_ctx, window, font_size, app_arena_allocator, io_arena_allocator)
-
-	ui.set_text_measurement_callbacks(
+	backend.init_ctx(
+		&backend_ctx,
 		&ctx,
-		backend.stb_measure_text,
-		backend.stb_measure_glyph,
-		&backend_ctx.stb_font_ctx,
+		window,
+		font_size,
+		app_arena_allocator,
+		io_arena_allocator,
 	)
 
 	app_state := App_State {

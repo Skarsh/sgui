@@ -2,7 +2,10 @@ package backend
 
 import "core:log"
 import "core:mem"
+
 import sdl "vendor:sdl2"
+
+import ui "../ui"
 
 Context :: struct {
 	stb_font_ctx: STB_Font_Context,
@@ -12,6 +15,7 @@ Context :: struct {
 
 init_ctx :: proc(
 	ctx: ^Context,
+	ui_ctx: ^ui.Context,
 	window: ^sdl.Window,
 	font_size: f32,
 	allocator: mem.Allocator,
@@ -28,20 +32,25 @@ init_ctx :: proc(
 		return false
 	}
 
+	ctx.stb_font_ctx = stb_font_ctx
+	ui.set_text_measurement_callbacks(
+		ui_ctx,
+		stb_measure_text,
+		stb_measure_glyph,
+		&ctx.stb_font_ctx,
+	)
+
 	render_ctx := Render_Context{}
 	render_ctx_ok := init_render_ctx(&render_ctx, window, stb_font_ctx, font_size, allocator)
 	if !render_ctx_ok {
 		log.error("failed to init render context")
 		return false
 	}
-
 	init_resources(&render_ctx)
+	ctx.render_ctx = render_ctx
 
 	io := Io{}
 	init_io(&io, io_allocator)
-
-	ctx.stb_font_ctx = stb_font_ctx
-	ctx.render_ctx = render_ctx
 	ctx.io = io
 
 	return true
