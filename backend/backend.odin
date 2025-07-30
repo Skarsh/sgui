@@ -17,6 +17,7 @@ init_ctx :: proc(
 	ctx: ^Context,
 	ui_ctx: ^ui.Context,
 	window: ^sdl.Window,
+	texture_paths: []string,
 	font_size: f32,
 	allocator: mem.Allocator,
 	io_allocator: mem.Allocator,
@@ -46,7 +47,7 @@ init_ctx :: proc(
 		log.error("failed to init render context")
 		return false
 	}
-	init_resources(&render_ctx)
+	init_resources(&render_ctx, texture_paths)
 	ctx.render_ctx = render_ctx
 
 	io := Io{}

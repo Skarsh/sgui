@@ -2,10 +2,12 @@ package backend
 
 import "core:log"
 import "core:strings"
-import ui "../ui"
+
 import sdl "vendor:sdl2"
 import sdl_img "vendor:sdl2/image"
 import stbtt "vendor:stb/truetype"
+
+import ui "../ui"
 
 Texture_Asset :: struct {
 	tex:   ^sdl.Texture,
@@ -92,13 +94,16 @@ load_texture :: proc(ctx: ^Render_Context, full_path: string) -> bool {
 	return true
 }
 
-init_resources :: proc(ctx: ^Render_Context) -> bool {
+init_resources :: proc(ctx: ^Render_Context, paths: []string) -> bool {
 	load_texture(ctx, "./data/textures/skarsh_logo_192x192.png")
 	load_texture(ctx, "./data/textures/copy_icon.png")
 	load_texture(ctx, "./data/textures/paste_icon.png")
 	load_texture(ctx, "./data/textures/delete_icon.png")
 	load_texture(ctx, "./data/textures/comment_icon.png")
 	load_texture(ctx, "./data/textures/cut_icon.png")
+	for path in paths {
+		load_texture(ctx, path)
+	}
 
 	return true
 }
