@@ -86,24 +86,40 @@ Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> 
 
 
 Context :: struct {
-	persistent_allocator: mem.Allocator,
-	frame_allocator:      mem.Allocator,
-	command_stack:        Stack(Command, COMMAND_STACK_SIZE),
-	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
-	current_parent:       ^UI_Element,
-	root_element:         ^UI_Element,
-	input:                Input,
-	element_cache:        map[UI_Key]^UI_Element,
-	interactive_elements: [dynamic]^UI_Element,
-	measure_text_proc:    Measure_Text_Proc,
-	measure_glyph_proc:   Measure_Glyph_Proc,
-	font_user_data:       rawptr,
-	frame_idx:            u64,
-	dt:                   f32,
+	persistent_allocator:   mem.Allocator,
+	frame_allocator:        mem.Allocator,
+	command_stack:          Stack(Command, COMMAND_STACK_SIZE),
+	element_stack:          Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	// TODO(Thomas): Style stacks, move them into its own struct?
+	// Maybe even do some metaprogramming to generate them if it becomes
+	// too many of them?
+	sizing_x_stack:         Stack(Sizing, STYLE_STACK_SIZE),
+	sizing_y_stack:         Stack(Sizing, STYLE_STACK_SIZE),
+	capability_flags_stack: Stack(Capability_Flags, STYLE_STACK_SIZE),
+	background_color_stack: Stack(Color, STYLE_STACK_SIZE),
+	text_color_stack:       Stack(Color, STYLE_STACK_SIZE),
+	padding_stack:          Stack(Padding, STYLE_STACK_SIZE),
+	child_gap_stack:        Stack(f32, STYLE_STACK_SIZE),
+	layout_direction_stack: Stack(Layout_Direction, STYLE_STACK_SIZE),
+	alignment_x_stack:      Stack(Alignment_X, STYLE_STACK_SIZE),
+	alignment_y_stack:      Stack(Alignment_Y, STYLE_STACK_SIZE),
+	text_padding_stack:     Stack(Padding, STYLE_STACK_SIZE),
+	text_alignment_x_stack: Stack(Alignment_X, STYLE_STACK_SIZE),
+	text_alignment_y_stack: Stack(Alignment_Y, STYLE_STACK_SIZE),
+	current_parent:         ^UI_Element,
+	root_element:           ^UI_Element,
+	input:                  Input,
+	element_cache:          map[UI_Key]^UI_Element,
+	interactive_elements:   [dynamic]^UI_Element,
+	measure_text_proc:      Measure_Text_Proc,
+	measure_glyph_proc:     Measure_Glyph_Proc,
+	font_user_data:         rawptr,
+	frame_idx:              u64,
+	dt:                     f32,
 	// TODO(Thomas): Does font size and font id belong here??
-	font_size:            f32,
-	font_id:              u16,
-	window_size:          [2]i32,
+	font_size:              f32,
+	font_id:                u16,
+	window_size:            [2]i32,
 }
 
 Capability :: enum {
@@ -496,4 +512,108 @@ button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 	append(&ctx.interactive_elements, element)
 
 	return element.last_comm
+}
+
+push_sizing_x :: proc(ctx: ^Context, sizing: Sizing) -> bool {
+	return push(&ctx.sizing_x_stack, sizing)
+}
+
+pop_sizing_x :: proc(ctx: ^Context) -> (Sizing, bool) {
+	return pop(&ctx.sizing_x_stack)
+}
+
+push_sizing_y :: proc(ctx: ^Context, sizing: Sizing) -> bool {
+	return push(&ctx.sizing_y_stack, sizing)
+}
+
+pop_sizing_y :: proc(ctx: ^Context) -> (Sizing, bool) {
+	return pop(&ctx.sizing_y_stack)
+}
+
+push_capability_flags :: proc(ctx: ^Context, flags: Capability_Flags) -> bool {
+	return push(&ctx.capability_flags_stack, flags)
+}
+
+pop_capability_flags :: proc(ctx: ^Context) -> (Capability_Flags, bool) {
+	return pop(&ctx.capability_flags_stack)
+}
+
+push_background_color :: proc(ctx: ^Context, color: Color) -> bool {
+	return push(&ctx.background_color_stack, color)
+}
+
+pop_background_color :: proc(ctx: ^Context) -> (Color, bool) {
+	return pop(&ctx.background_color_stack)
+}
+
+push_text_color :: proc(ctx: ^Context, color: Color) -> bool {
+	return push(&ctx.text_color_stack, color)
+}
+
+pop_text_color :: proc(ctx: ^Context) -> (Color, bool) {
+	return pop(&ctx.text_color_stack)
+}
+
+push_padding :: proc(ctx: ^Context, padding: Padding) -> bool {
+	return push(&ctx.padding_stack, padding)
+}
+
+pop_padding :: proc(ctx: ^Context) -> (Padding, bool) {
+	return pop(&ctx.padding_stack)
+}
+
+push_child_gap :: proc(ctx: ^Context, child_gap: f32) -> bool {
+	return push(&ctx.child_gap_stack, child_gap)
+}
+
+pop_child_gap :: proc(ctx: ^Context) -> (f32, bool) {
+	return pop(&ctx.child_gap_stack)
+}
+
+push_layout_direction :: proc(ctx: ^Context, layout_direction: Layout_Direction) -> bool {
+	return push(&ctx.layout_direction_stack, layout_direction)
+}
+
+pop_layout_direction :: proc(ctx: ^Context) -> (Layout_Direction, bool) {
+	return pop(&ctx.layout_direction_stack)
+}
+
+push_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {
+	return push(&ctx.alignment_x_stack, aligment_x)
+}
+
+pop_aligment_x :: proc(ctx: ^Context) -> (Alignment_X, bool) {
+	return pop(&ctx.alignment_x_stack)
+}
+
+push_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
+	return push(&ctx.alignment_y_stack, aligment_y)
+}
+
+pop_aligment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
+	return pop(&ctx.alignment_y_stack)
+}
+
+push_text_padding :: proc(ctx: ^Context, padding: Padding) -> bool {
+	return push(&ctx.text_padding_stack, padding)
+}
+
+pop_text_padding :: proc(ctx: ^Context) -> (Padding, bool) {
+	return pop(&ctx.text_padding_stack)
+}
+
+push_text_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {
+	return push(&ctx.text_alignment_x_stack, aligment_x)
+}
+
+pop_text_aligment_x :: proc(ctx: ^Context) -> (Alignment_X, bool) {
+	return pop(&ctx.text_alignment_x_stack)
+}
+
+push_text_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
+	return push(&ctx.text_alignment_y_stack, aligment_y)
+}
+
+pop_text_aligment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
+	return pop(&ctx.text_alignment_y_stack)
 }

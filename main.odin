@@ -148,8 +148,9 @@ main :: proc() {
 		//build_complex_ui(&app_state)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
-		build_interactive_button_ui(&app_state)
+		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
+		build_styled_ui(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, &app_state.ctx.command_stack)
 
@@ -168,6 +169,66 @@ App_State :: struct {
 deinit_app_state :: proc(app_state: ^App_State) {
 	backend.deinit(&app_state.backend_ctx)
 	sdl.DestroyWindow(app_state.window)
+}
+
+build_styled_ui :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+
+	ui.push_background_color(ctx, {25, 25, 30, 255});defer ui.pop_background_color(ctx)
+	ui.push_padding(ctx, {20, 20, 20, 20});defer ui.pop_padding(ctx)
+	ui.push_layout_direction(ctx, .Top_To_Bottom);defer ui.pop_layout_direction(ctx)
+	ui.push_child_gap(ctx, 15);defer ui.pop_child_gap(ctx)
+
+	ui.push_sizing_x(ctx, {kind = .Grow});defer ui.pop_sizing_x(ctx)
+	ui.push_sizing_y(ctx, {kind = .Fit});defer ui.pop_sizing_y(ctx)
+
+	ui.push_capability_flags(ctx, {.Background});defer ui.pop_capability_flags(ctx)
+
+	ui.container(
+		ctx,
+		"main_container",
+		{
+			layout = {
+				sizing = {
+					{kind = .Percentage_Of_Parent, value = 1.0},
+					{kind = .Percentage_Of_Parent, value = 1.0},
+				},
+			},
+		},
+		proc(ctx: ^ui.Context) {
+
+			ui.text(ctx, "title", "Themed UI Demo", text_color = {230, 230, 230, 255})
+
+			ui.push_background_color(ctx, {50, 50, 60, 255});defer ui.pop_background_color(ctx)
+			ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
+			ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
+
+			ui.push_capability_flags(
+				ctx,
+				{.Hot_Animation, .Active_Animation},
+			);defer ui.pop_capability_flags(ctx)
+
+			ui.container(ctx, "button_panel", {}, proc(ctx: ^ui.Context) {
+
+				ui.button(ctx, "button1", "Button A")
+				ui.button(ctx, "button2", "Button B")
+
+				ui.push_background_color(ctx, {180, 50, 50, 255})
+				ui.button(ctx, "button3", "Danger Button")
+				ui.pop_background_color(ctx)
+			})
+
+			ui.text(
+				ctx,
+				"footer_text",
+				"The styles above were scoped.",
+				text_color = {150, 150, 150, 255},
+			)
+		},
+	)
+
+	ui.end(ctx)
 }
 
 build_interactive_button_ui :: proc(app_state: ^App_State) {

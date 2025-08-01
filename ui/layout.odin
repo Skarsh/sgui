@@ -248,7 +248,92 @@ open_element :: proc(
 	^UI_Element,
 	bool,
 ) {
-	element, element_ok := make_element(ctx, id, element_config)
+	final_config := element_config
+
+	// Capability Flags (Union Logic)
+	// NOTE(Thomas): Flags are additive, so we combine flags from the stack with any local flags.
+	if inherited_flags, ok := peek(&ctx.capability_flags_stack); ok {
+		final_config.capability_flags |= inherited_flags
+	}
+
+	// Sizing Properties (Override Logic)
+	if final_config.layout.sizing[Axis2.X] == (Sizing{}) {
+		if val, ok := peek(&ctx.sizing_x_stack); ok {
+			final_config.layout.sizing[Axis2.X] = val
+		}
+	}
+
+	if final_config.layout.sizing[Axis2.Y] == (Sizing{}) {
+		if val, ok := peek(&ctx.sizing_y_stack); ok {
+			final_config.layout.sizing[Axis2.Y] = val
+		}
+	}
+
+	// Visual Properties (Override Logic)
+	if final_config.background_color == (Color{}) {
+		if val, ok := peek(&ctx.background_color_stack); ok {
+			final_config.background_color = val
+		}
+	}
+
+	if final_config.text_color == (Color{}) {
+		if val, ok := peek(&ctx.text_color_stack); ok {
+			final_config.text_color = val
+		}
+	}
+
+	// Layout Properties (Override Logic)
+	if final_config.layout.padding == (Padding{}) {
+		if val, ok := peek(&ctx.padding_stack); ok {
+			final_config.layout.padding = val
+		}
+	}
+
+	if final_config.layout.child_gap == 0 {
+		if val, ok := peek(&ctx.child_gap_stack); ok {
+			final_config.layout.child_gap = val
+		}
+	}
+
+	if final_config.layout.layout_direction == .Left_To_Right {
+		if val, ok := peek(&ctx.layout_direction_stack); ok {
+			final_config.layout.layout_direction = val
+		}
+	}
+
+	if final_config.layout.alignment_x == .Left {
+		if val, ok := peek(&ctx.alignment_x_stack); ok {
+			final_config.layout.alignment_x = val
+		}
+	}
+
+	if final_config.layout.alignment_y == .Top {
+		if val, ok := peek(&ctx.alignment_y_stack); ok {
+			final_config.layout.alignment_y = val
+		}
+	}
+
+	// Text Layout Properties (Override Logic)
+	if final_config.layout.text_padding == (Padding{}) {
+		if val, ok := peek(&ctx.text_padding_stack); ok {
+			final_config.layout.text_padding = val
+		}
+	}
+
+	if final_config.layout.text_alignment_x == .Left {
+		if val, ok := peek(&ctx.text_alignment_x_stack); ok {
+			final_config.layout.text_alignment_x = val
+		}
+	}
+
+	if final_config.layout.text_alignment_y == .Top {
+		if val, ok := peek(&ctx.text_alignment_y_stack); ok {
+			final_config.layout.text_alignment_y = val
+		}
+	}
+
+	// Create the element with the now-finalized configuration.
+	element, element_ok := make_element(ctx, id, final_config)
 	assert(element_ok)
 
 	if push(&ctx.element_stack, element) {
@@ -317,6 +402,7 @@ text :: proc(
 	text_padding: Padding = {},
 	text_alignment_x := Alignment_X.Left,
 	text_alignment_y := Alignment_Y.Top,
+	text_color := Color{},
 ) {
 	assert(min_width >= 0)
 	assert(min_height >= 0)
@@ -330,6 +416,7 @@ text :: proc(
 	config.capability_flags |= {.Text}
 	config.layout.text_alignment_x = text_alignment_x
 	config.layout.text_alignment_y = text_alignment_y
+	config.text_color = text_color
 
 	element, open_ok := open_element(ctx, id, config)
 	assert(open_ok)
