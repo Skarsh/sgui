@@ -1,6 +1,10 @@
 # TODOs
 
 ## Active
+* Currently the style passed in will be overwritten by the style stack if the passed in value is the same
+    as the default `Element_Config`
+* Currently `button` helper procedure has very hardcoded config values. Think about whether `element_equip_text` is the
+    right approach here.
 
 ## Bugs
 * Danger button background color doesn't change properly in the `build_styled_ui` procedure.
