@@ -112,6 +112,26 @@ Element_Config :: struct {
 	content:          Element_Content,
 }
 
+Layout_Options :: struct {
+	sizing:           [2]Maybe(Sizing),
+	padding:          Maybe(Padding),
+	child_gap:        Maybe(f32),
+	layout_direction: Maybe(Layout_Direction),
+	alignment_x:      Maybe(Alignment_X),
+	alignment_y:      Maybe(Alignment_Y),
+	text_padding:     Maybe(Padding),
+	text_alignment_x: Maybe(Alignment_X),
+	text_alignment_y: Maybe(Alignment_Y),
+}
+
+Config_Options :: struct {
+	layout:           Layout_Options,
+	background_color: Maybe(Color),
+	text_color:       Maybe(Color),
+	clip:             Maybe(Clip_Config),
+	capability_flags: Maybe(Capability_Flags),
+}
+
 // TODO(Thomas): A lot of duplicated code between this and the text procedure!
 // An idea would be to have the text procedure just make an element, and then
 // equip the string. When style stacks are implemented, it could push those onto
@@ -391,6 +411,164 @@ container_data :: proc(
 	}
 }
 
+open_element_2 :: proc(ctx: ^Context, id: string, opts: Config_Options) -> (^UI_Element, bool) {
+	final_config := Element_Config{}
+
+	// NOTE(Thomas): Declaring and verbose to prevent vet complaints on shadowing
+	sizing_x_val: Sizing
+	sizing_x_ok: bool
+	if sizing_x_val, sizing_x_ok = opts.layout.sizing[Axis2.X].?; sizing_x_ok {
+		final_config.layout.sizing[Axis2.X] = sizing_x_val
+	} else if sizing_x_val, sizing_x_ok = peek(&ctx.sizing_x_stack); sizing_x_ok {
+		final_config.layout.sizing[Axis2.X] = sizing_x_val
+	}
+
+	sizing_y_val: Sizing
+	sizing_y_ok: bool
+	if sizing_y_val, sizing_y_ok = opts.layout.sizing[Axis2.Y].?; sizing_y_ok {
+		final_config.layout.sizing[Axis2.Y] = sizing_y_val
+	} else if sizing_y_val, sizing_y_ok = peek(&ctx.sizing_y_stack); sizing_y_ok {
+		final_config.layout.sizing[Axis2.Y] = sizing_y_val
+	}
+
+	padding_val: Padding
+	padding_ok: bool
+	if padding_val, padding_ok = opts.layout.padding.?; padding_ok {
+		final_config.layout.padding = padding_val
+	} else if padding_val, padding_ok = peek(&ctx.padding_stack); padding_ok {
+		final_config.layout.padding = padding_val
+	}
+
+
+	child_gap_val: f32
+	child_gap_ok: bool
+	if child_gap_val, child_gap_ok = opts.layout.child_gap.?; child_gap_ok {
+		final_config.layout.child_gap = child_gap_val
+	} else if child_gap_val, child_gap_ok = peek(&ctx.child_gap_stack); child_gap_ok {
+		final_config.layout.child_gap = child_gap_val
+	}
+
+
+	layout_direction_val: Layout_Direction
+	layout_direction_ok: bool
+	if layout_direction_val, layout_direction_ok = opts.layout.layout_direction.?;
+	   layout_direction_ok {
+		final_config.layout.layout_direction = layout_direction_val
+	} else if layout_direction_val, layout_direction_ok = peek(&ctx.layout_direction_stack);
+	   layout_direction_ok {
+		final_config.layout.layout_direction = layout_direction_val
+	}
+
+	alignment_x_val: Alignment_X
+	alignment_x_ok: bool
+	if alignment_x_val, alignment_x_ok = opts.layout.alignment_x.?; alignment_x_ok {
+		final_config.layout.alignment_x = alignment_x_val
+	} else if alignment_x_val, alignment_x_ok = peek(&ctx.alignment_x_stack); alignment_x_ok {
+		final_config.layout.alignment_x = alignment_x_val
+	}
+
+	alignment_y_val: Alignment_Y
+	alignment_y_ok: bool
+	if alignment_y_val, alignment_y_ok = opts.layout.alignment_y.?; alignment_y_ok {
+		final_config.layout.alignment_y = alignment_y_val
+	} else if alignment_y_val, alignment_y_ok = peek(&ctx.alignment_y_stack); alignment_y_ok {
+		final_config.layout.alignment_y = alignment_y_val
+	}
+
+	text_padding_val: Padding
+	text_padding_ok: bool
+	if text_padding_val, text_padding_ok = opts.layout.text_padding.?; text_padding_ok {
+		final_config.layout.text_padding = text_padding_val
+	} else if text_padding_val, text_padding_ok = peek(&ctx.text_padding_stack); text_padding_ok {
+		final_config.layout.text_padding = text_padding_val
+	}
+
+	text_alignment_x_val: Alignment_X
+	text_alignment_x_ok: bool
+	if text_alignment_x_val, text_alignment_x_ok = opts.layout.text_alignment_x.?;
+	   text_alignment_x_ok {
+		final_config.layout.text_alignment_x = text_alignment_x_val
+	} else if text_alignment_x_val, text_alignment_x_ok = peek(&ctx.text_alignment_x_stack);
+	   text_alignment_x_ok {
+		final_config.layout.text_alignment_x = text_alignment_x_val
+	}
+
+	text_alignment_y_val: Alignment_Y
+	text_alignment_y_ok: bool
+	if text_alignment_y_val, text_alignment_y_ok = opts.layout.text_alignment_y.?;
+	   text_alignment_y_ok {
+		final_config.layout.text_alignment_y = text_alignment_y_val
+	} else if text_alignment_y_val, text_alignment_y_ok = peek(&ctx.text_alignment_y_stack);
+	   text_alignment_y_ok {
+		final_config.layout.text_alignment_y = text_alignment_y_val
+	}
+
+	background_color_val: Color
+	background_color_ok: bool
+	if background_color_val, background_color_ok = opts.background_color.?; background_color_ok {
+		final_config.background_color = background_color_val
+	} else if background_color_val, background_color_ok = peek(&ctx.background_color_stack);
+	   background_color_ok {
+		final_config.background_color = background_color_val
+	}
+
+	text_color_val: Color
+	text_color_ok: bool
+	if text_color_val, text_color_ok = opts.text_color.?; text_color_ok {
+		final_config.text_color = text_color_val
+	} else if text_color_val, text_color_ok = peek(&ctx.text_color_stack); text_color_ok {
+		final_config.text_color = text_color_val
+	}
+
+	element, element_ok := make_element(ctx, id, final_config)
+	assert(element_ok)
+
+	if push(&ctx.element_stack, element) {
+		element.z_index = ctx.element_stack.top
+	} else {
+		return nil, false
+	}
+	ctx.current_parent = element
+	return element, true
+}
+
+container_2 :: proc {
+	container_data_2,
+	container_empty_2,
+}
+
+container_empty_2 :: proc(
+	ctx: ^Context,
+	id: string,
+	opts: Config_Options,
+	empty_body_proc: proc(ctx: ^Context) = nil,
+) {
+	_, open_ok := open_element_2(ctx, id, opts)
+	assert(open_ok)
+	if open_ok {
+		defer close_element(ctx)
+		if empty_body_proc != nil {
+			empty_body_proc(ctx)
+		}
+	}
+}
+
+container_data_2 :: proc(
+	ctx: ^Context,
+	id: string,
+	opts: Config_Options,
+	data: ^$T,
+	body: proc(ctx: ^Context, data: ^T) = nil,
+) {
+	_, open_ok := open_element_2(ctx, id, opts)
+	assert(open_ok)
+	if open_ok {
+		defer close_element(ctx)
+		if body != nil {
+			body(ctx, data)
+		}
+	}
+}
 text :: proc(
 	ctx: ^Context,
 	id: string,

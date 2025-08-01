@@ -150,7 +150,8 @@ main :: proc() {
 		//build_alignment_ui(&app_state)
 		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
-		build_styled_ui(&app_state)
+		//build_styled_ui(&app_state)
+		build_styled_ui_2(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, &app_state.ctx.command_stack)
 
@@ -229,6 +230,68 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	)
 
 	ui.end(ctx)
+}
+
+build_styled_ui_2 :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+
+	ui.push_background_color(ctx, {25, 25, 30, 255});defer ui.pop_background_color(ctx)
+	ui.push_padding(ctx, {20, 20, 20, 20});defer ui.pop_padding(ctx)
+	ui.push_layout_direction(ctx, .Top_To_Bottom);defer ui.pop_layout_direction(ctx)
+	ui.push_child_gap(ctx, 15);defer ui.pop_child_gap(ctx)
+
+	ui.container_2(
+		ctx,
+		"main_container",
+		{
+			layout = {
+				sizing = {
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
+				},
+			},
+			background_color = ui.Color{40, 40, 45, 255},
+			capability_flags = ui.Capability_Flags{.Background},
+		},
+		proc(ctx: ^ui.Context) {
+			ui.text(ctx, "Title", "Themed UI Demo (v2)", text_color = {230, 230, 230, 255})
+
+			ui.push_background_color(ctx, {50, 50, 60, 255});defer ui.pop_background_color(ctx)
+			ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
+			ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
+
+			ui.container_2(
+				ctx,
+				"button_panel",
+				{
+					capability_flags = ui.Capability_Flags {
+						.Background,
+						.Hot_Animation,
+						.Active_Animation,
+					},
+				},
+				proc(ctx: ^ui.Context) {
+					ui.button(ctx, "button1", "Button A")
+					ui.button(ctx, "button2", "Button B")
+
+					ui.push_background_color(ctx, {180, 50, 50, 255})
+					ui.button(ctx, "button3", "Danger Button")
+					ui.pop_background_color(ctx)
+				},
+			)
+
+			ui.text(
+				ctx,
+				"footer_text",
+				"The styles above were scoped using Config_Options.",
+				text_color = {150, 150, 150, 255},
+			)
+		},
+	)
+
+	ui.end(ctx)
+
 }
 
 build_interactive_button_ui :: proc(app_state: ^App_State) {
