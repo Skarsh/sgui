@@ -411,113 +411,102 @@ container_data :: proc(
 	}
 }
 
-open_element_2 :: proc(ctx: ^Context, id: string, opts: Config_Options) -> (^UI_Element, bool) {
+open_element_2 :: proc(
+	ctx: ^Context,
+	id: string,
+	opts: Config_Options,
+	default_opts: Config_Options = {},
+) -> (
+	^UI_Element,
+	bool,
+) {
 	final_config := Element_Config{}
 
-	// NOTE(Thomas): Declaring and verbose to prevent vet complaints on shadowing
-	sizing_x_val: Sizing
-	sizing_x_ok: bool
-	if sizing_x_val, sizing_x_ok = opts.layout.sizing[Axis2.X].?; sizing_x_ok {
-		final_config.layout.sizing[Axis2.X] = sizing_x_val
-	} else if sizing_x_val, sizing_x_ok = peek(&ctx.sizing_x_stack); sizing_x_ok {
-		final_config.layout.sizing[Axis2.X] = sizing_x_val
+	final_config.layout.sizing[Axis2.X] = resolve_value(
+		opts.layout.sizing[Axis2.X],
+		&ctx.sizing_x_stack,
+		resolve_default(default_opts.layout.sizing[Axis2.X]),
+	)
+
+	final_config.layout.sizing[Axis2.Y] = resolve_value(
+		opts.layout.sizing[Axis2.Y],
+		&ctx.sizing_y_stack,
+		resolve_default(default_opts.layout.sizing[Axis2.Y]),
+	)
+
+	final_config.layout.padding = resolve_value(
+		opts.layout.padding,
+		&ctx.padding_stack,
+		resolve_default(default_opts.layout.padding),
+	)
+
+	final_config.layout.child_gap = resolve_value(
+		opts.layout.child_gap,
+		&ctx.child_gap_stack,
+		resolve_default(default_opts.layout.child_gap),
+	)
+
+	final_config.layout.layout_direction = resolve_value(
+		opts.layout.layout_direction,
+		&ctx.layout_direction_stack,
+		resolve_default(default_opts.layout.layout_direction),
+	)
+
+	final_config.layout.alignment_x = resolve_value(
+		opts.layout.alignment_x,
+		&ctx.alignment_x_stack,
+		resolve_default(default_opts.layout.alignment_x),
+	)
+
+	final_config.layout.alignment_y = resolve_value(
+		opts.layout.alignment_y,
+		&ctx.alignment_y_stack,
+		resolve_default(default_opts.layout.alignment_y),
+	)
+
+	final_config.layout.text_padding = resolve_value(
+		opts.layout.text_padding,
+		&ctx.text_padding_stack,
+		resolve_default(default_opts.layout.text_padding),
+	)
+
+	final_config.layout.text_alignment_x = resolve_value(
+		opts.layout.text_alignment_x,
+		&ctx.text_alignment_x_stack,
+		resolve_default(default_opts.layout.text_alignment_x),
+	)
+
+	final_config.layout.text_alignment_y = resolve_value(
+		opts.layout.text_alignment_y,
+		&ctx.text_alignment_y_stack,
+		resolve_default(default_opts.layout.text_alignment_y),
+	)
+
+	final_config.background_color = resolve_value(
+		opts.background_color,
+		&ctx.background_color_stack,
+		resolve_default(default_opts.background_color),
+	)
+
+	final_config.text_color = resolve_value(
+		opts.text_color,
+		&ctx.text_color_stack,
+		resolve_default(default_opts.text_color),
+	)
+
+	final_config.clip = resolve_value(
+		opts.clip,
+		&ctx.clip_stack,
+		resolve_default(default_opts.clip),
+	)
+
+	// Capability flags are special since they needs to have default
+	if flags, ok := opts.capability_flags.?; ok {
+		final_config.capability_flags |= flags
 	}
 
-	sizing_y_val: Sizing
-	sizing_y_ok: bool
-	if sizing_y_val, sizing_y_ok = opts.layout.sizing[Axis2.Y].?; sizing_y_ok {
-		final_config.layout.sizing[Axis2.Y] = sizing_y_val
-	} else if sizing_y_val, sizing_y_ok = peek(&ctx.sizing_y_stack); sizing_y_ok {
-		final_config.layout.sizing[Axis2.Y] = sizing_y_val
-	}
-
-	padding_val: Padding
-	padding_ok: bool
-	if padding_val, padding_ok = opts.layout.padding.?; padding_ok {
-		final_config.layout.padding = padding_val
-	} else if padding_val, padding_ok = peek(&ctx.padding_stack); padding_ok {
-		final_config.layout.padding = padding_val
-	}
-
-
-	child_gap_val: f32
-	child_gap_ok: bool
-	if child_gap_val, child_gap_ok = opts.layout.child_gap.?; child_gap_ok {
-		final_config.layout.child_gap = child_gap_val
-	} else if child_gap_val, child_gap_ok = peek(&ctx.child_gap_stack); child_gap_ok {
-		final_config.layout.child_gap = child_gap_val
-	}
-
-
-	layout_direction_val: Layout_Direction
-	layout_direction_ok: bool
-	if layout_direction_val, layout_direction_ok = opts.layout.layout_direction.?;
-	   layout_direction_ok {
-		final_config.layout.layout_direction = layout_direction_val
-	} else if layout_direction_val, layout_direction_ok = peek(&ctx.layout_direction_stack);
-	   layout_direction_ok {
-		final_config.layout.layout_direction = layout_direction_val
-	}
-
-	alignment_x_val: Alignment_X
-	alignment_x_ok: bool
-	if alignment_x_val, alignment_x_ok = opts.layout.alignment_x.?; alignment_x_ok {
-		final_config.layout.alignment_x = alignment_x_val
-	} else if alignment_x_val, alignment_x_ok = peek(&ctx.alignment_x_stack); alignment_x_ok {
-		final_config.layout.alignment_x = alignment_x_val
-	}
-
-	alignment_y_val: Alignment_Y
-	alignment_y_ok: bool
-	if alignment_y_val, alignment_y_ok = opts.layout.alignment_y.?; alignment_y_ok {
-		final_config.layout.alignment_y = alignment_y_val
-	} else if alignment_y_val, alignment_y_ok = peek(&ctx.alignment_y_stack); alignment_y_ok {
-		final_config.layout.alignment_y = alignment_y_val
-	}
-
-	text_padding_val: Padding
-	text_padding_ok: bool
-	if text_padding_val, text_padding_ok = opts.layout.text_padding.?; text_padding_ok {
-		final_config.layout.text_padding = text_padding_val
-	} else if text_padding_val, text_padding_ok = peek(&ctx.text_padding_stack); text_padding_ok {
-		final_config.layout.text_padding = text_padding_val
-	}
-
-	text_alignment_x_val: Alignment_X
-	text_alignment_x_ok: bool
-	if text_alignment_x_val, text_alignment_x_ok = opts.layout.text_alignment_x.?;
-	   text_alignment_x_ok {
-		final_config.layout.text_alignment_x = text_alignment_x_val
-	} else if text_alignment_x_val, text_alignment_x_ok = peek(&ctx.text_alignment_x_stack);
-	   text_alignment_x_ok {
-		final_config.layout.text_alignment_x = text_alignment_x_val
-	}
-
-	text_alignment_y_val: Alignment_Y
-	text_alignment_y_ok: bool
-	if text_alignment_y_val, text_alignment_y_ok = opts.layout.text_alignment_y.?;
-	   text_alignment_y_ok {
-		final_config.layout.text_alignment_y = text_alignment_y_val
-	} else if text_alignment_y_val, text_alignment_y_ok = peek(&ctx.text_alignment_y_stack);
-	   text_alignment_y_ok {
-		final_config.layout.text_alignment_y = text_alignment_y_val
-	}
-
-	background_color_val: Color
-	background_color_ok: bool
-	if background_color_val, background_color_ok = opts.background_color.?; background_color_ok {
-		final_config.background_color = background_color_val
-	} else if background_color_val, background_color_ok = peek(&ctx.background_color_stack);
-	   background_color_ok {
-		final_config.background_color = background_color_val
-	}
-
-	text_color_val: Color
-	text_color_ok: bool
-	if text_color_val, text_color_ok = opts.text_color.?; text_color_ok {
-		final_config.text_color = text_color_val
-	} else if text_color_val, text_color_ok = peek(&ctx.text_color_stack); text_color_ok {
-		final_config.text_color = text_color_val
+	if default_flags, default_flags_ok := default_opts.capability_flags.?; default_flags_ok {
+		final_config.capability_flags |= default_flags
 	}
 
 	element, element_ok := make_element(ctx, id, final_config)

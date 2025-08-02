@@ -95,6 +95,7 @@ Context :: struct {
 	// too many of them?
 	sizing_x_stack:         Stack(Sizing, STYLE_STACK_SIZE),
 	sizing_y_stack:         Stack(Sizing, STYLE_STACK_SIZE),
+	clip_stack:             Stack(Clip_Config, STYLE_STACK_SIZE),
 	capability_flags_stack: Stack(Capability_Flags, STYLE_STACK_SIZE),
 	background_color_stack: Stack(Color, STYLE_STACK_SIZE),
 	text_color_stack:       Stack(Color, STYLE_STACK_SIZE),
@@ -485,6 +486,37 @@ draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 	push(&ctx.command_stack, Command_Image{x, y, w, h, data})
 }
 
+
+// Determines the final value for a property by checking sources in a specific order.
+// Precedence:
+// 1. The user-provided value (if it exists).
+// 2. The value from the top of the style stack (if it exists).
+// 3. The provided default value.
+@(private)
+resolve_value :: proc(user_value: Maybe($T), stack: ^Stack(T, $N), default_value: T) -> T {
+	// 1. Check for a direct user-provided value.
+	if val, ok := user_value.?; ok {
+		return val
+	}
+
+	// 2. Check the style stack.
+	if val, ok := peek(stack); ok {
+		return val
+	}
+
+	// 3. Fall back to the hardcoded default.
+	return default_value
+}
+
+@(private)
+resolve_default :: proc(user_value: Maybe($T)) -> T {
+	if val, ok := user_value.?; ok {
+		return val
+	}
+
+	return T{}
+}
+
 // TODO(Thomas): Hardcoded layout / styling
 button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 	element, open_ok := open_element(
@@ -514,6 +546,29 @@ button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
 	return element.last_comm
 }
 
+button_2 :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Comm {
+	default_opts := Config_Options {
+		layout = {
+			sizing = {Sizing{kind = .Grow}, Sizing{kind = .Grow}},
+			text_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
+			text_alignment_x = .Center,
+		},
+		background_color = Color{24, 24, 24, 255},
+		text_color = Color{255, 128, 255, 128},
+		capability_flags = Capability_Flags{.Background, .Active_Animation, .Hot_Animation},
+	}
+
+	element, open_ok := open_element_2(ctx, id, opts, default_opts)
+
+	if open_ok {
+		element_equip_text(ctx, element, text)
+		close_element(ctx)
+	}
+	append(&ctx.interactive_elements, element)
+
+	return element.last_comm
+}
+
 push_sizing_x :: proc(ctx: ^Context, sizing: Sizing) -> bool {
 	return push(&ctx.sizing_x_stack, sizing)
 }
@@ -528,6 +583,14 @@ push_sizing_y :: proc(ctx: ^Context, sizing: Sizing) -> bool {
 
 pop_sizing_y :: proc(ctx: ^Context) -> (Sizing, bool) {
 	return pop(&ctx.sizing_y_stack)
+}
+
+push_clip_config :: proc(ctx: ^Context, clip: Clip_Config) -> bool {
+	return push(&ctx.clip_stack, clip)
+}
+
+pop_clip_config :: proc(ctx: ^Context) -> (Clip_Config, bool) {
+	return pop(&ctx.clip_stack)
 }
 
 push_capability_flags :: proc(ctx: ^Context, flags: Capability_Flags) -> bool {

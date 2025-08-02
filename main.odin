@@ -272,12 +272,15 @@ build_styled_ui_2 :: proc(app_state: ^App_State) {
 					},
 				},
 				proc(ctx: ^ui.Context) {
-					ui.button(ctx, "button1", "Button A")
-					ui.button(ctx, "button2", "Button B")
+					ui.button_2(ctx, "button1", "Button A")
+					ui.button_2(ctx, "button2", "Button B")
 
-					ui.push_background_color(ctx, {180, 50, 50, 255})
-					ui.button(ctx, "button3", "Danger Button")
-					ui.pop_background_color(ctx)
+					ui.button_2(
+						ctx,
+						"button3",
+						"Danger Button",
+						{background_color = ui.Color{180, 50, 50, 255}},
+					)
 				},
 			)
 
