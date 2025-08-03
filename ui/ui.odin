@@ -204,8 +204,8 @@ begin :: proc(ctx: ^Context) {
 			background_color = Color{128, 128, 128, 255},
 			layout = {
 				sizing = {
-					{kind = .Fixed, value = f32(ctx.window_size.x)},
-					{kind = .Fixed, value = f32(ctx.window_size.y)},
+					Sizing{kind = .Fixed, value = f32(ctx.window_size.x)},
+					Sizing{kind = .Fixed, value = f32(ctx.window_size.y)},
 				},
 			},
 		},
@@ -517,36 +517,7 @@ resolve_default :: proc(user_value: Maybe($T)) -> T {
 	return T{}
 }
 
-// TODO(Thomas): Hardcoded layout / styling
-button :: proc(ctx: ^Context, id: string, text: string) -> Comm {
-	element, open_ok := open_element(
-	ctx,
-	id,
-	{
-		layout = {
-			sizing = {{kind = .Grow}, {kind = .Grow}},
-			text_padding = {left = 10, top = 10, right = 10, bottom = 10},
-			text_alignment_x = .Center,
-		},
-		background_color = {24, 24, 24, 255},
-		text_color = {255, 128, 255, 128},
-		//capability_flags = {.Background, .Active_Animation, .Hot_Animation, .Image},
-		capability_flags = {.Background, .Active_Animation, .Hot_Animation},
-	},
-	)
-
-	element_equip_text(ctx, element, text)
-
-	if open_ok {
-		close_element(ctx)
-	}
-
-	append(&ctx.interactive_elements, element)
-
-	return element.last_comm
-}
-
-button_2 :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Comm {
+button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Comm {
 	default_opts := Config_Options {
 		layout = {
 			sizing = {Sizing{kind = .Grow}, Sizing{kind = .Grow}},
@@ -558,7 +529,7 @@ button_2 :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> 
 		capability_flags = Capability_Flags{.Background, .Active_Animation, .Hot_Animation},
 	}
 
-	element, open_ok := open_element_2(ctx, id, opts, default_opts)
+	element, open_ok := open_element(ctx, id, opts, default_opts)
 
 	if open_ok {
 		element_equip_text(ctx, element, text)

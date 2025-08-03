@@ -150,8 +150,8 @@ main :: proc() {
 		//build_alignment_ui(&app_state)
 		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
-		//build_styled_ui(&app_state)
-		build_styled_ui_2(&app_state)
+		build_styled_ui(&app_state)
+		//build_styled_ui_2(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, &app_state.ctx.command_stack)
 
@@ -189,11 +189,11 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		ctx,
 		"main_container",
-		{
+		ui.Config_Options {
 			layout = {
 				sizing = {
-					{kind = .Percentage_Of_Parent, value = 1.0},
-					{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
 				},
 			},
 		},
@@ -201,24 +201,26 @@ build_styled_ui :: proc(app_state: ^App_State) {
 
 			ui.text(ctx, "title", "Themed UI Demo", text_color = {230, 230, 230, 255})
 
-			ui.push_background_color(ctx, {50, 50, 60, 255});defer ui.pop_background_color(ctx)
-			ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
-			ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
+			{
+				ui.push_background_color(
+					ctx,
+					{110, 50, 60, 255},
+				);defer ui.pop_background_color(ctx)
+				ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
+				ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
 
-			ui.push_capability_flags(
-				ctx,
-				{.Hot_Animation, .Active_Animation},
-			);defer ui.pop_capability_flags(ctx)
+				ui.push_capability_flags(ctx, {.Background});defer ui.pop_capability_flags(ctx)
 
-			ui.container(ctx, "button_panel", {}, proc(ctx: ^ui.Context) {
+				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
 
-				ui.button(ctx, "button1", "Button A")
-				ui.button(ctx, "button2", "Button B")
+					ui.button(ctx, "button1", "Button A")
+					ui.button(ctx, "button2", "Button B")
 
-				ui.push_background_color(ctx, {180, 50, 50, 255})
-				ui.button(ctx, "button3", "Danger Button")
-				ui.pop_background_color(ctx)
-			})
+					ui.push_background_color(ctx, {50, 50, 50, 255})
+					ui.button(ctx, "button3", "Danger Button")
+					ui.pop_background_color(ctx)
+				})
+			}
 
 			ui.text(
 				ctx,
@@ -241,10 +243,10 @@ build_styled_ui_2 :: proc(app_state: ^App_State) {
 	ui.push_layout_direction(ctx, .Top_To_Bottom);defer ui.pop_layout_direction(ctx)
 	ui.push_child_gap(ctx, 15);defer ui.pop_child_gap(ctx)
 
-	ui.container_2(
+	ui.container(
 		ctx,
 		"main_container",
-		{
+		ui.Config_Options {
 			layout = {
 				sizing = {
 					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
@@ -261,10 +263,10 @@ build_styled_ui_2 :: proc(app_state: ^App_State) {
 			ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
 			ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
 
-			ui.container_2(
+			ui.container(
 				ctx,
 				"button_panel",
-				{
+				ui.Config_Options {
 					capability_flags = ui.Capability_Flags {
 						.Background,
 						.Hot_Animation,
@@ -272,10 +274,10 @@ build_styled_ui_2 :: proc(app_state: ^App_State) {
 					},
 				},
 				proc(ctx: ^ui.Context) {
-					ui.button_2(ctx, "button1", "Button A")
-					ui.button_2(ctx, "button2", "Button B")
+					ui.button(ctx, "button1", "Button A")
+					ui.button(ctx, "button2", "Button B")
 
-					ui.button_2(
+					ui.button(
 						ctx,
 						"button3",
 						"Danger Button",
@@ -302,18 +304,18 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"container",
-		{
+		ui.Config_Options {
 			layout = {
 				sizing = {
-					{kind = .Percentage_Of_Parent, value = 1.0},
-					{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
 				},
-				padding = {10, 10, 10, 10},
+				padding = ui.Padding{10, 10, 10, 10},
 				child_gap = 10,
 			},
-			background_color = {48, 200, 128, 255},
-			capability_flags = {.Background},
-			clip = {{true, true}},
+			background_color = ui.Color{48, 200, 128, 255},
+			capability_flags = ui.Capability_Flags{.Background},
+			clip = ui.Clip_Config{{true, true}},
 		},
 		proc(ctx: ^ui.Context) {
 			comm := ui.button(ctx, "button1", "Button 1")
@@ -321,15 +323,15 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 				ui.container(
 					ctx,
 					"panel",
-					{
+					ui.Config_Options {
 						layout = {
-							sizing = {{kind = .Grow}, {kind = .Grow}},
+							sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Grow}},
 							layout_direction = .Top_To_Bottom,
-							padding = {10, 10, 10, 10},
+							padding = ui.Padding{10, 10, 10, 10},
 							child_gap = 10,
 						},
-						background_color = {75, 75, 75, 255},
-						capability_flags = {.Background},
+						background_color = ui.Color{75, 75, 75, 255},
+						capability_flags = ui.Capability_Flags{.Background},
 					},
 					proc(ctx: ^ui.Context) {
 						ui.button(ctx, "button2", "Button 2")
@@ -348,15 +350,15 @@ build_text_debugging :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"container",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fixed, value = 150}, {kind = .Fit}},
-				padding = {10, 10, 10, 10},
+				sizing = {ui.Sizing{kind = .Fixed, value = 150}, ui.Sizing{kind = .Fit}},
+				padding = ui.Padding{10, 10, 10, 10},
 				child_gap = 10,
 			},
-			background_color = {48, 200, 128, 255},
-			capability_flags = {.Background},
-			clip = {{true, true}},
+			background_color = ui.Color{48, 200, 128, 255},
+			capability_flags = ui.Capability_Flags{.Background},
+			clip = ui.Clip_Config{{true, true}},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(
@@ -376,15 +378,15 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"text_container",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fit}, {kind = .Fit}},
+				sizing = {ui.Sizing{kind = .Fit}, ui.Sizing{kind = .Fit}},
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 				layout_direction = .Left_To_Right,
 			},
 			background_color = ui.Color{0, 0, 255, 255},
-			capability_flags = {.Background},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(
@@ -406,41 +408,44 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fit, min_value = 430, max_value = 630}, {kind = .Fit}},
-				padding = {16, 16, 16, 16},
+				sizing = {
+					ui.Sizing{kind = .Fit, min_value = 430, max_value = 630},
+					ui.Sizing{kind = .Fit},
+				},
+				padding = ui.Padding{16, 16, 16, 16},
 				layout_direction = .Top_To_Bottom,
 				alignment_x = .Center,
 				child_gap = 16,
 			},
-			background_color = {102, 51, 153, 255},
-			capability_flags = {.Background},
+			background_color = ui.Color{102, 51, 153, 255},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
 				ctx,
 				"grow",
-				{
+				ui.Config_Options {
 					layout = {
-						sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
-						padding = {32, 32, 16, 16},
+						sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Fit, min_value = 80}},
+						padding = ui.Padding{32, 32, 16, 16},
 						child_gap = 32,
 						alignment_x = .Left,
 						alignment_y = .Center,
 					},
-					background_color = {255, 0, 0, 255},
-					capability_flags = {.Background},
-					clip = {{true, false}},
+					background_color = ui.Color{255, 0, 0, 255},
+					capability_flags = ui.Capability_Flags{.Background},
+					clip = ui.Clip_Config{{true, false}},
 				},
 				proc(ctx: ^ui.Context) {
 					ui.container(
 						ctx,
 						"fit",
-						{
-							layout = {sizing = {{kind = .Fit}, {kind = .Fit}}},
-							background_color = {157, 125, 172, 255},
-							capability_flags = {.Background},
+						ui.Config_Options {
+							layout = {sizing = {ui.Sizing{kind = .Fit}, ui.Sizing{kind = .Fit}}},
+							background_color = ui.Color{157, 125, 172, 255},
+							capability_flags = ui.Capability_Flags{.Background},
 						},
 						proc(ctx: ^ui.Context) {
 							ui.text(ctx, "text", "one two three four")
@@ -458,15 +463,15 @@ build_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"blue",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fixed, value = 1200}, {kind = .Fit}},
+				sizing = {ui.Sizing{kind = .Fixed, value = 1200}, ui.Sizing{kind = .Fit}},
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 				layout_direction = .Left_To_Right,
 			},
 			background_color = ui.Color{0, 0, 255, 255},
-			capability_flags = {.Background},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(ctx, "text1", "One Two\nThree Four\n")
@@ -474,10 +479,12 @@ build_ui :: proc(app_state: ^App_State) {
 			ui.container(
 				ctx,
 				"yellow",
-				{
-					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 300}}},
+				ui.Config_Options {
+					layout = {
+						sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Fixed, value = 300}},
+					},
 					background_color = ui.Color{255, 255, 0, 255},
-					capability_flags = {.Background},
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
 			ui.text(
@@ -495,36 +502,45 @@ build_ui_2 :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fit, min_value = 100, max_value = 200}, {kind = .Fit}},
+				sizing = {
+					ui.Sizing{kind = .Fit, min_value = 100, max_value = 200},
+					ui.Sizing{kind = .Fit},
+				},
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
 			background_color = ui.Color{255, 255, 255, 255},
-			capability_flags = {.Background},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
 				ctx,
 				"child_1",
-				{
+				ui.Config_Options {
 					layout = {
-						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+						sizing = {
+							ui.Sizing{kind = .Fixed, value = 100},
+							ui.Sizing{kind = .Fixed, value = 100},
+						},
 					},
 					background_color = ui.Color{255, 0, 0, 255},
-					capability_flags = {.Background},
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
 			ui.container(
 				ctx,
 				"child_2",
-				{
+				ui.Config_Options {
 					layout = {
-						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+						sizing = {
+							ui.Sizing{kind = .Fixed, value = 100},
+							ui.Sizing{kind = .Fixed, value = 100},
+						},
 					},
 					background_color = ui.Color{0, 255, 0, 255},
-					capability_flags = {.Background},
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
 		},
@@ -537,45 +553,55 @@ build_grow_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fixed, value = 400}, {kind = .Fit}},
+				sizing = {ui.Sizing{kind = .Fixed, value = 400}, ui.Sizing{kind = .Fit}},
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
 			background_color = ui.Color{255, 255, 255, 255},
-			capability_flags = {.Background},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
 				ctx,
 				"child_1",
-				{
-					layout = {sizing = {{kind = .Grow}, {kind = .Fixed, value = 100}}},
+				ui.Config_Options {
+					layout = {
+						sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Fixed, value = 100}},
+					},
 					background_color = ui.Color{255, 0, 0, 255},
-					capability_flags = {.Background},
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
 
 			ui.container(
 				ctx,
 				"child_2",
-				{
+				ui.Config_Options {
 					layout = {
-						sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
+						sizing = {
+							ui.Sizing{kind = .Fixed, value = 100},
+							ui.Sizing{kind = .Fixed, value = 100},
+						},
 					},
 					background_color = ui.Color{0, 255, 0, 255},
-					capability_flags = {.Background},
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
 
 			ui.container(
 				ctx,
 				"child_3",
-				{
-					layout = {sizing = {{kind = .Grow, max_value = 50}, {kind = .Grow}}},
+				ui.Config_Options {
+					layout = {
+						sizing = {
+							ui.Sizing{kind = .Grow, max_value = 50},
+							ui.Sizing{kind = .Grow},
+						},
+					},
 					background_color = ui.Color{0, 0, 255, 255},
-					capability_flags = {.Background},
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
 
@@ -596,7 +622,9 @@ build_iterated_texts :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{layout = {sizing = {{kind = .Fit}, {kind = .Fit}}, child_gap = 10}},
+		ui.Config_Options {
+			layout = {sizing = {ui.Sizing{kind = .Fit}, ui.Sizing{kind = .Fit}}, child_gap = 10},
+		},
 		&data,
 		proc(ctx: ^ui.Context, data: ^User_Data) {
 			for item in data.items {
@@ -632,19 +660,19 @@ build_complex_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{
+		ui.Config_Options {
 			layout = {
 				sizing = {
-					{kind = .Percentage_Of_Parent, value = 1.0},
-					{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
+					ui.Sizing{kind = .Percentage_Of_Parent, value = 1.0},
 				},
-				padding = {16, 16, 16, 16},
+				padding = ui.Padding{16, 16, 16, 16},
 				layout_direction = .Top_To_Bottom,
 				alignment_x = .Center,
 				child_gap = 16,
 			},
-			background_color = {102, 51, 153, 255},
-			capability_flags = {.Background},
+			background_color = ui.Color{102, 51, 153, 255},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		&user_data,
 		proc(ctx: ^ui.Context, data: ^User_Data) {
@@ -653,17 +681,20 @@ build_complex_ui :: proc(app_state: ^App_State) {
 				ui.container(
 					ctx,
 					item,
-					{
+					ui.Config_Options {
 						layout = {
-							sizing = {{kind = .Grow}, {kind = .Fit, min_value = 80}},
-							padding = {32, 32, 16, 16},
+							sizing = {
+								ui.Sizing{kind = .Grow},
+								ui.Sizing{kind = .Fit, min_value = 80},
+							},
+							padding = ui.Padding{32, 32, 16, 16},
 							child_gap = 32,
 							alignment_x = .Left,
 							alignment_y = .Center,
 						},
-						background_color = {255, 125, 172, 255},
-						clip = {{true, true}},
-						capability_flags = {.Background},
+						background_color = ui.Color{255, 125, 172, 255},
+						clip = ui.Clip_Config{{true, true}},
+						capability_flags = ui.Capability_Flags{.Background},
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^User_Data) {
@@ -673,7 +704,11 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						ui.container(
 							ctx,
 							id,
-							{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
+							ui.Config_Options {
+								layout = {
+									sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Grow}},
+								},
+							},
 							data,
 							proc(ctx: ^ui.Context, data: ^User_Data) {
 								item := data.items[data.idx]
@@ -694,14 +729,14 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						ui.container(
 							ctx,
 							image_id,
-							{
+							ui.Config_Options {
 								layout = {
 									sizing = {
-										{kind = .Fixed, value = 64},
-										{kind = .Fixed, value = 64},
+										ui.Sizing{kind = .Fixed, value = 64},
+										ui.Sizing{kind = .Fixed, value = 64},
 									},
 								},
-								capability_flags = {.Image},
+								capability_flags = ui.Capability_Flags{.Image},
 								content = {image_data = rawptr(&data.item_texture_idxs[data.idx])},
 							},
 						)
@@ -719,20 +754,25 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		{
+		ui.Config_Options {
 			layout = {
-				sizing = {{kind = .Fixed, value = 100}, {kind = .Fixed, value = 100}},
-				padding = {10, 10, 10, 10},
+				sizing = {
+					ui.Sizing{kind = .Fixed, value = 100},
+					ui.Sizing{kind = .Fixed, value = 100},
+				},
+				padding = ui.Padding{10, 10, 10, 10},
 			},
-			background_color = {255, 125, 172, 255},
-			clip = {{true, true}},
-			capability_flags = {.Background},
+			background_color = ui.Color{255, 125, 172, 255},
+			clip = ui.Clip_Config{{true, true}},
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.container(
 				ctx,
 				"text_container",
-				{layout = {sizing = {{kind = .Grow}, {kind = .Grow}}}},
+				ui.Config_Options {
+					layout = {sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Grow}}},
+				},
 				proc(ctx: ^ui.Context) {
 					ui.text(
 						ctx,
