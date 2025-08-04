@@ -472,7 +472,7 @@ text :: proc(
 	text_padding: Padding = {},
 	text_alignment_x := Alignment_X.Left,
 	text_alignment_y := Alignment_Y.Top,
-	text_color := Color{},
+	text_color := Color{255, 255, 255, 255},
 ) {
 	assert(min_width >= 0)
 	assert(min_height >= 0)
