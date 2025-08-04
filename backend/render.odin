@@ -95,12 +95,6 @@ load_texture :: proc(ctx: ^Render_Context, full_path: string) -> bool {
 }
 
 init_resources :: proc(ctx: ^Render_Context, paths: []string) -> bool {
-	load_texture(ctx, "./data/textures/skarsh_logo_192x192.png")
-	load_texture(ctx, "./data/textures/copy_icon.png")
-	load_texture(ctx, "./data/textures/paste_icon.png")
-	load_texture(ctx, "./data/textures/delete_icon.png")
-	load_texture(ctx, "./data/textures/comment_icon.png")
-	load_texture(ctx, "./data/textures/cut_icon.png")
 	for path in paths {
 		load_texture(ctx, path)
 	}
