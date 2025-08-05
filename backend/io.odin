@@ -15,12 +15,16 @@ Frame_Time :: struct {
 	dt:        f32,
 }
 
+// TODO(Thomas): The queue should hold our own Event type so we're not
+// reliant on SDL
 Io :: struct {
 	allocator:   mem.Allocator,
 	frame_time:  Frame_Time,
 	input_queue: queue.Queue(sdl.Event),
 }
 
+// TODO(Thomas): We should use our own GetPerformanceCounter wrapper procedure at least, so we're
+// not reliant on SDL.
 init_io :: proc(io: ^Io, allocator: mem.Allocator) -> bool {
 	io.frame_time.frequency = sdl.GetPerformanceFrequency()
 	io.allocator = allocator
@@ -33,6 +37,8 @@ init_io :: proc(io: ^Io, allocator: mem.Allocator) -> bool {
 	return true
 }
 
+// TODO(Thomas): We should use our own GetPerformanceCounter wrapper procedure at least, so we're
+// not reliant on SDL.
 time :: proc(io: ^Io) {
 	io.frame_time.last = io.frame_time.now
 	io.frame_time.now = sdl.GetPerformanceCounter()
@@ -43,10 +49,14 @@ time :: proc(io: ^Io) {
 	io.frame_time.counter += 1
 }
 
+// TODO(Thomas): We should use our own GetPerformanceCounter wrapper procedure at least, so we're
+// not reliant on SDL.
 enqueue_sdl_event :: proc(io: ^Io, event: sdl.Event) {
 	queue.push_back(&io.input_queue, event)
 }
 
+// TODO(Thomas): We should use our own Even type here instead of being
+// reliant on SDL
 process_events :: proc(io: ^Io, ctx: ^ui.Context) {
 	for {
 		event, ok := queue.pop_front_safe(&io.input_queue)
