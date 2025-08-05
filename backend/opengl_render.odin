@@ -33,49 +33,61 @@ Render_Data :: struct {
 }
 
 
-vertex_source := `#version 330 core
-layout(location=0) in vec3 a_position;
-layout(location=1) in vec4 a_color;
-out vec4 v_color;
-uniform mat4 u_transform;
-void main() {
-    gl_Position = u_transform * vec4(a_position, 1.0);
-    v_color = a_color;
-}`
-
-
-fragment_source := `#version 330 core
-in vec4 v_color;
-out vec4 o_color;
-void main() {
-    o_color = v_color;
-}`
-
-
+// TODO(Thomas): Replace with our own window wrapper type
 init_opengl :: proc(window: ^sdl.Window) {
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
 	gl.load_up_to(3, 3, sdl.gl_set_proc_address)
 
-	program, program_ok := gl.load_shaders_source(vertex_source, fragment_source)
+	program, program_ok := gl.load_shaders_file("shaders/main.vs", "shaders/main.fs")
 	if !program_ok {
 		log.error("Failed to create GLSL program")
 		return
 	}
-	defer gl.DeleteProgram(program)
+	//defer gl.DeleteProgram(program)
 
 	gl.UseProgram(program)
 	uniforms := gl.get_uniforms_from_program(program)
-	defer delete(uniforms)
+	//defer delete(uniforms)
 
 	vao: u32
 	gl.GenVertexArrays(1, &vao)
-	defer gl.DeleteVertexArrays(1, &vao)
+	//defer gl.DeleteVertexArrays(1, &vao)
 
 	vbo, ebo: u32
 	gl.GenBuffers(1, &vbo)
-	defer gl.DeleteBuffers(1, &vbo)
+	//defer gl.DeleteBuffers(1, &vbo)
 	gl.GenBuffers(1, &ebo)
-	defer gl.DeleteBuffers(1, &ebo)
+	//defer gl.DeleteBuffers(1, &ebo)
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+	gl.BufferData(
+		gl.ARRAY_BUFFER,
+		len(vertices) * size_of(vertices[0]),
+		raw_data(vertices),
+		gl.STATIC_DRAW,
+	)
+	gl.EnableVertexAttribArray(0)
+	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
+	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
+
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
+	gl.BufferData(
+		gl.ELEMENT_ARRAY_BUFFER,
+		len(indices) * size_of(indices[0]),
+		raw_data(indices),
+		gl.STATIC_DRAW,
+	)
+}
+
+opengl_render_begin :: proc() {
+	gl.ClearColor(0.5, 0.7, 1.0, 1.0)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+}
+
+opengl_render_end :: proc(window: ^sdl.Window) {
+	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_SHORT, nil)
+	sdl.GL_SwapWindow(window)
 }
