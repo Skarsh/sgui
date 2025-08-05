@@ -35,6 +35,9 @@ init_render_ctx :: proc(
 	font_size: f32,
 	allocator := context.allocator,
 ) -> bool {
+
+	init_opengl(window)
+
 	renderer := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
 	if renderer == nil {
 		log.error("Unable to create renderer: ", sdl.GetError())
