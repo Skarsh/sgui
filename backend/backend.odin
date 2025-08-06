@@ -42,8 +42,16 @@ init_ctx :: proc(
 	)
 
 	render_ctx := Render_Context{}
-	//render_ctx_ok := init_render_ctx(&render_ctx, window, stb_font_ctx, font_size, allocator)
-	render_ctx_ok := init_render_ctx(&render_ctx, window, allocator)
+	render_ctx_ok := init_render_ctx(
+		&render_ctx,
+		window,
+		stb_font_ctx,
+		font_size,
+		allocator,
+		.SDL,
+		//.OpenGL,
+		texture_paths,
+	)
 	if !render_ctx_ok {
 		log.error("failed to init render context")
 		return false

@@ -20,7 +20,7 @@ SDL_Texture_Asset :: struct {
 	},
 }
 
-SDL_Render_Context :: struct {
+SDL_Render_Data :: struct {
 	renderer:      ^sdl.Renderer,
 	textures:      [dynamic]SDL_Texture_Asset,
 	scissor_stack: [dynamic]sdl.Rect,
@@ -28,8 +28,8 @@ SDL_Render_Context :: struct {
 	font_atlas:    Font_Atlas,
 }
 
-sdl_init_render_ctx :: proc(
-	ctx: ^SDL_Render_Context,
+sdl_init_render :: proc(
+	render_data: ^Render_Data,
 	window: ^sdl.Window,
 	stb_font_ctx: STB_Font_Context,
 	font_size: f32,
@@ -54,20 +54,22 @@ sdl_init_render_ctx :: proc(
 		allocator,
 	)
 
-	ctx.renderer = renderer
-	ctx.textures = make([dynamic]SDL_Texture_Asset, allocator)
-	ctx.scissor_stack = make([dynamic]sdl.Rect, allocator)
-	ctx.font_atlas = font_atlas
+	data := SDL_Render_Data{}
+	data.renderer = renderer
+	data.textures = make([dynamic]SDL_Texture_Asset, allocator)
+	data.scissor_stack = make([dynamic]sdl.Rect, allocator)
+	data.font_atlas = font_atlas
+	render_data^ = data
 
 	return true
 }
 
-sdl_deinit_render_ctx :: proc(ctx: ^SDL_Render_Context) {
+sdl_deinit_render :: proc(ctx: ^SDL_Render_Data) {
 	deinit_font_atlas(&ctx.font_atlas)
 	sdl.DestroyRenderer(ctx.renderer)
 }
 
-sdl_load_texture :: proc(ctx: ^SDL_Render_Context, full_path: string) -> bool {
+sdl_load_texture :: proc(ctx: ^SDL_Render_Data, full_path: string) -> bool {
 	logo_surface, logo_ok := sdl_load_surface_from_image_file(full_path)
 	if !logo_ok {
 		return false
@@ -94,7 +96,7 @@ sdl_load_texture :: proc(ctx: ^SDL_Render_Context, full_path: string) -> bool {
 	return true
 }
 
-sdl_init_resources :: proc(ctx: ^SDL_Render_Context, paths: []string) -> bool {
+sdl_init_resources :: proc(ctx: ^SDL_Render_Data, paths: []string) -> bool {
 	for path in paths {
 		sdl_load_texture(ctx, path)
 	}
@@ -118,7 +120,7 @@ sdl_render_line :: proc(renderer: ^sdl.Renderer, x0, y0, x1, y1: f32, color: sdl
 	sdl.RenderDrawLine(renderer, i32(x0), i32(y0), i32(x1), i32(y1))
 }
 
-sdl_render_image :: proc(ctx: ^SDL_Render_Context, x, y, w, h: f32, data: rawptr) {
+sdl_render_image :: proc(ctx: ^SDL_Render_Data, x, y, w, h: f32, data: rawptr) {
 	tex_idx := cast(^int)data
 	tex := ctx.textures[tex_idx^]
 	r := sdl.Rect {
@@ -184,7 +186,7 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 }
 
 sdl_render_draw_commands :: proc(
-	render_ctx: ^SDL_Render_Context,
+	render_ctx: ^SDL_Render_Data,
 	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
 ) {
 
@@ -257,7 +259,7 @@ sdl_render_draw_commands :: proc(
 	sdl.RenderSetClipRect(render_ctx.renderer, nil)
 }
 
-sdl_render_begin :: proc(render_ctx: ^SDL_Render_Context) {
+sdl_render_begin :: proc(render_ctx: ^SDL_Render_Data) {
 	bg_color := ui.default_color_style[.Window_BG]
 	sdl.SetRenderDrawColor(render_ctx.renderer, bg_color.r, bg_color.g, bg_color.b, 255)
 	sdl.RenderClear(render_ctx.renderer)
@@ -265,7 +267,7 @@ sdl_render_begin :: proc(render_ctx: ^SDL_Render_Context) {
 
 // TODO(Thomas): The command_stack could just be a member of render_ctx instead??
 sdl_render_end :: proc(
-	render_ctx: ^SDL_Render_Context,
+	render_ctx: ^SDL_Render_Data,
 	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
 ) {
 	sdl_render_draw_commands(render_ctx, command_stack)

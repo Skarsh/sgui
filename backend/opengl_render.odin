@@ -26,7 +26,7 @@ indices := []u32{
 }
 // odinfmt: enable
 
-Render_Data :: struct {
+OpenGL_Render_Data :: struct {
 	vao:     u32,
 	vbo:     u32,
 	ebo:     u32,
@@ -35,7 +35,7 @@ Render_Data :: struct {
 
 // TODO(Thomas): Replace with our own window wrapper type, or at least
 // figure out a way to not make this dependent on SDL.
-init_opengl :: proc(window: ^sdl.Window) -> (Render_Data, bool) {
+init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
@@ -44,7 +44,7 @@ init_opengl :: proc(window: ^sdl.Window) -> (Render_Data, bool) {
 	program, program_ok := gl.load_shaders_file("shaders/main.vs", "shaders/main.fs")
 	if !program_ok {
 		log.error("Failed to create GLSL program")
-		return {}, false
+		return false
 	}
 
 	vao: u32
@@ -79,28 +79,27 @@ init_opengl :: proc(window: ^sdl.Window) -> (Render_Data, bool) {
 
 	gl.BindVertexArray(0)
 
-	render_data := Render_Data {
-		vao     = vao,
-		vbo     = vbo,
-		ebo     = ebo,
-		program = program,
-	}
-	return render_data, true
+	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, program}
+	return true
 }
 
-deinit_opengl :: proc(render_data: ^Render_Data) {
+deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteVertexArrays(1, &render_data.vao)
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
 	gl.DeleteProgram(render_data.program)
 }
 
-opengl_render_begin :: proc() {
+opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string) -> bool {
+	return true
+}
+
+opengl_render_begin :: proc(render_Data: ^OpenGL_Render_Data) {
 	gl.ClearColor(0.5, 0.7, 1.0, 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
-opengl_render_end :: proc(window: ^sdl.Window, render_data: Render_Data) {
+opengl_render_end :: proc(window: ^sdl.Window, render_data: OpenGL_Render_Data) {
 	gl.BindVertexArray(render_data.vao)
 
 	gl.UseProgram(render_data.program)
