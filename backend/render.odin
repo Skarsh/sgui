@@ -2,7 +2,6 @@ package backend
 
 import "core:log"
 import "core:mem"
-import "core:strings"
 
 import sdl "vendor:sdl2"
 

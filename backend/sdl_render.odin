@@ -64,18 +64,18 @@ sdl_init_render :: proc(
 	return true
 }
 
-sdl_deinit_render :: proc(ctx: ^SDL_Render_Data) {
-	deinit_font_atlas(&ctx.font_atlas)
-	sdl.DestroyRenderer(ctx.renderer)
+sdl_deinit_render :: proc(render_data: ^SDL_Render_Data) {
+	deinit_font_atlas(&render_data.font_atlas)
+	sdl.DestroyRenderer(render_data.renderer)
 }
 
-sdl_load_texture :: proc(ctx: ^SDL_Render_Data, full_path: string) -> bool {
+sdl_load_texture :: proc(render_data: ^SDL_Render_Data, full_path: string) -> bool {
 	logo_surface, logo_ok := sdl_load_surface_from_image_file(full_path)
 	if !logo_ok {
 		return false
 	}
 
-	tex := sdl.CreateTextureFromSurface(ctx.renderer, logo_surface)
+	tex := sdl.CreateTextureFromSurface(render_data.renderer, logo_surface)
 	if tex == nil {
 		log.error("Failed to crate texture from surface")
 		return false
@@ -91,14 +91,14 @@ sdl_load_texture :: proc(ctx: ^SDL_Render_Data, full_path: string) -> bool {
 
 	sdl.FreeSurface(logo_surface)
 
-	append(&ctx.textures, logo)
+	append(&render_data.textures, logo)
 
 	return true
 }
 
-sdl_init_resources :: proc(ctx: ^SDL_Render_Data, paths: []string) -> bool {
+sdl_init_resources :: proc(render_data: ^SDL_Render_Data, paths: []string) -> bool {
 	for path in paths {
-		sdl_load_texture(ctx, path)
+		sdl_load_texture(render_data, path)
 	}
 
 	return true
@@ -120,16 +120,16 @@ sdl_render_line :: proc(renderer: ^sdl.Renderer, x0, y0, x1, y1: f32, color: sdl
 	sdl.RenderDrawLine(renderer, i32(x0), i32(y0), i32(x1), i32(y1))
 }
 
-sdl_render_image :: proc(ctx: ^SDL_Render_Data, x, y, w, h: f32, data: rawptr) {
+sdl_render_image :: proc(render_data: ^SDL_Render_Data, x, y, w, h: f32, data: rawptr) {
 	tex_idx := cast(^int)data
-	tex := ctx.textures[tex_idx^]
+	tex := render_data.textures[tex_idx^]
 	r := sdl.Rect {
 		x = i32(x),
 		y = i32(y),
 		w = i32(w),
 		h = i32(h),
 	}
-	sdl.RenderCopy(ctx.renderer, tex.tex, nil, &r)
+	sdl.RenderCopy(render_data.renderer, tex.tex, nil, &r)
 }
 
 sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a: u8) {
@@ -186,12 +186,12 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 }
 
 sdl_render_draw_commands :: proc(
-	render_ctx: ^SDL_Render_Data,
+	render_data: ^SDL_Render_Data,
 	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
 ) {
 
-	clear(&render_ctx.scissor_stack)
-	sdl.RenderSetClipRect(render_ctx.renderer, nil)
+	clear(&render_data.scissor_stack)
+	sdl.RenderSetClipRect(render_data.renderer, nil)
 
 	commands := [ui.COMMAND_STACK_SIZE]ui.Command{}
 
@@ -212,17 +212,17 @@ sdl_render_draw_commands :: proc(
 
 			rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 			sdl.SetRenderDrawColor(
-				render_ctx.renderer,
+				render_data.renderer,
 				val.color.r,
 				val.color.g,
 				val.color.b,
 				val.color.a,
 			)
-			sdl.RenderDrawRect(render_ctx.renderer, &rect)
-			sdl.RenderFillRect(render_ctx.renderer, &rect)
+			sdl.RenderDrawRect(render_data.renderer, &rect)
+			sdl.RenderFillRect(render_data.renderer, &rect)
 		case ui.Command_Text:
 			sdl_render_text(
-				&render_ctx.font_atlas,
+				&render_data.font_atlas,
 				val.str,
 				val.x,
 				val.y,
@@ -232,44 +232,44 @@ sdl_render_draw_commands :: proc(
 				val.color.a,
 			)
 		case ui.Command_Image:
-			sdl_render_image(render_ctx, val.x, val.y, val.w, val.h, val.data)
+			sdl_render_image(render_data, val.x, val.y, val.w, val.h, val.data)
 		case ui.Command_Push_Scissor:
 			new_scissor_rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 
-			if len(render_ctx.scissor_stack) > 0 {
-				parent_rect := render_ctx.scissor_stack[len(render_ctx.scissor_stack) - 1]
+			if len(render_data.scissor_stack) > 0 {
+				parent_rect := render_data.scissor_stack[len(render_data.scissor_stack) - 1]
 				_ = sdl.IntersectRect(&parent_rect, &new_scissor_rect, &new_scissor_rect)
 			}
 
-			append(&render_ctx.scissor_stack, new_scissor_rect)
-			sdl.RenderSetClipRect(render_ctx.renderer, &new_scissor_rect)
+			append(&render_data.scissor_stack, new_scissor_rect)
+			sdl.RenderSetClipRect(render_data.renderer, &new_scissor_rect)
 
 		case ui.Command_Pop_Scissor:
-			_ = pop(&render_ctx.scissor_stack)
+			_ = pop(&render_data.scissor_stack)
 
-			if len(render_ctx.scissor_stack) > 0 {
-				previous_rect := render_ctx.scissor_stack[len(render_ctx.scissor_stack) - 1]
-				sdl.RenderSetClipRect(render_ctx.renderer, &previous_rect)
+			if len(render_data.scissor_stack) > 0 {
+				previous_rect := render_data.scissor_stack[len(render_data.scissor_stack) - 1]
+				sdl.RenderSetClipRect(render_data.renderer, &previous_rect)
 			} else {
-				sdl.RenderSetClipRect(render_ctx.renderer, nil)
+				sdl.RenderSetClipRect(render_data.renderer, nil)
 			}
 		}
 	}
 
-	sdl.RenderSetClipRect(render_ctx.renderer, nil)
+	sdl.RenderSetClipRect(render_data.renderer, nil)
 }
 
-sdl_render_begin :: proc(render_ctx: ^SDL_Render_Data) {
+sdl_render_begin :: proc(render_data: ^SDL_Render_Data) {
 	bg_color := ui.default_color_style[.Window_BG]
-	sdl.SetRenderDrawColor(render_ctx.renderer, bg_color.r, bg_color.g, bg_color.b, 255)
-	sdl.RenderClear(render_ctx.renderer)
+	sdl.SetRenderDrawColor(render_data.renderer, bg_color.r, bg_color.g, bg_color.b, 255)
+	sdl.RenderClear(render_data.renderer)
 }
 
 // TODO(Thomas): The command_stack could just be a member of render_ctx instead??
 sdl_render_end :: proc(
-	render_ctx: ^SDL_Render_Data,
+	render_data: ^SDL_Render_Data,
 	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
 ) {
-	sdl_render_draw_commands(render_ctx, command_stack)
-	sdl.RenderPresent(render_ctx.renderer)
+	sdl_render_draw_commands(render_data, command_stack)
+	sdl.RenderPresent(render_data.renderer)
 }
