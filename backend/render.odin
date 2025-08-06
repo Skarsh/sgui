@@ -12,7 +12,8 @@ Window :: union {
 }
 
 Render_Context :: struct {
-	window: Window,
+	window:      Window,
+	render_data: Render_Data,
 }
 
 init_render_ctx :: proc(
@@ -22,10 +23,21 @@ init_render_ctx :: proc(
 ) -> bool {
 
 	win := window.(^sdl.Window)
-	init_opengl(win)
+	render_data, opengl_ok := init_opengl(win)
+	assert(opengl_ok)
+	if !opengl_ok {
+		log.error("Failed to init opengl")
+		return false
+	}
+
 	ctx.window = window
+	ctx.render_data = render_data
 
 	return true
+}
+
+deinit_render_ctx :: proc(ctx: ^Render_Context) {
+	deinit_opengl(&ctx.render_data)
 }
 
 init_resources :: proc(ctx: ^Render_Context, paths: []string) {}
@@ -40,5 +52,6 @@ render_end :: proc(
 	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
 ) {
 	win := render_ctx.window.(^sdl.Window)
-	opengl_render_end(win)
+	opengl_render_end(win, render_ctx.render_data)
+	sdl.GL_SwapWindow(win)
 }

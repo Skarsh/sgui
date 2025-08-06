@@ -14,27 +14,28 @@ Vertex :: struct {
 
 // odinfmt: disable
 vertices := []Vertex {
-    {{-0.5,  0.5, 0}, {1.0, 0.0, 0.0, 0.75}},
-    {{-0.5, -0.5, 0}, {1.0, 1.0, 0.0, 0.75}},
-    {{ 0.5, -0.5, 0}, {0.0, 1.0, 0.0, 0.75}},
-    {{ 0.5,  0.5, 0}, {0.0, 0.0, 1.0, 0.75}},
+    {{ 0.5,  0.5, 0}, {1.0, 0.0, 0.0, 1.0}},
+    {{ 0.5, -0.5, 0}, {0.0, 1.0, 0.0, 1.0}},
+    {{-0.5, -0.5, 0}, {0.0, 0.0, 1.0, 1.0}},
+    {{-0.5,  0.5, 0}, {1.0, 0.0, 1.0, 1.0}},
 }
 
-indices := []u16{
-    0, 1, 2, 
-    2, 3, 0,
+indices := []u32{
+    0, 1, 3,
+    1, 2, 3,
 }
 // odinfmt: enable
 
 Render_Data :: struct {
-	vao: u32,
-	vbo: u32,
-	ebo: u32,
+	vao:     u32,
+	vbo:     u32,
+	ebo:     u32,
+	program: u32,
 }
 
-
-// TODO(Thomas): Replace with our own window wrapper type
-init_opengl :: proc(window: ^sdl.Window) {
+// TODO(Thomas): Replace with our own window wrapper type, or at least
+// figure out a way to not make this dependent on SDL.
+init_opengl :: proc(window: ^sdl.Window) -> (Render_Data, bool) {
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
@@ -43,23 +44,17 @@ init_opengl :: proc(window: ^sdl.Window) {
 	program, program_ok := gl.load_shaders_file("shaders/main.vs", "shaders/main.fs")
 	if !program_ok {
 		log.error("Failed to create GLSL program")
-		return
+		return {}, false
 	}
-	//defer gl.DeleteProgram(program)
-
-	gl.UseProgram(program)
-	uniforms := gl.get_uniforms_from_program(program)
-	//defer delete(uniforms)
 
 	vao: u32
 	gl.GenVertexArrays(1, &vao)
-	//defer gl.DeleteVertexArrays(1, &vao)
 
 	vbo, ebo: u32
 	gl.GenBuffers(1, &vbo)
-	//defer gl.DeleteBuffers(1, &vbo)
 	gl.GenBuffers(1, &ebo)
-	//defer gl.DeleteBuffers(1, &ebo)
+
+	gl.BindVertexArray(vao)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(
@@ -68,10 +63,6 @@ init_opengl :: proc(window: ^sdl.Window) {
 		raw_data(vertices),
 		gl.STATIC_DRAW,
 	)
-	gl.EnableVertexAttribArray(0)
-	gl.EnableVertexAttribArray(1)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
-	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(
@@ -80,6 +71,28 @@ init_opengl :: proc(window: ^sdl.Window) {
 		raw_data(indices),
 		gl.STATIC_DRAW,
 	)
+
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
+	gl.EnableVertexAttribArray(1)
+
+	gl.BindVertexArray(0)
+
+	render_data := Render_Data {
+		vao     = vao,
+		vbo     = vbo,
+		ebo     = ebo,
+		program = program,
+	}
+	return render_data, true
+}
+
+deinit_opengl :: proc(render_data: ^Render_Data) {
+	gl.DeleteVertexArrays(1, &render_data.vao)
+	gl.DeleteBuffers(1, &render_data.vbo)
+	gl.DeleteBuffers(1, &render_data.ebo)
+	gl.DeleteProgram(render_data.program)
 }
 
 opengl_render_begin :: proc() {
@@ -87,7 +100,11 @@ opengl_render_begin :: proc() {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
-opengl_render_end :: proc(window: ^sdl.Window) {
-	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_SHORT, nil)
-	sdl.GL_SwapWindow(window)
+opengl_render_end :: proc(window: ^sdl.Window, render_data: Render_Data) {
+	gl.BindVertexArray(render_data.vao)
+
+	gl.UseProgram(render_data.program)
+	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
+
+	gl.BindVertexArray(0)
 }
