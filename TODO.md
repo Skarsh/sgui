@@ -1,6 +1,7 @@
 # TODOs
 
 ## Active
+* OpenGL rendering, be able to render basic rect commands to begin with.
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.
     Would text just having a sensible default styling be enough?
@@ -9,7 +10,6 @@
 
 ## Backlog
 * Prune "dead" ui elements (they're still cached in the map)
-* Make our own Renderer, start with OpenGL
 * Upper Bound Limit Recursion
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
     and recursions.
