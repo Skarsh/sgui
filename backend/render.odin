@@ -90,17 +90,14 @@ render_begin :: proc(render_ctx: ^Render_Context) {
 }
 
 // TODO(Thomas): The command_stack could just be a member of render_ctx instead??
-render_end :: proc(
-	render_ctx: ^Render_Context,
-	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
-) {
+render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Command) {
 	win := render_ctx.window.(^sdl.Window)
 	switch render_ctx.renderer_type {
 
 	case .SDL:
-		sdl_render_end(&render_ctx.render_data.(SDL_Render_Data), command_stack)
+		sdl_render_end(&render_ctx.render_data.(SDL_Render_Data), command_queue)
 	case .OpenGL:
-		opengl_render_end(win, render_ctx.render_data.(OpenGL_Render_Data))
+		opengl_render_end(win, render_ctx.render_data.(OpenGL_Render_Data), command_queue)
 	}
 
 	// TODO(Thomas) We're using SDL windowing for both right now, but

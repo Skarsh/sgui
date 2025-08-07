@@ -6,7 +6,6 @@ import "core:mem"
 
 import base "../base"
 
-COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
 ELEMENT_STACK_SIZE :: #config(SUI_ELEMENT_STACK_SIZE, 64)
 PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)
 STYLE_STACK_SIZE :: #config(SUI_STYLE_STACK_SIZE, 64)
@@ -78,7 +77,6 @@ Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> 
 Context :: struct {
 	persistent_allocator:   mem.Allocator,
 	frame_allocator:        mem.Allocator,
-	command_stack:          Stack(Command, COMMAND_STACK_SIZE),
 	element_stack:          Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// TODO(Thomas): Style stacks, move them into its own struct?
 	// Maybe even do some metaprogramming to generate them if it becomes
@@ -97,6 +95,7 @@ Context :: struct {
 	text_padding_stack:     Stack(Padding, STYLE_STACK_SIZE),
 	text_alignment_x_stack: Stack(Alignment_X, STYLE_STACK_SIZE),
 	text_alignment_y_stack: Stack(Alignment_Y, STYLE_STACK_SIZE),
+	command_queue:          [dynamic]Command,
 	current_parent:         ^UI_Element,
 	root_element:           ^UI_Element,
 	input:                  Input,
@@ -167,6 +166,7 @@ init :: proc(
 	ctx.font_id = font_id
 	ctx.font_size = font_size
 
+	ctx.command_queue = make([dynamic]Command, frame_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
 }
@@ -183,8 +183,9 @@ deinit :: proc(ctx: ^Context) {
 }
 
 begin :: proc(ctx: ^Context) {
-	clear(&ctx.command_stack)
 	clear_dynamic_array(&ctx.interactive_elements)
+	clear_dynamic_array(&ctx.command_queue)
+	free_all(ctx.frame_allocator)
 
 	// Open the root element
 	_, root_open_ok := open_element(
@@ -251,8 +252,6 @@ end :: proc(ctx: ^Context) {
 	clear_input(ctx)
 
 	ctx.frame_idx += 1
-
-	free_all(ctx.frame_allocator)
 }
 
 
@@ -447,7 +446,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			scissor_rect.h = ctx.window_size.y
 		}
 
-		push(&ctx.command_stack, Command_Push_Scissor{rect = scissor_rect})
+		append(&ctx.command_queue, Command_Push_Scissor{rect = scissor_rect})
 	}
 
 	for child in element.children {
@@ -455,7 +454,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if clipping_this_element {
-		push(&ctx.command_stack, Command_Pop_Scissor{})
+		append(&ctx.command_queue, Command_Pop_Scissor{})
 	}
 
 }
@@ -465,15 +464,15 @@ draw_all_elements :: proc(ctx: ^Context) {
 }
 
 draw_rect :: proc(ctx: ^Context, rect: base.Rect, color: base.Color) {
-	push(&ctx.command_stack, Command_Rect{rect, color})
+	append(&ctx.command_queue, Command_Rect{rect, color})
 }
 
 draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Color) {
-	push(&ctx.command_stack, Command_Text{x, y, str, color})
+	append(&ctx.command_queue, Command_Text{x, y, str, color})
 }
 
 draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
-	push(&ctx.command_stack, Command_Image{x, y, w, h, data})
+	append(&ctx.command_queue, Command_Image{x, y, w, h, data})
 }
 
 

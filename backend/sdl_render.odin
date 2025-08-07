@@ -24,7 +24,6 @@ SDL_Render_Data :: struct {
 	renderer:      ^sdl.Renderer,
 	textures:      [dynamic]SDL_Texture_Asset,
 	scissor_stack: [dynamic]sdl.Rect,
-	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
 	font_atlas:    Font_Atlas,
 }
 
@@ -185,23 +184,12 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 	sdl.SetTextureAlphaMod(atlas.texture, 255)
 }
 
-sdl_render_draw_commands :: proc(
-	render_data: ^SDL_Render_Data,
-	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
-) {
+sdl_render_draw_commands :: proc(render_data: ^SDL_Render_Data, command_queue: []ui.Command) {
 
 	clear(&render_data.scissor_stack)
 	sdl.RenderSetClipRect(render_data.renderer, nil)
 
-	commands := [ui.COMMAND_STACK_SIZE]ui.Command{}
-
-	idx := 0
-	for command, ok := ui.pop(command_stack); ok; command, ok = ui.pop(command_stack) {
-		commands[idx] = command
-		idx += 1
-	}
-
-	#reverse for command in commands {
+	for command in command_queue {
 		switch val in command {
 		case ui.Command_Rect:
 			// NOTE(Thomas): If it's completely transparent,
@@ -265,11 +253,7 @@ sdl_render_begin :: proc(render_data: ^SDL_Render_Data) {
 	sdl.RenderClear(render_data.renderer)
 }
 
-// TODO(Thomas): The command_stack could just be a member of render_ctx instead??
-sdl_render_end :: proc(
-	render_data: ^SDL_Render_Data,
-	command_stack: ^ui.Stack(ui.Command, ui.COMMAND_STACK_SIZE),
-) {
-	sdl_render_draw_commands(render_data, command_stack)
+sdl_render_end :: proc(render_data: ^SDL_Render_Data, command_queue: []ui.Command) {
+	sdl_render_draw_commands(render_data, command_queue)
 	sdl.RenderPresent(render_data.renderer)
 }

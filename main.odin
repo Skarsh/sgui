@@ -154,7 +154,7 @@ main :: proc() {
 		build_styled_ui(&app_state)
 		//build_styled_ui_2(&app_state)
 
-		backend.render_end(&app_state.backend_ctx.render_ctx, &app_state.ctx.command_stack)
+		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
 		sdl.Delay(10)
 	}

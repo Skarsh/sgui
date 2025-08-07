@@ -4,12 +4,12 @@ import log "core:log"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl2"
 
-Vec3 :: [3]f32
-Vec4 :: [4]f32
+import base "../base"
+import ui "../ui"
 
 Vertex :: struct {
-	pos:   Vec3,
-	color: Vec4,
+	pos:   base.Vec3,
+	color: base.Vec4,
 }
 
 // odinfmt: disable
@@ -99,7 +99,11 @@ opengl_render_begin :: proc(render_Data: ^OpenGL_Render_Data) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
-opengl_render_end :: proc(window: ^sdl.Window, render_data: OpenGL_Render_Data) {
+opengl_render_end :: proc(
+	window: ^sdl.Window,
+	render_data: OpenGL_Render_Data,
+	command_queue: []ui.Command,
+) {
 	gl.BindVertexArray(render_data.vao)
 
 	gl.UseProgram(render_data.program)
