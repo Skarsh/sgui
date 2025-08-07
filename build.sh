@@ -3,7 +3,12 @@ set -eo pipefail
 
 echo "Running tests"
 if ! odin test ui; then
-    echo "Tests failed! Cannot successfully build."
+    echo "Ui tests failed! Cannot successfully build."
+    exit 1
+fi
+
+if ! odin test base; then
+    echo "Base tests failed! Cannot successfully build."
     exit 1
 fi
 

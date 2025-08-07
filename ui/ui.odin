@@ -273,7 +273,7 @@ process_interactions :: proc(ctx: ^Context) {
 
 		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
 
-		if point_in_rect(ctx.input.mouse_pos, rect) {
+		if base.point_in_rect(ctx.input.mouse_pos, rect) {
 			if v.z_index > highest_z_index {
 				highest_z_index = v.z_index
 				top_element = v
@@ -325,11 +325,11 @@ process_interactions :: proc(ctx: ^Context) {
 
 		element.hot = math.clamp(element.hot, 0, 1)
 
-		if approx_equal(element.active, 1.0, 0.001) {
+		if base.approx_equal(element.active, 1.0, 0.001) {
 			comm.active = true
 		}
 
-		if approx_equal(element.hot, 1.0, 0.001) {
+		if base.approx_equal(element.hot, 1.0, 0.001) {
 			comm.hot = true
 		}
 
@@ -348,12 +348,12 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	if .Hot_Animation in cap_flags {
 		hot_color := default_color_style[.Hot]
-		final_bg_color = lerp_color(final_bg_color, hot_color, element.hot)
+		final_bg_color = base.lerp_color(final_bg_color, hot_color, element.hot)
 	}
 
 	if .Active_Animation in cap_flags {
 		active_color := default_color_style[.Active]
-		final_bg_color = lerp_color(final_bg_color, active_color, element.active)
+		final_bg_color = base.lerp_color(final_bg_color, active_color, element.active)
 	}
 
 	if .Background in element.config.capability_flags {

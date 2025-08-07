@@ -606,7 +606,7 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 
 	resize_iter := 0
-	for !approx_equal(remaining_size, 0, EPSILON) && len(small_array.slice(&resizables)) > 0 {
+	for !base.approx_equal(remaining_size, 0, EPSILON) && len(small_array.slice(&resizables)) > 0 {
 		assert(resize_iter < RESIZE_ITER_MAX)
 		resize_iter += 1
 
@@ -637,7 +637,7 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 				prev_size := child.size[axis]
 				next_size := child.size[axis]
 				child_max_size := child.max_size[axis]
-				if approx_equal(next_size, smallest, EPSILON) {
+				if base.approx_equal(next_size, smallest, EPSILON) {
 					next_size += size_to_distribute
 					child.size[axis] = next_size
 					if next_size >= child_max_size {
@@ -672,7 +672,7 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 				prev_size := child.size[axis]
 				next_size := child.size[axis]
 				child_min_size := child.min_size[axis]
-				if approx_equal(next_size, largest, EPSILON) {
+				if base.approx_equal(next_size, largest, EPSILON) {
 					next_size += size_to_distribute
 					child.size[axis] = next_size
 
@@ -793,13 +793,13 @@ make_element :: proc(
 
 	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
 	// the user wants it to just fit whatever, so we set it to f32 max value
-	if approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
+	if base.approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
 		element.max_size.x = math.F32_MAX
 	} else {
 		element.max_size.x = element_config.layout.sizing.x.max_value
 	}
 
-	if approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
+	if base.approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
 		element.max_size.y = math.F32_MAX
 	} else {
 		element.max_size.y = element_config.layout.sizing.y.max_value
@@ -927,7 +927,7 @@ compare_element_size :: proc(
 	expected_size: base.Vec2,
 	epsilon: f32 = EPSILON,
 ) -> bool {
-	return approx_equal_vec2(element.size, expected_size, epsilon)
+	return base.approx_equal_vec2(element.size, expected_size, epsilon)
 }
 
 // Helper to verify element position
@@ -936,7 +936,7 @@ compare_element_position :: proc(
 	expected_pos: base.Vec2,
 	epsilon: f32 = EPSILON,
 ) -> bool {
-	return approx_equal_vec2(element.position, expected_pos, epsilon)
+	return base.approx_equal_vec2(element.position, expected_pos, epsilon)
 }
 
 // Helper to find an element in element hierarchy by id string
@@ -1061,8 +1061,8 @@ expect_layout :: proc(
 	}
 
 	// Compare size and position with a small tolerance
-	size_ok := approx_equal_vec2(element_to_check.size, expected.size, epsilon)
-	pos_ok := approx_equal_vec2(element_to_check.position, expected.pos, epsilon)
+	size_ok := base.approx_equal_vec2(element_to_check.size, expected.size, epsilon)
+	pos_ok := base.approx_equal_vec2(element_to_check.position, expected.pos, epsilon)
 
 	if !size_ok {
 		testing.fail_now(
