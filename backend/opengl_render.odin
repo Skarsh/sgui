@@ -27,10 +27,10 @@ indices := []u32{
 // odinfmt: enable
 
 OpenGL_Render_Data :: struct {
-	vao:     u32,
-	vbo:     u32,
-	ebo:     u32,
-	program: u32,
+	vao:    u32,
+	vbo:    u32,
+	ebo:    u32,
+	shader: Shader,
 }
 
 // TODO(Thomas): Replace with our own window wrapper type, or at least
@@ -41,9 +41,9 @@ init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 
 	gl.load_up_to(3, 3, sdl.gl_set_proc_address)
 
-	program, program_ok := gl.load_shaders_file("shaders/main.vs", "shaders/main.fs")
-	if !program_ok {
-		log.error("Failed to create GLSL program")
+	shader, shader_ok := create_shader(Shader_Config{"shaders/main.vs", "shaders/main.fs"})
+	if !shader_ok {
+		log.error("Failed to create shader")
 		return false
 	}
 
@@ -79,7 +79,7 @@ init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 
 	gl.BindVertexArray(0)
 
-	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, program}
+	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, shader}
 	return true
 }
 
@@ -87,7 +87,7 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteVertexArrays(1, &render_data.vao)
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
-	gl.DeleteProgram(render_data.program)
+	gl.DeleteProgram(render_data.shader.program_id)
 }
 
 opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string) -> bool {
@@ -106,7 +106,7 @@ opengl_render_end :: proc(
 ) {
 	gl.BindVertexArray(render_data.vao)
 
-	gl.UseProgram(render_data.program)
+	shader_use_program(render_data.shader)
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
