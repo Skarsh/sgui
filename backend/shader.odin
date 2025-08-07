@@ -1,11 +1,11 @@
 package backend
 
 import "core:log"
+import "core:math/linalg"
 import "core:os"
 import "core:strings"
 
 import gl "vendor:OpenGL"
-
 
 Shader_Type :: enum {
 	Vertex,
@@ -13,7 +13,7 @@ Shader_Type :: enum {
 }
 
 Shader :: struct {
-	program_id: u32,
+	id: u32,
 }
 
 Shader_Config :: struct {
@@ -62,11 +62,29 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 
 	check_program_link_status(shader_program)
 
-	return Shader{program_id = shader_program}, true
+	return Shader{id = shader_program}, true
 }
 
 shader_use_program :: proc(shader: Shader) {
-	gl.UseProgram(shader.program_id)
+	gl.UseProgram(shader.id)
+}
+
+shader_set_bool :: proc(shader: Shader, name: string, val: bool) {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != nil {
+		log.error("Failed to clone string to cstring, with error %v", err)
+	}
+	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), i32(val))
+}
+
+shader_set_mat4 :: proc(shader: Shader, name: string, mat: ^linalg.Matrix4f32) {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != nil {
+		log.error("Failed to clone string to cstring, with error %v", err)
+	}
+	gl.UniformMatrix4fv(gl.GetUniformLocation(shader.id, name_cstr), 1, false, &mat[0][0])
 }
 
 @(private)

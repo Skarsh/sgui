@@ -1,6 +1,7 @@
 package backend
 
-import log "core:log"
+import "core:log"
+import "core:math/linalg"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl2"
 
@@ -12,12 +13,20 @@ Vertex :: struct {
 	color: base.Vec4,
 }
 
+
 // odinfmt: disable
+//vertices := []Vertex {
+//    {{ 1.0,  1.0, 0}, {1.0, 0.0, 0.0, 1.0}},
+//    {{ 1.0, -1.0, 0}, {0.0, 1.0, 0.0, 1.0}},
+//    {{-1.0, -1.0, 0}, {0.0, 0.0, 1.0, 1.0}},
+//    {{-1.0,  1.0, 0}, {1.0, 0.0, 1.0, 1.0}},
+//}
+
 vertices := []Vertex {
-    {{ 1.0,  1.0, 0}, {1.0, 0.0, 0.0, 1.0}},
-    {{ 1.0, -1.0, 0}, {0.0, 1.0, 0.0, 1.0}},
-    {{-1.0, -1.0, 0}, {0.0, 0.0, 1.0, 1.0}},
-    {{-1.0,  1.0, 0}, {1.0, 0.0, 1.0, 1.0}},
+    {{ 0.5,  0.5, 0}, {1.0, 0.0, 0.0, 1.0}},
+    {{ 0.5, -0.5, 0}, {0.0, 1.0, 0.0, 1.0}},
+    {{-0.5, -0.5, 0}, {0.0, 0.0, 1.0, 1.0}},
+    {{-0.5,  0.5, 0}, {1.0, 0.0, 1.0, 1.0}},
 }
 
 indices := []u32{
@@ -87,7 +96,7 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteVertexArrays(1, &render_data.vao)
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
-	gl.DeleteProgram(render_data.shader.program_id)
+	gl.DeleteProgram(render_data.shader.id)
 }
 
 opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string) -> bool {
@@ -107,6 +116,8 @@ opengl_render_end :: proc(
 	gl.BindVertexArray(render_data.vao)
 
 	shader_use_program(render_data.shader)
+	model := linalg.Matrix4f32(1.0)
+	shader_set_mat4(render_data.shader, "proj", &model)
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
