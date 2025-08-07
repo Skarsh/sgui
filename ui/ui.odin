@@ -484,17 +484,14 @@ draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 // 3. The provided default value.
 @(private)
 resolve_value :: proc(user_value: Maybe($T), stack: ^Stack(T, $N), default_value: T) -> T {
-	// 1. Check for a direct user-provided value.
 	if val, ok := user_value.?; ok {
 		return val
 	}
 
-	// 2. Check the style stack.
 	if val, ok := peek(stack); ok {
 		return val
 	}
 
-	// 3. Fall back to the hardcoded default.
 	return default_value
 }
 
