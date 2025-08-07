@@ -13,9 +13,6 @@ STYLE_STACK_SIZE :: #config(SUI_STYLE_STACK_SIZE, 64)
 CHILD_LAYOUT_AXIS_STACK_SIZE :: #config(SUI_CHILD_LAYOUT_AXIS_STACK_SIZE, 64)
 MAX_TEXT_STORE :: #config(SUI_MAX_TEXT_STORE, 1024)
 
-Vec2 :: [2]f32
-Vector2i32 :: [2]i32
-
 Color_Type :: enum u32 {
 	Text,
 	Selection_BG,
@@ -24,15 +21,6 @@ Color_Type :: enum u32 {
 	Active,
 	Base,
 }
-
-//Color :: struct {
-//	r, g, b, a: u8,
-//}
-
-// x, y is the upper left corner of the rect
-//Rect :: struct {
-//	x, y, w, h: i32,
-//}
 
 Command :: union {
 	Command_Rect,

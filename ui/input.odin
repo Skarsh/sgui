@@ -1,5 +1,7 @@
 package ui
 
+import base "../base"
+
 Mouse :: enum u32 {
 	Unknown,
 	Left,
@@ -166,10 +168,10 @@ Key_Set :: distinct bit_set[Key]
 
 Input :: struct {
 	// Mouse
-	mouse_pos:           Vector2i32,
-	last_mouse_pos:      Vector2i32,
-	mouse_delta:         Vector2i32,
-	scroll_delta:        Vector2i32,
+	mouse_pos:           base.Vector2i32,
+	last_mouse_pos:      base.Vector2i32,
+	mouse_delta:         base.Vector2i32,
+	scroll_delta:        base.Vector2i32,
 	mouse_down_bits:     Mouse_Set,
 	mouse_pressed_bits:  Mouse_Set,
 	mouse_released_bits: Mouse_Set,
@@ -180,7 +182,7 @@ Input :: struct {
 }
 
 handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {
-	ctx.input.mouse_pos = Vector2i32{x, y}
+	ctx.input.mouse_pos = {x, y}
 }
 
 handle_mouse_down :: proc(ctx: ^Context, x, y: i32, btn: Mouse) {

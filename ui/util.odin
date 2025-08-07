@@ -31,7 +31,7 @@ ui_key_match :: proc(a, b: UI_Key) -> bool {
 }
 
 @(require_results)
-point_in_rect :: proc(p: Vector2i32, rect: base.Rect) -> bool {
+point_in_rect :: proc(p: base.Vector2i32, rect: base.Rect) -> bool {
 	if p.x < rect.x || p.y < rect.y || p.x >= rect.x + rect.w || p.y >= rect.y + rect.h {
 		return false
 	}
@@ -58,7 +58,7 @@ approx_equal :: proc(a: f32, b: f32, epsilon: f32) -> bool {
 }
 
 @(require_results)
-approx_equal_vec2 :: proc(a: Vec2, b: Vec2, epsilon: f32) -> bool {
+approx_equal_vec2 :: proc(a: base.Vec2, b: base.Vec2, epsilon: f32) -> bool {
 	return approx_equal(a.x, b.x, epsilon) && approx_equal(a.y, b.y, epsilon)
 }
 

@@ -84,10 +84,10 @@ Clip_Config :: struct {
 UI_Element :: struct {
 	parent:         ^UI_Element,
 	id_string:      string,
-	position:       Vec2,
-	min_size:       Vec2,
-	max_size:       Vec2,
-	size:           Vec2,
+	position:       base.Vec2,
+	min_size:       base.Vec2,
+	max_size:       base.Vec2,
+	size:           base.Vec2,
 	config:         Element_Config,
 	children:       [dynamic]^UI_Element,
 	color:          base.Color,
@@ -697,7 +697,7 @@ resolve_percentage_sizing :: proc(element: ^UI_Element, axis: Axis2) {
 		return
 	}
 
-	parent_content_size: Vec2
+	parent_content_size: base.Vec2
 	if element.parent != nil {
 		parent_padding := element.parent.config.layout.padding
 		parent_content_size.x = element.parent.size.x - parent_padding.left - parent_padding.right
@@ -924,7 +924,7 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 // Helper to verify element size
 compare_element_size :: proc(
 	element: UI_Element,
-	expected_size: Vec2,
+	expected_size: base.Vec2,
 	epsilon: f32 = EPSILON,
 ) -> bool {
 	return approx_equal_vec2(element.size, expected_size, epsilon)
@@ -933,7 +933,7 @@ compare_element_size :: proc(
 // Helper to verify element position
 compare_element_position :: proc(
 	element: UI_Element,
-	expected_pos: Vec2,
+	expected_pos: base.Vec2,
 	epsilon: f32 = EPSILON,
 ) -> bool {
 	return approx_equal_vec2(element.position, expected_pos, epsilon)
@@ -1009,20 +1009,20 @@ cleanup_test_environment :: proc(env: ^Test_Environment) {
 	free(env)
 }
 
-expect_element_size :: proc(t: ^testing.T, element: ^UI_Element, expected_size: Vec2) {
+expect_element_size :: proc(t: ^testing.T, element: ^UI_Element, expected_size: base.Vec2) {
 	testing.expect_value(t, element.size.x, expected_size.x)
 	testing.expect_value(t, element.size.y, expected_size.y)
 }
 
-expect_element_pos :: proc(t: ^testing.T, element: ^UI_Element, expected_pos: Vec2) {
+expect_element_pos :: proc(t: ^testing.T, element: ^UI_Element, expected_pos: base.Vec2) {
 	testing.expect_value(t, element.position.x, expected_pos.x)
 	testing.expect_value(t, element.position.y, expected_pos.y)
 }
 
 Expected_Element :: struct {
 	id:       string,
-	pos:      Vec2,
-	size:     Vec2,
+	pos:      base.Vec2,
+	size:     base.Vec2,
 	children: []Expected_Element,
 }
 
@@ -1134,11 +1134,11 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic --- 
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
-		size := Vec2 {
+		size := base.Vec2 {
 			data.panel_padding.left + data.panel_padding.right,
 			data.panel_padding.top + data.panel_padding.bottom,
 		}
-		pos := Vec2{0, 0}
+		pos := base.Vec2{0, 0}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -1157,17 +1157,17 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_padding:       Padding,
 		panel_child_gap:     f32,
-		container_1_size:    Vec2,
-		container_2_size:    Vec2,
-		container_3_size:    Vec2,
+		container_1_size:    base.Vec2,
+		container_2_size:    base.Vec2,
+		container_3_size:    base.Vec2,
 		largest_container_y: f32,
 	}
 	test_data := Test_Data {
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
-		container_1_size = Vec2{100, 100},
-		container_2_size = Vec2{50, 150},
-		container_3_size = Vec2{150, 150},
+		container_1_size = base.Vec2{100, 100},
+		container_2_size = base.Vec2{50, 150},
+		container_3_size = base.Vec2{150, 150},
 		largest_container_y = 150,
 	}
 
@@ -1231,7 +1231,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	// --- 3. Define the Verification Logic --- 
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 
-		panel_size := Vec2 {
+		panel_size := base.Vec2 {
 			data.panel_padding.left +
 			data.panel_padding.right +
 			data.panel_child_gap * 2 +
@@ -1241,7 +1241,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			data.largest_container_y + data.panel_padding.top + data.panel_padding.bottom,
 		}
 
-		panel_pos := Vec2{0, 0}
+		panel_pos := base.Vec2{0, 0}
 		c1_pos_x := data.panel_padding.left
 		c2_pos_x := c1_pos_x + data.container_1_size.x + data.panel_child_gap
 		c3_pos_x := c2_pos_x + data.container_2_size.x + data.panel_child_gap
@@ -1286,17 +1286,17 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_padding:       Padding,
 		panel_child_gap:     f32,
-		container_1_size:    Vec2,
-		container_2_size:    Vec2,
-		container_3_size:    Vec2,
+		container_1_size:    base.Vec2,
+		container_2_size:    base.Vec2,
+		container_3_size:    base.Vec2,
 		largest_container_x: f32,
 	}
 	test_data := Test_Data {
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
-		container_1_size = Vec2{100, 100},
-		container_2_size = Vec2{50, 150},
-		container_3_size = Vec2{150, 150},
+		container_1_size = {100, 100},
+		container_2_size = {50, 150},
+		container_3_size = {150, 150},
 		largest_container_x = 150,
 	}
 
@@ -1360,7 +1360,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	// --- 3. Define the Verification Logic --- 
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 
-		panel_size := Vec2 {
+		panel_size := base.Vec2 {
 			data.largest_container_x + data.panel_padding.left + data.panel_padding.right,
 			data.panel_padding.top +
 			data.panel_padding.bottom +
@@ -1370,7 +1370,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 			data.container_3_size.y,
 		}
 
-		panel_pos := Vec2{0, 0}
+		panel_pos := base.Vec2{0, 0}
 		c1_pos_y := data.panel_padding.top
 		c2_pos_y := c1_pos_y + data.container_1_size.y + data.panel_child_gap
 		c3_pos_y := c2_pos_y + data.container_2_size.y + data.panel_child_gap
@@ -1416,9 +1416,9 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	Test_Grow_Sizing_Ltr_Context :: struct {
 		panel_padding:    Padding,
 		panel_child_gap:  f32,
-		panel_size:       Vec2,
-		container_1_size: Vec2,
-		container_3_size: Vec2,
+		panel_size:       base.Vec2,
+		container_1_size: base.Vec2,
+		container_3_size: base.Vec2,
 	}
 
 	test_context := Test_Grow_Sizing_Ltr_Context {
@@ -1540,19 +1540,19 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_padding:         Padding,
 		panel_child_gap:       f32,
-		panel_size:            Vec2,
+		panel_size:            base.Vec2,
 		container_1_max_value: f32,
 		container_2_max_value: f32,
-		container_3_size:      Vec2,
+		container_3_size:      base.Vec2,
 	}
 
 	test_data := Test_Data {
 		panel_padding = Padding{left = 11, top = 12, right = 13, bottom = 14},
 		panel_child_gap = 10,
-		panel_size = Vec2{600, 400},
+		panel_size = base.Vec2{600, 400},
 		container_1_max_value = 150,
 		container_2_max_value = 50,
-		container_3_size = Vec2{150, 150},
+		container_3_size = base.Vec2{150, 150},
 	}
 
 	// --- 2. Define the UI Building Logic ---
@@ -1612,12 +1612,12 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
-		container_1_size := Vec2 {
+		container_1_size := base.Vec2 {
 			data.container_1_max_value,
 			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom,
 		}
 
-		container_2_size := Vec2 {
+		container_2_size := base.Vec2 {
 			data.container_2_max_value,
 			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom,
 		}
@@ -1668,9 +1668,9 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_padding:    Padding,
 		panel_child_gap:  f32,
-		panel_size:       Vec2,
-		container_1_size: Vec2,
-		container_3_size: Vec2,
+		panel_size:       base.Vec2,
+		container_1_size: base.Vec2,
+		container_3_size: base.Vec2,
 	}
 
 	test_data := Test_Data {
@@ -1789,7 +1789,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	Test_Data :: struct {
 		panel_padding:      Padding,
 		panel_child_gap:    f32,
-		panel_size:         Vec2,
+		panel_size:         base.Vec2,
 		text_1_min_width:   f32,
 		grow_box_min_width: f32,
 		text_2_min_width:   f32,
@@ -1798,7 +1798,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	test_data := Test_Data {
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
-		panel_size = Vec2{300, 100},
+		panel_size = {300, 100},
 		text_1_min_width = 10,
 		grow_box_min_width = 5,
 		text_2_min_width = 0,
@@ -1905,7 +1905,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 	Test_Data :: struct {
 		panel_padding:       Padding,
 		panel_child_gap:     f32,
-		panel_size:          Vec2,
+		panel_size:          base.Vec2,
 		text_1_min_height:   f32,
 		grow_box_min_height: f32,
 		text_2_min_height:   f32,
@@ -1914,7 +1914,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 	test_data := Test_Data {
 		panel_padding = {left = 10, top = 11, right = 12, bottom = 13},
 		panel_child_gap = 10,
-		panel_size = Vec2{100, 100},
+		panel_size = {100, 100},
 		text_1_min_height = 10,
 		grow_box_min_height = 5,
 		text_2_min_height = 0,
@@ -2172,10 +2172,13 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 		padding := data.container_padding
-		container_size := Vec2{60, 2 * MOCK_LINE_HEIGHT + padding.top + padding.bottom}
+		container_size := base.Vec2{60, 2 * MOCK_LINE_HEIGHT + padding.top + padding.bottom}
 
 		// Space for text is size of the text minus paddings
-		text_size := Vec2{6 * MOCK_CHAR_WIDTH - padding.left - padding.right, 2 * MOCK_LINE_HEIGHT}
+		text_size := base.Vec2 {
+			6 * MOCK_CHAR_WIDTH - padding.left - padding.right,
+			2 * MOCK_LINE_HEIGHT,
+		}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -2320,12 +2323,12 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		parent_width:     f32,
 		parent_height:    f32,
-		parent_pos:       Vec2,
+		parent_pos:       base.Vec2,
 		alignment_x:      Alignment_X,
 		alignment_y:      Alignment_Y,
 		container_width:  f32,
 		container_height: f32,
-		container_pos:    Vec2,
+		container_pos:    base.Vec2,
 	}
 
 	generate_test_data :: proc(
@@ -2337,7 +2340,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		alignment_y: Alignment_Y,
 	) -> Test_Data {
 
-		container_pos: Vec2
+		container_pos: base.Vec2
 		switch alignment_x {
 		case .Left:
 			container_pos.x = 0
@@ -2359,7 +2362,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		return Test_Data {
 			parent_width = parent_width,
 			parent_height = parent_height,
-			parent_pos = Vec2{0, 0},
+			parent_pos = {0, 0},
 			alignment_x = alignment_x,
 			alignment_y = alignment_y,
 			container_width = container_width,
