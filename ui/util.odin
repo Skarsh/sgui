@@ -3,6 +3,8 @@ package ui
 import "core:math"
 import "core:testing"
 
+import base "../base"
+
 UI_Key :: struct {
 	hash: u64,
 }
@@ -29,7 +31,7 @@ ui_key_match :: proc(a, b: UI_Key) -> bool {
 }
 
 @(require_results)
-point_in_rect :: proc(p: Vector2i32, rect: Rect) -> bool {
+point_in_rect :: proc(p: Vector2i32, rect: base.Rect) -> bool {
 	if p.x < rect.x || p.y < rect.y || p.x >= rect.x + rect.w || p.y >= rect.y + rect.h {
 		return false
 	}
@@ -37,10 +39,10 @@ point_in_rect :: proc(p: Vector2i32, rect: Rect) -> bool {
 }
 
 @(require_results)
-lerp_color :: proc(a, b: Color, t: f32) -> Color {
+lerp_color :: proc(a, b: base.Color, t: f32) -> base.Color {
 	t_clamped := math.clamp(t, 0.0, 1.0)
 
-	color := Color {
+	color := base.Color {
 		u8(math.lerp(f32(a.r), f32(b.r), t_clamped)),
 		u8(math.lerp(f32(a.g), f32(b.g), t_clamped)),
 		u8(math.lerp(f32(a.b), f32(b.b), t_clamped)),

@@ -1,6 +1,8 @@
 # TODOs
 
 ## Active
+* Before working too much on the opengl rendering, we should move common types and utilities into
+    a base package that both the ui package and the backends can use. E.g. Rect, Vec and so on.
 * OpenGL rendering, be able to render basic rect commands to begin with.
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.

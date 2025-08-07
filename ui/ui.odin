@@ -4,6 +4,8 @@ import "core:container/queue"
 import "core:math"
 import "core:mem"
 
+import base "../base"
+
 COMMAND_STACK_SIZE :: #config(SUI_COMMAND_STACK_SIZE, 100)
 ELEMENT_STACK_SIZE :: #config(SUI_ELEMENT_STACK_SIZE, 64)
 PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)
@@ -23,14 +25,14 @@ Color_Type :: enum u32 {
 	Base,
 }
 
-Color :: struct {
-	r, g, b, a: u8,
-}
+//Color :: struct {
+//	r, g, b, a: u8,
+//}
 
 // x, y is the upper left corner of the rect
-Rect :: struct {
-	x, y, w, h: i32,
-}
+//Rect :: struct {
+//	x, y, w, h: i32,
+//}
 
 Command :: union {
 	Command_Rect,
@@ -41,14 +43,14 @@ Command :: union {
 }
 
 Command_Rect :: struct {
-	rect:  Rect,
-	color: Color,
+	rect:  base.Rect,
+	color: base.Color,
 }
 
 Command_Text :: struct {
 	x, y:  f32,
 	str:   string,
-	color: Color,
+	color: base.Color,
 }
 
 Command_Image :: struct {
@@ -57,12 +59,12 @@ Command_Image :: struct {
 }
 
 Command_Push_Scissor :: struct {
-	rect: Rect,
+	rect: base.Rect,
 }
 
 Command_Pop_Scissor :: struct {}
 
-Color_Style :: [Color_Type]Color
+Color_Style :: [Color_Type]base.Color
 
 // Font-agnostic text measurement result
 Text_Metrics :: struct {
@@ -97,8 +99,8 @@ Context :: struct {
 	sizing_y_stack:         Stack(Sizing, STYLE_STACK_SIZE),
 	clip_stack:             Stack(Clip_Config, STYLE_STACK_SIZE),
 	capability_flags_stack: Stack(Capability_Flags, STYLE_STACK_SIZE),
-	background_color_stack: Stack(Color, STYLE_STACK_SIZE),
-	text_color_stack:       Stack(Color, STYLE_STACK_SIZE),
+	background_color_stack: Stack(base.Color, STYLE_STACK_SIZE),
+	text_color_stack:       Stack(base.Color, STYLE_STACK_SIZE),
 	padding_stack:          Stack(Padding, STYLE_STACK_SIZE),
 	child_gap_stack:        Stack(f32, STYLE_STACK_SIZE),
 	layout_direction_stack: Stack(Layout_Direction, STYLE_STACK_SIZE),
@@ -201,7 +203,7 @@ begin :: proc(ctx: ^Context) {
 		ctx,
 		"root",
 		{
-			background_color = Color{128, 128, 128, 255},
+			background_color = base.Color{128, 128, 128, 255},
 			layout = {
 				sizing = {
 					Sizing{kind = .Fixed, value = f32(ctx.window_size.x)},
@@ -281,7 +283,7 @@ process_interactions :: proc(ctx: ^Context) {
 	for queue.len(q) > 0 {
 		v := queue.pop_front(&q)
 
-		rect := Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
+		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
 
 		if point_in_rect(ctx.input.mouse_pos, rect) {
 			if v.z_index > highest_z_index {
@@ -369,7 +371,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	if .Background in element.config.capability_flags {
 		draw_rect(
 			ctx,
-			Rect {
+			base.Rect {
 				i32(element.position.x),
 				i32(element.position.y),
 				i32(element.size.x),
@@ -440,7 +442,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
 	padding := element.config.layout.padding
 	if clipping_this_element {
-		scissor_rect := Rect {
+		scissor_rect := base.Rect {
 			x = i32(element.position.x + padding.left),
 			y = i32(element.position.y + padding.top),
 			w = i32(element.size.x - padding.left - padding.right),
@@ -474,11 +476,11 @@ draw_all_elements :: proc(ctx: ^Context) {
 	draw_element(ctx, ctx.root_element)
 }
 
-draw_rect :: proc(ctx: ^Context, rect: Rect, color: Color) {
+draw_rect :: proc(ctx: ^Context, rect: base.Rect, color: base.Color) {
 	push(&ctx.command_stack, Command_Rect{rect, color})
 }
 
-draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: Color) {
+draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Color) {
 	push(&ctx.command_stack, Command_Text{x, y, str, color})
 }
 
@@ -524,8 +526,8 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 			text_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 			text_alignment_x = .Center,
 		},
-		background_color = Color{24, 24, 24, 255},
-		text_color = Color{255, 128, 255, 128},
+		background_color = base.Color{24, 24, 24, 255},
+		text_color = base.Color{255, 128, 255, 128},
 		capability_flags = Capability_Flags{.Background, .Active_Animation, .Hot_Animation},
 	}
 
@@ -572,19 +574,19 @@ pop_capability_flags :: proc(ctx: ^Context) -> (Capability_Flags, bool) {
 	return pop(&ctx.capability_flags_stack)
 }
 
-push_background_color :: proc(ctx: ^Context, color: Color) -> bool {
+push_background_color :: proc(ctx: ^Context, color: base.Color) -> bool {
 	return push(&ctx.background_color_stack, color)
 }
 
-pop_background_color :: proc(ctx: ^Context) -> (Color, bool) {
+pop_background_color :: proc(ctx: ^Context) -> (base.Color, bool) {
 	return pop(&ctx.background_color_stack)
 }
 
-push_text_color :: proc(ctx: ^Context, color: Color) -> bool {
+push_text_color :: proc(ctx: ^Context, color: base.Color) -> bool {
 	return push(&ctx.text_color_stack, color)
 }
 
-pop_text_color :: proc(ctx: ^Context) -> (Color, bool) {
+pop_text_color :: proc(ctx: ^Context) -> (base.Color, bool) {
 	return pop(&ctx.text_color_stack)
 }
 

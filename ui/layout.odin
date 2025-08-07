@@ -8,6 +8,8 @@ import "core:mem"
 import "core:mem/virtual"
 import "core:testing"
 
+import base "../base"
+
 EPSILON :: 0.001
 
 Axis2 :: enum {
@@ -88,7 +90,7 @@ UI_Element :: struct {
 	size:           Vec2,
 	config:         Element_Config,
 	children:       [dynamic]^UI_Element,
-	color:          Color,
+	color:          base.Color,
 	z_index:        i32,
 	hot:            f32,
 	active:         f32,
@@ -105,8 +107,8 @@ Sizing :: struct {
 
 Element_Config :: struct {
 	layout:           Layout_Config,
-	background_color: Color,
-	text_color:       Color,
+	background_color: base.Color,
+	text_color:       base.Color,
 	clip:             Clip_Config,
 	capability_flags: Capability_Flags,
 	content:          Element_Content,
@@ -126,8 +128,8 @@ Layout_Options :: struct {
 
 Config_Options :: struct {
 	layout:           Layout_Options,
-	background_color: Maybe(Color),
-	text_color:       Maybe(Color),
+	background_color: Maybe(base.Color),
+	text_color:       Maybe(base.Color),
 	clip:             Maybe(Clip_Config),
 	capability_flags: Maybe(Capability_Flags),
 	content:          Element_Content,
@@ -472,7 +474,7 @@ text :: proc(
 	text_padding: Padding = {},
 	text_alignment_x := Alignment_X.Left,
 	text_alignment_y := Alignment_Y.Top,
-	text_color := Color{255, 255, 255, 255},
+	text_color := base.Color{255, 255, 255, 255},
 ) {
 	assert(min_width >= 0)
 	assert(min_height >= 0)
