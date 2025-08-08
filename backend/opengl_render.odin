@@ -13,20 +13,12 @@ Vertex :: struct {
 	color: base.Vec4,
 }
 
-
 // odinfmt: disable
-//vertices := []Vertex {
-//    {{ 1.0,  1.0, 0}, {1.0, 0.0, 0.0, 1.0}},
-//    {{ 1.0, -1.0, 0}, {0.0, 1.0, 0.0, 1.0}},
-//    {{-1.0, -1.0, 0}, {0.0, 0.0, 1.0, 1.0}},
-//    {{-1.0,  1.0, 0}, {1.0, 0.0, 1.0, 1.0}},
-//}
-
 vertices := []Vertex {
-    {{ 0.5,  0.5, 0}, {1.0, 0.0, 0.0, 1.0}},
-    {{ 0.5, -0.5, 0}, {0.0, 1.0, 0.0, 1.0}},
-    {{-0.5, -0.5, 0}, {0.0, 0.0, 1.0, 1.0}},
-    {{-0.5,  0.5, 0}, {1.0, 0.0, 1.0, 1.0}},
+    {{ 110, 110, 0}, {1.0, 0.0, 0.0, 1.0}}, // Top-right
+    {{ 110,  10, 0}, {0.0, 1.0, 0.0, 1.0}}, // Bottom-right
+    {{  10,  10, 0}, {0.0, 0.0, 1.0, 1.0}}, // Bottom-left
+    {{  10, 110, 0}, {1.0, 0.0, 1.0, 1.0}}, // Top-left
 }
 
 indices := []u32{
@@ -40,6 +32,7 @@ OpenGL_Render_Data :: struct {
 	vbo:    u32,
 	ebo:    u32,
 	shader: Shader,
+	proj:   linalg.Matrix4f32,
 }
 
 // TODO(Thomas): Replace with our own window wrapper type, or at least
@@ -88,7 +81,11 @@ init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 
 	gl.BindVertexArray(0)
 
-	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, shader}
+	// TODO(Thomas): Dimensions should come from window size, and it
+	// should be updated when the window resizes.
+	ortho := linalg.matrix_ortho3d_f32(0, 1920, 0, 1080, -1, 1)
+
+	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, shader, ortho}
 	return true
 }
 
@@ -104,7 +101,7 @@ opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string)
 }
 
 opengl_render_begin :: proc(render_Data: ^OpenGL_Render_Data) {
-	gl.ClearColor(0.5, 0.7, 1.0, 1.0)
+	gl.ClearColor(0.1, 0.1, 0.1, 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
@@ -117,7 +114,9 @@ opengl_render_end :: proc(
 
 	shader_use_program(render_data.shader)
 	model := linalg.Matrix4f32(1.0)
-	shader_set_mat4(render_data.shader, "proj", &model)
+	proj := render_data.proj
+	transform := proj * model
+	shader_set_mat4(render_data.shader, "transform", &transform)
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
