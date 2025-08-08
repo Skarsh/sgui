@@ -13,20 +13,6 @@ Vertex :: struct {
 	color: base.Vec4,
 }
 
-// odinfmt: disable
-vertices := []Vertex {
-    {{ 110, 110, 0}, {1.0, 0.0, 0.0, 1.0}}, // Top-right
-    {{ 110,  10, 0}, {0.0, 1.0, 0.0, 1.0}}, // Bottom-right
-    {{  10,  10, 0}, {0.0, 0.0, 1.0, 1.0}}, // Bottom-left
-    {{  10, 110, 0}, {1.0, 0.0, 1.0, 1.0}}, // Top-left
-}
-
-indices := []u32{
-    0, 1, 3,
-    1, 2, 3,
-}
-// odinfmt: enable
-
 OpenGL_Render_Data :: struct {
 	vao:    u32,
 	vbo:    u32,
@@ -34,6 +20,10 @@ OpenGL_Render_Data :: struct {
 	shader: Shader,
 	proj:   linalg.Matrix4f32,
 }
+
+MAX_QUADS :: 10000
+MAX_VERTICES :: MAX_QUADS * 4
+MAX_INDICES :: MAX_QUADS * 6
 
 // TODO(Thomas): Replace with our own window wrapper type, or at least
 // figure out a way to not make this dependent on SDL.
@@ -59,20 +49,10 @@ init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 	gl.BindVertexArray(vao)
 
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(
-		gl.ARRAY_BUFFER,
-		len(vertices) * size_of(vertices[0]),
-		raw_data(vertices),
-		gl.STATIC_DRAW,
-	)
+	gl.BufferData(gl.ARRAY_BUFFER, MAX_VERTICES * size_of(Vertex), nil, gl.DYNAMIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
-	gl.BufferData(
-		gl.ELEMENT_ARRAY_BUFFER,
-		len(indices) * size_of(indices[0]),
-		raw_data(indices),
-		gl.STATIC_DRAW,
-	)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, MAX_INDICES * size_of(u32), nil, gl.DYNAMIC_DRAW)
 
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
 	gl.EnableVertexAttribArray(0)
@@ -83,7 +63,8 @@ init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 
 	// TODO(Thomas): Dimensions should come from window size, and it
 	// should be updated when the window resizes.
-	ortho := linalg.matrix_ortho3d_f32(0, 1920, 0, 1080, -1, 1)
+	// NOTE(Thomas): Flipped y-axis for top-left coords
+	ortho := linalg.matrix_ortho3d_f32(0, 1920, 1080, 0, -1, 1)
 
 	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, shader, ortho}
 	return true
@@ -110,14 +91,71 @@ opengl_render_end :: proc(
 	render_data: OpenGL_Render_Data,
 	command_queue: []ui.Command,
 ) {
+	if len(command_queue) == 0 {
+		return
+	}
+
+	// TODO(Thomas): Should come from an arena or something instead.
+	vertices := make([dynamic]Vertex, 0, len(command_queue) * 4)
+	indices := make([dynamic]u32, 0, len(command_queue) * 6)
+	vertex_offset: u32 = 0
+
+	for command in command_queue {
+		#partial switch val in command {
+		case ui.Command_Rect:
+			rect := val.rect
+			x := f32(rect.x)
+			y := f32(rect.y)
+			w := f32(rect.w)
+			h := f32(rect.h)
+
+			color := val.color
+			r := f32(color.r) / 255.0
+			g := f32(color.g) / 255.0
+			b := f32(color.b) / 255.0
+			a := f32(color.a) / 255.0
+
+			append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}}) // Bottom-right
+			append(&vertices, Vertex{pos = {x + w, y, 0}, color = {r, g, b, a}}) // Top-right
+			append(&vertices, Vertex{pos = {x, y, 0}, color = {r, g, b, a}}) // Top-left
+			append(&vertices, Vertex{pos = {x, y + h, 0}, color = {r, g, b, a}}) // Bottom-left
+
+			rect_indices := [6]u32 {
+				vertex_offset + 0,
+				vertex_offset + 1,
+				vertex_offset + 2,
+				vertex_offset + 2,
+				vertex_offset + 3,
+				vertex_offset + 0,
+			}
+			append(&indices, ..rect_indices[:])
+
+			vertex_offset += 4
+		}
+	}
+
+	if len(vertices) == 0 {
+		return
+	}
+
 	gl.BindVertexArray(render_data.vao)
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, render_data.vbo)
+	gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(vertices) * size_of(Vertex), raw_data(vertices))
+
+	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, render_data.ebo)
+	gl.BufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, len(indices) * size_of(u32), raw_data(indices))
 
 	shader_use_program(render_data.shader)
 	model := linalg.Matrix4f32(1.0)
-	proj := render_data.proj
-	transform := proj * model
+	transform := render_data.proj * model
 	shader_set_mat4(render_data.shader, "transform", &transform)
+
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
+
+	// TODO(Thomas): Free an arena or something instead
+	delete(vertices)
+	delete(indices)
 }
