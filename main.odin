@@ -203,10 +203,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 			ui.text(ctx, "title", "Themed UI Demo", text_color = {230, 230, 230, 255})
 
 			{
-				ui.push_background_color(
-					ctx,
-					{110, 50, 60, 255},
-				);defer ui.pop_background_color(ctx)
+				ui.push_background_color(ctx, {80, 50, 60, 255});defer ui.pop_background_color(ctx)
 				ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
 				ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
 
@@ -217,7 +214,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 					ui.button(ctx, "button1", "Button A")
 					ui.button(ctx, "button2", "Button B")
 
-					ui.push_background_color(ctx, {50, 50, 50, 255})
+					ui.push_background_color(ctx, {150, 50, 50, 255})
 					ui.button(ctx, "button3", "Danger Button")
 					ui.pop_background_color(ctx)
 				})
