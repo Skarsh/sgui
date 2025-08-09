@@ -48,8 +48,8 @@ init_ctx :: proc(
 		stb_font_ctx,
 		font_size,
 		allocator,
-		//.SDL,
-		.OpenGL,
+		.SDL,
+		//.OpenGL,
 		texture_paths,
 	)
 	if !render_ctx_ok {

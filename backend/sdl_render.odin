@@ -25,6 +25,7 @@ SDL_Render_Data :: struct {
 	textures:      [dynamic]SDL_Texture_Asset,
 	scissor_stack: [dynamic]sdl.Rect,
 	font_atlas:    Font_Atlas,
+	font_texture:  ^sdl.Texture,
 }
 
 sdl_init_render :: proc(
@@ -49,7 +50,6 @@ sdl_init_render :: proc(
 		font_size,
 		1024,
 		1024,
-		renderer,
 		allocator,
 	)
 
@@ -58,6 +58,15 @@ sdl_init_render :: proc(
 	data.textures = make([dynamic]SDL_Texture_Asset, allocator)
 	data.scissor_stack = make([dynamic]sdl.Rect, allocator)
 	data.font_atlas = font_atlas
+
+	// TODO(Thomas): Ordering when things happen here is important, e.g 
+	// creating this texture relies on the renderer and font atlast having been initalized
+	// and set on the render data. Would be nice to maybe robustify this a bit?
+	if !sdl_create_texture_from_bitmap(&data) {
+		log.error("Failed to create texture from bitmap")
+		return false
+	}
+
 	render_data^ = data
 
 	return true
@@ -114,6 +123,54 @@ sdl_load_surface_from_image_file :: proc(image_path: string) -> (^sdl.Surface, b
 	return surface, true
 }
 
+sdl_create_texture_from_bitmap :: proc(render_data: ^SDL_Render_Data) -> bool {
+	// Convert single-channel bitmap to RGBA for SDL
+	rgba_bitmap := make(
+		[]u8,
+		render_data.font_atlas.atlas_width * render_data.font_atlas.atlas_height * 4,
+		context.temp_allocator,
+	)
+
+	// Convert grayscale to RGBA with white color and alpha from grayscale value
+	for i in 0 ..< render_data.font_atlas.atlas_width * render_data.font_atlas.atlas_height {
+		gray_value := render_data.font_atlas.bitmap[i]
+		rgba_bitmap[i * 4 + 0] = 255 // R
+		rgba_bitmap[i * 4 + 1] = 255 // G
+		rgba_bitmap[i * 4 + 2] = 255 // B
+		rgba_bitmap[i * 4 + 3] = gray_value // A
+	}
+
+	// Create SDL surface from RGBA data
+	surface := sdl.CreateRGBSurfaceFrom(
+		rawptr(raw_data(rgba_bitmap)),
+		render_data.font_atlas.atlas_width,
+		render_data.font_atlas.atlas_height,
+		32, // Bits per pixel
+		render_data.font_atlas.atlas_width * 4, // Pitch
+		0x000000FF,
+		0x0000FF00,
+		0x00FF0000,
+		0xFF000000, // RGBA masks
+	)
+
+	if surface == nil {
+		log.error("Failed to create SDL surface")
+		return false
+	}
+
+	// Create texture from surface
+	render_data.font_texture = sdl.CreateTextureFromSurface(render_data.renderer, surface)
+	if render_data.font_texture == nil {
+		log.error("Failed to create texture from surface")
+		return false
+	}
+
+	// Set blend mode for proper alpha blending
+	sdl.SetTextureBlendMode(render_data.font_texture, .BLEND)
+
+	return true
+}
+
 sdl_render_line :: proc(renderer: ^sdl.Renderer, x0, y0, x1, y1: f32, color: sdl.Color) {
 	sdl.SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a)
 	sdl.RenderDrawLine(renderer, i32(x0), i32(y0), i32(x1), i32(y1))
@@ -131,12 +188,12 @@ sdl_render_image :: proc(render_data: ^SDL_Render_Data, x, y, w, h: f32, data: r
 	sdl.RenderCopy(render_data.renderer, tex.tex, nil, &r)
 }
 
-sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a: u8) {
+sdl_render_text :: proc(render_data: ^SDL_Render_Data, text: string, x, y: f32, r, g, b, a: u8) {
 	start_x := x
-	start_y := y + atlas.metrics.ascent
+	start_y := y + render_data.font_atlas.metrics.ascent
 
-	sdl.SetTextureColorMod(atlas.texture, r, g, b)
-	sdl.SetTextureAlphaMod(atlas.texture, a)
+	sdl.SetTextureColorMod(render_data.font_texture, r, g, b)
+	sdl.SetTextureAlphaMod(render_data.font_texture, a)
 
 	for r in text {
 		// TODO(Thomas): What to do with \t and so on?
@@ -144,7 +201,7 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 			continue
 		}
 
-		glyph, found := get_glyph(atlas, r)
+		glyph, found := get_glyph(&render_data.font_atlas, r)
 		if !found && r != ' ' {
 			log.warn("Glyph not found for rune:", r)
 		}
@@ -152,9 +209,9 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 		q: stbtt.aligned_quad
 
 		stbtt.GetPackedQuad(
-			&atlas.packed_chars[0],
-			atlas.atlas_width,
-			atlas.atlas_height,
+			&render_data.font_atlas.packed_chars[0],
+			render_data.font_atlas.atlas_width,
+			render_data.font_atlas.atlas_height,
 			glyph.pc_idx,
 			&start_x,
 			&start_y,
@@ -163,10 +220,10 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 		)
 
 		src_rect := sdl.Rect {
-			x = i32(q.s0 * f32(atlas.atlas_width)),
-			y = i32(q.t0 * f32(atlas.atlas_height)),
-			w = i32((q.s1 - q.s0) * f32(atlas.atlas_width)),
-			h = i32((q.t1 - q.t0) * f32(atlas.atlas_height)),
+			x = i32(q.s0 * f32(render_data.font_atlas.atlas_width)),
+			y = i32(q.t0 * f32(render_data.font_atlas.atlas_height)),
+			w = i32((q.s1 - q.s0) * f32(render_data.font_atlas.atlas_width)),
+			h = i32((q.t1 - q.t0) * f32(render_data.font_atlas.atlas_height)),
 		}
 
 		dst_rect := sdl.Rect {
@@ -176,12 +233,12 @@ sdl_render_text :: proc(atlas: ^Font_Atlas, text: string, x, y: f32, r, g, b, a:
 			h = i32(q.y1 - q.y0),
 		}
 
-		sdl.RenderCopy(atlas.renderer, atlas.texture, &src_rect, &dst_rect)
+		sdl.RenderCopy(render_data.renderer, render_data.font_texture, &src_rect, &dst_rect)
 	}
 
 	// TODO(Thomas): Should this be popped off a stack instead??
-	sdl.SetTextureColorMod(atlas.texture, 255, 255, 255)
-	sdl.SetTextureAlphaMod(atlas.texture, 255)
+	sdl.SetTextureColorMod(render_data.font_texture, 255, 255, 255)
+	sdl.SetTextureAlphaMod(render_data.font_texture, 255)
 }
 
 sdl_render_draw_commands :: proc(render_data: ^SDL_Render_Data, command_queue: []ui.Command) {
@@ -210,7 +267,7 @@ sdl_render_draw_commands :: proc(render_data: ^SDL_Render_Data, command_queue: [
 			sdl.RenderFillRect(render_data.renderer, &rect)
 		case ui.Command_Text:
 			sdl_render_text(
-				&render_data.font_atlas,
+				render_data,
 				val.str,
 				val.x,
 				val.y,

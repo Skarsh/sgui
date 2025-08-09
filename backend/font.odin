@@ -4,7 +4,6 @@ import "core:log"
 import "core:mem"
 import "core:unicode/utf8"
 
-import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
 
 // Ascent, descent and line_gap are stored
@@ -25,16 +24,14 @@ Font_Data :: struct {
 	pc_idx:         i32,
 }
 
-// TODO(Thomas): Ideally we'd like this to be rendering backend agnostic, but
-// we'll just use sdl.Texture for now.
+// TODO(Thomas): Ideally we'd want this to be library agnostic,
+// but for now we're just using stb truetype here.
 Font_Atlas :: struct {
 	font_info:    ^stbtt.fontinfo,
 	font_data:    []u8,
 	pack_ctx:     stbtt.pack_context,
 	packed_chars: []stbtt.packedchar,
 	bitmap:       []u8,
-	renderer:     ^sdl.Renderer,
-	texture:      ^sdl.Texture,
 	glyph_cache:  map[rune]Font_Data,
 	atlas_width:  i32,
 	atlas_height: i32,
@@ -50,7 +47,6 @@ init_font_atlas :: proc(
 	font_size: f32,
 	atlas_width: i32,
 	atlas_height: i32,
-	renderer: ^sdl.Renderer,
 	allocator: mem.Allocator,
 ) -> bool {
 
@@ -59,7 +55,6 @@ init_font_atlas :: proc(
 	atlas.pack_ctx = stbtt.pack_context{}
 	num_chars: i32 = 256
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
-	atlas.renderer = renderer
 	atlas.bitmap = make([]u8, atlas_width * atlas_height, allocator)
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
@@ -76,12 +71,6 @@ init_font_atlas :: proc(
 	pack_ok := pack_font_glyphs(atlas, 32, num_chars, 0, 1, 1)
 	if !pack_ok {
 		log.error("Failed to pack font range")
-		return false
-	}
-
-	// Create SDL texture from bitmap
-	if !create_texture_from_bitmap(atlas) {
-		log.error("Failed to create texture from bitmap")
 		return false
 	}
 
@@ -147,50 +136,6 @@ pack_font_glyphs :: proc(
 	return pack_result != 0
 }
 
-create_texture_from_bitmap :: proc(atlas: ^Font_Atlas) -> bool {
-	// Convert single-channel bitmap to RGBA for SDL
-	rgba_bitmap := make([]u8, atlas.atlas_width * atlas.atlas_height * 4, context.temp_allocator)
-
-	// Convert grayscale to RGBA with white color and alpha from grayscale value
-	for i in 0 ..< atlas.atlas_width * atlas.atlas_height {
-		gray_value := atlas.bitmap[i]
-		rgba_bitmap[i * 4 + 0] = 255 // R
-		rgba_bitmap[i * 4 + 1] = 255 // G
-		rgba_bitmap[i * 4 + 2] = 255 // B
-		rgba_bitmap[i * 4 + 3] = gray_value // A
-	}
-
-	// Create SDL surface from RGBA data
-	surface := sdl.CreateRGBSurfaceFrom(
-		rawptr(raw_data(rgba_bitmap)),
-		atlas.atlas_width,
-		atlas.atlas_height,
-		32, // Bits per pixel
-		atlas.atlas_width * 4, // Pitch
-		0x000000FF,
-		0x0000FF00,
-		0x00FF0000,
-		0xFF000000, // RGBA masks
-	)
-
-	if surface == nil {
-		log.error("Failed to create SDL surface")
-		return false
-	}
-
-	// Create texture from surface
-	atlas.texture = sdl.CreateTextureFromSurface(atlas.renderer, surface)
-	if atlas.texture == nil {
-		log.error("Failed to create texture from surface")
-		return false
-	}
-
-	// Set blend mode for proper alpha blending
-	sdl.SetTextureBlendMode(atlas.texture, .BLEND)
-
-	return true
-}
-
 // We need to iterate over the packed chars and insert them 
 // into the glyph cache
 cache_packed_chars :: proc(atlas: ^Font_Atlas) {
@@ -237,10 +182,7 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	}
 }
 
-// TODO(Thomas): Cleanup and free resources properly
-deinit_font_atlas :: proc(atlas: ^Font_Atlas) {
-	sdl.DestroyTexture(atlas.texture)
-}
+deinit_font_atlas :: proc(atlas: ^Font_Atlas) {}
 
 // Query the atlas for a rune and get rendering information
 get_glyph :: proc(atlas: ^Font_Atlas, codepoint: rune) -> (Font_Data, bool) {
