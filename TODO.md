@@ -1,14 +1,13 @@
 # TODOs
 
 ## Active
-* Before working too much on the opengl rendering, we should move common types and utilities into
-    a base package that both the ui package and the backends can use. E.g. Rect, Vec and so on.
-* OpenGL rendering, be able to render basic rect commands to begin with.
+* OpenGL text rendering
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.
     Would text just having a sensible default styling be enough?
 
 ## Bugs
+* When squashing text elements it behaves weird, and doesn't clip properly
 
 ## Backlog
 * Prune "dead" ui elements (they're still cached in the map)
