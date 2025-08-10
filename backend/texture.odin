@@ -4,7 +4,7 @@ import "core:log"
 
 import gl "vendor:OpenGL"
 
-Texture :: struct {
+OpenGL_Texture :: struct {
 	id:              u32,
 	width:           i32,
 	height:          i32,
@@ -17,20 +17,20 @@ Texture :: struct {
 }
 
 // TODO(Thomas): Make wrap and filter configurable through parameters
-gen_texture :: proc(
+opengl_gen_texture :: proc(
 	width: i32,
 	height: i32,
 	image_format: gl.GL_Enum,
 	data: [^]u8,
 ) -> (
-	Texture,
+	OpenGL_Texture,
 	bool,
 ) {
 	texture_id: u32
 	gl.GenTextures(1, &texture_id)
 
 	gl.BindTexture(gl.TEXTURE_2D, texture_id)
-	texture := Texture {
+	texture := OpenGL_Texture {
 		id              = texture_id,
 		width           = width,
 		height          = height,
@@ -73,6 +73,6 @@ gen_texture :: proc(
 	return texture, true
 }
 
-bind_texture :: proc(texture: Texture) {
+bind_texture :: proc(texture: OpenGL_Texture) {
 	gl.BindTexture(gl.TEXTURE_2D, texture.id)
 }

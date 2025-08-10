@@ -48,7 +48,7 @@ init_render_ctx :: proc(
 	case .SDL:
 		ok = sdl_init_render(&ctx.render_data, win, stb_font_ctx, font_size, allocator)
 	case .OpenGL:
-		ok = init_opengl(&ctx.render_data, win)
+		ok = init_opengl(&ctx.render_data, win, stb_font_ctx, font_size, allocator)
 	}
 
 	// TODO(Thomas): More details about which backend etc?

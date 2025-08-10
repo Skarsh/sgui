@@ -14,11 +14,13 @@ Vertex :: struct {
 }
 
 OpenGL_Render_Data :: struct {
-	vao:    u32,
-	vbo:    u32,
-	ebo:    u32,
-	shader: Shader,
-	proj:   linalg.Matrix4f32,
+	vao:          u32,
+	vbo:          u32,
+	ebo:          u32,
+	shader:       Shader,
+	font_atlas:   Font_Atlas,
+	font_texture: OpenGL_Texture,
+	proj:         linalg.Matrix4f32,
 }
 
 MAX_QUADS :: 10000
@@ -27,7 +29,13 @@ MAX_INDICES :: MAX_QUADS * 6
 
 // TODO(Thomas): Replace with our own window wrapper type, or at least
 // figure out a way to not make this dependent on SDL.
-init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
+init_opengl :: proc(
+	render_data: ^Render_Data,
+	window: ^sdl.Window,
+	stb_font_ctx: STB_Font_Context,
+	font_size: f32,
+	allocator := context.allocator,
+) -> bool {
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
@@ -66,7 +74,40 @@ init_opengl :: proc(render_data: ^Render_Data, window: ^sdl.Window) -> bool {
 	// NOTE(Thomas): Flipped y-axis for top-left coords
 	ortho := linalg.matrix_ortho3d_f32(0, 1920, 1080, 0, -1, 1)
 
-	render_data^ = OpenGL_Render_Data{vao, vbo, ebo, shader, ortho}
+	font_atlas := Font_Atlas{}
+	init_font_atlas(
+		&font_atlas,
+		stb_font_ctx.font_info,
+		stb_font_ctx.font_data,
+		"data/font.ttf",
+		font_size,
+		1024,
+		1024,
+		allocator,
+	)
+
+	data := OpenGL_Render_Data{}
+	data.vao = vao
+	data.vbo = vbo
+	data.ebo = ebo
+	data.shader = shader
+	data.proj = ortho
+	data.font_atlas = font_atlas
+
+	// TODO(Thomas): Convert bitmap to RGBA?
+	font_texture, font_texture_ok := opengl_gen_texture(
+		font_atlas.atlas_width,
+		font_atlas.atlas_height,
+		.R, // This is just the RED channel now
+		raw_data(font_atlas.bitmap),
+	)
+
+	if !font_texture_ok {
+		log.error("Failed to generate font texture")
+		return false
+	}
+
+	render_data^ = data
 	return true
 }
 
