@@ -11,6 +11,7 @@ import ui "../ui"
 Vertex :: struct {
 	pos:   base.Vec3,
 	color: base.Vec4,
+	tex:   base.Vec2,
 }
 
 OpenGL_Render_Data :: struct {
@@ -66,6 +67,8 @@ init_opengl :: proc(
 	gl.EnableVertexAttribArray(0)
 	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
 	gl.EnableVertexAttribArray(1)
+	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
+	gl.EnableVertexAttribArray(2)
 
 	gl.BindVertexArray(0)
 
@@ -94,11 +97,14 @@ init_opengl :: proc(
 	data.proj = ortho
 	data.font_atlas = font_atlas
 
-	// TODO(Thomas): Convert bitmap to RGBA?
+	// NOTE(Thomas): The font bitmap has only one channel, so we use
+	// only the RED channel for the inernal and image format.
+	// TODO(Thomas): Do we need UNPACK_ALIGNMENT?
 	font_texture, font_texture_ok := opengl_gen_texture(
 		font_atlas.atlas_width,
 		font_atlas.atlas_height,
-		.R, // This is just the RED channel now
+		.RED,
+		.RED,
 		raw_data(font_atlas.bitmap),
 	)
 

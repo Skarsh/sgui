@@ -20,6 +20,7 @@ OpenGL_Texture :: struct {
 opengl_gen_texture :: proc(
 	width: i32,
 	height: i32,
+	internal_format: gl.GL_Enum,
 	image_format: gl.GL_Enum,
 	data: [^]u8,
 ) -> (
@@ -34,7 +35,7 @@ opengl_gen_texture :: proc(
 		id              = texture_id,
 		width           = width,
 		height          = height,
-		internal_format = image_format,
+		internal_format = internal_format,
 		image_format    = image_format,
 		wrap_s          = gl.GL_Enum(gl.REPEAT),
 		wrap_t          = gl.GL_Enum(gl.REPEAT),
