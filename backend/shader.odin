@@ -78,6 +78,15 @@ shader_set_bool :: proc(shader: Shader, name: string, val: bool) {
 	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), i32(val))
 }
 
+shader_set_int :: proc(shader: Shader, name: string, val: i32) {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != nil {
+		log.error("Failed to clone string to cstring, with error %v", err)
+	}
+	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), val)
+}
+
 shader_set_mat4 :: proc(shader: Shader, name: string, mat: ^linalg.Matrix4f32) {
 	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
 	defer free_all(context.temp_allocator)

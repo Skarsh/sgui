@@ -121,6 +121,7 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteVertexArrays(1, &render_data.vao)
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
+	gl.DeleteTextures(1, &render_data.font_texture.id)
 	gl.DeleteProgram(render_data.shader.id)
 }
 
@@ -135,7 +136,7 @@ opengl_render_begin :: proc(render_Data: ^OpenGL_Render_Data) {
 
 opengl_render_end :: proc(
 	window: ^sdl.Window,
-	render_data: OpenGL_Render_Data,
+	render_data: ^OpenGL_Render_Data,
 	command_queue: []ui.Command,
 ) {
 	if len(command_queue) == 0 {
@@ -162,10 +163,13 @@ opengl_render_end :: proc(
 			b := f32(color.b) / 255.0
 			a := f32(color.a) / 255.0
 
-			append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}}) // Bottom-right
-			append(&vertices, Vertex{pos = {x + w, y, 0}, color = {r, g, b, a}}) // Top-right
-			append(&vertices, Vertex{pos = {x, y, 0}, color = {r, g, b, a}}) // Top-left
-			append(&vertices, Vertex{pos = {x, y + h, 0}, color = {r, g, b, a}}) // Bottom-left
+			append(
+				&vertices,
+				Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}},
+			) // Bottom-right
+			append(&vertices, Vertex{pos = {x + w, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-right
+			append(&vertices, Vertex{pos = {x, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-left
+			append(&vertices, Vertex{pos = {x, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Bottom-left
 
 			rect_indices := [6]u32 {
 				vertex_offset + 0,

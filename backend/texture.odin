@@ -74,6 +74,6 @@ opengl_gen_texture :: proc(
 	return texture, true
 }
 
-bind_texture :: proc(texture: OpenGL_Texture) {
+opengl_bind_texture :: proc(texture: OpenGL_Texture) {
 	gl.BindTexture(gl.TEXTURE_2D, texture.id)
 }

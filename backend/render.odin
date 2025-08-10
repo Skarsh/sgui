@@ -97,7 +97,7 @@ render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Command) {
 	case .SDL:
 		sdl_render_end(&render_ctx.render_data.(SDL_Render_Data), command_queue)
 	case .OpenGL:
-		opengl_render_end(win, render_ctx.render_data.(OpenGL_Render_Data), command_queue)
+		opengl_render_end(win, &render_ctx.render_data.(OpenGL_Render_Data), command_queue)
 	}
 
 	// TODO(Thomas) We're using SDL windowing for both right now, but
