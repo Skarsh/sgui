@@ -112,8 +112,6 @@ init_opengl :: proc(
 		raw_data(font_atlas.bitmap),
 	)
 
-	log.info("font_texture", font_texture)
-
 	if !font_texture_ok {
 		log.error("Failed to generate font texture")
 		return false
