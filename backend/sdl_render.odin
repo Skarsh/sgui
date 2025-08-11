@@ -203,7 +203,7 @@ sdl_render_text :: proc(render_data: ^SDL_Render_Data, text: string, x, y: f32, 
 
 		glyph, found := get_glyph(&render_data.font_atlas, r)
 		if !found && r != ' ' {
-			log.warn("Glyph not found for rune:", r)
+			log.error("Glyph not found for rune:", r)
 		}
 
 		q: stbtt.aligned_quad

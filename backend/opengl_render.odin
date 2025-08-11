@@ -4,6 +4,7 @@ import "core:log"
 import "core:math/linalg"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl2"
+import stbtt "vendor:stb/truetype"
 
 import base "../base"
 import ui "../ui"
@@ -37,6 +38,9 @@ init_opengl :: proc(
 	font_size: f32,
 	allocator := context.allocator,
 ) -> bool {
+	sdl.GL_SetAttribute(.CONTEXT_PROFILE_MASK, i32(sdl.GLprofile.CORE))
+	sdl.GL_SetAttribute(.CONTEXT_MAJOR_VERSION, 3)
+	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, 3)
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
@@ -108,10 +112,14 @@ init_opengl :: proc(
 		raw_data(font_atlas.bitmap),
 	)
 
+	log.info("font_texture", font_texture)
+
 	if !font_texture_ok {
 		log.error("Failed to generate font texture")
 		return false
 	}
+
+	data.font_texture = font_texture
 
 	render_data^ = data
 	return true
@@ -148,6 +156,14 @@ opengl_render_end :: proc(
 	indices := make([dynamic]u32, 0, len(command_queue) * 6)
 	vertex_offset: u32 = 0
 
+	shader_use_program(render_data.shader)
+
+	gl.ActiveTexture(gl.TEXTURE0)
+	opengl_bind_texture(render_data.font_texture)
+
+	shader_set_int(render_data.shader, "u_texture", 0)
+
+
 	for command in command_queue {
 		#partial switch val in command {
 		case ui.Command_Rect:
@@ -158,10 +174,10 @@ opengl_render_end :: proc(
 			h := f32(rect.h)
 
 			color := val.color
-			r := f32(color.r) / 255.0
-			g := f32(color.g) / 255.0
-			b := f32(color.b) / 255.0
-			a := f32(color.a) / 255.0
+			r := f32(color.r) / 255
+			g := f32(color.g) / 255
+			b := f32(color.b) / 255
+			a := f32(color.a) / 255
 
 			append(
 				&vertices,
@@ -182,6 +198,94 @@ opengl_render_end :: proc(
 			append(&indices, ..rect_indices[:])
 
 			vertex_offset += 4
+		case ui.Command_Text:
+			x := val.x
+			y := val.y
+			start_x := x
+			start_y := y + render_data.font_atlas.metrics.ascent
+			color := val.color
+
+			red := f32(color.r) / 255
+			green := f32(color.g) / 255
+			blue := f32(color.b) / 255
+			alpha := f32(color.a) / 255
+
+			for r in val.str {
+				if r == '\n' {
+					continue
+				}
+
+				glyph, found := get_glyph(&render_data.font_atlas, r)
+				if !found && r != ' ' {
+					log.error("Glyph not found for rune: ", r)
+				}
+
+				q: stbtt.aligned_quad
+				stbtt.GetPackedQuad(
+					&render_data.font_atlas.packed_chars[0],
+					render_data.font_atlas.atlas_width,
+					render_data.font_atlas.atlas_height,
+					glyph.pc_idx,
+					&start_x,
+					&start_y,
+					&q,
+					true,
+				)
+
+				// Bottom right
+				append(
+					&vertices,
+					Vertex {
+						pos = {q.x1, q.y1, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s1, q.t1},
+					},
+				)
+
+				// Top right
+				append(
+					&vertices,
+					Vertex {
+						pos = {q.x1, q.y0, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s1, q.t0},
+					},
+				)
+
+				// Top left
+				append(
+					&vertices,
+					Vertex {
+						pos = {q.x0, q.y0, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s0, q.t0},
+					},
+				)
+
+				// Bottom left
+				append(
+					&vertices,
+					Vertex {
+						pos = {q.x0, q.y1, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s0, q.t1},
+					},
+				)
+
+				log.info("q: ", q)
+
+				rect_indices := [6]u32 {
+					vertex_offset + 0,
+					vertex_offset + 1,
+					vertex_offset + 2,
+					vertex_offset + 2,
+					vertex_offset + 3,
+					vertex_offset + 0,
+				}
+				append(&indices, ..rect_indices[:])
+
+				vertex_offset += 4
+			}
 		}
 	}
 
@@ -205,6 +309,7 @@ opengl_render_end :: proc(
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
+	opengl_unbind_texture(render_data.font_texture)
 
 	// TODO(Thomas): Free an arena or something instead
 	delete(vertices)
