@@ -113,6 +113,8 @@ main :: proc() {
 		&backend_ctx,
 		&ctx,
 		window,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT,
 		texture_paths,
 		font_size,
 		app_arena_allocator,

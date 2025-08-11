@@ -31,6 +31,7 @@ Render_Context :: struct {
 init_render_ctx :: proc(
 	ctx: ^Render_Context,
 	window: Window,
+	width, height: i32,
 	stb_font_ctx: STB_Font_Context,
 	font_size: f32,
 	allocator := context.allocator,
@@ -48,7 +49,7 @@ init_render_ctx :: proc(
 	case .SDL:
 		ok = sdl_init_render(&ctx.render_data, win, stb_font_ctx, font_size, allocator)
 	case .OpenGL:
-		ok = init_opengl(&ctx.render_data, win, stb_font_ctx, font_size, allocator)
+		ok = init_opengl(&ctx.render_data, win, width, height, stb_font_ctx, font_size, allocator)
 	}
 
 	// TODO(Thomas): More details about which backend etc?

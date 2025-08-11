@@ -17,6 +17,7 @@ init_ctx :: proc(
 	ctx: ^Context,
 	ui_ctx: ^ui.Context,
 	window: ^sdl.Window,
+	window_width, window_height: i32,
 	texture_paths: []string,
 	font_size: f32,
 	allocator: mem.Allocator,
@@ -45,6 +46,8 @@ init_ctx :: proc(
 	render_ctx_ok := init_render_ctx(
 		&render_ctx,
 		window,
+		window_width,
+		window_height,
 		stb_font_ctx,
 		font_size,
 		allocator,

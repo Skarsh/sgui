@@ -34,6 +34,7 @@ MAX_INDICES :: MAX_QUADS * 6
 init_opengl :: proc(
 	render_data: ^Render_Data,
 	window: ^sdl.Window,
+	width, height: i32,
 	stb_font_ctx: STB_Font_Context,
 	font_size: f32,
 	allocator := context.allocator,
@@ -79,7 +80,7 @@ init_opengl :: proc(
 	// TODO(Thomas): Dimensions should come from window size, and it
 	// should be updated when the window resizes.
 	// NOTE(Thomas): Flipped y-axis for top-left coords
-	ortho := linalg.matrix_ortho3d_f32(0, 1920, 1080, 0, -1, 1)
+	ortho := linalg.matrix_ortho3d_f32(0, f32(width), f32(height), 0, -1, 1)
 
 	font_atlas := Font_Atlas{}
 	init_font_atlas(
@@ -136,7 +137,12 @@ opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string)
 	return true
 }
 
-opengl_render_begin :: proc(render_Data: ^OpenGL_Render_Data) {
+opengl_handle_resize :: proc(render_data: ^OpenGL_Render_Data, width, height: i32) {
+	gl.Viewport(0, 0, width, height)
+	render_data.proj = linalg.matrix_ortho3d_f32(0, f32(width), f32(height), 0, -1, 1)
+}
+
+opengl_render_begin :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.ClearColor(0.1, 0.1, 0.1, 1.0)
