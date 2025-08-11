@@ -4,6 +4,41 @@ import "core:log"
 
 import gl "vendor:OpenGL"
 
+Texture_Constant :: enum int {
+	Texture_0  = gl.TEXTURE0,
+	Texture_1  = gl.TEXTURE1,
+	Texture_2  = gl.TEXTURE2,
+	Texture_3  = gl.TEXTURE3,
+	Texture_4  = gl.TEXTURE4,
+	Texture_5  = gl.TEXTURE5,
+	Texture_6  = gl.TEXTURE6,
+	Texture_7  = gl.TEXTURE7,
+	Texture_8  = gl.TEXTURE8,
+	Texture_9  = gl.TEXTURE9,
+	Texture_10 = gl.TEXTURE10,
+	Texture_11 = gl.TEXTURE11,
+	Texture_12 = gl.TEXTURE12,
+	Texture_13 = gl.TEXTURE13,
+	Texture_14 = gl.TEXTURE14,
+	Texture_15 = gl.TEXTURE15,
+	Texture_16 = gl.TEXTURE16,
+	Texture_17 = gl.TEXTURE17,
+	Texture_18 = gl.TEXTURE18,
+	Texture_19 = gl.TEXTURE19,
+	Texture_20 = gl.TEXTURE20,
+	Texture_21 = gl.TEXTURE21,
+	Texture_22 = gl.TEXTURE22,
+	Texture_23 = gl.TEXTURE23,
+	Texture_24 = gl.TEXTURE24,
+	Texture_25 = gl.TEXTURE25,
+	Texture_26 = gl.TEXTURE26,
+	Texture_27 = gl.TEXTURE27,
+	Texture_28 = gl.TEXTURE28,
+	Texture_29 = gl.TEXTURE29,
+	Texture_30 = gl.TEXTURE30,
+	Texture_31 = gl.TEXTURE31,
+}
+
 OpenGL_Texture :: struct {
 	id:              u32,
 	width:           i32,
@@ -80,4 +115,8 @@ opengl_bind_texture :: proc(texture: OpenGL_Texture) {
 
 opengl_unbind_texture :: proc(texture: OpenGL_Texture) {
 	gl.BindTexture(gl.TEXTURE_2D, 0)
+}
+
+opengl_active_texture :: proc(texture_constant: Texture_Constant) {
+	gl.ActiveTexture(u32(texture_constant))
 }

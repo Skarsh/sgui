@@ -160,7 +160,7 @@ opengl_render_end :: proc(
 
 	shader_use_program(render_data.shader)
 
-	gl.ActiveTexture(gl.TEXTURE0)
+	opengl_active_texture(.Texture_0)
 	opengl_bind_texture(render_data.font_texture)
 
 	shader_set_int(render_data.shader, "u_texture", 0)
