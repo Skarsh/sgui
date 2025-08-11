@@ -103,7 +103,6 @@ init_opengl :: proc(
 
 	// NOTE(Thomas): The font bitmap has only one channel, so we use
 	// only the RED channel for the inernal and image format.
-	// TODO(Thomas): Do we need UNPACK_ALIGNMENT?
 	font_texture, font_texture_ok := opengl_gen_texture(
 		font_atlas.atlas_width,
 		font_atlas.atlas_height,
@@ -138,8 +137,11 @@ opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string)
 }
 
 opengl_render_begin :: proc(render_Data: ^OpenGL_Render_Data) {
+	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.ClearColor(0.1, 0.1, 0.1, 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
+
 }
 
 opengl_render_end :: proc(
@@ -162,7 +164,6 @@ opengl_render_end :: proc(
 	opengl_bind_texture(render_data.font_texture)
 
 	shader_set_int(render_data.shader, "u_texture", 0)
-
 
 	for command in command_queue {
 		#partial switch val in command {
@@ -272,8 +273,6 @@ opengl_render_end :: proc(
 					},
 				)
 
-				log.info("q: ", q)
-
 				rect_indices := [6]u32 {
 					vertex_offset + 0,
 					vertex_offset + 1,
@@ -287,10 +286,6 @@ opengl_render_end :: proc(
 				vertex_offset += 4
 			}
 		}
-	}
-
-	if len(vertices) == 0 {
-		return
 	}
 
 	gl.BindVertexArray(render_data.vao)
