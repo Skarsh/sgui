@@ -145,7 +145,6 @@ opengl_render_begin :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.ClearColor(0.1, 0.1, 0.1, 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
-
 }
 
 opengl_render_end :: proc(
@@ -184,10 +183,7 @@ opengl_render_end :: proc(
 			b := f32(color.b) / 255
 			a := f32(color.a) / 255
 
-			append(
-				&vertices,
-				Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}},
-			) // Bottom-right
+			append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Bottom-right
 			append(&vertices, Vertex{pos = {x + w, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-right
 			append(&vertices, Vertex{pos = {x, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-left
 			append(&vertices, Vertex{pos = {x, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Bottom-left
