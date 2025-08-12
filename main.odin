@@ -139,7 +139,7 @@ main :: proc() {
 		}
 
 		process_events(&app_state)
-		backend.process_events(&app_state.backend_ctx.io, &app_state.ctx)
+		backend.process_events(&app_state.backend_ctx, &app_state.ctx)
 
 		backend.render_begin(&app_state.backend_ctx.render_ctx)
 

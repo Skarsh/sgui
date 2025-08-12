@@ -135,7 +135,7 @@ opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string)
 	return true
 }
 
-opengl_handle_resize :: proc(render_data: ^OpenGL_Render_Data, width, height: i32) {
+opengl_resize :: proc(render_data: ^OpenGL_Render_Data, width, height: i32) {
 	gl.Viewport(0, 0, width, height)
 	render_data.proj = linalg.matrix_ortho3d_f32(0, f32(width), f32(height), 0, -1, 1)
 }

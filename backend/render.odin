@@ -81,6 +81,15 @@ init_resources :: proc(ctx: ^Render_Context, paths: []string) -> bool {
 	return ok
 }
 
+render_resize :: proc(render_ctx: ^Render_Context, width, height: i32) {
+	switch render_ctx.renderer_type {
+	case .SDL:
+	case .OpenGL:
+		opengl_resize(&render_ctx.render_data.(OpenGL_Render_Data), width, height)
+
+	}
+}
+
 render_begin :: proc(render_ctx: ^Render_Context) {
 	switch render_ctx.renderer_type {
 	case .SDL:

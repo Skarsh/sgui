@@ -1,5 +1,6 @@
 package backend
 
+import "core:container/queue"
 import "core:log"
 import "core:mem"
 
@@ -72,4 +73,66 @@ init_ctx :: proc(
 deinit :: proc(ctx: ^Context) {
 	deinit_stb_font_ctx(&ctx.stb_font_ctx)
 	deinit_render_ctx(&ctx.render_ctx)
+}
+
+// TODO(Thomas): Putting process events here to make it easy to 
+// call resize procedures for the rendering. This does break
+// the intended setup with all of the event stuff living inside IO though.
+// TODO(Thomas): We should use our own Event type here instead of being
+// reliant on SDL.
+process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
+	io := &backend_ctx.io
+	for {
+		event, ok := queue.pop_front_safe(&io.input_queue)
+		if !ok {
+			break
+		}
+
+		#partial switch event.type {
+		case .MOUSEMOTION:
+			ui.handle_mouse_move(ctx, event.motion.x, event.motion.y)
+		case .MOUSEBUTTONDOWN:
+			btn: ui.Mouse
+			switch event.button.button {
+			case sdl.BUTTON_LEFT:
+				btn = .Left
+			case sdl.BUTTON_RIGHT:
+				btn = .Right
+			case sdl.BUTTON_MIDDLE:
+				btn = .Middle
+			}
+			ui.handle_mouse_down(ctx, event.motion.x, event.motion.y, btn)
+		case .MOUSEBUTTONUP:
+			btn: ui.Mouse
+			switch event.button.button {
+			case sdl.BUTTON_LEFT:
+				btn = .Left
+			case sdl.BUTTON_RIGHT:
+				btn = .Right
+			case sdl.BUTTON_MIDDLE:
+				btn = .Middle
+			}
+			ui.handle_mouse_up(ctx, event.motion.x, event.motion.y, btn)
+		case .KEYUP:
+			key := sdl_key_to_ui_key(event.key.keysym.sym)
+			ui.handle_key_up(ctx, key)
+			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+			ui.handle_keymod_up(ctx, keymod)
+		case .KEYDOWN:
+			key := sdl_key_to_ui_key(event.key.keysym.sym)
+			ui.handle_key_down(ctx, key)
+			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
+			ui.handle_keymod_up(ctx, keymod)
+		case .WINDOWEVENT:
+			#partial switch event.window.event {
+			case .SIZE_CHANGED:
+				x := event.window.data1
+				y := event.window.data2
+				ctx.window_size.x = x
+				ctx.window_size.y = y
+				render_resize(&backend_ctx.render_ctx, x, y)
+			}
+		}
+	}
+	free_all(io.allocator)
 }

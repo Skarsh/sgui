@@ -55,60 +55,6 @@ enqueue_sdl_event :: proc(io: ^Io, event: sdl.Event) {
 	queue.push_back(&io.input_queue, event)
 }
 
-// TODO(Thomas): We should use our own Even type here instead of being
-// reliant on SDL
-process_events :: proc(io: ^Io, ctx: ^ui.Context) {
-	for {
-		event, ok := queue.pop_front_safe(&io.input_queue)
-		if !ok {
-			break
-		}
-
-		#partial switch event.type {
-		case .MOUSEMOTION:
-			ui.handle_mouse_move(ctx, event.motion.x, event.motion.y)
-		case .MOUSEBUTTONDOWN:
-			btn: ui.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
-			}
-			ui.handle_mouse_down(ctx, event.motion.x, event.motion.y, btn)
-		case .MOUSEBUTTONUP:
-			btn: ui.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
-			}
-			ui.handle_mouse_up(ctx, event.motion.x, event.motion.y, btn)
-		case .KEYUP:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			ui.handle_key_up(ctx, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			ui.handle_keymod_up(ctx, keymod)
-		case .KEYDOWN:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			ui.handle_key_down(ctx, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			ui.handle_keymod_up(ctx, keymod)
-		case .WINDOWEVENT:
-			#partial switch event.window.event {
-			case .SIZE_CHANGED:
-				ctx.window_size.x = event.window.data1
-				ctx.window_size.y = event.window.data2
-			}
-		}
-	}
-	free_all(io.allocator)
-}
 
 sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 	key := ui.Key.Unknown
