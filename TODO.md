@@ -1,7 +1,7 @@
 # TODOs
 
 ## Active
-* OpenGL text rendering
+* Render images through OpenGL
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.
     Would text just having a sensible default styling be enough?

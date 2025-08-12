@@ -299,7 +299,10 @@ opengl_render_end :: proc(
 	shader_use_program(render_data.shader)
 	model := linalg.Matrix4f32(1.0)
 	transform := render_data.proj * model
-	shader_set_mat4(render_data.shader, "transform", &transform)
+	err := shader_set_mat4(render_data.shader, "transform", &transform)
+    if err != .None {
+        log.error("Error setting shader uniform: ", err)
+    }
 
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
