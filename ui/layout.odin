@@ -54,10 +54,6 @@ Text_Data :: struct {
 	lines: []Text_Line,
 }
 
-Image_Data :: struct {
-	texture_idx: int,
-}
-
 Element_Content :: struct {
 	text_data:  Text_Data,
 	image_data: rawptr,

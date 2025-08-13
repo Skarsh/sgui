@@ -16,13 +16,14 @@ Vertex :: struct {
 }
 
 OpenGL_Render_Data :: struct {
-	vao:          u32,
-	vbo:          u32,
-	ebo:          u32,
-	shader:       Shader,
-	font_atlas:   Font_Atlas,
-	font_texture: OpenGL_Texture,
-	proj:         linalg.Matrix4f32,
+	vao:            u32,
+	vbo:            u32,
+	ebo:            u32,
+	shader:         Shader,
+	font_atlas:     Font_Atlas,
+	font_texture:   OpenGL_Texture,
+    image_texture:  OpenGL_Texture,
+	proj:           linalg.Matrix4f32,
 }
 
 MAX_QUADS :: 10000
@@ -163,10 +164,6 @@ opengl_render_end :: proc(
 
 	shader_use_program(render_data.shader)
 
-	opengl_active_texture(.Texture_0)
-	opengl_bind_texture(render_data.font_texture)
-
-	shader_set_int(render_data.shader, "u_texture", 0)
 
 	for command in command_queue {
 		#partial switch val in command {
@@ -200,6 +197,13 @@ opengl_render_end :: proc(
 
 			vertex_offset += 4
 		case ui.Command_Text:
+
+            opengl_active_texture(.Texture_0)
+            opengl_bind_texture(render_data.font_texture)
+
+            shader_set_int(render_data.shader, "u_font_texture", 0)
+            shader_set_int(render_data.shader, "u_active_texture", 0)
+
 			x := val.x
 			y := val.y
 			start_x := x
@@ -234,44 +238,16 @@ opengl_render_end :: proc(
 				)
 
 				// Bottom right
-				append(
-					&vertices,
-					Vertex {
-						pos = {q.x1, q.y1, 0},
-						color = {red, green, blue, alpha},
-						tex = {q.s1, q.t1},
-					},
-				)
+				append(&vertices, Vertex{pos = {q.x1, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t1}})
 
 				// Top right
-				append(
-					&vertices,
-					Vertex {
-						pos = {q.x1, q.y0, 0},
-						color = {red, green, blue, alpha},
-						tex = {q.s1, q.t0},
-					},
-				)
+				append(&vertices, Vertex{pos = {q.x1, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t0}})
 
 				// Top left
-				append(
-					&vertices,
-					Vertex {
-						pos = {q.x0, q.y0, 0},
-						color = {red, green, blue, alpha},
-						tex = {q.s0, q.t0},
-					},
-				)
+				append(&vertices, Vertex{pos = {q.x0, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t0}})
 
 				// Bottom left
-				append(
-					&vertices,
-					Vertex {
-						pos = {q.x0, q.y1, 0},
-						color = {red, green, blue, alpha},
-						tex = {q.s0, q.t1},
-					},
-				)
+				append(&vertices, Vertex{pos = {q.x0, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t1}})
 
 				rect_indices := [6]u32 {
 					vertex_offset + 0,
@@ -285,6 +261,33 @@ opengl_render_end :: proc(
 
 				vertex_offset += 4
 			}
+        case ui.Command_Image:
+
+			x := val.x
+			y := val.y
+			w := val.w
+			h := val.h
+
+            data := val.data
+            tex_idx := cast(^i32)data
+
+            opengl_active_texture(.Texture_1)
+            opengl_bind_texture(render_data.image_texture)
+
+            shader_set_int(render_data.shader, "u_image_texture", tex_idx^)
+
+
+            // Bottom right
+            append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}})
+
+            // Top right
+            append(&vertices, Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1} , tex = {1, 0}})
+
+            // Top left
+            append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}})
+
+            // Bottom left
+            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 0}})
 		}
 	}
 
