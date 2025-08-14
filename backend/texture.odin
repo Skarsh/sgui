@@ -1,8 +1,10 @@
 package backend
 
 import "core:log"
+import "core:strings"
 
 import gl "vendor:OpenGL"
+import stb_image "vendor:stb/image"
 
 Texture_Constant :: enum int {
 	Texture_0  = gl.TEXTURE0,
@@ -49,6 +51,17 @@ OpenGL_Texture :: struct {
 	wrap_t:          gl.GL_Enum,
 	filter_min:      gl.GL_Enum,
 	filter_mag:      gl.GL_Enum,
+}
+
+opengl_create_texture_from_file :: proc(path: string) -> (OpenGL_Texture, bool) {
+    width, height, nr_channels: i32
+    filename := strings.clone_to_cstring(path, context.temp_allocator)
+    defer free_all(context.temp_allocator)
+
+    texture_data := stb_image.load(filename, &width, &height, &nr_channels, 0)
+    defer stb_image.image_free(texture_data)
+
+    return opengl_gen_texture(width, height, gl.GL_Enum(gl.RGBA), gl.GL_Enum(gl.RGBA), texture_data)
 }
 
 // TODO(Thomas): Make wrap and filter configurable through parameters

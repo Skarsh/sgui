@@ -121,8 +121,14 @@ init_opengl :: proc(
 		log.error("Failed to generate font texture")
 		return false
 	}
-
 	data.font_texture = font_texture
+
+    image_texture, image_texture_ok := opengl_create_texture_from_file("data/textures/comment_icon.png")
+    if !image_texture_ok {
+        log.error("Failed to create image texture")
+        return false
+    }
+    data.image_texture = image_texture
 
 	render_data^ = data
 	return true
@@ -133,6 +139,7 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
 	gl.DeleteTextures(1, &render_data.font_texture.id)
+	gl.DeleteTextures(1, &render_data.image_texture.id)
 	gl.DeleteProgram(render_data.shader.id)
 }
 
@@ -289,7 +296,7 @@ opengl_render_end :: proc(
             opengl_active_texture(.Texture_1)
             opengl_bind_texture(render_data.image_texture)
 
-            shader_set_int(render_data.shader, "u_image_texture", tex_idx^)
+            shader_set_int(render_data.shader, "u_image_texture", 1)
 
             // Bottom right
             append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}, tex_id = 1})
@@ -301,7 +308,7 @@ opengl_render_end :: proc(
             append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = 1})
 
             // Bottom left
-            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = 1})
+            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = 1})
 		}
 	}
 
