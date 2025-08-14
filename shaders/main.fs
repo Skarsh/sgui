@@ -2,12 +2,12 @@
 
 in vec4 v_color;
 in vec2 v_tex_coords;
+flat in int v_tex_id;
 
 out vec4 o_color;
 
 uniform sampler2D u_font_texture;
 uniform sampler2D u_image_texture;
-uniform int u_active_texture;
 
 void main() {
     // If tex_coords are negative, it's a solid shape, not text.
@@ -15,7 +15,7 @@ void main() {
         o_color = v_color;
     } else {
         // Sample the font texture. The 'r' component has the alpha value.
-        if (u_active_texture == 0) {
+        if (v_tex_id == 0) {
             float alpha = texture(u_font_texture, v_tex_coords).r;
             o_color = vec4(v_color.rgb, v_color.a * alpha);
         } else {

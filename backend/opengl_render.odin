@@ -1,5 +1,6 @@
 package backend
 
+import "core:c"
 import "core:log"
 import "core:math/linalg"
 import gl "vendor:OpenGL"
@@ -10,9 +11,10 @@ import base "../base"
 import ui "../ui"
 
 Vertex :: struct {
-	pos:   base.Vec3,
-	color: base.Vec4,
-	tex:   base.Vec2,
+    pos:    base.Vec3,
+    color:  base.Vec4,
+    tex:    base.Vec2,
+    tex_id: c.int,
 }
 
 OpenGL_Render_Data :: struct {
@@ -75,6 +77,8 @@ init_opengl :: proc(
 	gl.EnableVertexAttribArray(1)
 	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(2)
+	gl.VertexAttribIPointer(3, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_id))
+	gl.EnableVertexAttribArray(3)
 
 	gl.BindVertexArray(0)
 
@@ -202,7 +206,6 @@ opengl_render_end :: proc(
             opengl_bind_texture(render_data.font_texture)
 
             shader_set_int(render_data.shader, "u_font_texture", 0)
-            shader_set_int(render_data.shader, "u_active_texture", 0)
 
 			x := val.x
 			y := val.y
@@ -238,16 +241,28 @@ opengl_render_end :: proc(
 				)
 
 				// Bottom right
-				append(&vertices, Vertex{pos = {q.x1, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t1}})
+				append(
+                    &vertices,
+                    Vertex{pos = {q.x1, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t1}, tex_id = 0}
+                )
 
 				// Top right
-				append(&vertices, Vertex{pos = {q.x1, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t0}})
+				append(
+                    &vertices,
+                    Vertex{pos = {q.x1, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t0}, tex_id = 0}
+                )
 
 				// Top left
-				append(&vertices, Vertex{pos = {q.x0, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t0}})
+				append(
+                    &vertices,
+                    Vertex{pos = {q.x0, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t0}, tex_id = 0}
+                )
 
 				// Bottom left
-				append(&vertices, Vertex{pos = {q.x0, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t1}})
+				append(
+                    &vertices,
+                    Vertex{pos = {q.x0, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t1}, tex_id = 0}
+                )
 
 				rect_indices := [6]u32 {
 					vertex_offset + 0,
@@ -276,18 +291,17 @@ opengl_render_end :: proc(
 
             shader_set_int(render_data.shader, "u_image_texture", tex_idx^)
 
-
             // Bottom right
-            append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}})
+            append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}, tex_id = 1})
 
             // Top right
-            append(&vertices, Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1} , tex = {1, 0}})
+            append(&vertices, Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1} , tex = {1, 0}, tex_id = 1})
 
             // Top left
-            append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}})
+            append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = 1})
 
             // Bottom left
-            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 0}})
+            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = 1})
 		}
 	}
 
