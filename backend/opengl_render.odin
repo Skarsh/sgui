@@ -168,6 +168,10 @@ opengl_render_end :: proc(
 		return
 	}
 
+    max_texture_units: i32
+    gl.GetIntegerv(gl.MAX_TEXTURE_IMAGE_UNITS, &max_texture_units)
+    log.info("max_texture_units: ", max_texture_units)
+
 	// TODO(Thomas): Should come from an arena or something instead.
 	vertices := make([dynamic]Vertex, 0, len(command_queue) * 4)
 	indices := make([dynamic]u32, 0, len(command_queue) * 6)
@@ -299,16 +303,16 @@ opengl_render_end :: proc(
             shader_set_int(render_data.shader, "u_image_texture", 1)
 
             // Bottom right
-            append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}, tex_id = 1})
+            append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}, tex_id = tex_idx^})
 
             // Top right
-            append(&vertices, Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1} , tex = {1, 0}, tex_id = 1})
+            append(&vertices, Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1} , tex = {1, 0}, tex_id = tex_idx^})
 
             // Top left
-            append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = 1})
+            append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = tex_idx^})
 
             // Bottom left
-            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = 1})
+            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = tex_idx^})
 		}
 	}
 
