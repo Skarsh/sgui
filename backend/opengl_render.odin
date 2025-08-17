@@ -11,21 +11,21 @@ import base "../base"
 import ui "../ui"
 
 Vertex :: struct {
-    pos:    base.Vec3,
-    color:  base.Vec4,
-    tex:    base.Vec2,
-    tex_id: c.int,
+	pos:    base.Vec3,
+	color:  base.Vec4,
+	tex:    base.Vec2,
+	tex_id: c.int,
 }
 
 OpenGL_Render_Data :: struct {
-	vao:            u32,
-	vbo:            u32,
-	ebo:            u32,
-	shader:         Shader,
-	font_atlas:     Font_Atlas,
-	font_texture:   OpenGL_Texture,
-    image_texture:  OpenGL_Texture,
-	proj:           linalg.Matrix4f32,
+	vao:           u32,
+	vbo:           u32,
+	ebo:           u32,
+	shader:        Shader,
+	font_atlas:    Font_Atlas,
+	font_texture:  OpenGL_Texture,
+	image_texture: OpenGL_Texture,
+	proj:          linalg.Matrix4f32,
 }
 
 MAX_QUADS :: 10000
@@ -123,12 +123,14 @@ init_opengl :: proc(
 	}
 	data.font_texture = font_texture
 
-    image_texture, image_texture_ok := opengl_create_texture_from_file("data/textures/comment_icon.png")
-    if !image_texture_ok {
-        log.error("Failed to create image texture")
-        return false
-    }
-    data.image_texture = image_texture
+	image_texture, image_texture_ok := opengl_create_texture_from_file(
+		"data/textures/comment_icon.png",
+	)
+	if !image_texture_ok {
+		log.error("Failed to create image texture")
+		return false
+	}
+	data.image_texture = image_texture
 
 	render_data^ = data
 	return true
@@ -168,9 +170,9 @@ opengl_render_end :: proc(
 		return
 	}
 
-    max_texture_units: i32
-    gl.GetIntegerv(gl.MAX_TEXTURE_IMAGE_UNITS, &max_texture_units)
-    log.info("max_texture_units: ", max_texture_units)
+	max_texture_units: i32
+	gl.GetIntegerv(gl.MAX_TEXTURE_IMAGE_UNITS, &max_texture_units)
+	log.info("max_texture_units: ", max_texture_units)
 
 	// TODO(Thomas): Should come from an arena or something instead.
 	vertices := make([dynamic]Vertex, 0, len(command_queue) * 4)
@@ -195,7 +197,10 @@ opengl_render_end :: proc(
 			b := f32(color.b) / 255
 			a := f32(color.a) / 255
 
-			append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Bottom-right
+			append(
+				&vertices,
+				Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}},
+			) // Bottom-right
 			append(&vertices, Vertex{pos = {x + w, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-right
 			append(&vertices, Vertex{pos = {x, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-left
 			append(&vertices, Vertex{pos = {x, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Bottom-left
@@ -212,11 +217,10 @@ opengl_render_end :: proc(
 
 			vertex_offset += 4
 		case ui.Command_Text:
+			opengl_active_texture(.Texture_0)
+			opengl_bind_texture(render_data.font_texture)
 
-            opengl_active_texture(.Texture_0)
-            opengl_bind_texture(render_data.font_texture)
-
-            shader_set_int(render_data.shader, "u_font_texture", 0)
+			shader_set_int(render_data.shader, "u_font_texture", 0)
 
 			x := val.x
 			y := val.y
@@ -253,27 +257,47 @@ opengl_render_end :: proc(
 
 				// Bottom right
 				append(
-                    &vertices,
-                    Vertex{pos = {q.x1, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t1}, tex_id = 0}
-                )
+					&vertices,
+					Vertex {
+						pos = {q.x1, q.y1, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s1, q.t1},
+						tex_id = 0,
+					},
+				)
 
 				// Top right
 				append(
-                    &vertices,
-                    Vertex{pos = {q.x1, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s1, q.t0}, tex_id = 0}
-                )
+					&vertices,
+					Vertex {
+						pos = {q.x1, q.y0, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s1, q.t0},
+						tex_id = 0,
+					},
+				)
 
 				// Top left
 				append(
-                    &vertices,
-                    Vertex{pos = {q.x0, q.y0, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t0}, tex_id = 0}
-                )
+					&vertices,
+					Vertex {
+						pos = {q.x0, q.y0, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s0, q.t0},
+						tex_id = 0,
+					},
+				)
 
 				// Bottom left
 				append(
-                    &vertices,
-                    Vertex{pos = {q.x0, q.y1, 0}, color = {red, green, blue, alpha}, tex = {q.s0, q.t1}, tex_id = 0}
-                )
+					&vertices,
+					Vertex {
+						pos = {q.x0, q.y1, 0},
+						color = {red, green, blue, alpha},
+						tex = {q.s0, q.t1},
+						tex_id = 0,
+					},
+				)
 
 				rect_indices := [6]u32 {
 					vertex_offset + 0,
@@ -287,32 +311,48 @@ opengl_render_end :: proc(
 
 				vertex_offset += 4
 			}
-        case ui.Command_Image:
-
+		case ui.Command_Image:
 			x := val.x
 			y := val.y
 			w := val.w
 			h := val.h
 
-            data := val.data
-            tex_idx := cast(^i32)data
+			data := val.data
+			tex_idx := cast(^i32)data
 
-            opengl_active_texture(.Texture_1)
-            opengl_bind_texture(render_data.image_texture)
+			opengl_active_texture(.Texture_1)
+			opengl_bind_texture(render_data.image_texture)
 
-            shader_set_int(render_data.shader, "u_image_texture", 1)
+			shader_set_int(render_data.shader, "u_image_texture", 1)
 
-            // Bottom right
-            append(&vertices, Vertex{pos = {x + w, y + h, 0}, color = {1, 1, 1, 1}, tex = {1, 1}, tex_id = tex_idx^})
+			// Bottom right
+			append(
+				&vertices,
+				Vertex {
+					pos = {x + w, y + h, 0},
+					color = {1, 1, 1, 1},
+					tex = {1, 1},
+					tex_id = tex_idx^,
+				},
+			)
 
-            // Top right
-            append(&vertices, Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1} , tex = {1, 0}, tex_id = tex_idx^})
+			// Top right
+			append(
+				&vertices,
+				Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1}, tex = {1, 0}, tex_id = tex_idx^},
+			)
 
-            // Top left
-            append(&vertices, Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = tex_idx^})
+			// Top left
+			append(
+				&vertices,
+				Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = tex_idx^},
+			)
 
-            // Bottom left
-            append(&vertices, Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = tex_idx^})
+			// Bottom left
+			append(
+				&vertices,
+				Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = tex_idx^},
+			)
 		}
 	}
 
@@ -328,9 +368,9 @@ opengl_render_end :: proc(
 	model := linalg.Matrix4f32(1.0)
 	transform := render_data.proj * model
 	err := shader_set_mat4(render_data.shader, "transform", &transform)
-    if err != .None {
-        log.error("Error setting shader uniform: ", err)
-    }
+	if err != .None {
+		log.error("Error setting shader uniform: ", err)
+	}
 
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
