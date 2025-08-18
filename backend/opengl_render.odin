@@ -18,14 +18,13 @@ Vertex :: struct {
 }
 
 OpenGL_Render_Data :: struct {
-	vao:           u32,
-	vbo:           u32,
-	ebo:           u32,
-	shader:        Shader,
-	font_atlas:    Font_Atlas,
-	font_texture:  OpenGL_Texture,
-	image_texture: OpenGL_Texture,
-	proj:          linalg.Matrix4f32,
+	vao:          u32,
+	vbo:          u32,
+	ebo:          u32,
+	shader:       Shader,
+	font_atlas:   Font_Atlas,
+	font_texture: OpenGL_Texture,
+	proj:         linalg.Matrix4f32,
 }
 
 MAX_QUADS :: 10000
@@ -73,10 +72,13 @@ init_opengl :: proc(
 
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
 	gl.EnableVertexAttribArray(0)
+
 	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
 	gl.EnableVertexAttribArray(1)
+
 	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(2)
+
 	gl.VertexAttribIPointer(3, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_id))
 	gl.EnableVertexAttribArray(3)
 
@@ -123,15 +125,6 @@ init_opengl :: proc(
 	}
 	data.font_texture = font_texture
 
-	image_texture, image_texture_ok := opengl_create_texture_from_file(
-		"data/textures/comment_icon.png",
-	)
-	if !image_texture_ok {
-		log.error("Failed to create image texture")
-		return false
-	}
-	data.image_texture = image_texture
-
 	render_data^ = data
 	return true
 }
@@ -141,7 +134,6 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
 	gl.DeleteTextures(1, &render_data.font_texture.id)
-	gl.DeleteTextures(1, &render_data.image_texture.id)
 	gl.DeleteProgram(render_data.shader.id)
 }
 
@@ -170,16 +162,24 @@ opengl_render_end :: proc(
 		return
 	}
 
-	max_texture_units: i32
-	gl.GetIntegerv(gl.MAX_TEXTURE_IMAGE_UNITS, &max_texture_units)
-	log.info("max_texture_units: ", max_texture_units)
-
 	// TODO(Thomas): Should come from an arena or something instead.
 	vertices := make([dynamic]Vertex, 0, len(command_queue) * 4)
 	indices := make([dynamic]u32, 0, len(command_queue) * 6)
 	vertex_offset: u32 = 0
 
 	shader_use_program(render_data.shader)
+
+	opengl_active_texture(.Texture_0)
+	opengl_bind_texture(i32(render_data.font_texture.id))
+	shader_set_int(render_data.shader, "u_font_texture", 0)
+
+	opengl_active_texture(.Texture_1)
+	opengl_bind_texture(2)
+	shader_set_int(render_data.shader, "u_image_texture_1", 1)
+
+	opengl_active_texture(.Texture_2)
+	opengl_bind_texture(3)
+	shader_set_int(render_data.shader, "u_image_texture_2", 2)
 
 
 	for command in command_queue {
@@ -217,11 +217,6 @@ opengl_render_end :: proc(
 
 			vertex_offset += 4
 		case ui.Command_Text:
-			opengl_active_texture(.Texture_0)
-			opengl_bind_texture(render_data.font_texture)
-
-			shader_set_int(render_data.shader, "u_font_texture", 0)
-
 			x := val.x
 			y := val.y
 			start_x := x
@@ -320,10 +315,12 @@ opengl_render_end :: proc(
 			data := val.data
 			tex_idx := cast(^i32)data
 
-			opengl_active_texture(.Texture_1)
-			opengl_bind_texture(render_data.image_texture)
-
-			shader_set_int(render_data.shader, "u_image_texture", 1)
+			tex_slot: i32
+			if tex_idx^ == 2 {
+				tex_slot = 1
+			} else if tex_idx^ == 3 {
+				tex_slot = 2
+			}
 
 			// Bottom right
 			append(
@@ -332,27 +329,39 @@ opengl_render_end :: proc(
 					pos = {x + w, y + h, 0},
 					color = {1, 1, 1, 1},
 					tex = {1, 1},
-					tex_id = tex_idx^,
+					tex_id = tex_slot,
 				},
 			)
 
 			// Top right
 			append(
 				&vertices,
-				Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1}, tex = {1, 0}, tex_id = tex_idx^},
+				Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1}, tex = {1, 0}, tex_id = tex_slot},
 			)
 
 			// Top left
 			append(
 				&vertices,
-				Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = tex_idx^},
+				Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = tex_slot},
 			)
 
 			// Bottom left
 			append(
 				&vertices,
-				Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = tex_idx^},
+				Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = tex_slot},
 			)
+
+			rect_indices := [6]u32 {
+				vertex_offset + 0,
+				vertex_offset + 1,
+				vertex_offset + 2,
+				vertex_offset + 2,
+				vertex_offset + 3,
+				vertex_offset + 0,
+			}
+			append(&indices, ..rect_indices[:])
+
+			vertex_offset += 4
 		}
 	}
 
@@ -375,7 +384,7 @@ opengl_render_end :: proc(
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
-	opengl_unbind_texture(render_data.font_texture)
+	opengl_unbind_texture()
 
 	// TODO(Thomas): Free an arena or something instead
 	delete(vertices)

@@ -6,7 +6,7 @@ import "core:strings"
 import gl "vendor:OpenGL"
 import stb_image "vendor:stb/image"
 
-Texture_Constant :: enum int {
+Texture_Constant :: enum u32 {
 	Texture_0  = gl.TEXTURE0,
 	Texture_1  = gl.TEXTURE1,
 	Texture_2  = gl.TEXTURE2,
@@ -54,14 +54,20 @@ OpenGL_Texture :: struct {
 }
 
 opengl_create_texture_from_file :: proc(path: string) -> (OpenGL_Texture, bool) {
-    width, height, nr_channels: i32
-    filename := strings.clone_to_cstring(path, context.temp_allocator)
-    defer free_all(context.temp_allocator)
+	width, height, nr_channels: i32
+	filename := strings.clone_to_cstring(path, context.temp_allocator)
+	defer free_all(context.temp_allocator)
 
-    texture_data := stb_image.load(filename, &width, &height, &nr_channels, 0)
-    defer stb_image.image_free(texture_data)
+	texture_data := stb_image.load(filename, &width, &height, &nr_channels, 0)
+	defer stb_image.image_free(texture_data)
 
-    return opengl_gen_texture(width, height, gl.GL_Enum(gl.RGBA), gl.GL_Enum(gl.RGBA), texture_data)
+	return opengl_gen_texture(
+		width,
+		height,
+		gl.GL_Enum(gl.RGBA),
+		gl.GL_Enum(gl.RGBA),
+		texture_data,
+	)
 }
 
 // TODO(Thomas): Make wrap and filter configurable through parameters
@@ -122,11 +128,15 @@ opengl_gen_texture :: proc(
 	return texture, true
 }
 
-opengl_bind_texture :: proc(texture: OpenGL_Texture) {
-	gl.BindTexture(gl.TEXTURE_2D, texture.id)
+opengl_delete_texture :: proc(id: ^u32) {
+	gl.DeleteTextures(1, id)
 }
 
-opengl_unbind_texture :: proc(texture: OpenGL_Texture) {
+opengl_bind_texture :: proc(id: i32) {
+	gl.BindTexture(gl.TEXTURE_2D, u32(id))
+}
+
+opengl_unbind_texture :: proc() {
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 }
 

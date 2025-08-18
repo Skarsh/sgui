@@ -130,6 +130,17 @@ main :: proc() {
 	}
 	defer deinit_app_state(&app_state)
 
+
+	tex_1, tex_1_ok := backend.opengl_create_texture_from_file("data/textures/comment_icon.png")
+	assert(tex_1_ok)
+	defer backend.opengl_delete_texture(&tex_1.id)
+
+	tex_2, tex_2_ok := backend.opengl_create_texture_from_file("data/textures/copy_icon.png")
+	assert(tex_2_ok)
+	defer backend.opengl_delete_texture(&tex_2.id)
+
+	image_data := Image_Data{i32(tex_1.id), i32(tex_2.id)}
+
 	io := &app_state.backend_ctx.io
 	for app_state.running {
 		backend.time(io)
@@ -153,7 +164,8 @@ main :: proc() {
 		//build_alignment_ui(&app_state)
 		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
-		build_styled_ui(&app_state)
+		//build_styled_ui(&app_state)
+		build_multiple_images_ui(&app_state, &image_data)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -172,6 +184,58 @@ App_State :: struct {
 deinit_app_state :: proc(app_state: ^App_State) {
 	backend.deinit(&app_state.backend_ctx)
 	sdl.DestroyWindow(app_state.window)
+}
+
+Image_Data :: struct {
+	tex_1: i32,
+	tex_2: i32,
+}
+
+build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+
+	ui.push_background_color(ctx, {255, 255, 255, 255});defer ui.pop_background_color(ctx)
+
+	ui.container(
+		ctx,
+		"main_container",
+		ui.Config_Options{layout = {sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Grow}}}},
+		image_data,
+		proc(ctx: ^ui.Context, data: ^Image_Data) {
+			ui.container(
+				ctx,
+				"image_1",
+				ui.Config_Options {
+					layout = {
+						sizing = {
+							ui.Sizing{kind = .Fixed, value = 256},
+							ui.Sizing{kind = .Fixed, value = 256},
+						},
+					},
+					capability_flags = ui.Capability_Flags{.Image},
+					content = {image_data = rawptr(&data.tex_1)},
+				},
+			)
+
+			ui.container(
+				ctx,
+				"image_2",
+				ui.Config_Options {
+					layout = {
+						sizing = {
+							ui.Sizing{kind = .Fixed, value = 256},
+							ui.Sizing{kind = .Fixed, value = 256},
+						},
+					},
+					capability_flags = ui.Capability_Flags{.Image},
+					content = {image_data = rawptr(&data.tex_2)},
+				},
+			)
+		},
+	)
+
+	ui.end(ctx)
 }
 
 build_styled_ui :: proc(app_state: ^App_State) {
