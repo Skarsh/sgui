@@ -8,6 +8,7 @@
 
 ## Bugs
 * When squashing text elements it behaves weird, and doesn't clip properly
+* container proc doesn't seem to work with pushed sizes
 
 ## Backlog
 * Clipping in the opengl backend
