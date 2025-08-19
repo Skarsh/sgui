@@ -10,6 +10,18 @@ import stbtt "vendor:stb/truetype"
 import base "../base"
 import ui "../ui"
 
+Texture_Store :: struct {
+	idx_to_slot_map: map[i32]i32,
+	start_slot:      i32,
+	slot:            i32,
+	max_slots:       i32,
+}
+
+reset_texture_store :: proc(store: ^Texture_Store) {
+	store.slot = store.start_slot
+	clear(&store.idx_to_slot_map)
+}
+
 Vertex :: struct {
 	pos:    base.Vec3,
 	color:  base.Vec4,
@@ -18,13 +30,14 @@ Vertex :: struct {
 }
 
 OpenGL_Render_Data :: struct {
-	vao:          u32,
-	vbo:          u32,
-	ebo:          u32,
-	shader:       Shader,
-	font_atlas:   Font_Atlas,
-	font_texture: OpenGL_Texture,
-	proj:         linalg.Matrix4f32,
+	vao:           u32,
+	vbo:           u32,
+	ebo:           u32,
+	shader:        Shader,
+	font_atlas:    Font_Atlas,
+	font_texture:  OpenGL_Texture,
+	proj:          linalg.Matrix4f32,
+	texture_store: Texture_Store,
 }
 
 MAX_QUADS :: 10000
@@ -125,6 +138,11 @@ init_opengl :: proc(
 	}
 	data.font_texture = font_texture
 
+	MAX_TEXTURE_SLOTS :: 16
+	//NOTE(Thomas): The start slot is 1 since the 0th slot is taken by font texture
+	texture_store := Texture_Store{make(map[i32]i32, allocator), 1, 1, MAX_TEXTURE_SLOTS}
+	data.texture_store = texture_store
+
 	render_data^ = data
 	return true
 }
@@ -173,14 +191,9 @@ opengl_render_end :: proc(
 	opengl_bind_texture(i32(render_data.font_texture.id))
 	shader_set_int(render_data.shader, "u_font_texture", 0)
 
-	opengl_active_texture(.Texture_1)
-	opengl_bind_texture(2)
-	shader_set_int(render_data.shader, "u_image_texture_1", 1)
-
-	opengl_active_texture(.Texture_2)
-	opengl_bind_texture(3)
-	shader_set_int(render_data.shader, "u_image_texture_2", 2)
-
+	// Reset the texture store each frame because the
+	// ids can have changed between the frames.
+	reset_texture_store(&render_data.texture_store)
 
 	for command in command_queue {
 		#partial switch val in command {
@@ -313,13 +326,41 @@ opengl_render_end :: proc(
 			h := val.h
 
 			data := val.data
-			tex_idx := cast(^i32)data
+			tex_id := (cast(^i32)data)^
 
-			tex_slot: i32
-			if tex_idx^ == 2 {
-				tex_slot = 1
-			} else if tex_idx^ == 3 {
-				tex_slot = 2
+			// TODO(Thomas): This works but obviously has issues.
+			// Move this stuff into its own procedure. When all the slots
+			// have been reached and there's a new texture id that needs a new slot
+			// we have to do a render call, reset and continue.
+			tex_slot, exists := render_data.texture_store.idx_to_slot_map[tex_id]
+			if !exists {
+				tex_slot = render_data.texture_store.slot
+				render_data.texture_store.idx_to_slot_map[tex_id] = tex_slot
+
+				switch tex_slot {
+				case 1:
+					opengl_active_texture(.Texture_1)
+					opengl_bind_texture(tex_id)
+					shader_set_int(render_data.shader, "u_image_texture_1", 1)
+				case 2:
+					opengl_active_texture(.Texture_2)
+					opengl_bind_texture(tex_id)
+					shader_set_int(render_data.shader, "u_image_texture_2", 2)
+				case 3:
+					opengl_active_texture(.Texture_3)
+					opengl_bind_texture(tex_id)
+					shader_set_int(render_data.shader, "u_image_texture_3", 3)
+				case 4:
+					opengl_active_texture(.Texture_4)
+					opengl_bind_texture(tex_id)
+					shader_set_int(render_data.shader, "u_image_texture_4", 4)
+				case 5:
+					opengl_active_texture(.Texture_5)
+					opengl_bind_texture(tex_id)
+					shader_set_int(render_data.shader, "u_image_texture_5", 5)
+				}
+
+				render_data.texture_store.slot += 1
 			}
 
 			// Bottom right
