@@ -187,6 +187,8 @@ opengl_render_end :: proc(
 
 	shader_use_program(render_data.shader)
 
+	// NOTE(Thomas): We're binding the font texture here by default
+	// for now, even though we might not have a draw command that requires it.
 	opengl_active_texture(.Texture_0)
 	opengl_bind_texture(i32(render_data.font_texture.id))
 	shader_set_int(render_data.shader, "u_font_texture", 0)
@@ -198,6 +200,7 @@ opengl_render_end :: proc(
 	for command in command_queue {
 		#partial switch val in command {
 		case ui.Command_Rect:
+			opengl_unbind_texture()
 			rect := val.rect
 			x := f32(rect.x)
 			y := f32(rect.y)
@@ -425,7 +428,6 @@ opengl_render_end :: proc(
 	gl.DrawElements(gl.TRIANGLES, i32(len(indices)), gl.UNSIGNED_INT, nil)
 
 	gl.BindVertexArray(0)
-	opengl_unbind_texture()
 
 	// TODO(Thomas): Free an arena or something instead
 	delete(vertices)

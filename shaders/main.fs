@@ -10,6 +10,9 @@ uniform sampler2D u_font_texture;
 
 uniform sampler2D u_image_texture_1;
 uniform sampler2D u_image_texture_2;
+uniform sampler2D u_image_texture_3;
+uniform sampler2D u_image_texture_4;
+uniform sampler2D u_image_texture_5;
 
 void main() {
     // If tex_coords are negative, it's a solid shape, not text.
@@ -27,6 +30,15 @@ void main() {
                 break;
             case 2:
                 o_color = texture(u_image_texture_2, v_tex_coords);
+                break;
+            case 3:
+                o_color = texture(u_image_texture_3, v_tex_coords);
+                break;
+            case 4:
+                o_color = texture(u_image_texture_4, v_tex_coords);
+                break;
+            case 5:
+                o_color = texture(u_image_texture_5, v_tex_coords);
                 break;
         }
     }
