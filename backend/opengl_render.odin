@@ -23,10 +23,10 @@ reset_texture_store :: proc(store: ^Texture_Store) {
 }
 
 Vertex :: struct {
-	pos:    base.Vec3,
-	color:  base.Vec4,
-	tex:    base.Vec2,
-	tex_id: c.int,
+	pos:      base.Vec3,
+	color:    base.Vec4,
+	tex:      base.Vec2,
+	tex_slot: c.int,
 }
 
 OpenGL_Render_Data :: struct {
@@ -92,7 +92,7 @@ init_opengl :: proc(
 	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(2)
 
-	gl.VertexAttribIPointer(3, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_id))
+	gl.VertexAttribIPointer(3, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
 	gl.EnableVertexAttribArray(3)
 
 	gl.BindVertexArray(0)
@@ -200,7 +200,6 @@ opengl_render_end :: proc(
 	for command in command_queue {
 		#partial switch val in command {
 		case ui.Command_Rect:
-			opengl_unbind_texture()
 			rect := val.rect
 			x := f32(rect.x)
 			y := f32(rect.y)
@@ -273,7 +272,7 @@ opengl_render_end :: proc(
 						pos = {q.x1, q.y1, 0},
 						color = {red, green, blue, alpha},
 						tex = {q.s1, q.t1},
-						tex_id = 0,
+						tex_slot = 0,
 					},
 				)
 
@@ -284,7 +283,7 @@ opengl_render_end :: proc(
 						pos = {q.x1, q.y0, 0},
 						color = {red, green, blue, alpha},
 						tex = {q.s1, q.t0},
-						tex_id = 0,
+						tex_slot = 0,
 					},
 				)
 
@@ -295,7 +294,7 @@ opengl_render_end :: proc(
 						pos = {q.x0, q.y0, 0},
 						color = {red, green, blue, alpha},
 						tex = {q.s0, q.t0},
-						tex_id = 0,
+						tex_slot = 0,
 					},
 				)
 
@@ -306,7 +305,7 @@ opengl_render_end :: proc(
 						pos = {q.x0, q.y1, 0},
 						color = {red, green, blue, alpha},
 						tex = {q.s0, q.t1},
-						tex_id = 0,
+						tex_slot = 0,
 					},
 				)
 
@@ -373,26 +372,36 @@ opengl_render_end :: proc(
 					pos = {x + w, y + h, 0},
 					color = {1, 1, 1, 1},
 					tex = {1, 1},
-					tex_id = tex_slot,
+					tex_slot = tex_slot,
 				},
 			)
 
 			// Top right
 			append(
 				&vertices,
-				Vertex{pos = {x + w, y, 0}, color = {1, 1, 1, 1}, tex = {1, 0}, tex_id = tex_slot},
+				Vertex {
+					pos = {x + w, y, 0},
+					color = {1, 1, 1, 1},
+					tex = {1, 0},
+					tex_slot = tex_slot,
+				},
 			)
 
 			// Top left
 			append(
 				&vertices,
-				Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_id = tex_slot},
+				Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_slot = tex_slot},
 			)
 
 			// Bottom left
 			append(
 				&vertices,
-				Vertex{pos = {x, y + h, 0}, color = {1, 1, 1, 1}, tex = {0, 1}, tex_id = tex_slot},
+				Vertex {
+					pos = {x, y + h, 0},
+					color = {1, 1, 1, 1},
+					tex = {0, 1},
+					tex_slot = tex_slot,
+				},
 			)
 
 			rect_indices := [6]u32 {

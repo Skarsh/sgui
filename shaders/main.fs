@@ -2,7 +2,7 @@
 
 in vec4 v_color;
 in vec2 v_tex_coords;
-flat in int v_tex_id;
+flat in int v_tex_slot;
 
 out vec4 o_color;
 
@@ -19,7 +19,7 @@ void main() {
     if (v_tex_coords.x < 0.0) {
         o_color = v_color;
     } else {
-        switch (v_tex_id){
+        switch (v_tex_slot){
             case 0:
                 // Sample the font texture. The 'r' component has the alpha value.
                 float alpha = texture(u_font_texture, v_tex_coords).r;

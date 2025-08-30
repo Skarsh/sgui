@@ -130,24 +130,26 @@ main :: proc() {
 	}
 	defer deinit_app_state(&app_state)
 
-
-	tex_1, tex_1_ok := backend.opengl_create_texture_from_file("data/textures/comment_icon.png")
+	// TODO(Thomas): All this texture related and complex_ui_data stuff is
+	// really app / example specific, and should be moved when we get to the point
+	// where we start making standalone examples.
+	tex_1, tex_1_ok := backend.opengl_create_texture_from_file("data/textures/copy_icon.png")
 	assert(tex_1_ok)
 	defer backend.opengl_delete_texture(&tex_1.id)
 
-	tex_2, tex_2_ok := backend.opengl_create_texture_from_file("data/textures/copy_icon.png")
+	tex_2, tex_2_ok := backend.opengl_create_texture_from_file("data/textures/paste_icon.png")
 	assert(tex_2_ok)
 	defer backend.opengl_delete_texture(&tex_2.id)
 
-	tex_3, tex_3_ok := backend.opengl_create_texture_from_file("data/textures/cut_icon.png")
+	tex_3, tex_3_ok := backend.opengl_create_texture_from_file("data/textures/delete_icon.png")
 	assert(tex_3_ok)
 	defer backend.opengl_delete_texture(&tex_3.id)
 
-	tex_4, tex_4_ok := backend.opengl_create_texture_from_file("data/textures/delete_icon.png")
+	tex_4, tex_4_ok := backend.opengl_create_texture_from_file("data/textures/comment_icon.png")
 	assert(tex_4_ok)
 	defer backend.opengl_delete_texture(&tex_4.id)
 
-	tex_5, tex_5_ok := backend.opengl_create_texture_from_file("data/textures/paste_icon.png")
+	tex_5, tex_5_ok := backend.opengl_create_texture_from_file("data/textures/cut_icon.png")
 	assert(tex_4_ok)
 	defer backend.opengl_delete_texture(&tex_5.id)
 
@@ -158,6 +160,19 @@ main :: proc() {
 		i32(tex_4.id),
 		i32(tex_5.id),
 	}
+
+	// Data for the complex ui case
+	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
+	item_texture_idxs := [5]int {
+		int(image_data.tex_1),
+		int(image_data.tex_2),
+		int(image_data.tex_3),
+		int(image_data.tex_4),
+		int(image_data.tex_5),
+	}
+	complex_ui_data := Complex_UI_Data{}
+	complex_ui_data.items = item_texts
+	complex_ui_data.item_texture_idxs = item_texture_idxs
 
 	io := &app_state.backend_ctx.io
 	for app_state.running {
@@ -177,13 +192,13 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		//build_complex_ui(&app_state)
+		build_complex_ui(&app_state, &complex_ui_data)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
 		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
 		//build_styled_ui(&app_state)
-		build_multiple_images_ui(&app_state, &image_data)
+		//build_multiple_images_ui(&app_state, &image_data)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -676,11 +691,11 @@ build_grow_ui :: proc(app_state: ^App_State) {
 
 build_iterated_texts :: proc(app_state: ^App_State) {
 	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
-	User_Data :: struct {
+	Complex_UI_Data :: struct {
 		items: [5]string,
 	}
 
-	data := User_Data{item_texts}
+	data := Complex_UI_Data{item_texts}
 
 	ui.begin(&app_state.ctx)
 	ui.container(
@@ -690,7 +705,7 @@ build_iterated_texts :: proc(app_state: ^App_State) {
 			layout = {sizing = {ui.Sizing{kind = .Fit}, ui.Sizing{kind = .Fit}}, child_gap = 10},
 		},
 		&data,
-		proc(ctx: ^ui.Context, data: ^User_Data) {
+		proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
 			for item in data.items {
 				ui.text(ctx, item, item)
 			}
@@ -700,25 +715,17 @@ build_iterated_texts :: proc(app_state: ^App_State) {
 }
 
 
-// TODO(Thomas): This is a quickfix to circumvent the lifetime issue
-// of the item_texture_idx passed as rawptr for the image_data
-User_Data :: struct {
+Complex_UI_Data :: struct {
 	items:             [5]string,
 	item_texture_idxs: [5]int,
 	idx:               int,
 	builder:           strings.Builder,
 }
-item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
-item_texture_idxs := [5]int{1, 2, 3, 4, 5}
-user_data := User_Data{}
 
-build_complex_ui :: proc(app_state: ^App_State) {
+build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Data) {
 	buf: [1024]u8
 	builder := strings.builder_from_bytes(buf[:])
-
-	user_data.items = item_texts
-	user_data.item_texture_idxs = item_texture_idxs
-	user_data.builder = builder
+	complex_ui_data.builder = builder
 
 	ui.begin(&app_state.ctx)
 	ui.container(
@@ -738,8 +745,8 @@ build_complex_ui :: proc(app_state: ^App_State) {
 			background_color = base.Color{102, 51, 153, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
-		&user_data,
-		proc(ctx: ^ui.Context, data: ^User_Data) {
+		complex_ui_data,
+		proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
 			for item, idx in data.items {
 				data.idx = idx
 				ui.container(
@@ -761,7 +768,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 						capability_flags = ui.Capability_Flags{.Background},
 					},
 					data,
-					proc(ctx: ^ui.Context, data: ^User_Data) {
+					proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
 
 						strings.write_int(&data.builder, data.idx)
 						id := strings.to_string(data.builder)
@@ -774,7 +781,7 @@ build_complex_ui :: proc(app_state: ^App_State) {
 								},
 							},
 							data,
-							proc(ctx: ^ui.Context, data: ^User_Data) {
+							proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
 								item := data.items[data.idx]
 								strings.write_int(&data.builder, len(data.items) + data.idx)
 								text_id := strings.to_string(data.builder)
