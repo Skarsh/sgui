@@ -150,7 +150,7 @@ main :: proc() {
 	defer backend.opengl_delete_texture(&tex_4.id)
 
 	tex_5, tex_5_ok := backend.opengl_create_texture_from_file("data/textures/cut_icon.png")
-	assert(tex_4_ok)
+	assert(tex_5_ok)
 	defer backend.opengl_delete_texture(&tex_5.id)
 
 	image_data := Image_Data {
@@ -762,6 +762,7 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 							child_gap = 32,
 							alignment_x = .Left,
 							alignment_y = .Center,
+							corner_radius = 4,
 						},
 						background_color = base.Color{255, 125, 172, 255},
 						clip = ui.Clip_Config{{true, true}},

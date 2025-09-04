@@ -69,6 +69,7 @@ Layout_Config :: struct {
 	text_padding:     Padding,
 	text_alignment_x: Alignment_X,
 	text_alignment_y: Alignment_Y,
+	corner_radius:    f32,
 }
 
 Clip_Config :: struct {
@@ -120,6 +121,7 @@ Layout_Options :: struct {
 	text_padding:     Maybe(Padding),
 	text_alignment_x: Maybe(Alignment_X),
 	text_alignment_y: Maybe(Alignment_Y),
+	corner_radius:    Maybe(f32),
 }
 
 Config_Options :: struct {
@@ -336,6 +338,12 @@ open_element :: proc(
 		opts.layout.text_alignment_y,
 		&ctx.text_alignment_y_stack,
 		resolve_default(default_opts.layout.text_alignment_y),
+	)
+
+	final_config.layout.corner_radius = resolve_value(
+		opts.layout.corner_radius,
+		&ctx.corner_radius_stack,
+		resolve_default(default_opts.layout.corner_radius),
 	)
 
 	final_config.background_color = resolve_value(

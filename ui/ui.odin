@@ -29,8 +29,9 @@ Command :: union {
 }
 
 Command_Rect :: struct {
-	rect:  base.Rect,
-	color: base.Color,
+	rect:   base.Rect,
+	color:  base.Color,
+	radius: f32,
 }
 
 Command_Text :: struct {
@@ -94,6 +95,7 @@ Context :: struct {
 	text_padding_stack:     Stack(Padding, STYLE_STACK_SIZE),
 	text_alignment_x_stack: Stack(Alignment_X, STYLE_STACK_SIZE),
 	text_alignment_y_stack: Stack(Alignment_Y, STYLE_STACK_SIZE),
+	corner_radius_stack:    Stack(f32, STYLE_STACK_SIZE),
 	command_queue:          [dynamic]Command,
 	current_parent:         ^UI_Element,
 	root_element:           ^UI_Element,
@@ -364,6 +366,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				i32(element.size.y),
 			},
 			final_bg_color,
+			element.config.layout.corner_radius,
 		)
 	}
 
@@ -462,8 +465,8 @@ draw_all_elements :: proc(ctx: ^Context) {
 	draw_element(ctx, ctx.root_element)
 }
 
-draw_rect :: proc(ctx: ^Context, rect: base.Rect, color: base.Color) {
-	append(&ctx.command_queue, Command_Rect{rect, color})
+draw_rect :: proc(ctx: ^Context, rect: base.Rect, color: base.Color, radius: f32) {
+	append(&ctx.command_queue, Command_Rect{rect, color, radius})
 }
 
 draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Color) {
@@ -635,4 +638,12 @@ push_text_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
 
 pop_text_aligment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
 	return pop(&ctx.text_alignment_y_stack)
+}
+
+push_corner_radius :: proc(ctx: ^Context, radius: f32) -> bool {
+	return push(&ctx.corner_radius_stack, radius)
+}
+
+pop_corner_radius :: proc(ctx: ^Context) -> (f32, bool) {
+	return pop(&ctx.corner_radius_stack)
 }
