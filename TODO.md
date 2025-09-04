@@ -16,6 +16,7 @@
 * Upper Bound Limit Recursion
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
     and recursions.
+* Adding new styles is a bit tedious and error prone.
 
 * Property testing
     When the API has somewhat stabilized we should add property testing, e.g. generate Layout scenarios and assert properties
