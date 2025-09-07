@@ -12,6 +12,7 @@
 
 ## Backlog
 * Clipping in the opengl backend
+* Embossing (gradient) effects
 * Prune "dead" ui elements (they're still cached in the map)
 * Upper Bound Limit Recursion
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
