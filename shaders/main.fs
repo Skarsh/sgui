@@ -1,8 +1,11 @@
 #version 330 core
 
 in vec4 v_color;
+in vec2 v_quad_half_size;
+in vec2 v_quad_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
+in float v_radius;
 
 out vec4 o_color;
 
@@ -13,6 +16,11 @@ uniform sampler2D u_image_texture_2;
 uniform sampler2D u_image_texture_3;
 uniform sampler2D u_image_texture_4;
 uniform sampler2D u_image_texture_5;
+
+float sdfRect(vec2 pos, vec2 halfSize, float r) {
+    vec2 q = abs(pos) - halfSize + vec2(r, r);
+    return length(max(q, vec2(0))) + min(max(q.x, q.y), 0.0) - r;
+}
 
 void main() {
     // If tex_coords are negative, it's a solid shape, not text.

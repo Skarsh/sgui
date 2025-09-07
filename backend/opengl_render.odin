@@ -23,10 +23,13 @@ reset_texture_store :: proc(store: ^Texture_Store) {
 }
 
 Vertex :: struct {
-	pos:      base.Vec3,
-	color:    base.Vec4,
-	tex:      base.Vec2,
-	tex_slot: c.int,
+	pos:            base.Vec3,
+	color:          base.Vec4,
+	quad_half_size: base.Vec2,
+	quad_pos:       base.Vec2,
+	tex:            base.Vec2,
+	tex_slot:       i32,
+	radius:         f32,
 }
 
 OpenGL_Render_Data :: struct {
@@ -89,11 +92,28 @@ init_opengl :: proc(
 	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
 	gl.EnableVertexAttribArray(1)
 
-	gl.VertexAttribPointer(2, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
+	gl.VertexAttribPointer(
+		2,
+		2,
+		gl.FLOAT,
+		false,
+		size_of(Vertex),
+		offset_of(Vertex, quad_half_size),
+	)
 	gl.EnableVertexAttribArray(2)
 
-	gl.VertexAttribIPointer(3, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
+
+	gl.VertexAttribPointer(3, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
+	gl.EnableVertexAttribArray(2)
+
+	gl.VertexAttribPointer(4, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(3)
+
+	gl.VertexAttribIPointer(5, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
+	gl.EnableVertexAttribArray(4)
+
+	gl.VertexAttribPointer(6, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+	gl.EnableVertexAttribArray(5)
 
 	gl.BindVertexArray(0)
 
@@ -206,19 +226,66 @@ opengl_render_end :: proc(
 			w := f32(rect.w)
 			h := f32(rect.h)
 
+			half_w := w / 2
+			half_h := h / 2
+
 			color := val.color
 			r := f32(color.r) / 255
 			g := f32(color.g) / 255
 			b := f32(color.b) / 255
 			a := f32(color.a) / 255
 
+			// Bottom-right
 			append(
 				&vertices,
-				Vertex{pos = {x + w, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}},
-			) // Bottom-right
-			append(&vertices, Vertex{pos = {x + w, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-right
-			append(&vertices, Vertex{pos = {x, y, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Top-left
-			append(&vertices, Vertex{pos = {x, y + h, 0}, color = {r, g, b, a}, tex = {-1, -1}}) // Bottom-left
+				Vertex {
+					pos = {x + w, y + h, 0},
+					color = {r, g, b, a},
+					quad_half_size = {half_w, half_h},
+					quad_pos = {1, 1},
+					tex = {-1, -1},
+					radius = 10.0,
+				},
+			)
+
+			// Top-right
+			append(
+				&vertices,
+				Vertex {
+					pos = {x + w, y, 0},
+					color = {r, g, b, a},
+					quad_half_size = {half_w, half_h},
+					quad_pos = {1, -1},
+					tex = {-1, -1},
+					radius = 10.0,
+				},
+			)
+
+			// Top-left
+			append(
+				&vertices,
+				Vertex {
+					pos = {x, y, 0},
+					color = {r, g, b, a},
+					quad_half_size = {half_w, half_h},
+					quad_pos = {-1, -1},
+					tex = {-1, -1},
+					radius = 10.0,
+				},
+			)
+
+			// Bottom-left
+			append(
+				&vertices,
+				Vertex {
+					pos = {x, y + h, 0},
+					color = {r, g, b, a},
+					quad_half_size = {half_w, half_h},
+					quad_pos = {-1, 1},
+					tex = {-1, -1},
+					radius = 10.0,
+				},
+			)
 
 			rect_indices := [6]u32 {
 				vertex_offset + 0,
