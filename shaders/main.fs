@@ -17,6 +17,10 @@ uniform sampler2D u_image_texture_3;
 uniform sampler2D u_image_texture_4;
 uniform sampler2D u_image_texture_5;
 
+vec2 translate(vec2 pos, vec2 offset) {
+    return (pos - offset);
+}
+
 float sdfRect(vec2 pos, vec2 halfSize, float r) {
     vec2 q = abs(pos) - halfSize + vec2(r, r);
     return length(max(q, vec2(0))) + min(max(q.x, q.y), 0.0) - r;

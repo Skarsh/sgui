@@ -104,16 +104,16 @@ init_opengl :: proc(
 
 
 	gl.VertexAttribPointer(3, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
-	gl.EnableVertexAttribArray(2)
-
-	gl.VertexAttribPointer(4, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(3)
 
-	gl.VertexAttribIPointer(5, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
+	gl.VertexAttribPointer(4, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(4)
 
-	gl.VertexAttribPointer(6, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+	gl.VertexAttribIPointer(5, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
 	gl.EnableVertexAttribArray(5)
+
+	gl.VertexAttribPointer(6, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+	gl.EnableVertexAttribArray(6)
 
 	gl.BindVertexArray(0)
 
@@ -242,7 +242,7 @@ opengl_render_end :: proc(
 					pos = {x + w, y + h, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {1, 1},
+					quad_pos = {x + half_w, y + half_h},
 					tex = {-1, -1},
 					radius = 10.0,
 				},
@@ -255,7 +255,7 @@ opengl_render_end :: proc(
 					pos = {x + w, y, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {1, -1},
+					quad_pos = {x + half_w, y + half_h},
 					tex = {-1, -1},
 					radius = 10.0,
 				},
@@ -268,7 +268,7 @@ opengl_render_end :: proc(
 					pos = {x, y, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {-1, -1},
+					quad_pos = {x + half_w, y + half_h},
 					tex = {-1, -1},
 					radius = 10.0,
 				},
@@ -281,7 +281,7 @@ opengl_render_end :: proc(
 					pos = {x, y + h, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {-1, 1},
+					quad_pos = {x + half_w, y + half_h},
 					tex = {-1, -1},
 					radius = 10.0,
 				},
