@@ -192,12 +192,12 @@ main :: proc() {
 		//build_simple_text_ui(&app_state)
 		//build_nested_text_ui(&app_state)
 		//build_grow_ui(&app_state)
-		build_complex_ui(&app_state, &complex_ui_data)
+		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_iterated_texts(&app_state)
 		//build_alignment_ui(&app_state)
 		//build_interactive_button_ui(&app_state)
 		//build_text_debugging(&app_state)
-		//build_styled_ui(&app_state)
+		build_styled_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
@@ -354,6 +354,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
 
 				ui.push_capability_flags(ctx, {.Background});defer ui.pop_capability_flags(ctx)
+				ui.push_corner_radius(ctx, 10);defer ui.pop_corner_radius(ctx)
 
 				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
 
