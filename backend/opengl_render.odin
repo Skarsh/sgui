@@ -226,8 +226,13 @@ opengl_render_end :: proc(
 			w := f32(rect.w)
 			h := f32(rect.h)
 
+			radius := val.radius
+
 			half_w := w / 2
 			half_h := h / 2
+
+			center_x := x + half_w
+			center_y := y + half_h
 
 			color := val.color
 			r := f32(color.r) / 255
@@ -242,9 +247,9 @@ opengl_render_end :: proc(
 					pos = {x + w, y + h, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {x + half_w, y + half_h},
+					quad_pos = {center_x, center_y},
 					tex = {-1, -1},
-					radius = 10.0,
+					radius = radius,
 				},
 			)
 
@@ -255,9 +260,9 @@ opengl_render_end :: proc(
 					pos = {x + w, y, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {x + half_w, y + half_h},
+					quad_pos = {center_x, center_y},
 					tex = {-1, -1},
-					radius = 10.0,
+					radius = radius,
 				},
 			)
 
@@ -268,9 +273,9 @@ opengl_render_end :: proc(
 					pos = {x, y, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {x + half_w, y + half_h},
+					quad_pos = {center_x, center_y},
 					tex = {-1, -1},
-					radius = 10.0,
+					radius = radius,
 				},
 			)
 
@@ -281,9 +286,9 @@ opengl_render_end :: proc(
 					pos = {x, y + h, 0},
 					color = {r, g, b, a},
 					quad_half_size = {half_w, half_h},
-					quad_pos = {x + half_w, y + half_h},
+					quad_pos = {center_x, center_y},
 					tex = {-1, -1},
-					radius = 10.0,
+					radius = radius,
 				},
 			)
 

@@ -2,7 +2,7 @@
 
 in vec4 v_color;
 in vec2 v_quad_half_size;
-in vec2 v_quad_pos;
+in vec2 v_local_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
 in float v_radius;
@@ -22,14 +22,17 @@ vec2 translate(vec2 pos, vec2 offset) {
 }
 
 float sdfRect(vec2 pos, vec2 halfSize, float r) {
-    vec2 q = abs(pos) - halfSize + vec2(r, r);
-    return length(max(q, vec2(0))) + min(max(q.x, q.y), 0.0) - r;
+    vec2 d = abs(pos) - (halfSize - r);
+    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
 }
 
 void main() {
     // If tex_coords are negative, it's a solid shape, not text.
     if (v_tex_coords.x < 0.0) {
-        o_color = v_color;
+        float d = sdfRect(v_local_pos, v_quad_half_size, v_radius);
+        float smoothing = fwidth(d);
+        float alpha = 1.0 - smoothstep(-smoothing, smoothing, d);
+        o_color = vec4(v_color.rgb, v_color.a * alpha);
     } else {
         switch (v_tex_slot){
             case 0:

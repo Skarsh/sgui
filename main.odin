@@ -762,7 +762,7 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 							child_gap = 32,
 							alignment_x = .Left,
 							alignment_y = .Center,
-							corner_radius = 0.1,
+							corner_radius = 4,
 						},
 						background_color = base.Color{255, 125, 172, 255},
 						clip = ui.Clip_Config{{true, true}},

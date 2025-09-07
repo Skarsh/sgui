@@ -13,7 +13,7 @@ uniform mat4 transform;
 out vec4 v_color;
 out vec2 v_tex_coords;
 out vec2 v_quad_half_size;
-out vec2 v_quad_pos;
+out vec2 v_local_pos;
 flat out int v_tex_slot;
 out float v_radius;
 
@@ -21,7 +21,11 @@ void main() {
     gl_Position = transform * vec4(a_position, 1.0);
     v_color = a_color;
     v_quad_half_size = a_quad_half_size;
-    v_quad_pos = a_quad_pos * a_quad_half_size;
+
+    // Calculate the local position of the vertex relative to the quad's center.
+    // This will be interpolated for each fragment
+    v_local_pos = a_position.xy - a_quad_pos;
+
     v_tex_coords = a_tex_coords;
     v_tex_slot = a_tex_slot;
     v_radius = a_radius;
