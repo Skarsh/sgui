@@ -1,6 +1,5 @@
 package backend
 
-import "core:c"
 import "core:log"
 import "core:math/linalg"
 import gl "vendor:OpenGL"
