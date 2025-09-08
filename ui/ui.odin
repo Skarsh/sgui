@@ -604,7 +604,7 @@ push_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {
 	return push(&ctx.alignment_x_stack, aligment_x)
 }
 
-pop_aligment_x :: proc(ctx: ^Context) -> (Alignment_X, bool) {
+pop_alignment_x :: proc(ctx: ^Context) -> (Alignment_X, bool) {
 	return pop(&ctx.alignment_x_stack)
 }
 
@@ -612,7 +612,7 @@ push_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
 	return push(&ctx.alignment_y_stack, aligment_y)
 }
 
-pop_aligment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
+pop_alignment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
 	return pop(&ctx.alignment_y_stack)
 }
 
