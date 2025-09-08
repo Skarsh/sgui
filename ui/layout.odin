@@ -142,7 +142,7 @@ element_equip_text :: proc(ctx: ^Context, element: ^UI_Element, text: string) {
 
 	// NOTE(Thomas): We need to pre-calculate the line widths to make
 	// sure that the element gets a reasonable preferred sizing.
-	// We do this by doing the same line layout calculation we do in 
+	// We do this by doing the same line layout calculation we do in
 	// `wrap_text`, but we pass in a very large `max_width`, so we
 	// will only split the lines based on `\n`.
 	// We need to do this before we're doing any proper sizing calculations
@@ -560,9 +560,9 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	// NOTE(Thomas): The reason I went for using a Small_Array here instead
 	// of just a normal [dynamic]^UI_Element array is because dynamic arrays
 	// can have issues with arena allocators if growing, which would be the case
-	// if using contex.temp_allocator. So I decided to just go for Small_Array until 
+	// if using contex.temp_allocator. So I decided to just go for Small_Array until
 	// I have figured more on how I want to do this. swapping out for Small_Array was very
-	// simple, and shouldn't be a problem to go back if we want to use something like a 
+	// simple, and shouldn't be a problem to go back if we want to use something like a
 	// virtual static arena ourselves to ensure the dynamic array stays in place.
 	resizables := small_array.Small_Array(1024, ^UI_Element){}
 
@@ -601,7 +601,7 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			size_kind := child.config.layout.sizing[axis].kind
 			if size_kind == .Grow {
 				// This works because if remaining_size is positive, we're growing
-				// and we'll add size to the child. 
+				// and we'll add size to the child.
 				// If remaining_size is negative, we need to shrink the child
 				// so we'll be adding a negative number to the size, effectively shrinking it.
 				child.size[axis] += (remaining_size - child.size[axis])
@@ -783,7 +783,7 @@ make_element :: proc(
 	// We need to set this fields every frame
 	// TODO(Thomas): Every field that is set from the config here is essentially
 	// redundant. We should probably just set the config and then use that for further
-	// calculations? 
+	// calculations?
 	element.last_frame_idx = ctx.frame_idx
 	element.color = element_config.background_color
 
@@ -985,7 +985,7 @@ Test_Environment :: struct {
 	frame_arena_allocator:      mem.Allocator,
 }
 
-// NOTE(Thomas): The reason we're returning a pointer to the 
+// NOTE(Thomas): The reason we're returning a pointer to the
 // Test_Environment here is to make sure that the allocators live
 // long enough.
 setup_test_environment :: proc() -> ^Test_Environment {
@@ -1136,7 +1136,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 		)
 	}
 
-	// --- 3. Define the Verification Logic --- 
+	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 		size := base.Vec2 {
 			data.panel_padding.left + data.panel_padding.right,
@@ -1232,7 +1232,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 		)
 	}
 
-	// --- 3. Define the Verification Logic --- 
+	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 
 		panel_size := base.Vec2 {
@@ -1361,7 +1361,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 		)
 	}
 
-	// --- 3. Define the Verification Logic --- 
+	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
 
 		panel_size := base.Vec2 {

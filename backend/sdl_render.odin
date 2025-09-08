@@ -59,7 +59,7 @@ sdl_init_render :: proc(
 	data.scissor_stack = make([dynamic]sdl.Rect, allocator)
 	data.font_atlas = font_atlas
 
-	// TODO(Thomas): Ordering when things happen here is important, e.g 
+	// TODO(Thomas): Ordering when things happen here is important, e.g
 	// creating this texture relies on the renderer and font atlast having been initalized
 	// and set on the render data. Would be nice to maybe robustify this a bit?
 	if !sdl_create_texture_from_bitmap(&data) {

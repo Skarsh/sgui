@@ -12,8 +12,8 @@ import "backend"
 import "base"
 import "ui"
 
-// This example uses SDL2, but the immediate mode ui library should be 
-// rendering and windowing agnostic 
+// This example uses SDL2, but the immediate mode ui library should be
+// rendering and windowing agnostic
 
 WINDOW_WIDTH :: 1920
 WINDOW_HEIGHT :: 1080
@@ -231,7 +231,7 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_background_color(ctx, {255, 255, 255, 255});defer ui.pop_background_color(ctx)
+	ui.push_background_color(ctx, {255, 255, 255, 255}); defer ui.pop_background_color(ctx)
 
 	ui.container(
 		ctx,
@@ -323,15 +323,15 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_background_color(ctx, {25, 25, 30, 255});defer ui.pop_background_color(ctx)
-	ui.push_padding(ctx, {20, 20, 20, 20});defer ui.pop_padding(ctx)
-	ui.push_layout_direction(ctx, .Top_To_Bottom);defer ui.pop_layout_direction(ctx)
-	ui.push_child_gap(ctx, 15);defer ui.pop_child_gap(ctx)
+	ui.push_background_color(ctx, {25, 25, 30, 255}); defer ui.pop_background_color(ctx)
+	ui.push_padding(ctx, {20, 20, 20, 20}); defer ui.pop_padding(ctx)
+	ui.push_layout_direction(ctx, .Top_To_Bottom); defer ui.pop_layout_direction(ctx)
+	ui.push_child_gap(ctx, 15); defer ui.pop_child_gap(ctx)
 
-	ui.push_sizing_x(ctx, {kind = .Grow});defer ui.pop_sizing_x(ctx)
-	ui.push_sizing_y(ctx, {kind = .Fit});defer ui.pop_sizing_y(ctx)
+	ui.push_sizing_x(ctx, {kind = .Grow}); defer ui.pop_sizing_x(ctx)
+	ui.push_sizing_y(ctx, {kind = .Fit}); defer ui.pop_sizing_y(ctx)
 
-	ui.push_capability_flags(ctx, {.Background});defer ui.pop_capability_flags(ctx)
+	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 
 	ui.container(
 		ctx,
@@ -349,12 +349,15 @@ build_styled_ui :: proc(app_state: ^App_State) {
 			ui.text(ctx, "title", "Themed UI Demo", text_color = {230, 230, 230, 255})
 
 			{
-				ui.push_background_color(ctx, {80, 50, 60, 255});defer ui.pop_background_color(ctx)
-				ui.push_padding(ctx, {10, 10, 10, 10});defer ui.pop_padding(ctx)
-				ui.push_layout_direction(ctx, .Left_To_Right);defer ui.pop_layout_direction(ctx)
+				ui.push_background_color(
+					ctx,
+					{80, 50, 60, 255},
+				); defer ui.pop_background_color(ctx)
+				ui.push_padding(ctx, {10, 10, 10, 10}); defer ui.pop_padding(ctx)
+				ui.push_layout_direction(ctx, .Left_To_Right); defer ui.pop_layout_direction(ctx)
 
-				ui.push_capability_flags(ctx, {.Background});defer ui.pop_capability_flags(ctx)
-				ui.push_corner_radius(ctx, 10);defer ui.pop_corner_radius(ctx)
+				ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
+				ui.push_corner_radius(ctx, 10); defer ui.pop_corner_radius(ctx)
 
 				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
 

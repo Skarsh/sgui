@@ -1,9 +1,9 @@
 package backend
 
 import "core:log"
+import "core:mem"
 import "core:os"
 import "core:strings"
-import "core:mem"
 
 import gl "vendor:OpenGL"
 
@@ -73,80 +73,84 @@ shader_set_bool :: proc(shader: Shader, name: string, val: bool) -> mem.Allocato
 	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 	if err != .None {
-        return err
+		return err
 	}
 	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), i32(val))
-    return .None
+	return .None
 }
 
 shader_set_int :: proc(shader: Shader, name: string, val: i32) -> mem.Allocator_Error {
 	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 	if err != .None {
-        return err
+		return err
 	}
 	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), val)
-    return .None
+	return .None
 }
 
 shader_set_float :: proc(shader: Shader, name: string, val: f32) -> mem.Allocator_Error {
-    name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-    defer free_all(context.temp_allocator)
-    if err != .None {
-        return err
-    }
-    gl.Uniform1f(gl.GetUniformLocation(shader.id, name_cstr), val)
-    return .None
-}
-
-shader_set_vec3 :: proc(shader: Shader, name: string, val: ^[3]f32) -> mem.Allocator_Error {
-    name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-    defer free_all(context.temp_allocator)
-    if err != .None {
-        return err
-    }
-    gl.Uniform3fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
-    return .None
-}
-
-shader_set_vec3_xyz :: proc(shader: Shader, name: string, x, y, z: f32) -> mem.Allocator_Error {
-    name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-    defer free_all(context.temp_allocator)
-    if err != .None {
-        return err
-    }
-    gl.Uniform3f(gl.GetUniformLocation(shader.id, name_cstr), x, y, z)
-    return .None
-}
-
-shader_set_vec4 :: proc(shader: Shader, name: string, val: ^[4]f32) -> mem.Allocator_Error {
-    name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-    defer free_all(context.temp_allocator)
-    if err != .None {
-        return err
-    }
-    gl.Uniform4fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
-    return .None
-}
-
-shader_set_vec4_xyz :: proc(shader: Shader, name: string, x, y, z, w: f32) -> mem.Allocator_Error {
-    name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-    defer free_all(context.temp_allocator)
-    if err != .None {
-        return err
-    }
-    gl.Uniform4f(gl.GetUniformLocation(shader.id, name_cstr), x, y, z, w)
-    return .None
-}
-
-shader_set_mat4 :: proc(shader: Shader, name: string, mat: ^matrix[4,4]f32) -> mem.Allocator_Error  {
 	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 	if err != .None {
-        return err
+		return err
+	}
+	gl.Uniform1f(gl.GetUniformLocation(shader.id, name_cstr), val)
+	return .None
+}
+
+shader_set_vec3 :: proc(shader: Shader, name: string, val: ^[3]f32) -> mem.Allocator_Error {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != .None {
+		return err
+	}
+	gl.Uniform3fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
+	return .None
+}
+
+shader_set_vec3_xyz :: proc(shader: Shader, name: string, x, y, z: f32) -> mem.Allocator_Error {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != .None {
+		return err
+	}
+	gl.Uniform3f(gl.GetUniformLocation(shader.id, name_cstr), x, y, z)
+	return .None
+}
+
+shader_set_vec4 :: proc(shader: Shader, name: string, val: ^[4]f32) -> mem.Allocator_Error {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != .None {
+		return err
+	}
+	gl.Uniform4fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
+	return .None
+}
+
+shader_set_vec4_xyz :: proc(shader: Shader, name: string, x, y, z, w: f32) -> mem.Allocator_Error {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != .None {
+		return err
+	}
+	gl.Uniform4f(gl.GetUniformLocation(shader.id, name_cstr), x, y, z, w)
+	return .None
+}
+
+shader_set_mat4 :: proc(
+	shader: Shader,
+	name: string,
+	mat: ^matrix[4, 4]f32,
+) -> mem.Allocator_Error {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != .None {
+		return err
 	}
 	gl.UniformMatrix4fv(gl.GetUniformLocation(shader.id, name_cstr), 1, false, &mat[0][0])
-    return .None
+	return .None
 }
 
 @(private)
