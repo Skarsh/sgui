@@ -87,7 +87,7 @@ UI_Element :: struct {
 	size:           base.Vec2,
 	config:         Element_Config,
 	children:       [dynamic]^UI_Element,
-	color:          base.Color,
+	fill:           base.Fill,
 	z_index:        i32,
 	hot:            f32,
 	active:         f32,
@@ -104,8 +104,8 @@ Sizing :: struct {
 
 Element_Config :: struct {
 	layout:           Layout_Config,
-	background_color: base.Color,
-	text_color:       base.Color,
+	background_fill:  base.Fill,
+	text_fill:        base.Fill,
 	clip:             Clip_Config,
 	capability_flags: Capability_Flags,
 	content:          Element_Content,
@@ -126,8 +126,8 @@ Layout_Options :: struct {
 
 Config_Options :: struct {
 	layout:           Layout_Options,
-	background_color: Maybe(base.Color),
-	text_color:       Maybe(base.Color),
+	background_fill:  Maybe(base.Fill),
+	text_fill:        Maybe(base.Fill),
 	clip:             Maybe(Clip_Config),
 	capability_flags: Maybe(Capability_Flags),
 	content:          Element_Content,
@@ -346,16 +346,16 @@ open_element :: proc(
 		resolve_default(default_opts.layout.corner_radius),
 	)
 
-	final_config.background_color = resolve_value(
-		opts.background_color,
-		&ctx.background_color_stack,
-		resolve_default(default_opts.background_color),
+	final_config.background_fill = resolve_value(
+		opts.background_fill,
+		&ctx.background_fill_stack,
+		resolve_default(default_opts.background_fill),
 	)
 
-	final_config.text_color = resolve_value(
-		opts.text_color,
-		&ctx.text_color_stack,
-		resolve_default(default_opts.text_color),
+	final_config.text_fill = resolve_value(
+		opts.text_fill,
+		&ctx.text_fill_stack,
+		resolve_default(default_opts.text_fill),
 	)
 
 	final_config.clip = resolve_value(
@@ -492,7 +492,7 @@ text :: proc(
 	config.capability_flags = Capability_Flags{.Text}
 	config.layout.text_alignment_x = text_alignment_x
 	config.layout.text_alignment_y = text_alignment_y
-	config.text_color = text_color
+	config.text_fill = text_color
 
 	element, open_ok := open_element(ctx, id, config)
 	assert(open_ok)
@@ -785,7 +785,7 @@ make_element :: proc(
 	// redundant. We should probably just set the config and then use that for further
 	// calculations?
 	element.last_frame_idx = ctx.frame_idx
-	element.color = element_config.background_color
+	element.fill = element_config.background_fill
 
 	element.size.x = element_config.layout.sizing.x.value
 	element.size.y = element_config.layout.sizing.y.value

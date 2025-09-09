@@ -231,7 +231,7 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_background_color(ctx, {255, 255, 255, 255}); defer ui.pop_background_color(ctx)
+	ui.push_background_fill(ctx, base.Color{255, 255, 255, 255}); defer ui.pop_background_fill(ctx)
 
 	ui.container(
 		ctx,
@@ -323,7 +323,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_background_color(ctx, {25, 25, 30, 255}); defer ui.pop_background_color(ctx)
+	ui.push_background_fill(ctx, base.Color{25, 25, 30, 255}); defer ui.pop_background_fill(ctx)
 	ui.push_padding(ctx, {20, 20, 20, 20}); defer ui.pop_padding(ctx)
 	ui.push_layout_direction(ctx, .Top_To_Bottom); defer ui.pop_layout_direction(ctx)
 	ui.push_child_gap(ctx, 15); defer ui.pop_child_gap(ctx)
@@ -349,10 +349,10 @@ build_styled_ui :: proc(app_state: ^App_State) {
 			ui.text(ctx, "title", "Themed UI Demo", text_color = {230, 230, 230, 255})
 
 			{
-				ui.push_background_color(
+				ui.push_background_fill(
 					ctx,
-					{80, 50, 60, 255},
-				); defer ui.pop_background_color(ctx)
+					base.Color{80, 50, 60, 255},
+				); defer ui.pop_background_fill(ctx)
 				ui.push_padding(ctx, {10, 10, 10, 10}); defer ui.pop_padding(ctx)
 				ui.push_layout_direction(ctx, .Left_To_Right); defer ui.pop_layout_direction(ctx)
 
@@ -361,12 +361,29 @@ build_styled_ui :: proc(app_state: ^App_State) {
 
 				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
 
+					ui.push_background_fill(
+						ctx,
+						base.Gradient{{53, 0, 104, 230}, {255, 105, 120, 210}, {0, 1}},
+					); defer ui.pop_background_fill(ctx)
 					ui.button(ctx, "button1", "Button A")
+
+					ui.push_background_fill(
+						ctx,
+						base.Gradient{{81, 163, 163, 255}, {117, 72, 94, 210}, {0, 1}},
+					); defer ui.pop_background_fill(ctx)
 					ui.button(ctx, "button2", "Button B")
 
-					ui.push_background_color(ctx, {150, 50, 50, 255})
+					ui.push_background_fill(
+						ctx,
+						base.Color{150, 50, 50, 255},
+					); defer ui.pop_background_fill(ctx)
+
+					ui.push_background_fill(
+						ctx,
+						base.Color{255, 144, 101, 255},
+					); defer ui.pop_background_fill(ctx)
 					ui.button(ctx, "button3", "Danger Button")
-					ui.pop_background_color(ctx)
+					ui.pop_background_fill(ctx)
 				})
 			}
 
@@ -396,7 +413,7 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 				padding = ui.Padding{10, 10, 10, 10},
 				child_gap = 10,
 			},
-			background_color = base.Color{48, 200, 128, 255},
+			background_fill = base.Color{48, 200, 128, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 			clip = ui.Clip_Config{{true, true}},
 		},
@@ -413,7 +430,7 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 							padding = ui.Padding{10, 10, 10, 10},
 							child_gap = 10,
 						},
-						background_color = base.Color{75, 75, 75, 255},
+						background_fill = base.Color{75, 75, 75, 255},
 						capability_flags = ui.Capability_Flags{.Background},
 					},
 					proc(ctx: ^ui.Context) {
@@ -439,7 +456,7 @@ build_text_debugging :: proc(app_state: ^App_State) {
 				padding = ui.Padding{10, 10, 10, 10},
 				child_gap = 10,
 			},
-			background_color = base.Color{48, 200, 128, 255},
+			background_fill = base.Color{48, 200, 128, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 			clip = ui.Clip_Config{{true, true}},
 		},
@@ -468,7 +485,7 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 				child_gap = 10,
 				layout_direction = .Left_To_Right,
 			},
-			background_color = base.Color{0, 0, 255, 255},
+			background_fill = base.Color{0, 0, 255, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
@@ -502,7 +519,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 				alignment_x = .Center,
 				child_gap = 16,
 			},
-			background_color = base.Color{102, 51, 153, 255},
+			background_fill = base.Color{102, 51, 153, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
@@ -517,7 +534,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 						alignment_x = .Left,
 						alignment_y = .Center,
 					},
-					background_color = base.Color{255, 0, 0, 255},
+					background_fill = base.Color{255, 0, 0, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 					clip = ui.Clip_Config{{true, false}},
 				},
@@ -527,7 +544,7 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 						"fit",
 						ui.Config_Options {
 							layout = {sizing = {ui.Sizing{kind = .Fit}, ui.Sizing{kind = .Fit}}},
-							background_color = base.Color{157, 125, 172, 255},
+							background_fill = base.Color{157, 125, 172, 255},
 							capability_flags = ui.Capability_Flags{.Background},
 						},
 						proc(ctx: ^ui.Context) {
@@ -553,7 +570,7 @@ build_ui :: proc(app_state: ^App_State) {
 				child_gap = 10,
 				layout_direction = .Left_To_Right,
 			},
-			background_color = base.Color{0, 0, 255, 255},
+			background_fill = base.Color{0, 0, 255, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
@@ -566,7 +583,7 @@ build_ui :: proc(app_state: ^App_State) {
 					layout = {
 						sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Fixed, value = 300}},
 					},
-					background_color = base.Color{255, 255, 0, 255},
+					background_fill = base.Color{255, 255, 0, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
@@ -594,7 +611,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
-			background_color = base.Color{255, 255, 255, 255},
+			background_fill = base.Color{255, 255, 255, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
@@ -608,7 +625,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 							ui.Sizing{kind = .Fixed, value = 100},
 						},
 					},
-					background_color = base.Color{255, 0, 0, 255},
+					background_fill = base.Color{255, 0, 0, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
@@ -622,7 +639,7 @@ build_ui_2 :: proc(app_state: ^App_State) {
 							ui.Sizing{kind = .Fixed, value = 100},
 						},
 					},
-					background_color = base.Color{0, 255, 0, 255},
+					background_fill = base.Color{0, 255, 0, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
@@ -642,7 +659,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				padding = ui.Padding{left = 10, top = 10, right = 10, bottom = 10},
 				child_gap = 10,
 			},
-			background_color = base.Color{255, 255, 255, 255},
+			background_fill = base.Color{255, 255, 255, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
@@ -653,7 +670,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 					layout = {
 						sizing = {ui.Sizing{kind = .Grow}, ui.Sizing{kind = .Fixed, value = 100}},
 					},
-					background_color = base.Color{255, 0, 0, 255},
+					background_fill = base.Color{255, 0, 0, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
@@ -668,7 +685,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 							ui.Sizing{kind = .Fixed, value = 100},
 						},
 					},
-					background_color = base.Color{0, 255, 0, 255},
+					background_fill = base.Color{0, 255, 0, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
@@ -683,7 +700,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 							ui.Sizing{kind = .Grow},
 						},
 					},
-					background_color = base.Color{0, 0, 255, 255},
+					background_fill = base.Color{0, 0, 255, 255},
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			)
@@ -746,7 +763,7 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 				alignment_x = .Center,
 				child_gap = 16,
 			},
-			background_color = base.Color{102, 51, 153, 255},
+			background_fill = base.Color{102, 51, 153, 255},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		complex_ui_data,
@@ -768,7 +785,7 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 							alignment_y = .Center,
 							corner_radius = 4,
 						},
-						background_color = base.Color{255, 125, 172, 255},
+						background_fill = base.Color{255, 125, 172, 255},
 						clip = ui.Clip_Config{{true, true}},
 						capability_flags = ui.Capability_Flags{.Background},
 					},
@@ -838,7 +855,7 @@ build_alignment_ui :: proc(app_state: ^App_State) {
 				},
 				padding = ui.Padding{10, 10, 10, 10},
 			},
-			background_color = base.Color{255, 125, 172, 255},
+			background_fill = base.Color{255, 125, 172, 255},
 			clip = ui.Clip_Config{{true, true}},
 			capability_flags = ui.Capability_Flags{.Background},
 		},

@@ -4,6 +4,17 @@ Color :: struct {
 	r, g, b, a: u8,
 }
 
+Gradient :: struct {
+	color_start: Color,
+	color_end:   Color,
+	direction:   Vec2,
+}
+
+Fill :: union {
+	Color,
+	Gradient,
+}
+
 Rect :: struct {
 	x, y, w, h: i32,
 }

@@ -23,7 +23,9 @@ reset_texture_store :: proc(store: ^Texture_Store) {
 
 Vertex :: struct {
 	pos:            base.Vec3,
-	color:          base.Vec4,
+	color_start:    base.Vec4,
+	color_end:      base.Vec4,
+	gradient_dir:   base.Vec2,
 	quad_half_size: base.Vec2,
 	quad_pos:       base.Vec2,
 	tex:            base.Vec2,
@@ -88,31 +90,37 @@ init_opengl :: proc(
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
 	gl.EnableVertexAttribArray(0)
 
-	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color))
+	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color_start))
 	gl.EnableVertexAttribArray(1)
 
+	gl.VertexAttribPointer(2, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color_end))
+	gl.EnableVertexAttribArray(2)
+
+	gl.VertexAttribPointer(3, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, gradient_dir))
+	gl.EnableVertexAttribArray(3)
+
 	gl.VertexAttribPointer(
-		2,
+		4,
 		2,
 		gl.FLOAT,
 		false,
 		size_of(Vertex),
 		offset_of(Vertex, quad_half_size),
 	)
-	gl.EnableVertexAttribArray(2)
-
-
-	gl.VertexAttribPointer(3, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
-	gl.EnableVertexAttribArray(3)
-
-	gl.VertexAttribPointer(4, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(4)
 
-	gl.VertexAttribIPointer(5, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
+
+	gl.VertexAttribPointer(5, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
 	gl.EnableVertexAttribArray(5)
 
-	gl.VertexAttribPointer(6, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+	gl.VertexAttribPointer(6, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
 	gl.EnableVertexAttribArray(6)
+
+	gl.VertexAttribIPointer(7, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
+	gl.EnableVertexAttribArray(7)
+
+	gl.VertexAttribPointer(8, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+	gl.EnableVertexAttribArray(8)
 
 	gl.BindVertexArray(0)
 
@@ -226,6 +234,8 @@ opengl_render_end :: proc(
 			h := f32(rect.h)
 
 			radius := val.radius
+			color_start, color_end: base.Vec4
+			gradient_dir: base.Vec2
 
 			half_w := w / 2
 			half_h := h / 2
@@ -233,63 +243,42 @@ opengl_render_end :: proc(
 			center_x := x + half_w
 			center_y := y + half_h
 
-			color := val.color
-			r := f32(color.r) / 255
-			g := f32(color.g) / 255
-			b := f32(color.b) / 255
-			a := f32(color.a) / 255
+			switch fill in val.fill {
+			case base.Color:
+				r := f32(fill.r) / 255
+				g := f32(fill.g) / 255
+				b := f32(fill.b) / 255
+				a := f32(fill.a) / 255
+				color_start = {r, g, b, a}
+				color_end = color_start
+				gradient_dir = {0, 0}
 
-			// Bottom-right
-			append(
-				&vertices,
-				Vertex {
-					pos = {x + w, y + h, 0},
-					color = {r, g, b, a},
-					quad_half_size = {half_w, half_h},
-					quad_pos = {center_x, center_y},
-					tex = {-1, -1},
-					radius = radius,
-				},
-			)
+			case base.Gradient:
+				cs := fill.color_start
+				ce := fill.color_end
+				color_start = {f32(cs.r) / 255, f32(cs.g) / 255, f32(cs.b) / 255, f32(cs.a) / 255}
+				color_end = {f32(ce.r) / 255, f32(ce.g) / 255, f32(ce.b) / 255, f32(ce.a) / 255}
+				gradient_dir = fill.direction
+			}
 
-			// Top-right
-			append(
-				&vertices,
-				Vertex {
-					pos = {x + w, y, 0},
-					color = {r, g, b, a},
-					quad_half_size = {half_w, half_h},
-					quad_pos = {center_x, center_y},
-					tex = {-1, -1},
-					radius = radius,
-				},
-			)
 
-			// Top-left
-			append(
-				&vertices,
-				Vertex {
-					pos = {x, y, 0},
-					color = {r, g, b, a},
-					quad_half_size = {half_w, half_h},
-					quad_pos = {center_x, center_y},
-					tex = {-1, -1},
-					radius = radius,
-				},
-			)
+			vertex_template := Vertex {
+				color_start    = color_start,
+				color_end      = color_end,
+				gradient_dir   = gradient_dir,
+				quad_half_size = {half_w, half_h},
+				quad_pos       = {center_x, center_y},
+				tex            = {-1, -1},
+				radius         = radius,
+			}
 
-			// Bottom-left
-			append(
-				&vertices,
-				Vertex {
-					pos = {x, y + h, 0},
-					color = {r, g, b, a},
-					quad_half_size = {half_w, half_h},
-					quad_pos = {center_x, center_y},
-					tex = {-1, -1},
-					radius = radius,
-				},
-			)
+			v1 := vertex_template; v1.pos = {x + w, y + h, 0}
+			v2 := vertex_template; v2.pos = {x + w, y, 0}
+			v3 := vertex_template; v3.pos = {x, y, 0}
+			v4 := vertex_template; v4.pos = {x, y + h, 0}
+
+			append(&vertices, v1, v2, v3, v4)
+
 
 			rect_indices := [6]u32 {
 				vertex_offset + 0,
@@ -307,12 +296,22 @@ opengl_render_end :: proc(
 			y := val.y
 			start_x := x
 			start_y := y + render_data.font_atlas.metrics.ascent
-			color := val.color
 
-			red := f32(color.r) / 255
-			green := f32(color.g) / 255
-			blue := f32(color.b) / 255
-			alpha := f32(color.a) / 255
+			red, green, blue, alpha: f32
+
+			switch fill in val.fill {
+			case base.Color:
+				red = f32(fill.r) / 255
+				green = f32(fill.g) / 255
+				blue = f32(fill.b) / 255
+				alpha = f32(fill.a) / 255
+			case base.Gradient:
+				// TODO(Thomas): This is not complete, just a shortcut to get it working for now
+				red = f32(fill.color_start.r) / 255
+				green = f32(fill.color_start.g) / 255
+				blue = f32(fill.color_start.g) / 255
+				alpha = f32(fill.color_start.g) / 255
+			}
 
 			for r in val.str {
 				if r == '\n' {
@@ -341,7 +340,9 @@ opengl_render_end :: proc(
 					&vertices,
 					Vertex {
 						pos = {q.x1, q.y1, 0},
-						color = {red, green, blue, alpha},
+						color_start = {red, green, blue, alpha},
+						color_end = {red, green, blue, alpha},
+						gradient_dir = {0, 0},
 						tex = {q.s1, q.t1},
 						tex_slot = 0,
 					},
@@ -352,7 +353,9 @@ opengl_render_end :: proc(
 					&vertices,
 					Vertex {
 						pos = {q.x1, q.y0, 0},
-						color = {red, green, blue, alpha},
+						color_start = {red, green, blue, alpha},
+						color_end = {red, green, blue, alpha},
+						gradient_dir = {0, 0},
 						tex = {q.s1, q.t0},
 						tex_slot = 0,
 					},
@@ -363,7 +366,9 @@ opengl_render_end :: proc(
 					&vertices,
 					Vertex {
 						pos = {q.x0, q.y0, 0},
-						color = {red, green, blue, alpha},
+						color_start = {red, green, blue, alpha},
+						color_end = {red, green, blue, alpha},
+						gradient_dir = {0, 0},
 						tex = {q.s0, q.t0},
 						tex_slot = 0,
 					},
@@ -374,7 +379,9 @@ opengl_render_end :: proc(
 					&vertices,
 					Vertex {
 						pos = {q.x0, q.y1, 0},
-						color = {red, green, blue, alpha},
+						color_start = {red, green, blue, alpha},
+						color_end = {red, green, blue, alpha},
+						gradient_dir = {0, 0},
 						tex = {q.s0, q.t1},
 						tex_slot = 0,
 					},
@@ -441,7 +448,9 @@ opengl_render_end :: proc(
 				&vertices,
 				Vertex {
 					pos = {x + w, y + h, 0},
-					color = {1, 1, 1, 1},
+					color_start = {1, 1, 1, 1},
+					color_end = {1, 1, 1, 1},
+					gradient_dir = {0, 0},
 					tex = {1, 1},
 					tex_slot = tex_slot,
 				},
@@ -452,7 +461,9 @@ opengl_render_end :: proc(
 				&vertices,
 				Vertex {
 					pos = {x + w, y, 0},
-					color = {1, 1, 1, 1},
+					color_start = {1, 1, 1, 1},
+					color_end = {1, 1, 1, 1},
+					gradient_dir = {0, 0},
 					tex = {1, 0},
 					tex_slot = tex_slot,
 				},
@@ -461,7 +472,14 @@ opengl_render_end :: proc(
 			// Top left
 			append(
 				&vertices,
-				Vertex{pos = {x, y, 0}, color = {1, 1, 1, 1}, tex = {0, 0}, tex_slot = tex_slot},
+				Vertex {
+					pos = {x, y, 0},
+					color_start = {1, 1, 1, 1},
+					color_end = {1, 1, 1, 1},
+					gradient_dir = {0, 0},
+					tex = {0, 0},
+					tex_slot = tex_slot,
+				},
 			)
 
 			// Bottom left
@@ -469,7 +487,9 @@ opengl_render_end :: proc(
 				&vertices,
 				Vertex {
 					pos = {x, y + h, 0},
-					color = {1, 1, 1, 1},
+					color_start = {1, 1, 1, 1},
+					color_end = {1, 1, 1, 1},
+					gradient_dir = {0, 0},
 					tex = {0, 1},
 					tex_slot = tex_slot,
 				},

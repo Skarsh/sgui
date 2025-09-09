@@ -30,14 +30,14 @@ Command :: union {
 
 Command_Rect :: struct {
 	rect:   base.Rect,
-	color:  base.Color,
+	fill:   base.Fill,
 	radius: f32,
 }
 
 Command_Text :: struct {
-	x, y:  f32,
-	str:   string,
-	color: base.Color,
+	x, y: f32,
+	str:  string,
+	fill: base.Fill,
 }
 
 Command_Image :: struct {
@@ -85,8 +85,8 @@ Context :: struct {
 	sizing_y_stack:         Stack(Sizing, STYLE_STACK_SIZE),
 	clip_stack:             Stack(Clip_Config, STYLE_STACK_SIZE),
 	capability_flags_stack: Stack(Capability_Flags, STYLE_STACK_SIZE),
-	background_color_stack: Stack(base.Color, STYLE_STACK_SIZE),
-	text_color_stack:       Stack(base.Color, STYLE_STACK_SIZE),
+	background_fill_stack:  Stack(base.Fill, STYLE_STACK_SIZE),
+	text_fill_stack:        Stack(base.Fill, STYLE_STACK_SIZE),
 	padding_stack:          Stack(Padding, STYLE_STACK_SIZE),
 	child_gap_stack:        Stack(f32, STYLE_STACK_SIZE),
 	layout_direction_stack: Stack(Layout_Direction, STYLE_STACK_SIZE),
@@ -193,7 +193,7 @@ begin :: proc(ctx: ^Context) {
 		ctx,
 		"root",
 		{
-			background_color = base.Color{128, 128, 128, 255},
+			background_fill = base.Color{128, 128, 128, 255},
 			layout = {
 				sizing = {
 					Sizing{kind = .Fixed, value = f32(ctx.window_size.x)},
@@ -344,16 +344,26 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	cap_flags := element.config.capability_flags
 
-	final_bg_color := element.color
+	final_bg_fill := element.fill
 
-	if .Hot_Animation in cap_flags {
-		hot_color := default_color_style[.Hot]
-		final_bg_color = base.lerp_color(final_bg_color, hot_color, element.hot)
-	}
+	// TODO(Thomas): Implement Gradient case.
+	// Also is this a good way of doing this?
+	switch fill in final_bg_fill {
+	case base.Color:
+		if .Hot_Animation in cap_flags {
+			hot_color := default_color_style[.Hot]
+			final_bg_fill = base.lerp_color(final_bg_fill.(base.Color), hot_color, element.hot)
+		}
 
-	if .Active_Animation in cap_flags {
-		active_color := default_color_style[.Active]
-		final_bg_color = base.lerp_color(final_bg_color, active_color, element.active)
+		if .Active_Animation in cap_flags {
+			active_color := default_color_style[.Active]
+			final_bg_fill = base.lerp_color(
+				final_bg_fill.(base.Color),
+				active_color,
+				element.active,
+			)
+		}
+	case base.Gradient:
 	}
 
 	if .Background in element.config.capability_flags {
@@ -365,7 +375,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				i32(element.size.x),
 				i32(element.size.y),
 			},
-			final_bg_color,
+			final_bg_fill,
 			element.config.layout.corner_radius,
 		)
 	}
@@ -421,7 +431,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				start_x = content_area_x + (content_area_w - line.width)
 			}
 
-			draw_text(ctx, start_x, current_y, line.text, element.config.text_color)
+			draw_text(ctx, start_x, current_y, line.text, element.config.text_fill)
 			current_y += line.height
 		}
 	}
@@ -465,11 +475,11 @@ draw_all_elements :: proc(ctx: ^Context) {
 	draw_element(ctx, ctx.root_element)
 }
 
-draw_rect :: proc(ctx: ^Context, rect: base.Rect, color: base.Color, radius: f32) {
-	append(&ctx.command_queue, Command_Rect{rect, color, radius})
+draw_rect :: proc(ctx: ^Context, rect: base.Rect, fill: base.Fill, radius: f32) {
+	append(&ctx.command_queue, Command_Rect{rect, fill, radius})
 }
 
-draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Color) {
+draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Fill) {
 	append(&ctx.command_queue, Command_Text{x, y, str, color})
 }
 
@@ -512,10 +522,14 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 			text_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 			text_alignment_x = .Center,
 		},
-		background_color = base.Color{24, 24, 24, 255},
-		text_color = base.Color{255, 128, 255, 128},
+		// DON'T REMOVE UNTIL Maybe(UnionType) ISSUE IS RESOLVED
+		//background_fill = base.Color{24, 24, 24, 255},
+		//text_fill = base.Color{255, 128, 255, 128},
 		capability_flags = Capability_Flags{.Background, .Active_Animation, .Hot_Animation},
 	}
+	// DON'T REMOVE UNTIL Maybe() ISSUE IS RESOLVED
+	default_opts.background_fill = base.Color{24, 24, 24, 255}
+	default_opts.text_fill = base.Color{255, 255, 255, 255}
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 
@@ -560,20 +574,20 @@ pop_capability_flags :: proc(ctx: ^Context) -> (Capability_Flags, bool) {
 	return pop(&ctx.capability_flags_stack)
 }
 
-push_background_color :: proc(ctx: ^Context, color: base.Color) -> bool {
-	return push(&ctx.background_color_stack, color)
+push_background_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {
+	return push(&ctx.background_fill_stack, fill)
 }
 
-pop_background_color :: proc(ctx: ^Context) -> (base.Color, bool) {
-	return pop(&ctx.background_color_stack)
+pop_background_fill :: proc(ctx: ^Context) -> (base.Fill, bool) {
+	return pop(&ctx.background_fill_stack)
 }
 
-push_text_color :: proc(ctx: ^Context, color: base.Color) -> bool {
-	return push(&ctx.text_color_stack, color)
+push_text_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {
+	return push(&ctx.text_fill_stack, fill)
 }
 
-pop_text_color :: proc(ctx: ^Context) -> (base.Color, bool) {
-	return pop(&ctx.text_color_stack)
+pop_text_fill :: proc(ctx: ^Context) -> (base.Fill, bool) {
+	return pop(&ctx.text_fill_stack)
 }
 
 push_padding :: proc(ctx: ^Context, padding: Padding) -> bool {

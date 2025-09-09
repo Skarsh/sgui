@@ -7,6 +7,7 @@ import sdl "vendor:sdl2"
 import sdl_img "vendor:sdl2/image"
 import stbtt "vendor:stb/truetype"
 
+import "../base"
 import ui "../ui"
 
 SDL_Texture_Asset :: struct {
@@ -251,31 +252,29 @@ sdl_render_draw_commands :: proc(render_data: ^SDL_Render_Data, command_queue: [
 		case ui.Command_Rect:
 			// NOTE(Thomas): If it's completely transparent,
 			// we don't have to draw.
-			if val.color.a == 0 {
-				continue
+			switch fill in val.fill {
+			case base.Color:
+				if fill.a == 0 {
+					continue
+				}
+				rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
+				sdl.SetRenderDrawColor(render_data.renderer, fill.r, fill.g, fill.b, fill.a)
+				sdl.RenderDrawRect(render_data.renderer, &rect)
+				sdl.RenderFillRect(render_data.renderer, &rect)
+			case base.Gradient:
+				if fill.color_start.a == 0 && fill.color_end.a == 0 {
+					continue
+				}
+				panic("TODO! Implement gradient for sdl renderer")
 			}
 
-			rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
-			sdl.SetRenderDrawColor(
-				render_data.renderer,
-				val.color.r,
-				val.color.g,
-				val.color.b,
-				val.color.a,
-			)
-			sdl.RenderDrawRect(render_data.renderer, &rect)
-			sdl.RenderFillRect(render_data.renderer, &rect)
 		case ui.Command_Text:
-			sdl_render_text(
-				render_data,
-				val.str,
-				val.x,
-				val.y,
-				val.color.r,
-				val.color.g,
-				val.color.b,
-				val.color.a,
-			)
+			switch fill in val.fill {
+			case base.Color:
+				sdl_render_text(render_data, val.str, val.x, val.y, fill.r, fill.g, fill.b, fill.a)
+			case base.Gradient:
+				panic("TODO! Implement gradient for sdl renderer")
+			}
 		case ui.Command_Image:
 			sdl_render_image(render_data, val.x, val.y, val.w, val.h, val.data)
 		case ui.Command_Push_Scissor:
