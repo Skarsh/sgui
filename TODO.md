@@ -1,7 +1,8 @@
 # TODOs
 
 ## Active
-* Render images through OpenGL
+* The whole `Config_Options` with default Maybe values and so on really needs to be re-evaluated
+    especially if the Maybe() syntax might have compiler bugs.
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.
     Would text just having a sensible default styling be enough?
@@ -11,8 +12,6 @@
 * container proc doesn't seem to work with pushed sizes
 
 ## Backlog
-* The whole `Config_Options` with default Maybe values and so on really needs to be re-evaluated
-    especially if the Maybe() syntax might have compiler bugs.
 * Clipping in the opengl backend
 * Embossing (gradient) effects
 * Prune "dead" ui elements (they're still cached in the map)
