@@ -112,24 +112,24 @@ Element_Config :: struct {
 }
 
 Layout_Options :: struct {
-	sizing:           [2]Maybe(Sizing),
-	padding:          Maybe(Padding),
-	child_gap:        Maybe(f32),
-	layout_direction: Maybe(Layout_Direction),
-	alignment_x:      Maybe(Alignment_X),
-	alignment_y:      Maybe(Alignment_Y),
-	text_padding:     Maybe(Padding),
-	text_alignment_x: Maybe(Alignment_X),
-	text_alignment_y: Maybe(Alignment_Y),
-	corner_radius:    Maybe(f32),
+	sizing:           [2]^Sizing,
+	padding:          ^Padding,
+	child_gap:        ^f32,
+	layout_direction: ^Layout_Direction,
+	alignment_x:      ^Alignment_X,
+	alignment_y:      ^Alignment_Y,
+	text_padding:     ^Padding,
+	text_alignment_x: ^Alignment_X,
+	text_alignment_y: ^Alignment_Y,
+	corner_radius:    ^f32,
 }
 
 Config_Options :: struct {
 	layout:           Layout_Options,
-	background_fill:  Maybe(base.Fill),
-	text_fill:        Maybe(base.Fill),
-	clip:             Maybe(Clip_Config),
-	capability_flags: Maybe(Capability_Flags),
+	background_fill:  ^base.Fill,
+	text_fill:        ^base.Fill,
+	clip:             ^Clip_Config,
+	capability_flags: ^Capability_Flags,
 	content:          Element_Content,
 }
 
@@ -367,16 +367,16 @@ open_element :: proc(
 	// Capability flags are hanled differently by being additive.
 	// TODO(Thomas): Should the user specified flags completely override, e.g.
 	// not OR but set directly?
-	if flags, ok := opts.capability_flags.?; ok {
-		final_config.capability_flags |= flags
+	if opts.capability_flags != nil {
+		final_config.capability_flags |= opts.capability_flags^
 	}
 
 	if stack_flags, stack_flags_ok := peek(&ctx.capability_flags_stack); stack_flags_ok {
 		final_config.capability_flags |= stack_flags
 	}
 
-	if default_flags, default_flags_ok := default_opts.capability_flags.?; default_flags_ok {
-		final_config.capability_flags |= default_flags
+	if default_opts.capability_flags != nil {
+		final_config.capability_flags |= default_opts.capability_flags^
 	}
 
 	// Content is a special case too
@@ -483,16 +483,24 @@ text :: proc(
 	assert(min_width >= 0)
 	assert(min_height >= 0)
 
+	text_padding := text_padding
+	capability_flags := Capability_Flags{.Text}
+	text_alignment_x := text_alignment_x
+	text_alignment_y := text_alignment_y
+	text_fill := base.Fill(text_color)
+
+
 	config := Config_Options{}
-	config.layout.text_padding = text_padding
+	config.layout.text_padding = &text_padding
 	config.layout.sizing = {
-		Sizing{min_value = min_width, max_value = max_width},
-		Sizing{min_value = min_height, max_value = max_height},
+		&Sizing{min_value = min_width, max_value = max_width},
+		&Sizing{min_value = min_height, max_value = max_height},
 	}
-	config.capability_flags = Capability_Flags{.Text}
-	config.layout.text_alignment_x = text_alignment_x
-	config.layout.text_alignment_y = text_alignment_y
-	config.text_fill = text_color
+
+	config.capability_flags = &capability_flags
+	config.layout.text_alignment_x = &text_alignment_x
+	config.layout.text_alignment_y = &text_alignment_y
+	config.text_fill = &text_fill
 
 	element, open_ok := open_element(ctx, id, config)
 	assert(open_ok)
@@ -1122,15 +1130,21 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		sizing := Sizing {
+			kind = .Fit,
+		}
+		layout_direction := Layout_Direction.Left_To_Right
+		padding := &data.panel_padding
+		child_gap: f32 = 5
 		container(
 			ctx,
 			"empty_panel",
 			Config_Options {
 				layout = {
-					sizing           = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
-					layout_direction = .Left_To_Right,
-					padding          = data.panel_padding,
-					child_gap        = 5, // child_gap is irrelevant with 0 children
+					sizing = {&sizing, &sizing},
+					layout_direction = &layout_direction,
+					padding = padding,
+					child_gap = &child_gap,
 				},
 			},
 		)
@@ -1155,18 +1169,23 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 @(test)
 test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
-		panel_padding:       Padding,
-		panel_child_gap:     f32,
-		container_1_size:    base.Vec2,
-		container_2_size:    base.Vec2,
-		container_3_size:    base.Vec2,
-		largest_container_y: f32,
+		panel_layout_direction: Layout_Direction,
+		panel_sizing:           [2]Sizing,
+		panel_padding:          Padding,
+		panel_child_gap:        f32,
+		container_1_size:       base.Vec2,
+		container_2_size:       base.Vec2,
+		container_3_size:       base.Vec2,
+		largest_container_y:    f32,
 	}
 	test_data := Test_Data {
+		panel_layout_direction = .Left_To_Right,
+		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
 		container_1_size = base.Vec2{100, 100},
@@ -1182,24 +1201,35 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
-					layout_direction = .Left_To_Right,
-					padding = data.panel_padding,
-					child_gap = 10,
+					sizing = {&data.panel_sizing.x, &data.panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
+
+				container_1_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_1_size.x},
+					{kind = .Fixed, value = data.container_1_size.y},
+				}
+
+				container_2_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_2_size.x},
+					{kind = .Fixed, value = data.container_2_size.y},
+				}
+
+				container_3_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_3_size.x},
+					{kind = .Fixed, value = data.container_3_size.y},
+				}
+
 				container(
 					ctx,
 					"container_1",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_1_size.x},
-								Sizing{kind = .Fixed, value = data.container_1_size.y},
-							},
-						},
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
 					},
 				)
 
@@ -1207,12 +1237,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"container_2",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_2_size.x},
-								Sizing{kind = .Fixed, value = data.container_2_size.y},
-							},
-						},
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
 					},
 				)
 
@@ -1220,12 +1245,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"container_3",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_3_size.x},
-								Sizing{kind = .Fixed, value = data.container_3_size.y},
-							},
-						},
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
 					},
 				)
 			},
@@ -1284,18 +1304,23 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 @(test)
 test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
-		panel_padding:       Padding,
-		panel_child_gap:     f32,
-		container_1_size:    base.Vec2,
-		container_2_size:    base.Vec2,
-		container_3_size:    base.Vec2,
-		largest_container_x: f32,
+		panel_layout_direction: Layout_Direction,
+		panel_sizing:           [2]Sizing,
+		panel_padding:          Padding,
+		panel_child_gap:        f32,
+		container_1_size:       base.Vec2,
+		container_2_size:       base.Vec2,
+		container_3_size:       base.Vec2,
+		largest_container_x:    f32,
 	}
 	test_data := Test_Data {
+		panel_layout_direction = .Top_To_Bottom,
+		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
 		container_1_size = {100, 100},
@@ -1311,24 +1336,32 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
-					layout_direction = .Top_To_Bottom,
-					padding = data.panel_padding,
-					child_gap = 10,
+					sizing = {&data.panel_sizing.x, &data.panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
+				container_1_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_1_size.x},
+					{kind = .Fixed, value = data.container_1_size.y},
+				}
+				container_2_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_2_size.x},
+					{kind = .Fixed, value = data.container_2_size.y},
+				}
+				container_3_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_3_size.x},
+					{kind = .Fixed, value = data.container_3_size.y},
+				}
+
 				container(
 					ctx,
 					"container_1",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_1_size.x},
-								Sizing{kind = .Fixed, value = data.container_1_size.y},
-							},
-						},
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
 					},
 				)
 
@@ -1336,12 +1369,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 					ctx,
 					"container_2",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_2_size.x},
-								Sizing{kind = .Fixed, value = data.container_2_size.y},
-							},
-						},
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
 					},
 				)
 
@@ -1349,12 +1377,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 					ctx,
 					"container_3",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_3_size.x},
-								Sizing{kind = .Fixed, value = data.container_3_size.y},
-							},
-						},
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
 					},
 				)
 			},
@@ -1414,18 +1437,21 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 
 }
 
+
 @(test)
 test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Grow_Sizing_Ltr_Context :: struct {
-		panel_padding:    Padding,
-		panel_child_gap:  f32,
-		panel_size:       base.Vec2,
-		container_1_size: base.Vec2,
-		container_3_size: base.Vec2,
+		panel_layout_direction: Layout_Direction,
+		panel_padding:          Padding,
+		panel_child_gap:        f32,
+		panel_size:             base.Vec2,
+		container_1_size:       base.Vec2,
+		container_3_size:       base.Vec2,
 	}
 
 	test_context := Test_Grow_Sizing_Ltr_Context {
+		panel_layout_direction = .Left_To_Right,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
@@ -1435,32 +1461,37 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Grow_Sizing_Ltr_Context) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
 		container(
 			ctx,
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {
-						Sizing{kind = .Fixed, value = data.panel_size.x},
-						Sizing{kind = .Fixed, value = data.panel_size.y},
-					},
-					layout_direction = .Left_To_Right,
-					padding = data.panel_padding,
-					child_gap = data.panel_child_gap,
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Grow_Sizing_Ltr_Context) {
+				container_1_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_1_size.x},
+					{kind = .Fixed, value = data.container_1_size.y},
+				}
+				container_2_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+				container_3_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_3_size.x},
+					{kind = .Fixed, value = data.container_3_size.y},
+				}
 				container(
 					ctx,
 					"container_1",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_1_size.x},
-								Sizing{kind = .Fixed, value = data.container_1_size.y},
-							},
-						},
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
 					},
 				)
 
@@ -1468,7 +1499,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"container_2",
 					Config_Options {
-						layout = {sizing = {Sizing{kind = .Grow}, Sizing{kind = .Grow}}},
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
 					},
 				)
 
@@ -1476,12 +1507,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"container_3",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_3_size.x},
-								Sizing{kind = .Fixed, value = data.container_3_size.y},
-							},
-						},
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
 					},
 				)
 			},
@@ -1537,62 +1563,71 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_context)
 }
 
+
 @(test)
 test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
-		panel_padding:         Padding,
-		panel_child_gap:       f32,
-		panel_size:            base.Vec2,
-		container_1_max_value: f32,
-		container_2_max_value: f32,
-		container_3_size:      base.Vec2,
+		panel_layout_direction:       Layout_Direction,
+		panel_padding:                Padding,
+		panel_child_gap:              f32,
+		panel_size:                   base.Vec2,
+		container_1_max_value:        f32,
+		container_2_max_value:        f32,
+		container_3_size:             base.Vec2,
+		container_3_layout_direction: Layout_Direction,
 	}
 
 	test_data := Test_Data {
+		panel_layout_direction = .Left_To_Right,
 		panel_padding = Padding{left = 11, top = 12, right = 13, bottom = 14},
 		panel_child_gap = 10,
 		panel_size = base.Vec2{600, 400},
 		container_1_max_value = 150,
 		container_2_max_value = 50,
 		container_3_size = base.Vec2{150, 150},
+		container_3_layout_direction = .Left_To_Right,
 	}
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
 		container(
 			ctx,
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {
-						Sizing{kind = .Fixed, value = data.panel_size.x},
-						Sizing{kind = .Fixed, value = data.panel_size.y},
-					},
-					layout_direction = .Left_To_Right,
-					padding = data.panel_padding,
-					child_gap = data.panel_child_gap,
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
+				container_1_sizing := [2]Sizing{{kind = .Grow, max_value = 150}, {kind = .Grow}}
+				container_2_sizing := [2]Sizing{{kind = .Grow, max_value = 50}, {kind = .Grow}}
+				container_3_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_3_size.x},
+					{kind = .Fixed, value = data.container_3_size.y},
+				}
+
 				container(
 					ctx,
 					"container_1",
 					Config_Options {
-						layout = {
-							sizing = {Sizing{kind = .Grow, max_value = 150}, Sizing{kind = .Grow}},
-						},
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
 					},
 				)
 				container(
 					ctx,
 					"container_2",
 					Config_Options {
-						layout = {
-							sizing = {Sizing{kind = .Grow, max_value = 50}, Sizing{kind = .Grow}},
-						},
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
 					},
 				)
 				container(
@@ -1600,13 +1635,10 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 					"container_3",
 					Config_Options {
 						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_3_size.x},
-								Sizing{kind = .Fixed, value = data.container_3_size.y},
-							},
-							layout_direction = .Left_To_Right,
-							padding = data.panel_padding,
-							child_gap = data.panel_child_gap,
+							sizing = {&container_3_sizing.x, &container_3_sizing.y},
+							layout_direction = &data.container_3_layout_direction,
+							padding = &data.panel_padding,
+							child_gap = &data.panel_child_gap,
 						},
 					},
 				)
@@ -1665,19 +1697,22 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 @(test)
 test_grow_sizing_ttb :: proc(t: ^testing.T) {
 
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
-		panel_padding:    Padding,
-		panel_child_gap:  f32,
-		panel_size:       base.Vec2,
-		container_1_size: base.Vec2,
-		container_3_size: base.Vec2,
+		panel_layout_direction: Layout_Direction,
+		panel_padding:          Padding,
+		panel_child_gap:        f32,
+		panel_size:             base.Vec2,
+		container_1_size:       base.Vec2,
+		container_3_size:       base.Vec2,
 	}
 
 	test_data := Test_Data {
+		panel_layout_direction = .Top_To_Bottom,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
@@ -1687,51 +1722,52 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
 		container(
 			ctx,
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {
-						Sizing{kind = .Fixed, value = data.panel_size.x},
-						Sizing{kind = .Fixed, value = data.panel_size.y},
-					},
-					layout_direction = .Top_To_Bottom,
-					padding = data.panel_padding,
-					child_gap = 10,
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
+				container_1_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_1_size.x},
+					{kind = .Fixed, value = data.container_1_size.y},
+				}
+				container_2_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+				container_3_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_3_size.x},
+					{kind = .Fixed, value = data.container_3_size.y},
+				}
+
 				container(
 					ctx,
 					"container_1",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_1_size.x},
-								Sizing{kind = .Fixed, value = data.container_1_size.y},
-							},
-						},
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
 					},
 				)
 				container(
 					ctx,
 					"container_2",
 					Config_Options {
-						layout = {sizing = {Sizing{kind = .Grow}, Sizing{kind = .Grow}}},
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
 					},
 				)
 				container(
 					ctx,
 					"container_3",
 					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Fixed, value = data.container_3_size.x},
-								Sizing{kind = .Fixed, value = data.container_3_size.y},
-							},
-						},
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
 					},
 				)
 			},
@@ -1787,19 +1823,22 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 @(test)
 test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
-		panel_padding:      Padding,
-		panel_child_gap:    f32,
-		panel_size:         base.Vec2,
-		text_1_min_width:   f32,
-		grow_box_min_width: f32,
-		text_2_min_width:   f32,
+		panel_layout_direction: Layout_Direction,
+		panel_padding:          Padding,
+		panel_child_gap:        f32,
+		panel_size:             base.Vec2,
+		text_1_min_width:       f32,
+		grow_box_min_width:     f32,
+		text_2_min_width:       f32,
 	}
 
 	test_data := Test_Data {
+		panel_layout_direction = .Left_To_Right,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
 		panel_child_gap = 10,
 		panel_size = {300, 100},
@@ -1810,18 +1849,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
 		container(
 			ctx,
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {
-						Sizing{kind = .Fixed, value = data.panel_size.x},
-						Sizing{kind = .Fixed, value = data.panel_size.y},
-					},
-					layout_direction = .Left_To_Right,
-					padding = data.panel_padding,
-					child_gap = data.panel_child_gap,
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
@@ -1829,17 +1869,15 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 
 				text(ctx, "text_1", "First", min_width = data.text_1_min_width)
 
+				grow_box_sizing := [2]Sizing {
+					{kind = .Grow, min_value = data.grow_box_min_width},
+					{kind = .Grow},
+				}
+
 				container(
 					ctx,
 					"grow_box",
-					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Grow, min_value = data.grow_box_min_width},
-								Sizing{kind = .Grow},
-							},
-						},
-					},
+					Config_Options{layout = {sizing = {&grow_box_sizing.x, &grow_box_sizing.y}}},
 				)
 
 				text(ctx, "text_2", "Last", min_width = data.text_2_min_width)
@@ -1907,15 +1945,17 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
-		panel_padding:       Padding,
-		panel_child_gap:     f32,
-		panel_size:          base.Vec2,
-		text_1_min_height:   f32,
-		grow_box_min_height: f32,
-		text_2_min_height:   f32,
+		panel_layout_direction: Layout_Direction,
+		panel_padding:          Padding,
+		panel_child_gap:        f32,
+		panel_size:             base.Vec2,
+		text_1_min_height:      f32,
+		grow_box_min_height:    f32,
+		text_2_min_height:      f32,
 	}
 
 	test_data := Test_Data {
+		panel_layout_direction = .Top_To_Bottom,
 		panel_padding = {left = 10, top = 11, right = 12, bottom = 13},
 		panel_child_gap = 10,
 		panel_size = {100, 100},
@@ -1926,18 +1966,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
 		container(
 			ctx,
 			"panel",
 			Config_Options {
 				layout = {
-					sizing = {
-						Sizing{kind = .Fixed, value = data.panel_size.x},
-						Sizing{kind = .Fixed, value = data.panel_size.y},
-					},
-					layout_direction = .Top_To_Bottom,
-					padding = data.panel_padding,
-					child_gap = data.panel_child_gap,
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
 				},
 			},
 			data,
@@ -1945,17 +1986,15 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 
 				text(ctx, "text_1", "First", min_height = data.text_1_min_height)
 
+				grow_box_sizing := [2]Sizing {
+					{kind = .Grow, min_value = data.grow_box_min_height},
+					{kind = .Grow},
+				}
+
 				container(
 					ctx,
 					"grow_box",
-					Config_Options {
-						layout = {
-							sizing = {
-								Sizing{kind = .Grow, min_value = data.grow_box_min_height},
-								Sizing{kind = .Grow},
-							},
-						},
-					},
+					Config_Options{layout = {sizing = {&grow_box_sizing.x, &grow_box_sizing.y}}},
 				)
 
 				text(ctx, "text_2", "Last", min_width = data.text_2_min_height)
@@ -2017,6 +2056,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 // TODO(Thomas): Add other tests where we overflow the max sizing within and outside
 // of a fit sizing container.
 // TODO(Thomas): This test has a text_fit_wrapper container
@@ -2038,10 +2078,11 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
 		container(
 			ctx,
 			"text_fit_wrapper",
-			Config_Options{layout = {sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}}}},
+			Config_Options{layout = {sizing = {&sizing.x, &sizing.y}}},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				text(
@@ -2081,6 +2122,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 // TODO(Thomas): This test has a text_fit_wrapper container
 // to make sure that it doesn't have to deal with the root's
 // fixed size. I'm not sure if that's exactly what we want.
@@ -2099,10 +2141,11 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
 		container(
 			ctx,
 			"text_fit_wrapper",
-			Config_Options{layout = {sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}}}},
+			Config_Options{layout = {sizing = {&sizing.x, &sizing.y}}},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				text(ctx, data.id, data.text)
@@ -2137,7 +2180,6 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
-
 @(test)
 test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
@@ -2157,14 +2199,12 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		sizing := [2]Sizing{{kind = .Fixed, value = 60}, {kind = .Fit}}
 		container(
 			ctx,
 			data.container_id,
 			Config_Options {
-				layout = {
-					sizing = {Sizing{kind = .Fixed, value = 60}, Sizing{kind = .Fit}},
-					padding = data.container_padding,
-				},
+				layout = {sizing = {&sizing.x, &sizing.y}, padding = &data.container_padding},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
@@ -2203,6 +2243,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 // TODO(Thomas): This test has a text_fit_wrapper container
 // to make sure that it doesn't have to deal with the root's
 // fixed size. I'm not sure if that's exactly what we want.
@@ -2223,10 +2264,11 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 
+		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
 		container(
 			ctx,
 			"text_fit_wrapper",
-			Config_Options{layout = {sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}}}},
+			Config_Options{layout = {sizing = {&sizing.x, &sizing.y}}},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				text(
@@ -2266,6 +2308,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+
 @(test)
 test_iterated_texts_layout :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
@@ -2279,10 +2322,11 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
 		container(
 			ctx,
 			"parent",
-			Config_Options{layout = {sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}}}},
+			Config_Options{layout = {sizing = {&sizing.x, &sizing.y}}},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 
@@ -2319,6 +2363,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
 
 @(test)
 test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
@@ -2468,31 +2513,31 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 	for &test_data in tests_data {
 		// --- 2. Define the UI Building Logic ---
 		build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+			parent_sizing := [2]Sizing {
+				{kind = .Fixed, value = data.parent_width},
+				{kind = .Fixed, value = data.parent_height},
+			}
 			container(
 				ctx,
 				"parent",
 				Config_Options {
 					layout = {
-						sizing = {
-							Sizing{kind = .Fixed, value = data.parent_width},
-							Sizing{kind = .Fixed, value = data.parent_height},
-						},
-						alignment_x = data.alignment_x,
-						alignment_y = data.alignment_y,
+						sizing = {&parent_sizing.x, &parent_sizing.y},
+						alignment_x = &data.alignment_x,
+						alignment_y = &data.alignment_y,
 					},
 				},
 				data,
 				proc(ctx: ^Context, data: ^Test_Data) {
+					container_sizing := [2]Sizing {
+						{kind = .Fixed, value = data.container_width},
+						{kind = .Fixed, value = data.container_height},
+					}
 					container(
 						ctx,
 						"container",
 						Config_Options {
-							layout = {
-								sizing = {
-									Sizing{kind = .Fixed, value = data.container_width},
-									Sizing{kind = .Fixed, value = data.container_height},
-								},
-							},
+							layout = {sizing = {&container_sizing.x, &container_sizing.y}},
 						},
 					)
 				},

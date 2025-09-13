@@ -188,19 +188,22 @@ begin :: proc(ctx: ^Context) {
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
 
+
+	background_fill := base.Fill(base.Color{128, 128, 128, 255})
+	sizing_x := Sizing {
+		kind  = .Fixed,
+		value = f32(ctx.window_size.x),
+	}
+	sizing_y := Sizing {
+		kind  = .Fixed,
+		value = f32(ctx.window_size.y),
+	}
+
 	// Open the root element
 	_, root_open_ok := open_element(
 		ctx,
 		"root",
-		{
-			background_fill = base.Color{128, 128, 128, 255},
-			layout = {
-				sizing = {
-					Sizing{kind = .Fixed, value = f32(ctx.window_size.x)},
-					Sizing{kind = .Fixed, value = f32(ctx.window_size.y)},
-				},
-			},
-		},
+		{background_fill = &background_fill, layout = {sizing = {&sizing_x, &sizing_y}}},
 	)
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
@@ -494,9 +497,9 @@ draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 // 2. The value from the top of the style stack (if it exists).
 // 3. The provided default value.
 @(private)
-resolve_value :: proc(user_value: Maybe($T), stack: ^Stack(T, $N), default_value: T) -> T {
-	if val, ok := user_value.?; ok {
-		return val
+resolve_value :: proc(user_value: ^$T, stack: ^Stack(T, $N), default_value: T) -> T {
+	if user_value != nil {
+		return user_value^
 	}
 
 	if val, ok := peek(stack); ok {
@@ -507,29 +510,42 @@ resolve_value :: proc(user_value: Maybe($T), stack: ^Stack(T, $N), default_value
 }
 
 @(private)
-resolve_default :: proc(user_value: Maybe($T)) -> T {
-	if val, ok := user_value.?; ok {
-		return val
+resolve_default :: proc(user_value: ^$T) -> T {
+	if user_value != nil {
+		return user_value^
 	}
 
 	return T{}
 }
 
 button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Comm {
+	sizing_grow := Sizing {
+		kind = .Grow,
+	}
+
+	text_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+
+	text_alignment_x := Alignment_X.Center
+
+	background_fill := base.Fill(base.Color{24, 24, 24, 255})
+	text_fill := base.Fill(base.Color{255, 128, 255, 128})
+	capability_flags := Capability_Flags{.Background, .Active_Animation, .Hot_Animation}
+
 	default_opts := Config_Options {
 		layout = {
-			sizing = {Sizing{kind = .Grow}, Sizing{kind = .Grow}},
-			text_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
-			text_alignment_x = .Center,
+			sizing = {&sizing_grow, &sizing_grow},
+			text_padding = &text_padding,
+			text_alignment_x = &text_alignment_x,
 		},
-		// DON'T REMOVE UNTIL Maybe(UnionType) ISSUE IS RESOLVED
-		//background_fill = base.Color{24, 24, 24, 255},
-		//text_fill = base.Color{255, 128, 255, 128},
-		capability_flags = Capability_Flags{.Background, .Active_Animation, .Hot_Animation},
+		background_fill = &background_fill,
+		text_fill = &text_fill,
+		capability_flags = &capability_flags,
 	}
-	// DON'T REMOVE UNTIL Maybe() ISSUE IS RESOLVED
-	default_opts.background_fill = base.Color{24, 24, 24, 255}
-	default_opts.text_fill = base.Color{255, 255, 255, 255}
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 
