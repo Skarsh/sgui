@@ -324,6 +324,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 
 				ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 				ui.push_corner_radius(ctx, 10); defer ui.pop_corner_radius(ctx)
+				ui.push_clip_config(ctx, {{true, true}}); defer ui.pop_clip_config(ctx)
 
 				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
 

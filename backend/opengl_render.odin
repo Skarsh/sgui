@@ -1,6 +1,7 @@
 package backend
 
 import "core:log"
+import "core:math"
 import "core:math/linalg"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl2"
@@ -540,8 +541,17 @@ opengl_render_end :: proc(
 
 			// NOTE(Thomas): gl.Scissor works in OpenGL coordinate system
 			// having (0, 0) in the lower left corner, so we have to transform.
-			scissor_y := render_data.window_size.y - (rect.y + rect.h)
-			gl.Scissor(rect.x, scissor_y, rect.w, rect.h)
+			scissor_y := math.clamp(
+				render_data.window_size.y - (rect.y + rect.h),
+				0,
+				render_data.window_size.y,
+			)
+			gl.Scissor(
+				rect.x,
+				scissor_y,
+				math.clamp(rect.w, 0, render_data.window_size.x),
+				math.clamp(rect.h, 0, render_data.window_size.y),
+			)
 		case ui.Command_Pop_Scissor:
 			flush_render(render_data, batch)
 			reset_batch(&batch)
@@ -554,8 +564,17 @@ opengl_render_end :: proc(
 				gl.Scissor(0, 0, render_data.window_size.x, render_data.window_size.y)
 			} else {
 				rect := render_data.scissor_stack[len(render_data.scissor_stack) - 1]
-				scissor_y := render_data.window_size.y - (rect.y + rect.h)
-				gl.Scissor(rect.x, scissor_y, rect.w, rect.h)
+				scissor_y := math.clamp(
+					render_data.window_size.y - (rect.y + rect.h),
+					0,
+					render_data.window_size.y,
+				)
+				gl.Scissor(
+					rect.x,
+					scissor_y,
+					math.clamp(rect.w, 0, render_data.window_size.x),
+					math.clamp(rect.h, 0, render_data.window_size.y),
+				)
 			}
 		}
 	}
