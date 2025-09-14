@@ -75,7 +75,7 @@ deinit :: proc(ctx: ^Context) {
 	deinit_render_ctx(&ctx.render_ctx)
 }
 
-// TODO(Thomas): Putting process events here to make it easy to 
+// TODO(Thomas): Putting process events here to make it easy to
 // call resize procedures for the rendering. This does break
 // the intended setup with all of the event stuff living inside IO though.
 // TODO(Thomas): We should use our own Event type here instead of being
