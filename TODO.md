@@ -1,13 +1,12 @@
 # TODOs
 
 ## Active
-* Clipping in the opengl backend
+* Danger Button in `build_styled_ui` doesn't move the button word onto its own line when shrinked.
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.
     Would text just having a sensible default styling be enough?
 
 ## Bugs
-* Danger Button in `build_styled_ui` doesn't move the button word onto its own line when shrinked.
 * When squashing text elements it behaves weird, and doesn't clip properly
 * container proc doesn't seem to work with pushed sizes
 
