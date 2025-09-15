@@ -541,8 +541,23 @@ opengl_render_end :: proc(
 			flush_render(render_data, batch)
 			reset_batch(&batch)
 
-			append(&render_data.scissor_stack, val.rect)
-			rect := val.rect
+			// NOTE(Thomas): Need to find the intersection of the current scissor rect
+			// and the new scissor because the intersection could be more constrained.
+			// e.g. the child container is being pushed out to the side due to resizing
+			// then the child container scissor will no longer be contained by the parent
+			// container and it will overflow. Doing the intersection between those two
+			// scissor rects will ensure that the smallest / most constrained scissor rect
+			// between those two are being used.
+			new_rect := val.rect
+
+			if len(render_data.scissor_stack) > 0 {
+				current_scissor := render_data.scissor_stack[len(render_data.scissor_stack) - 1]
+				new_rect = base.intersect_rects(new_rect, current_scissor)
+			}
+
+			append(&render_data.scissor_stack, new_rect)
+
+			rect := new_rect
 
 			// NOTE(Thomas): gl.Scissor works in OpenGL coordinate system
 			// having (0, 0) in the lower left corner, so we have to transform.
