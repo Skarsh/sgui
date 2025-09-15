@@ -345,7 +345,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	// NOTE(Thomas): We don't clip the current element, it's only for its children elements
 	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
 	if clipping_this_element {
 		scissor_rect := base.Rect {
