@@ -7,6 +7,7 @@
     Would text just having a sensible default styling be enough?
 
 ## Bugs
+* Danger Button in `build_styled_ui` doesn't move the button word onto its own line when shrinked.
 * When squashing text elements it behaves weird, and doesn't clip properly
 * container proc doesn't seem to work with pushed sizes
 
