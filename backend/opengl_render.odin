@@ -533,6 +533,11 @@ opengl_render_end :: proc(
 
 			batch.vertex_offset += 4
 		case ui.Command_Push_Scissor:
+			// NOTE(Thomas): We'll now flush every time we get a scissor command.
+			// If a lot of different ui elements has clipping enabled, then this
+			// will cause batching to be inefficient. There is probably a way of
+			// optimizing this, but we'll wait until we at least encounter a case
+			// were this somewhat is an issue.
 			flush_render(render_data, batch)
 			reset_batch(&batch)
 

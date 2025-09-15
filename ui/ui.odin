@@ -345,8 +345,30 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	cap_flags := element.config.capability_flags
+	// NOTE(Thomas): We don't clip the current element, it's only for its children elements
+	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
+	if clipping_this_element {
+		scissor_rect := base.Rect {
+			x = i32(element.position.x),
+			y = i32(element.position.y),
+			w = i32(element.size.x),
+			h = i32(element.size.y),
+		}
 
+		if !element.config.clip.clip_axes.x {
+			scissor_rect.x = 0
+			scissor_rect.w = ctx.window_size.x
+		}
+
+		if !element.config.clip.clip_axes.y {
+			scissor_rect.y = 0
+			scissor_rect.h = ctx.window_size.y
+		}
+
+		append(&ctx.command_queue, Command_Push_Scissor{rect = scissor_rect})
+	}
+
+	cap_flags := element.config.capability_flags
 	final_bg_fill := element.fill
 
 	// TODO(Thomas): Implement Gradient case.
@@ -440,30 +462,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 
-	// NOTE(Thomas): We don't clip the current element, it's only for its children elements
-	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
-	padding := element.config.layout.padding
-	if clipping_this_element {
-		scissor_rect := base.Rect {
-			x = i32(element.position.x + padding.left),
-			y = i32(element.position.y + padding.top),
-			w = i32(element.size.x - padding.left - padding.right),
-			h = i32(element.size.y - padding.top - padding.bottom),
-		}
-
-		if !element.config.clip.clip_axes.x {
-			scissor_rect.x = 0
-			scissor_rect.w = ctx.window_size.x
-		}
-
-		if !element.config.clip.clip_axes.y {
-			scissor_rect.y = 0
-			scissor_rect.h = ctx.window_size.y
-		}
-
-		append(&ctx.command_queue, Command_Push_Scissor{rect = scissor_rect})
-	}
-
 	for child in element.children {
 		draw_element(ctx, child)
 	}
@@ -531,10 +529,10 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	}
 
 	text_alignment_x := Alignment_X.Center
-
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
 	text_fill := base.Fill(base.Color{255, 128, 255, 128})
 	capability_flags := Capability_Flags{.Background, .Active_Animation, .Hot_Animation}
+	clip := Clip_Config{{true, true}}
 
 	default_opts := Config_Options {
 		layout = {
@@ -545,6 +543,7 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 		background_fill = &background_fill,
 		text_fill = &text_fill,
 		capability_flags = &capability_flags,
+		clip = &clip,
 	}
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
