@@ -126,16 +126,15 @@ flush_line :: proc(
 	assert(line_state.start_token_idx < len(tokens))
 	assert(line_state.end_token_idx < len(tokens))
 	assert(line_state.start_token_idx <= line_state.end_token_idx)
-	line_text := get_text_from_tokens(
-		original_text,
-		tokens[line_state.start_token_idx],
-		tokens[line_state.end_token_idx],
-	)
+
+	start_token := tokens[line_state.start_token_idx]
+	end_token := tokens[line_state.end_token_idx]
+
+	line_text := get_text_from_tokens(original_text, start_token, end_token)
 	line := Text_Line {
 		text   = line_text,
-		start  = tokens[line_state.start_token_idx].start,
-		length = (tokens[line_state.end_token_idx].start +
-			tokens[line_state.end_token_idx].length) - tokens[line_state.start_token_idx].start,
+		start  = start_token.start,
+		length = (end_token.start + end_token.length) - start_token.start,
 		width  = line_state.width,
 		height = measure_string_line_height(ctx, line_text, ctx.font_id),
 	}
@@ -186,7 +185,7 @@ layout_lines :: proc(
 					}
 				} else {
 					// NOTE(Thomas): We don't split on whitespaces.
-					// I don't think this is perfect, but its at least a 
+					// I don't think this is perfect, but its at least a
 					// simple way of handling issues like, a whitespace is put on
 					// a line by itself then a word comes that will overflow, so we'll
 					// just get an empty line. Will probably have to redo this later when
@@ -358,7 +357,7 @@ test_zero_length_token :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_single_characther_token :: proc(t: ^testing.T) {
+test_single_character_token :: proc(t: ^testing.T) {
 	text := "1"
 	token := Text_Token {
 		start  = 0,
@@ -367,6 +366,20 @@ test_single_characther_token :: proc(t: ^testing.T) {
 		kind   = .Word,
 	}
 	expected := "1"
+	actual := token_to_string(text, token)
+	testing.expect_value(t, actual, expected)
+}
+
+@(test)
+test_single_whitespace_token :: proc(t: ^testing.T) {
+	text := " "
+	token := Text_Token {
+		start  = 0,
+		length = 1,
+		width  = 0,
+		kind   = .Whitespace,
+	}
+	expected := " "
 	actual := token_to_string(text, token)
 	testing.expect_value(t, actual, expected)
 }
