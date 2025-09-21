@@ -1,6 +1,7 @@
 package ui
 
 import "core:log"
+import "core:mem"
 import "core:strings"
 import "core:testing"
 import "core:unicode"
@@ -195,6 +196,7 @@ layout_lines :: proc(
 	tokens: []Text_Token,
 	available_width: f32,
 	lines: ^[dynamic]Text_Line,
+	allocator: mem.Allocator,
 ) {
 
 	// NOTE(Thomas): We use a epsilon when comparing to the max_width (which is the element width)
@@ -205,8 +207,7 @@ layout_lines :: proc(
 	EPSILON :: 0.001
 
 	// TODO(Thomas): Use an arena allocator here that's passed in instead.
-	line_tokens := make([dynamic]Text_Token)
-	defer delete(line_tokens)
+	line_tokens := make([dynamic]Text_Token, allocator)
 
 	line_width: f32 = 0
 
@@ -474,7 +475,7 @@ test_layout_lines_single_word_no_newline :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -509,7 +510,7 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -545,7 +546,7 @@ test_layout_lines_word_after_newline :: proc(t: ^testing.T) {
 
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -588,7 +589,7 @@ test_layout_lines_two_word_no_overflow :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -624,7 +625,7 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -668,7 +669,7 @@ test_layout_lines_two_words_with_newline_and_whitespace_inbetween :: proc(t: ^te
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -707,7 +708,7 @@ test_layout_lines_one_word_matches_max_width_exact :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], 100, &lines)
+	layout_lines(&ctx, text, tokens[:], 100, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -746,7 +747,7 @@ test_layout_lines_single_word_overflows_max_width :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], max_width, &lines)
+	layout_lines(&ctx, text, tokens[:], max_width, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -782,7 +783,7 @@ test_layout_lines_two_words_splits_on_whitespace :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], max_width, &lines)
+	layout_lines(&ctx, text, tokens[:], max_width, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {
@@ -826,7 +827,7 @@ test_layout_lines_multiple_consecutive_newlines :: proc(t: ^testing.T) {
 	expect_tokens(t, tokens[:], expected_tokens)
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(&ctx, text, tokens[:], max_width, &lines)
+	layout_lines(&ctx, text, tokens[:], max_width, &lines, context.temp_allocator)
 
 	expected_lines := []Text_Line {
 		Text_Line {

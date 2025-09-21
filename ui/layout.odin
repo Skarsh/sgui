@@ -158,7 +158,7 @@ element_equip_text :: proc(ctx: ^Context, element: ^UI_Element, text: string) {
 
 	lines := make([dynamic]Text_Line, context.temp_allocator)
 
-	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines)
+	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines, context.temp_allocator)
 
 	largest_line_width: f32 = 0
 	text_height: f32 = 0
@@ -737,7 +737,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 
 		lines := make([dynamic]Text_Line, allocator)
 		available_width := element.size.x - text_padding.left - text_padding.right
-		layout_lines(ctx, text, tokens[:], available_width, &lines)
+		layout_lines(ctx, text, tokens[:], available_width, &lines, allocator)
 
 		element.config.content.text_data.lines = lines[:]
 		text_height: f32 = 0
