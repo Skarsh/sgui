@@ -119,23 +119,62 @@ Line_State :: struct {
 flush_line :: proc(
 	ctx: ^Context,
 	original_text: string,
-	line_state: Line_State,
 	tokens: []Text_Token,
 	lines: ^[dynamic]Text_Line,
 ) {
-	assert(line_state.start_token_idx < len(tokens))
-	assert(line_state.end_token_idx < len(tokens))
-	assert(line_state.start_token_idx <= line_state.end_token_idx)
 
-	start_token := tokens[line_state.start_token_idx]
-	end_token := tokens[line_state.end_token_idx]
+	// TODO(Thomas): What if the user wants to specify a set of empty lines
+	// e.g. separator lines?
+	if len(tokens) == 0 {
+		return
+	}
 
+
+	start_word_idx := 0
+	end_word_idx := 0
+	found_word := false
+
+	// Find first word token
+	for token, i in tokens {
+		if token.kind != .Whitespace {
+			start_word_idx = i
+			found_word = true
+			break
+		}
+	}
+
+	// Find last word token
+	#reverse for token, i in tokens {
+		if token.kind != .Whitespace {
+			end_word_idx = i
+			found_word = true
+			break
+		}
+	}
+
+	// If we found no word, that means that the line only contains
+	// whitespace, which is not valid.
+	if found_word == false {
+		return
+	}
+
+	// Trim beginning and trailing whitespace by slicing
+	trimmed_tokens := tokens[start_word_idx:end_word_idx + 1]
+
+	// Calculate the line width
+	line_width: f32 = 0
+	for token in trimmed_tokens {
+		line_width += token.width
+	}
+
+	start_token := trimmed_tokens[0]
+	end_token := trimmed_tokens[len(trimmed_tokens) - 1]
 	line_text := get_text_from_tokens(original_text, start_token, end_token)
 	line := Text_Line {
 		text   = line_text,
 		start  = start_token.start,
 		length = (end_token.start + end_token.length) - start_token.start,
-		width  = line_state.width,
+		width  = line_width,
 		height = measure_string_line_height(ctx, line_text, ctx.font_id),
 	}
 	append(lines, line)
@@ -145,11 +184,9 @@ layout_lines :: proc(
 	ctx: ^Context,
 	text: string,
 	tokens: []Text_Token,
-	max_width: f32,
+	available_width: f32,
 	lines: ^[dynamic]Text_Line,
 ) {
-
-	line_state := Line_State{}
 
 	// NOTE(Thomas): We use a epsilon when comparing to the max_width (which is the element width)
 	// This is necessary because for growing elements like text, the size we calculate here
@@ -158,62 +195,33 @@ layout_lines :: proc(
 	// and numerical instability won't be an issue.
 	EPSILON :: 0.001
 
-	for token, i in tokens {
+	// TODO(Thomas): Use an arena allocator here that's passed in instead.
+	line_tokens := make([dynamic]Text_Token)
+	defer delete(line_tokens)
+
+	line_width: f32 = 0
+
+	for token in tokens {
 		switch token.kind {
 		case .Newline:
-			line_state.end_token_idx = i
-			flush_line(ctx, text, line_state, tokens, lines)
-			line_state = Line_State {
-				start_token_idx = i + 1,
-				end_token_idx   = i + 1,
-			}
-		case .Word, .Whitespace:
-			// Here we need to check if the word fits on the current line, if not we have to make a new line
-			// and put the word there
-			//NOTE(Thomas): Add epsilon here to make sure that if it should fit on one line it will.
-			if line_state.width + token.width > max_width + EPSILON {
-
-				// NOTE(Thomas): If the line is a single word we use the token.width
-				// instead of the line_width, since line_width would be 0.
-				if line_state.word_count == 0 {
-					line_state.width = token.width
-					flush_line(ctx, text, line_state, tokens, lines)
-					line_state = Line_State {
-						word_count      = 1,
-						start_token_idx = i + 1,
-						end_token_idx   = i + 1,
-					}
-				} else {
-					// NOTE(Thomas): We don't split on whitespaces.
-					// I don't think this is perfect, but its at least a
-					// simple way of handling issues like, a whitespace is put on
-					// a line by itself then a word comes that will overflow, so we'll
-					// just get an empty line. Will probably have to redo this later when
-					// things have solidified more.
-					if token.kind == .Word {
-						flush_line(ctx, text, line_state, tokens, lines)
-						line_state = Line_State {
-							start_token_idx = i,
-							end_token_idx   = i,
-							width           = token.width,
-							word_count      = 1,
-						}
-					}
-				}
-
+			flush_line(ctx, text, line_tokens[:], lines)
+			clear_dynamic_array(&line_tokens)
+			line_width = 0
+		case .Whitespace, .Word:
+			if line_width + token.width > available_width + EPSILON {
+				flush_line(ctx, text, line_tokens[:], lines)
+				clear_dynamic_array(&line_tokens)
+				append(&line_tokens, token)
+				line_width = token.width
 			} else {
-				line_state.width += token.width
-				line_state.end_token_idx = i
-				if token.kind == .Word {
-					line_state.word_count += 1
-				}
+				append(&line_tokens, token)
+				line_width += token.width
 			}
 		}
 	}
 
-	if line_state.start_token_idx < len(tokens) && line_state.word_count > 0 {
-		line_state.end_token_idx = len(tokens) - 1
-		flush_line(ctx, text, line_state, tokens, lines)
+	if line_width > 0 {
+		flush_line(ctx, text, line_tokens[:], lines)
 	}
 }
 
@@ -495,9 +503,9 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello\n",
+			text = "Hello",
 			start = 0,
-			length = 6,
+			length = 5,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -531,9 +539,9 @@ test_layout_lines_word_after_newline :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello\n",
+			text = "Hello",
 			start = 0,
-			length = 6,
+			length = 5,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -610,16 +618,16 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello ",
+			text = "Hello",
 			start = 0,
-			length = 6,
-			width = 6 * MOCK_CHAR_WIDTH,
+			length = 5,
+			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
 		Text_Line {
-			text = "world\n",
+			text = "world",
 			start = 6,
-			length = 6,
+			length = 5,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -629,7 +637,7 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 }
 
 @(test)
-test_layout_lines_two_words_with_newline_inbetween :: proc(t: ^testing.T) {
+test_layout_lines_two_words_with_newline_and_whitespace_inbetween :: proc(t: ^testing.T) {
 
 	ctx := Context{}
 
@@ -654,17 +662,17 @@ test_layout_lines_two_words_with_newline_inbetween :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello\n",
+			text = "Hello",
 			start = 0,
-			length = 6,
+			length = 5,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
 		Text_Line {
-			text = " world\n",
-			start = 6,
-			length = 7,
-			width = 6 * MOCK_CHAR_WIDTH,
+			text = "world",
+			start = 7,
+			length = 5,
+			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
 	}
@@ -768,10 +776,10 @@ test_layout_lines_two_words_splits_on_whitespace :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Button ",
+			text = "Button",
 			start = 0,
-			length = 7,
-			width = 7 * MOCK_CHAR_WIDTH,
+			length = 6,
+			width = 6 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
 		Text_Line {
