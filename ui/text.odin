@@ -6,6 +6,8 @@ import "core:testing"
 import "core:unicode"
 import "core:unicode/utf8"
 
+import base "../base"
+
 Token_Kind :: enum u8 {
 	Word,
 	Whitespace,
@@ -122,23 +124,15 @@ flush_line :: proc(
 	tokens: []Text_Token,
 	lines: ^[dynamic]Text_Line,
 ) {
-
-	// TODO(Thomas): What if the user wants to specify a set of empty lines
-	// e.g. separator lines?
-	if len(tokens) == 0 {
-		return
-	}
-
-
 	start_word_idx := 0
 	end_word_idx := 0
-	found_word := false
+	found_non_whitespace := false
 
 	// Find first word token
 	for token, i in tokens {
 		if token.kind != .Whitespace {
 			start_word_idx = i
-			found_word = true
+			found_non_whitespace = true
 			break
 		}
 	}
@@ -147,14 +141,14 @@ flush_line :: proc(
 	#reverse for token, i in tokens {
 		if token.kind != .Whitespace {
 			end_word_idx = i
-			found_word = true
+			found_non_whitespace = true
 			break
 		}
 	}
 
 	// If we found no word, that means that the line only contains
 	// whitespace, which is not valid.
-	if found_word == false {
+	if found_non_whitespace == false {
 		return
 	}
 
@@ -170,13 +164,28 @@ flush_line :: proc(
 	start_token := trimmed_tokens[0]
 	end_token := trimmed_tokens[len(trimmed_tokens) - 1]
 	line_text := get_text_from_tokens(original_text, start_token, end_token)
+
+	line_height: f32
+	if base.approx_equal(line_width, 0, 0.001) {
+		// This is a empty line, made from two consecutive newlines
+		// TODO(Thomas): Just using "A" as the height of the empty line
+		// here. Is there a better approach? At least we don't have to
+		// calculate this every time, this could be cached for the font_id
+		// and font size.
+		line_height = measure_string_line_height(ctx, "A", ctx.font_id)
+	} else {
+		line_height = measure_string_line_height(ctx, line_text, ctx.font_id)
+	}
+
 	line := Text_Line {
 		text   = line_text,
 		start  = start_token.start,
 		length = (end_token.start + end_token.length) - start_token.start,
 		width  = line_width,
-		height = measure_string_line_height(ctx, line_text, ctx.font_id),
+		height = line_height,
 	}
+
+
 	append(lines, line)
 }
 
@@ -204,6 +213,7 @@ layout_lines :: proc(
 	for token in tokens {
 		switch token.kind {
 		case .Newline:
+			append(&line_tokens, token)
 			flush_line(ctx, text, line_tokens[:], lines)
 			clear_dynamic_array(&line_tokens)
 			line_width = 0
@@ -503,9 +513,9 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello",
+			text = "Hello\n",
 			start = 0,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -539,9 +549,9 @@ test_layout_lines_word_after_newline :: proc(t: ^testing.T) {
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello",
+			text = "Hello\n",
 			start = 0,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -625,9 +635,9 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 			height = MOCK_LINE_HEIGHT,
 		},
 		Text_Line {
-			text = "world",
+			text = "world\n",
 			start = 6,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -662,16 +672,16 @@ test_layout_lines_two_words_with_newline_and_whitespace_inbetween :: proc(t: ^te
 
 	expected_lines := []Text_Line {
 		Text_Line {
-			text = "Hello",
+			text = "Hello\n",
 			start = 0,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
 		Text_Line {
-			text = "world",
+			text = "world\n",
 			start = 7,
-			length = 5,
+			length = 6,
 			width = 5 * MOCK_CHAR_WIDTH,
 			height = MOCK_LINE_HEIGHT,
 		},
@@ -791,5 +801,43 @@ test_layout_lines_two_words_splits_on_whitespace :: proc(t: ^testing.T) {
 		},
 	}
 
+	expect_lines(t, lines[:], expected_lines)
+}
+
+@(test)
+test_layout_lines_multiple_consecutive_newlines :: proc(t: ^testing.T) {
+	ctx := Context{}
+	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+
+	text := "A line\n\n\n"
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(&ctx, text, 0, &tokens)
+	max_width: f32 = 60
+
+	expected_tokens := []Text_Token {
+		Text_Token{start = 0, length = 1, width = 1 * MOCK_CHAR_WIDTH, kind = .Word},
+		Text_Token{start = 1, length = 1, width = 1 * MOCK_CHAR_WIDTH, kind = .Whitespace},
+		Text_Token{start = 2, length = 4, width = 4 * MOCK_CHAR_WIDTH, kind = .Word},
+		Text_Token{start = 6, length = 1, width = 0, kind = .Newline},
+		Text_Token{start = 7, length = 1, width = 0, kind = .Newline},
+		Text_Token{start = 8, length = 1, width = 0, kind = .Newline},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+	layout_lines(&ctx, text, tokens[:], max_width, &lines)
+
+	expected_lines := []Text_Line {
+		Text_Line {
+			text = "A line\n",
+			start = 0,
+			length = 7,
+			width = 6 * MOCK_CHAR_WIDTH,
+			height = MOCK_LINE_HEIGHT,
+		},
+		Text_Line{text = "\n", start = 7, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
+		Text_Line{text = "\n", start = 8, length = 1, width = 0, height = MOCK_LINE_HEIGHT},
+	}
 	expect_lines(t, lines[:], expected_lines)
 }

@@ -729,7 +729,6 @@ resolve_percentage_sizing :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
-
 	if .Text in element.config.capability_flags {
 		text_padding := element.config.layout.text_padding
 		text := element.config.content.text_data.text
