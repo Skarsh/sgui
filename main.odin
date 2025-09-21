@@ -192,7 +192,8 @@ main :: proc() {
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
 		//build_styled_ui(&app_state)
-		build_button_debug(&app_state)
+		//build_button_debug(&app_state)
+		build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
@@ -325,7 +326,7 @@ build_button_debug :: proc(app_state: ^App_State) {
 						ctx,
 						base.Gradient{{53, 0, 104, 230}, {255, 105, 120, 210}, {0, 1}},
 					); defer ui.pop_background_fill(ctx)
-					ui.button(ctx, "button1", "Button A")
+					ui.button(ctx, "button1", "Buutton A")
 
 					ui.push_background_fill(
 						ctx,
@@ -352,6 +353,77 @@ build_button_debug :: proc(app_state: ^App_State) {
 	)
 
 
+	ui.end(ctx)
+}
+
+build_grow_ui :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+	sizing := [2]ui.Sizing{ui.Sizing{kind = .Fixed, value = 400}, ui.Sizing{kind = .Fit}}
+	padding := ui.Padding{10, 10, 10, 10}
+	child_gap: f32 = 10
+	background_fill := base.Fill(base.Color{255, 255, 255, 255})
+
+	ui.push_capability_flags(
+		ctx,
+		ui.Capability_Flags{.Background},
+	); defer ui.pop_capability_flags(ctx)
+	ui.container(
+		&app_state.ctx,
+		"parent",
+		ui.Config_Options {
+			layout = {sizing = {&sizing.x, &sizing.y}, padding = &padding, child_gap = &child_gap},
+			background_fill = &background_fill,
+		},
+		proc(ctx: ^ui.Context) {
+			child_1_sizing := [2]ui.Sizing {
+				ui.Sizing{kind = .Grow},
+				ui.Sizing{kind = .Fixed, value = 100},
+			}
+			child_1_background_fill := base.Fill(base.Color{255, 0, 0, 255})
+
+
+			ui.container(
+				ctx,
+				"child_1",
+				ui.Config_Options {
+					layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}},
+					background_fill = &child_1_background_fill,
+				},
+			)
+
+			child_2_sizing := [2]ui.Sizing {
+				ui.Sizing{kind = .Fixed, value = 100},
+				ui.Sizing{kind = .Fixed, value = 100},
+			}
+			child_2_background_fill := base.Fill(base.Color{0, 255, 0, 255})
+
+			ui.container(
+				ctx,
+				"child_2",
+				ui.Config_Options {
+					layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}},
+					background_fill = &child_2_background_fill,
+				},
+			)
+
+			child_3_sizing := [2]ui.Sizing {
+				ui.Sizing{kind = .Grow, max_value = 50},
+				ui.Sizing{kind = .Grow},
+			}
+			child_3_background_fill := base.Fill(base.Color{0, 0, 255, 255})
+
+			ui.container(
+				ctx,
+				"child_3",
+				ui.Config_Options {
+					layout = {sizing = {&child_3_sizing.x, &child_3_sizing.y}},
+					background_fill = &child_3_background_fill,
+				},
+			)
+
+		},
+	)
 	ui.end(ctx)
 }
 
