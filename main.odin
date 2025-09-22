@@ -192,8 +192,8 @@ main :: proc() {
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
 		//build_styled_ui(&app_state)
-		//build_button_debug(&app_state)
-		build_grow_ui(&app_state)
+		build_resize_bug_repro(&app_state)
+		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
@@ -289,23 +289,20 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 	ui.end(ctx)
 }
 
-build_button_debug :: proc(app_state: ^App_State) {
+build_resize_bug_repro :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_sizing_x(ctx, {kind = .Grow}); defer ui.pop_sizing_x(ctx)
-	ui.push_sizing_y(ctx, {kind = .Fit}); defer ui.pop_sizing_y(ctx)
 	main_container_sizing := ui.Sizing {
 		kind  = .Percentage_Of_Parent,
 		value = 1.0,
 	}
 
-	ui.push_sizing_x(ctx, {kind = .Grow}); defer ui.pop_sizing_x(ctx)
-	ui.push_sizing_y(ctx, {kind = .Fit}); defer ui.pop_sizing_y(ctx)
-
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 
 	ui.push_background_fill(ctx, base.Color{25, 25, 30, 255}); defer ui.pop_background_fill(ctx)
+	ui.push_layout_direction(ctx, .Left_To_Right)
+
 	ui.container(
 		ctx,
 		"main_container",
@@ -317,38 +314,45 @@ build_button_debug :: proc(app_state: ^App_State) {
 				base.Color{80, 50, 60, 255},
 			); defer ui.pop_background_fill(ctx)
 
+
 			ui.push_padding(ctx, {10, 10, 10, 10}); defer ui.pop_padding(ctx)
+
+			// First container
+			ui.push_background_fill(
+				ctx,
+				base.Color{255, 0, 0, 255},
+			); defer ui.pop_background_fill(ctx)
+
+			first_container_sizing := [2]ui.Sizing {
+				ui.Sizing{kind = .Grow, value = 100, min_value = 100},
+				ui.Sizing{kind = .Grow, value = 100},
+			}
 			ui.container(
 				ctx,
-				"button_panel",
-				proc(ctx: ^ui.Context) {
-					ui.push_background_fill(
-						ctx,
-						base.Gradient{{53, 0, 104, 230}, {255, 105, 120, 210}, {0, 1}},
-					); defer ui.pop_background_fill(ctx)
-					ui.button(ctx, "button1", "Buutton A")
-
-					ui.push_background_fill(
-						ctx,
-						base.Gradient{{81, 163, 163, 255}, {117, 72, 94, 210}, {0, 1}},
-					); defer ui.pop_background_fill(ctx)
-					ui.button(ctx, "button2", "Button B")
-
-					//ui.push_background_fill(
-					//	ctx,
-					//	base.Color{150, 50, 50, 255},
-					//); defer ui.pop_background_fill(ctx)
-
-					//ui.push_background_fill(
-					//	ctx,
-					//	base.Color{255, 144, 101, 255},
-					//); defer ui.pop_background_fill(ctx)
-					//text_fill := base.Fill(base.Color{255, 255, 255, 255})
-					//ui.button(ctx, "button3", "Button C", {text_fill = &text_fill})
-					//ui.pop_background_fill(ctx)
+				"first_container",
+				ui.Config_Options {
+					layout = {sizing = {&first_container_sizing.x, &first_container_sizing.y}},
 				},
 			)
 
+			// Second container
+
+			ui.push_background_fill(
+				ctx,
+				base.Color{0, 0, 255, 255},
+			); defer ui.pop_background_fill(ctx)
+
+			second_container_sizing := [2]ui.Sizing {
+				ui.Sizing{kind = .Grow, value = 150},
+				ui.Sizing{kind = .Grow, value = 150},
+			}
+			ui.container(
+				ctx,
+				"second_container",
+				ui.Config_Options {
+					layout = {sizing = {&second_container_sizing.x, &second_container_sizing.y}},
+				},
+			)
 		},
 	)
 

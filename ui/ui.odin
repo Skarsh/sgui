@@ -231,6 +231,7 @@ end :: proc(ctx: ^Context) {
 
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
+
 	// Resize widths
 	resize_child_elements_for_axis(ctx.root_element, .X)
 
