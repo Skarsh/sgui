@@ -192,7 +192,8 @@ main :: proc() {
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
 		//build_styled_ui(&app_state)
-		build_resize_bug_repro(&app_state)
+		build_percentage_of_parent_ui(&app_state)
+		//build_resize_bug_repro(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
@@ -356,6 +357,43 @@ build_resize_bug_repro :: proc(app_state: ^App_State) {
 		},
 	)
 
+	ui.end(ctx)
+}
+
+build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+
+	ui.push_capability_flags(
+		ctx,
+		ui.Capability_Flags{.Background},
+	); defer ui.pop_capability_flags(ctx)
+
+	ui.push_background_fill(ctx, base.Color{255, 0, 0, 255}); defer ui.pop_background_fill(ctx)
+
+	// Child 1
+	child_1_sizing := [2]ui.Sizing {
+		{kind = .Percentage_Of_Parent, value = 0.5},
+		{kind = .Percentage_Of_Parent, value = 0.5},
+	}
+	ui.container(
+		ctx,
+		"child_1",
+		ui.Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
+	)
+
+	ui.push_background_fill(ctx, base.Color{0, 0, 255, 255}); defer ui.pop_background_fill(ctx)
+
+	// Child 2
+	child_2_sizing := [2]ui.Sizing {
+		{kind = .Percentage_Of_Parent, value = 0.5},
+		{kind = .Percentage_Of_Parent, value = 0.5},
+	}
+	ui.container(
+		ctx,
+		"child_2",
+		ui.Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
+	)
 
 	ui.end(ctx)
 }
