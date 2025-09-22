@@ -2570,3 +2570,245 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 	}
 }
+
+@(test)
+test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		parent_width:     f32,
+		parent_height:    f32,
+		parent_pos:       base.Vec2,
+		child_gap:        f32,
+		child_1_pct_x:    f32,
+		child_1_pct_y:    f32,
+		child_2_pct_x:    f32,
+		child_2_pct_y:    f32,
+		child_3_pct_x:    f32,
+		child_3_pct_y:    f32,
+		layout_direction: Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		parent_width     = 100,
+		parent_height    = 100,
+		parent_pos       = {0, 0},
+		child_1_pct_x    = 0.5,
+		child_1_pct_y    = 0.5,
+		child_2_pct_x    = 0.5,
+		child_2_pct_y    = 0.5,
+		child_3_pct_x    = 0,
+		child_3_pct_y    = 0,
+		layout_direction = .Left_To_Right,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		parent_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.parent_width},
+			{kind = .Fixed, value = data.parent_height},
+		}
+
+		container(
+			ctx,
+			"parent",
+			Config_Options {
+				layout = {
+					sizing = {&parent_sizing.x, &parent_sizing.y},
+					layout_direction = &data.layout_direction,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				// Child 1
+				child_1_sizing := [2]Sizing {
+					{kind = .Percentage_Of_Parent, value = data.child_1_pct_x},
+					{kind = .Percentage_Of_Parent, value = data.child_1_pct_y},
+				}
+				container(
+					ctx,
+					"child_1",
+					Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
+				)
+
+				// Child 2
+				child_2_sizing := [2]Sizing {
+					{kind = .Percentage_Of_Parent, value = data.child_2_pct_x},
+					{kind = .Percentage_Of_Parent, value = data.child_2_pct_y},
+				}
+				container(
+					ctx,
+					"child_2",
+					Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		// No padding so its the same as the parent pos
+		child_1_pos := base.Vec2{data.parent_pos.x, data.parent_pos.y}
+		child_1_size := base.Vec2 {
+			data.parent_width * data.child_1_pct_x,
+			data.parent_height * data.child_1_pct_y,
+		}
+
+		child_2_pos := base.Vec2{child_1_pos.x + child_1_size.x, child_1_pos.y}
+
+		child_2_size := base.Vec2 {
+			data.parent_width * data.child_2_pct_x,
+			data.parent_height * data.child_2_pct_y,
+		}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "parent",
+					pos = data.parent_pos,
+					size = {data.parent_width, data.parent_height},
+					children = []Expected_Element {
+						{
+							id = "child_1",
+							pos = child_1_pos,
+							size = child_1_size,
+							children = []Expected_Element{},
+						},
+						{
+							id = "child_2",
+							pos = child_2_pos,
+							size = child_2_size,
+							children = []Expected_Element{},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		parent_width:     f32,
+		parent_height:    f32,
+		parent_pos:       base.Vec2,
+		child_gap:        f32,
+		child_1_pct_x:    f32,
+		child_1_pct_y:    f32,
+		child_2_pct_x:    f32,
+		child_2_pct_y:    f32,
+		child_3_pct_x:    f32,
+		child_3_pct_y:    f32,
+		layout_direction: Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		parent_width     = 100,
+		parent_height    = 100,
+		parent_pos       = {0, 0},
+		child_1_pct_x    = 0.5,
+		child_1_pct_y    = 0.5,
+		child_2_pct_x    = 0.5,
+		child_2_pct_y    = 0.5,
+		child_3_pct_x    = 0,
+		child_3_pct_y    = 0,
+		layout_direction = .Top_To_Bottom,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		parent_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.parent_width},
+			{kind = .Fixed, value = data.parent_height},
+		}
+
+		container(
+			ctx,
+			"parent",
+			Config_Options {
+				layout = {
+					sizing = {&parent_sizing.x, &parent_sizing.y},
+					layout_direction = &data.layout_direction,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				// Child 1
+				child_1_sizing := [2]Sizing {
+					{kind = .Percentage_Of_Parent, value = data.child_1_pct_x},
+					{kind = .Percentage_Of_Parent, value = data.child_1_pct_y},
+				}
+				container(
+					ctx,
+					"child_1",
+					Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
+				)
+
+				// Child 2
+				child_2_sizing := [2]Sizing {
+					{kind = .Percentage_Of_Parent, value = data.child_2_pct_x},
+					{kind = .Percentage_Of_Parent, value = data.child_2_pct_y},
+				}
+				container(
+					ctx,
+					"child_2",
+					Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		// No padding so its the same as the parent pos
+		child_1_pos := base.Vec2{data.parent_pos.x, data.parent_pos.y}
+		child_1_size := base.Vec2 {
+			data.parent_width * data.child_1_pct_x,
+			data.parent_height * data.child_1_pct_y,
+		}
+
+		child_2_pos := base.Vec2{child_1_pos.x, child_1_pos.y + child_1_size.y}
+
+		child_2_size := base.Vec2 {
+			data.parent_width * data.child_2_pct_x,
+			data.parent_height * data.child_2_pct_y,
+		}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "parent",
+					pos = data.parent_pos,
+					size = {data.parent_width, data.parent_height},
+					children = []Expected_Element {
+						{
+							id = "child_1",
+							pos = child_1_pos,
+							size = child_1_size,
+							children = []Expected_Element{},
+						},
+						{
+							id = "child_2",
+							pos = child_2_pos,
+							size = child_2_size,
+							children = []Expected_Element{},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
