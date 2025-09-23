@@ -1822,6 +1822,86 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+@(test)
+test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		parent_width:     f32,
+		parent_height:    f32,
+		layout_direction: Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		parent_width     = 100,
+		parent_height    = 100,
+		layout_direction = .Left_To_Right,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		parent_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.parent_width},
+			{kind = .Fixed, value = data.parent_height},
+		}
+		container(
+			ctx,
+			"parent",
+			Config_Options{layout = {sizing = {&parent_sizing.x, &parent_sizing.y}}},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				child_1_sizing := [2]Sizing{{kind = .Grow, min_value = 50}, {kind = .Grow}}
+				container(
+					ctx,
+					"child_1",
+					Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
+				)
+
+				child_2_sizing := [2]Sizing{{kind = .Grow, value = 70}, {kind = .Grow}}
+
+				container(
+					ctx,
+					"child_2",
+					Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
+				)
+			},
+		)
+	}
+
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		parent_pos := base.Vec2{0, 0}
+		parent_size := base.Vec2{data.parent_width, data.parent_height}
+
+		// Same pos since no padding etc
+		child_1_pos := parent_pos
+		child_1_size := base.Vec2{50, 100}
+
+		child_2_pos := base.Vec2{child_1_pos.x + child_1_size.x, parent_pos.y}
+		child_2_size := base.Vec2{50, 100}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "parent",
+					pos = parent_pos,
+					size = parent_size,
+					children = []Expected_Element {
+						{id = "child_1", pos = child_1_pos, size = child_1_size, children = {}},
+						{id = "child_2", pos = child_2_pos, size = child_2_size, children = {}},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+
+}
 
 @(test)
 test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T) {
@@ -1986,8 +2066,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 				text(ctx, "text_1", "First", min_height = data.text_1_min_height)
 
 				grow_box_sizing := [2]Sizing {
-					{kind = .Grow, min_value = data.grow_box_min_height},
 					{kind = .Grow},
+					{kind = .Grow, min_value = data.grow_box_min_height},
 				}
 
 				container(
@@ -1996,7 +2076,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					Config_Options{layout = {sizing = {&grow_box_sizing.x, &grow_box_sizing.y}}},
 				)
 
-				text(ctx, "text_2", "Last", min_width = data.text_2_min_height)
+				text(ctx, "text_2", "Last", min_height = data.text_2_min_height)
 
 			},
 		)
@@ -2800,6 +2880,143 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 							pos = child_2_pos,
 							size = child_2_size,
 							children = []Expected_Element{},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		main_container_width:     f32,
+		main_container_height:    f32,
+		grouping_container_pct_x: f32,
+		grouping_container_pct_y: f32,
+		layout_direction:         Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		main_container_width     = 100,
+		main_container_height    = 100,
+		grouping_container_pct_x = 1.0,
+		grouping_container_pct_y = 1.0,
+		layout_direction         = .Left_To_Right,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		main_container_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.main_container_width},
+			{kind = .Fixed, value = data.main_container_height},
+		}
+
+		container(
+			ctx,
+			"main_container",
+			Config_Options {
+				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				grouping_container_sizing := [2]Sizing {
+					{kind = .Percentage_Of_Parent, value = 1.0},
+					{kind = .Percentage_Of_Parent, value = 1.0},
+				}
+				container(
+					ctx,
+					"grouping_container",
+					Config_Options {
+						layout = {
+							sizing = {&grouping_container_sizing.x, &grouping_container_sizing.y},
+						},
+					},
+					data,
+					proc(ctx: ^Context, data: ^Test_Data) {
+						first_child_sizing := [2]Sizing {
+							{kind = .Grow, min_value = 50},
+							{kind = .Grow},
+						}
+						container(
+							ctx,
+							"first_child",
+							Config_Options {
+								layout = {sizing = {&first_child_sizing.x, &first_child_sizing.y}},
+							},
+						)
+
+						second_child_sizing := [2]Sizing {
+							{kind = .Grow, value = 70},
+							{kind = .Grow},
+						}
+						container(
+							ctx,
+							"second_child",
+							Config_Options {
+								layout = {
+									sizing = {&second_child_sizing.x, &second_child_sizing.y},
+								},
+							},
+						)
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		main_container_pos := base.Vec2{0, 0}
+		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
+
+		// Same pos as main container since no padding etc
+		grouping_container_pos := main_container_pos
+		grouping_container_size := base.Vec2 {
+			main_container_size.x * data.grouping_container_pct_x,
+			main_container_size.y * data.grouping_container_pct_y,
+		}
+
+		// Same pos as grouping container since no padding etc
+		first_child_pos := grouping_container_pos
+		first_child_size := base.Vec2{50, 100}
+
+		second_child_pos := base.Vec2{first_child_pos.x + first_child_size.x, first_child_pos.y}
+		second_child_size := base.Vec2{50, 100}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "main_container",
+					pos = main_container_pos,
+					size = main_container_size,
+					children = []Expected_Element {
+						{
+							id = "grouping_container",
+							pos = grouping_container_pos,
+							size = grouping_container_size,
+							children = []Expected_Element {
+								{
+									id = "first_child",
+									pos = first_child_pos,
+									size = first_child_size,
+									children = []Expected_Element{},
+								},
+								{
+									id = "second_child",
+									pos = second_child_pos,
+									size = second_child_size,
+									children = []Expected_Element{},
+								},
+							},
 						},
 					},
 				},

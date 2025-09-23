@@ -192,8 +192,8 @@ main :: proc() {
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
 		//build_styled_ui(&app_state)
-		build_percentage_of_parent_ui(&app_state)
-		//build_resize_bug_repro(&app_state)
+		//build_percentage_of_parent_ui(&app_state)
+		build_resize_bug_repro(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
@@ -301,58 +301,36 @@ build_resize_bug_repro :: proc(app_state: ^App_State) {
 
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 
-	ui.push_background_fill(ctx, base.Color{25, 25, 30, 255}); defer ui.pop_background_fill(ctx)
-	ui.push_layout_direction(ctx, .Left_To_Right)
+	ui.push_background_fill(ctx, base.Color{75, 75, 30, 255}); defer ui.pop_background_fill(ctx)
+	ui.push_layout_direction(ctx, .Left_To_Right); defer ui.pop_layout_direction(ctx)
 
+	parent_sizing := [2]ui.Sizing{{kind = .Fixed, value = 500}, {kind = .Fixed, value = 500}}
 	ui.container(
 		ctx,
-		"main_container",
-		ui.Config_Options{layout = {sizing = {&main_container_sizing, &main_container_sizing}}},
+		"parent",
+		ui.Config_Options{layout = {sizing = {&parent_sizing.x, &parent_sizing.y}}},
 		proc(ctx: ^ui.Context) {
-
 			ui.push_background_fill(
 				ctx,
-				base.Color{80, 50, 60, 255},
+				base.Color{255, 75, 30, 255},
 			); defer ui.pop_background_fill(ctx)
-
-
-			ui.push_padding(ctx, {10, 10, 10, 10}); defer ui.pop_padding(ctx)
-
-			// First container
-			ui.push_background_fill(
-				ctx,
-				base.Color{255, 0, 0, 255},
-			); defer ui.pop_background_fill(ctx)
-
-			first_container_sizing := [2]ui.Sizing {
-				ui.Sizing{kind = .Grow, value = 100, min_value = 100},
-				ui.Sizing{kind = .Grow, value = 100},
-			}
+			child_1_sizing := [2]ui.Sizing{{kind = .Grow, min_value = 250}, {kind = .Grow}}
 			ui.container(
 				ctx,
-				"first_container",
-				ui.Config_Options {
-					layout = {sizing = {&first_container_sizing.x, &first_container_sizing.y}},
-				},
+				"child_1",
+				ui.Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
 			)
 
-			// Second container
-
 			ui.push_background_fill(
 				ctx,
-				base.Color{0, 0, 255, 255},
+				base.Color{30, 75, 255, 255},
 			); defer ui.pop_background_fill(ctx)
+			child_2_sizing := [2]ui.Sizing{{kind = .Grow, value = 350}, {kind = .Grow}}
 
-			second_container_sizing := [2]ui.Sizing {
-				ui.Sizing{kind = .Grow, value = 150},
-				ui.Sizing{kind = .Grow, value = 150},
-			}
 			ui.container(
 				ctx,
-				"second_container",
-				ui.Config_Options {
-					layout = {sizing = {&second_container_sizing.x, &second_container_sizing.y}},
-				},
+				"child_2",
+				ui.Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
 			)
 		},
 	)
