@@ -573,35 +573,130 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	// simple, and shouldn't be a problem to go back if we want to use something like a
 	// virtual static arena ourselves to ensure the dynamic array stays in place.
 	resizables := small_array.Small_Array(1024, ^UI_Element){}
-
-	remaining_size := calc_remaining_size(element^, axis)
-
 	primary_axis := is_primary_axis(element^, axis)
 
-	is_growing := remaining_size > 0
-
 	if primary_axis {
+
+		// Constraints pass
+		used_space: f32 = 0
+		padding := element.config.layout.padding
+		padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
+		used_space += padding_sum
 		for child in element.children {
 			size_kind := child.config.layout.sizing[axis].kind
-			remaining_size -= child.size[axis]
-
 			if size_kind == .Grow {
-				resizable := false
+				child.size[axis] = clamp(
+					child.size[axis],
+					child.min_size[axis],
+					child.max_size[axis],
+				)
+			}
+			used_space += child.size[axis]
+		}
+		child_gap := calc_child_gap(element^)
+		used_space += child_gap
 
-				if is_growing {
-					resizable = child.size[axis] < child.max_size[axis]
-				} else {
-					resizable = child.size[axis] > child.min_size[axis]
-				}
+		// Calculate delta and filter resizables
+		delta_size := element.size[axis] - used_space
 
-				if resizable {
+		for child in element.children {
+			sizing_kind := child.config.layout.sizing[axis].kind
+			if sizing_kind == .Grow {
+				if (delta_size > 0 && child.size[axis] < child.max_size[axis]) ||
+				   (delta_size < 0 && child.size[axis] > child.min_size[axis]) {
 					small_array.push(&resizables, child)
 				}
 			}
 		}
-		child_gap := calc_child_gap(element^)
-		remaining_size -= child_gap
+
+		// TODO(Thomas): Pretty sure this can be simplified
+		// Distribution pass
+		resize_iter := 0
+		for !base.approx_equal(delta_size, 0, EPSILON) && len(small_array.slice(&resizables)) > 0 {
+			assert(resize_iter < RESIZE_ITER_MAX)
+			resize_iter += 1
+
+			is_growing := delta_size > 0
+
+			size_to_distribute := delta_size
+			if is_growing {
+				smallest := small_array.get(resizables, 0).size[axis]
+				second_smallest := math.INF_F32
+
+				for child in small_array.slice(&resizables) {
+					child_size := child.size[axis]
+					if child_size < smallest {
+						second_smallest = smallest
+						smallest = child_size
+					} else if child_size > smallest {
+						second_smallest = min(second_smallest, child_size)
+						size_to_distribute = second_smallest - smallest
+					}
+				}
+
+				size_to_distribute = min(
+					size_to_distribute,
+					delta_size / f32(len(small_array.slice(&resizables))),
+				)
+
+				// NOTE(Thomas): We iterate in reverse order to ensure that the idx
+				// after one removal will be valid.
+				#reverse for child, idx in small_array.slice(&resizables) {
+					prev_size := child.size[axis]
+					next_size := child.size[axis]
+					child_max_size := child.max_size[axis]
+					if base.approx_equal(next_size, smallest, EPSILON) {
+						next_size += size_to_distribute
+						child.size[axis] = next_size
+						if next_size >= child_max_size {
+							next_size = child_max_size
+							child.size[axis] = next_size
+							small_array.unordered_remove(&resizables, idx)
+						}
+						delta_size -= (next_size - prev_size)
+					}
+				}
+			} else {
+				largest := small_array.get(resizables, 0).size[axis]
+				second_largest := math.NEG_INF_F32
+
+				for child in small_array.slice(&resizables) {
+					child_size := child.size[axis]
+					if child_size > largest {
+						second_largest = largest
+						largest = child_size
+					} else if child_size < largest {
+						second_largest = max(second_largest, child_size)
+						size_to_distribute = second_largest - largest
+					}
+				}
+
+				size_to_distribute = max(
+					size_to_distribute,
+					delta_size / f32(len(small_array.slice(&resizables))),
+				)
+
+				#reverse for child, idx in small_array.slice(&resizables) {
+					prev_size := child.size[axis]
+					next_size := child.size[axis]
+					child_min_size := child.min_size[axis]
+					if base.approx_equal(next_size, largest, EPSILON) {
+						next_size += size_to_distribute
+						child.size[axis] = next_size
+
+						if next_size <= child_min_size {
+							next_size = child_min_size
+							child.size[axis] = next_size
+							small_array.unordered_remove(&resizables, idx)
+						}
+						delta_size -= (next_size - prev_size)
+					}
+				}
+			}
+		}
+
 	} else {
+		remaining_size := calc_remaining_size(element^, axis)
 		// Non-primary axis
 		for child in element.children {
 			// In then non-primary axis case, the child should just grow
@@ -613,88 +708,6 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 				// If remaining_size is negative, we need to shrink the child
 				// so we'll be adding a negative number to the size, effectively shrinking it.
 				child.size[axis] += (remaining_size - child.size[axis])
-			}
-		}
-	}
-
-	resize_iter := 0
-	for !base.approx_equal(remaining_size, 0, EPSILON) && len(small_array.slice(&resizables)) > 0 {
-		assert(resize_iter < RESIZE_ITER_MAX)
-		resize_iter += 1
-
-		size_to_distribute := remaining_size
-		if is_growing {
-			smallest := small_array.get(resizables, 0).size[axis]
-			second_smallest := math.INF_F32
-
-			for child in small_array.slice(&resizables) {
-				child_size := child.size[axis]
-				if child_size < smallest {
-					second_smallest = smallest
-					smallest = child_size
-				} else if child_size > smallest {
-					second_smallest = min(second_smallest, child_size)
-					size_to_distribute = second_smallest - smallest
-				}
-			}
-
-			size_to_distribute = min(
-				size_to_distribute,
-				remaining_size / f32(len(small_array.slice(&resizables))),
-			)
-
-			// NOTE(Thomas): We iterate in reverse order to ensure that the idx
-			// after one removal will be valid.
-			#reverse for child, idx in small_array.slice(&resizables) {
-				prev_size := child.size[axis]
-				next_size := child.size[axis]
-				child_max_size := child.max_size[axis]
-				if base.approx_equal(next_size, smallest, EPSILON) {
-					next_size += size_to_distribute
-					child.size[axis] = next_size
-					if next_size >= child_max_size {
-						next_size = child_max_size
-						child.size[axis] = next_size
-						small_array.unordered_remove(&resizables, idx)
-					}
-					remaining_size -= (next_size - prev_size)
-				}
-			}
-		} else {
-			largest := small_array.get(resizables, 0).size[axis]
-			second_largest := math.NEG_INF_F32
-
-			for child in small_array.slice(&resizables) {
-				child_size := child.size[axis]
-				if child_size > largest {
-					second_largest = largest
-					largest = child_size
-				} else if child_size < largest {
-					second_largest = max(second_largest, child_size)
-					size_to_distribute = second_largest - largest
-				}
-			}
-
-			size_to_distribute = max(
-				size_to_distribute,
-				remaining_size / f32(len(small_array.slice(&resizables))),
-			)
-
-			#reverse for child, idx in small_array.slice(&resizables) {
-				prev_size := child.size[axis]
-				next_size := child.size[axis]
-				child_min_size := child.min_size[axis]
-				if base.approx_equal(next_size, largest, EPSILON) {
-					next_size += size_to_distribute
-					child.size[axis] = next_size
-
-					if next_size <= child_min_size {
-						next_size = child_min_size
-						child.size[axis] = next_size
-						small_array.unordered_remove(&resizables, idx)
-					}
-					remaining_size -= (next_size - prev_size)
-				}
 			}
 		}
 	}

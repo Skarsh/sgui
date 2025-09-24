@@ -294,11 +294,6 @@ build_resize_bug_repro :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	main_container_sizing := ui.Sizing {
-		kind  = .Percentage_Of_Parent,
-		value = 1.0,
-	}
-
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 
 	ui.push_background_fill(ctx, base.Color{75, 75, 30, 255}); defer ui.pop_background_fill(ctx)
