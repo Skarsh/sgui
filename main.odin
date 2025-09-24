@@ -191,9 +191,9 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		//build_styled_ui(&app_state)
+		build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
-		build_resize_bug_repro(&app_state)
+		//build_resize_bug_repro(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
@@ -467,7 +467,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 		ui.Config_Options{layout = {sizing = {&main_container_sizing, &main_container_sizing}}},
 		proc(ctx: ^ui.Context) {
 
-			ui.text(ctx, "title", "Themed UI Demo", text_color = {230, 230, 230, 255})
+			ui.text(ctx, "title", "Themed UI Demo", text_fill = base.Color{230, 230, 230, 255})
 
 			{
 				ui.push_background_fill(
@@ -514,7 +514,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"footer_text",
 				"The styles above were scoped.",
-				text_color = {150, 150, 150, 255},
+				text_fill = base.Color{150, 150, 150, 255},
 			)
 		},
 	)

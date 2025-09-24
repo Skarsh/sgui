@@ -478,7 +478,7 @@ text :: proc(
 	text_padding: Padding = {},
 	text_alignment_x := Alignment_X.Left,
 	text_alignment_y := Alignment_Y.Top,
-	text_color := base.Color{255, 255, 255, 255},
+	text_fill: base.Fill = base.Color{255, 255, 255, 255},
 ) {
 	assert(min_width >= 0)
 	assert(min_height >= 0)
@@ -487,7 +487,7 @@ text :: proc(
 	capability_flags := Capability_Flags{.Text}
 	text_alignment_x := text_alignment_x
 	text_alignment_y := text_alignment_y
-	text_fill := base.Fill(text_color)
+	text_fill := base.Fill(text_fill)
 
 
 	config := Config_Options{}
