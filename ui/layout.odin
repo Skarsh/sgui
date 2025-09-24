@@ -487,7 +487,7 @@ text :: proc(
 	capability_flags := Capability_Flags{.Text}
 	text_alignment_x := text_alignment_x
 	text_alignment_y := text_alignment_y
-	text_fill := base.Fill(text_fill)
+	text_fill := text_fill
 
 
 	config := Config_Options{}
