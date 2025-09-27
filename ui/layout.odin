@@ -107,6 +107,7 @@ Element_Config :: struct {
 	layout:           Layout_Config,
 	background_fill:  base.Fill,
 	text_fill:        base.Fill,
+	border_fill:      base.Fill,
 	clip:             Clip_Config,
 	capability_flags: Capability_Flags,
 	content:          Element_Content,
@@ -130,6 +131,7 @@ Config_Options :: struct {
 	layout:           Layout_Options,
 	background_fill:  ^base.Fill,
 	text_fill:        ^base.Fill,
+	border_fill:      ^base.Fill,
 	clip:             ^Clip_Config,
 	capability_flags: ^Capability_Flags,
 	content:          Element_Content,
@@ -364,6 +366,12 @@ open_element :: proc(
 		opts.text_fill,
 		&ctx.text_fill_stack,
 		resolve_default(default_opts.text_fill),
+	)
+
+	final_config.border_fill = resolve_value(
+		opts.border_fill,
+		&ctx.border_fill_stack,
+		resolve_default(default_opts.border_fill),
 	)
 
 	final_config.clip = resolve_value(

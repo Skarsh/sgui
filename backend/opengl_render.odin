@@ -23,16 +23,27 @@ reset_texture_store :: proc(store: ^Texture_Store) {
 }
 
 Vertex :: struct {
-	pos:              base.Vec3,
-	color_start:      base.Vec4,
-	color_end:        base.Vec4,
-	gradient_dir:     base.Vec2,
-	quad_half_size:   base.Vec2,
-	quad_pos:         base.Vec2,
-	tex:              base.Vec2,
-	tex_slot:         i32,
-	radius:           f32,
-	border_thickness: f32,
+	// TODO(Thomas): Group together with the other common attributes?
+	// Position
+	pos:                 base.Vec3,
+
+	// Inputs for rect fill
+	color_start:         base.Vec4,
+	color_end:           base.Vec4,
+	gradient_dir:        base.Vec2,
+
+	// Inputs for border fill
+	border_color_start:  base.Vec4,
+	border_color_end:    base.Vec4,
+	border_gradient_dir: base.Vec2,
+
+	// Common
+	quad_half_size:      base.Vec2,
+	quad_pos:            base.Vec2,
+	tex:                 base.Vec2,
+	tex_slot:            i32,
+	radius:              f32,
+	border_thickness:    f32,
 }
 
 Batch :: struct {
@@ -110,6 +121,7 @@ init_opengl :: proc(
 	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
 	gl.EnableVertexAttribArray(0)
 
+	// Fill
 	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color_start))
 	gl.EnableVertexAttribArray(1)
 
@@ -119,38 +131,71 @@ init_opengl :: proc(
 	gl.VertexAttribPointer(3, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, gradient_dir))
 	gl.EnableVertexAttribArray(3)
 
+	// Border fill
 	gl.VertexAttribPointer(
 		4,
+		4,
+		gl.FLOAT,
+		false,
+		size_of(Vertex),
+		offset_of(Vertex, border_color_start),
+	)
+	gl.EnableVertexAttribArray(4)
+
+
+	gl.VertexAttribPointer(
+		5,
+		2,
+		gl.FLOAT,
+		false,
+		size_of(Vertex),
+		offset_of(Vertex, border_gradient_dir),
+	)
+	gl.EnableVertexAttribArray(5)
+
+
+	gl.VertexAttribPointer(
+		6,
+		4,
+		gl.FLOAT,
+		false,
+		size_of(Vertex),
+		offset_of(Vertex, border_color_end),
+	)
+	gl.EnableVertexAttribArray(6)
+
+	gl.VertexAttribPointer(
+		7,
 		2,
 		gl.FLOAT,
 		false,
 		size_of(Vertex),
 		offset_of(Vertex, quad_half_size),
 	)
-	gl.EnableVertexAttribArray(4)
-
-
-	gl.VertexAttribPointer(5, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
-	gl.EnableVertexAttribArray(5)
-
-	gl.VertexAttribPointer(6, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
-	gl.EnableVertexAttribArray(6)
-
-	gl.VertexAttribIPointer(7, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
 	gl.EnableVertexAttribArray(7)
 
-	gl.VertexAttribPointer(8, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+
+	gl.VertexAttribPointer(8, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
 	gl.EnableVertexAttribArray(8)
 
+	gl.VertexAttribPointer(9, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
+	gl.EnableVertexAttribArray(9)
+
+	gl.VertexAttribIPointer(10, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
+	gl.EnableVertexAttribArray(10)
+
+	gl.VertexAttribPointer(11, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
+	gl.EnableVertexAttribArray(11)
+
 	gl.VertexAttribPointer(
-		9,
+		12,
 		1,
 		gl.FLOAT,
 		false,
 		size_of(Vertex),
 		offset_of(Vertex, border_thickness),
 	)
-	gl.EnableVertexAttribArray(9)
+	gl.EnableVertexAttribArray(12)
 
 	gl.BindVertexArray(0)
 
@@ -275,6 +320,9 @@ opengl_render_end :: proc(
 			color_start, color_end: base.Vec4
 			gradient_dir: base.Vec2
 
+			border_color_start, border_color_end: base.Vec4
+			border_gradient_dir: base.Vec2
+
 			half_w := w / 2
 			half_h := h / 2
 
@@ -299,16 +347,50 @@ opengl_render_end :: proc(
 				gradient_dir = fill.direction
 			}
 
+			switch fill in val.border_fill {
+			case base.Color:
+				r := f32(fill.r) / 255
+				g := f32(fill.g) / 255
+				b := f32(fill.b) / 255
+				a := f32(fill.a) / 255
+				border_color_start = {r, g, b, a}
+				border_color_end = color_start
+				border_gradient_dir = {0, 0}
+
+			case base.Gradient:
+				cs := fill.color_start
+				ce := fill.color_end
+				border_color_start = {
+					f32(cs.r) / 255,
+					f32(cs.g) / 255,
+					f32(cs.b) / 255,
+					f32(cs.a) / 255,
+				}
+				border_color_end = {
+					f32(ce.r) / 255,
+					f32(ce.g) / 255,
+					f32(ce.b) / 255,
+					f32(ce.a) / 255,
+				}
+				border_gradient_dir = fill.direction
+			}
+
 
 			vertex_template := Vertex {
-				color_start      = color_start,
-				color_end        = color_end,
-				gradient_dir     = gradient_dir,
-				quad_half_size   = {half_w, half_h},
-				quad_pos         = {center_x, center_y},
-				tex              = {-1, -1},
-				radius           = radius,
-				border_thickness = border_thickness,
+				// Fill
+				color_start         = color_start,
+				color_end           = color_end,
+				gradient_dir        = gradient_dir,
+				// Border Fill
+				border_color_start  = border_color_start,
+				border_color_end    = border_color_end,
+				border_gradient_dir = border_gradient_dir,
+				// Others
+				quad_half_size      = {half_w, half_h},
+				quad_pos            = {center_x, center_y},
+				tex                 = {-1, -1},
+				radius              = radius,
+				border_thickness    = border_thickness,
 			}
 
 			v1 := vertex_template; v1.pos = {x + w, y + h, 0}

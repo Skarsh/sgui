@@ -1,8 +1,15 @@
 #version 330 core
 
+// Fill
 in vec4 v_color_start;
 in vec4 v_color_end;
 in vec2 v_gradient_dir;
+
+// Border Fill
+in vec4 v_border_color_start;
+in vec4 v_border_color_end;
+in vec2 v_border_gradient_dir;
+
 in vec2 v_quad_half_size;
 in vec2 v_local_pos;
 in vec2 v_tex_coords;

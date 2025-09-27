@@ -457,6 +457,16 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 	ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
 
+	//ui.push_border_fill(
+	//	ctx,
+	//	base.Gradient{{53, 0, 104, 230}, {255, 105, 120, 210}, {0, 1}},
+	//); defer ui.pop_border_fill(ctx)
+
+	ui.push_border_fill(
+		ctx,
+		base.Fill(base.Color{255, 255, 0, 255}),
+	); defer ui.pop_border_fill(ctx)
+
 	main_container_sizing := ui.Sizing {
 		kind  = .Percentage_Of_Parent,
 		value = 1.0,
