@@ -23,15 +23,16 @@ reset_texture_store :: proc(store: ^Texture_Store) {
 }
 
 Vertex :: struct {
-	pos:            base.Vec3,
-	color_start:    base.Vec4,
-	color_end:      base.Vec4,
-	gradient_dir:   base.Vec2,
-	quad_half_size: base.Vec2,
-	quad_pos:       base.Vec2,
-	tex:            base.Vec2,
-	tex_slot:       i32,
-	radius:         f32,
+	pos:              base.Vec3,
+	color_start:      base.Vec4,
+	color_end:        base.Vec4,
+	gradient_dir:     base.Vec2,
+	quad_half_size:   base.Vec2,
+	quad_pos:         base.Vec2,
+	tex:              base.Vec2,
+	tex_slot:         i32,
+	radius:           f32,
+	border_thickness: f32,
 }
 
 Batch :: struct {
@@ -140,6 +141,16 @@ init_opengl :: proc(
 
 	gl.VertexAttribPointer(8, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
 	gl.EnableVertexAttribArray(8)
+
+	gl.VertexAttribPointer(
+		9,
+		1,
+		gl.FLOAT,
+		false,
+		size_of(Vertex),
+		offset_of(Vertex, border_thickness),
+	)
+	gl.EnableVertexAttribArray(9)
 
 	gl.BindVertexArray(0)
 
@@ -260,6 +271,7 @@ opengl_render_end :: proc(
 			h := f32(rect.h)
 
 			radius := val.radius
+			border_thickness := val.border_thickness
 			color_start, color_end: base.Vec4
 			gradient_dir: base.Vec2
 
@@ -289,13 +301,14 @@ opengl_render_end :: proc(
 
 
 			vertex_template := Vertex {
-				color_start    = color_start,
-				color_end      = color_end,
-				gradient_dir   = gradient_dir,
-				quad_half_size = {half_w, half_h},
-				quad_pos       = {center_x, center_y},
-				tex            = {-1, -1},
-				radius         = radius,
+				color_start      = color_start,
+				color_end        = color_end,
+				gradient_dir     = gradient_dir,
+				quad_half_size   = {half_w, half_h},
+				quad_pos         = {center_x, center_y},
+				tex              = {-1, -1},
+				radius           = radius,
+				border_thickness = border_thickness,
 			}
 
 			v1 := vertex_template; v1.pos = {x + w, y + h, 0}

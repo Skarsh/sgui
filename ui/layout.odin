@@ -70,6 +70,7 @@ Layout_Config :: struct {
 	text_alignment_x: Alignment_X,
 	text_alignment_y: Alignment_Y,
 	corner_radius:    f32,
+	border_thickness: f32,
 }
 
 Clip_Config :: struct {
@@ -122,6 +123,7 @@ Layout_Options :: struct {
 	text_alignment_x: ^Alignment_X,
 	text_alignment_y: ^Alignment_Y,
 	corner_radius:    ^f32,
+	border_thickness: ^f32,
 }
 
 Config_Options :: struct {
@@ -344,6 +346,12 @@ open_element :: proc(
 		opts.layout.corner_radius,
 		&ctx.corner_radius_stack,
 		resolve_default(default_opts.layout.corner_radius),
+	)
+
+	final_config.layout.border_thickness = resolve_value(
+		opts.layout.border_thickness,
+		&ctx.border_thickness_stack,
+		resolve_default(default_opts.layout.border_thickness),
 	)
 
 	final_config.background_fill = resolve_value(

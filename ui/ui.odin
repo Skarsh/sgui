@@ -29,9 +29,10 @@ Command :: union {
 }
 
 Command_Rect :: struct {
-	rect:   base.Rect,
-	fill:   base.Fill,
-	radius: f32,
+	rect:             base.Rect,
+	fill:             base.Fill,
+	radius:           f32,
+	border_thickness: f32,
 }
 
 Command_Text :: struct {
@@ -96,6 +97,7 @@ Context :: struct {
 	text_alignment_x_stack: Stack(Alignment_X, STYLE_STACK_SIZE),
 	text_alignment_y_stack: Stack(Alignment_Y, STYLE_STACK_SIZE),
 	corner_radius_stack:    Stack(f32, STYLE_STACK_SIZE),
+	border_thickness_stack: Stack(f32, STYLE_STACK_SIZE),
 	command_queue:          [dynamic]Command,
 	current_parent:         ^UI_Element,
 	root_element:           ^UI_Element,
@@ -402,6 +404,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			},
 			final_bg_fill,
 			element.config.layout.corner_radius,
+			element.config.layout.border_thickness,
 		)
 	}
 
@@ -476,8 +479,14 @@ draw_all_elements :: proc(ctx: ^Context) {
 	draw_element(ctx, ctx.root_element)
 }
 
-draw_rect :: proc(ctx: ^Context, rect: base.Rect, fill: base.Fill, radius: f32) {
-	append(&ctx.command_queue, Command_Rect{rect, fill, radius})
+draw_rect :: proc(
+	ctx: ^Context,
+	rect: base.Rect,
+	fill: base.Fill,
+	radius: f32,
+	border_thickness: f32,
+) {
+	append(&ctx.command_queue, Command_Rect{rect, fill, radius, border_thickness})
 }
 
 draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Fill) {
@@ -675,4 +684,12 @@ push_corner_radius :: proc(ctx: ^Context, radius: f32) -> bool {
 
 pop_corner_radius :: proc(ctx: ^Context) -> (f32, bool) {
 	return pop(&ctx.corner_radius_stack)
+}
+
+push_border_thickness :: proc(ctx: ^Context, thickness: f32) -> bool {
+	return push(&ctx.border_thickness_stack, thickness)
+}
+
+pop_border_thickness :: proc(ctx: ^Context) -> (f32, bool) {
+	return pop(&ctx.border_thickness_stack)
 }

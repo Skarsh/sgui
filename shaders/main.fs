@@ -8,6 +8,7 @@ in vec2 v_local_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
 in float v_radius;
+in float v_border_thickness;
 
 out vec4 o_color;
 
@@ -23,15 +24,18 @@ vec2 translate(vec2 pos, vec2 offset) {
     return (pos - offset);
 }
 
+// Signed Distance Function for a rounded rectangle.
+// pos: The current fragment's position relative to the center.
+// halfSize: Half the width and height of the rectangle.
+// r: The corner radius.
+// Returns a negative value inside the rectangle, positive outside, and 0 on the edge.
 float sdfRect(vec2 pos, vec2 halfSize, float r) {
     vec2 d = abs(pos) - (halfSize - r);
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
 }
 
 void main() {
-    vec4 final_color;
-
-    // If tex_coords are negative, it's a solid shape, not text.
+    // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
         vec4 base_color;
 
@@ -41,7 +45,7 @@ void main() {
         } else {
             vec2 dir = normalize(v_gradient_dir);
 
-            // TODO(Thomas): Verify, move to vertex shader instead??
+            // Project the local position onto the gradient direction to find the interpolation factor 't'.
             float max_projection = dot(v_quad_half_size, abs(dir));
             float current_projection = dot(v_local_pos, dir);
             float t = (current_projection + max_projection) / (2.0 * max_projection);
@@ -49,14 +53,20 @@ void main() {
 
             base_color = mix(v_color_start, v_color_end, t);
         }
+        // TODO(Thomas): Hardcoded border color
+        vec4 border_color = vec4(0.0, 0.0, 0.0, base_color.a);
+        float d_outer = sdfRect(v_local_pos, v_quad_half_size, v_radius);
+        vec2 inner_half_size = v_quad_half_size - v_border_thickness;
+        float inner_radius = max(0.0, v_radius - v_border_thickness);
+        float d_inner = sdfRect(v_local_pos, inner_half_size, inner_radius);
+        float smoothing = fwidth(d_outer);
+        float alpha_shape = 1.0 - smoothstep(-smoothing, smoothing, d_outer);
+        float alpha_fill = 1.0 - smoothstep(-smoothing, smoothing, d_inner);
 
-        float d = sdfRect(v_local_pos, v_quad_half_size, v_radius);
-        float smoothing = fwidth(d);
-        float alpha = 1.0 - smoothstep(-smoothing, smoothing, d);
-        final_color = vec4(base_color.rgb, base_color.a * alpha);
-        o_color = final_color;
+        vec4 mixed_color = mix(border_color, base_color, alpha_fill);
+        o_color = vec4(mixed_color.rgb, mixed_color.a * alpha_shape);
 
-    } else {
+    } else { // This part is for textures (text, images) and remains unchanged.
         switch (v_tex_slot){
             case 0:
                 // Sample the font texture. The 'r' component has the alpha value.
