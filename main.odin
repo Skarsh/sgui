@@ -457,15 +457,12 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 	ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
 
-	//ui.push_border_fill(
-	//	ctx,
-	//	base.Gradient{{53, 0, 104, 230}, {255, 105, 120, 210}, {0, 1}},
-	//); defer ui.pop_border_fill(ctx)
-
 	ui.push_border_fill(
 		ctx,
-		base.Fill(base.Color{255, 255, 0, 255}),
+		base.Gradient{{255, 255, 255, 255}, {255, 255, 255, 255}, {1, 0}},
 	); defer ui.pop_border_fill(ctx)
+
+	//ui.push_border_fill(ctx, base.Fill(base.Color{255, 0, 0, 255})); defer ui.pop_border_fill(ctx)
 
 	main_container_sizing := ui.Sizing {
 		kind  = .Percentage_Of_Parent,
@@ -503,13 +500,13 @@ build_styled_ui :: proc(app_state: ^App_State) {
 
 					ui.push_background_fill(
 						ctx,
-						base.Gradient{{53, 0, 104, 230}, {255, 105, 120, 210}, {0, 1}},
+						base.Gradient{{0, 0, 0, 255}, {255, 255, 255, 255}, {1, 0}},
 					); defer ui.pop_background_fill(ctx)
 					ui.button(ctx, "button1", "Button A")
 
 					ui.push_background_fill(
 						ctx,
-						base.Gradient{{81, 163, 163, 255}, {117, 72, 94, 210}, {0, 1}},
+						base.Gradient{{81, 163, 163, 255}, {117, 72, 94, 210}, {1, 0}},
 					); defer ui.pop_background_fill(ctx)
 					ui.button(ctx, "button2", "Button B")
 
@@ -532,7 +529,8 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"footer_text",
 				"The styles above were scoped.",
-				text_fill = base.Color{150, 150, 150, 255},
+				text_fill = base.Color{255, 150, 150, 255},
+				text_padding = ui.Padding{5, 5, 5, 5},
 			)
 		},
 	)

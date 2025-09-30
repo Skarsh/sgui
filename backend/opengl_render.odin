@@ -296,6 +296,10 @@ opengl_render_end :: proc(
 
 	shader_use_program(render_data.shader)
 
+	// Set the viewport resolution
+	resolution := base.Vec2{f32(render_data.window_size.x), f32(render_data.window_size.y)}
+	shader_set_vec2(render_data.shader, "u_resoltuion", &resolution)
+
 	// NOTE(Thomas): We're binding the font texture here by default
 	// for now, even though we might not have a draw command that requires it.
 	opengl_active_texture(.Texture_0)

@@ -99,6 +99,16 @@ shader_set_float :: proc(shader: Shader, name: string, val: f32) -> mem.Allocato
 	return .None
 }
 
+shader_set_vec2 :: proc(shader: Shader, name: string, val: ^[2]f32) -> mem.Allocator_Error {
+	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	if err != .None {
+		return err
+	}
+	gl.Uniform2fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
+	return .None
+}
+
 shader_set_vec3 :: proc(shader: Shader, name: string, val: ^[3]f32) -> mem.Allocator_Error {
 	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
 	defer free_all(context.temp_allocator)
