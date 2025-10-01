@@ -459,7 +459,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 
 	ui.push_border_fill(
 		ctx,
-		base.Gradient{{255, 255, 255, 255}, {255, 255, 255, 255}, {1, 0}},
+		base.Gradient{{2, 0, 36, 255}, {9, 121, 105, 255}, {1, 0}},
 	); defer ui.pop_border_fill(ctx)
 
 	//ui.push_border_fill(ctx, base.Fill(base.Color{255, 0, 0, 255})); defer ui.pop_border_fill(ctx)

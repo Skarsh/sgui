@@ -142,20 +142,8 @@ init_opengl :: proc(
 	)
 	gl.EnableVertexAttribArray(4)
 
-
 	gl.VertexAttribPointer(
 		5,
-		2,
-		gl.FLOAT,
-		false,
-		size_of(Vertex),
-		offset_of(Vertex, border_gradient_dir),
-	)
-	gl.EnableVertexAttribArray(5)
-
-
-	gl.VertexAttribPointer(
-		6,
 		4,
 		gl.FLOAT,
 		false,
@@ -163,6 +151,16 @@ init_opengl :: proc(
 		offset_of(Vertex, border_color_end),
 	)
 	gl.EnableVertexAttribArray(6)
+
+	gl.VertexAttribPointer(
+		6,
+		2,
+		gl.FLOAT,
+		false,
+		size_of(Vertex),
+		offset_of(Vertex, border_gradient_dir),
+	)
+	gl.EnableVertexAttribArray(5)
 
 	gl.VertexAttribPointer(
 		7,
@@ -298,7 +296,7 @@ opengl_render_end :: proc(
 
 	// Set the viewport resolution
 	resolution := base.Vec2{f32(render_data.window_size.x), f32(render_data.window_size.y)}
-	shader_set_vec2(render_data.shader, "u_resoltuion", &resolution)
+	shader_set_vec2(render_data.shader, "u_resolution", &resolution)
 
 	// NOTE(Thomas): We're binding the font texture here by default
 	// for now, even though we might not have a draw command that requires it.
@@ -340,7 +338,7 @@ opengl_render_end :: proc(
 				b := f32(fill.b) / 255
 				a := f32(fill.a) / 255
 				color_start = {r, g, b, a}
-				color_end = color_start
+				color_end = {r, g, b, a}
 				gradient_dir = {0, 0}
 
 			case base.Gradient:
@@ -351,19 +349,19 @@ opengl_render_end :: proc(
 				gradient_dir = fill.direction
 			}
 
-			switch fill in val.border_fill {
+			switch border_fill in val.border_fill {
 			case base.Color:
-				r := f32(fill.r) / 255
-				g := f32(fill.g) / 255
-				b := f32(fill.b) / 255
-				a := f32(fill.a) / 255
+				r := f32(border_fill.r) / 255
+				g := f32(border_fill.g) / 255
+				b := f32(border_fill.b) / 255
+				a := f32(border_fill.a) / 255
 				border_color_start = {r, g, b, a}
-				border_color_end = color_start
+				border_color_end = {r, g, b, a}
 				border_gradient_dir = {0, 0}
 
 			case base.Gradient:
-				cs := fill.color_start
-				ce := fill.color_end
+				cs := border_fill.color_start
+				ce := border_fill.color_end
 				border_color_start = {
 					f32(cs.r) / 255,
 					f32(cs.g) / 255,
@@ -376,9 +374,8 @@ opengl_render_end :: proc(
 					f32(ce.b) / 255,
 					f32(ce.a) / 255,
 				}
-				border_gradient_dir = fill.direction
+				border_gradient_dir = border_fill.direction
 			}
-
 
 			vertex_template := Vertex {
 				// Fill
@@ -397,13 +394,13 @@ opengl_render_end :: proc(
 				border_thickness    = border_thickness,
 			}
 
+
 			v1 := vertex_template; v1.pos = {x + w, y + h, 0}
 			v2 := vertex_template; v2.pos = {x + w, y, 0}
 			v3 := vertex_template; v3.pos = {x, y, 0}
 			v4 := vertex_template; v4.pos = {x, y + h, 0}
 
 			append(&batch.vertices, v1, v2, v3, v4)
-
 
 			rect_indices := [6]u32 {
 				batch.vertex_offset + 0,

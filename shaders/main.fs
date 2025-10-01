@@ -43,7 +43,6 @@ float sdfRect(vec2 pos, vec2 halfSize, float r) {
 vec4 calcGradientColor(vec4 color_start, vec4 color_end, vec2 dir, vec2 half_size, vec2 pos) {
     // TODO(Thomas): This doesn't support going in the negative direction
     // e.g. dir [-1, 0] for going from right to left.
-
     vec2 u = normalize(dir);
 
     // The origin is in the middle of the quad to begin with,
@@ -91,12 +90,9 @@ void main() {
         );
 
         // TODO(Thomas): Figure out how to do AA and use the user given alpha values
-        // TODO(Thomas): Think about drawing order here, does it matter?
         if (d_inner < 0.0) {
-            //o_color = vec4(inner_color.rgb, smoothstep(-1.0, 1.0, -d_inner));
             o_color = inner_color;
         } else if(d_border < 0.0) {
-            //o_color = vec4(border_color.rgb, smoothstep(-1.0, 1.0, -d_border));
             o_color = border_color;
         } else {
             o_color = vec4(0.0);
