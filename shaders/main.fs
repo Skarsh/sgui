@@ -47,34 +47,20 @@ float sdfRect(vec2 pos, vec2 halfSize, float r) {
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
 }
 
-// TODO(Thomas): When this is verified to work as we want, combine math expressions
 vec4 calcGradientColor(vec4 color_start, vec4 color_end, vec2 dir, vec2 half_size, vec2 pos) {
-    // TODO(Thomas): This doesn't support going in the negative direction
-    // e.g. dir [-1, 0] for going from right to left.
     vec2 u = normalize(dir);
 
-    // The origin is in the middle of the quad to begin with,
-    // so we add half the size of the quad to transform it to be in the
-    // lower left corner instead.
-    vec2 max_v = vec2(half_size) + half_size;
-    vec2 curr_v = vec2(pos) + half_size;
+    float proj = dot(pos, u);
 
-    // Multiply by the normalized direction vector to find how much
-    // of the direction the max and the current are
-    max_v = u * max_v;
-    curr_v = u * curr_v;
+    // NOTE(Thomas): We use abs(u) here to ensure that max_proj will be positive, since
+    // this is essentially the max length, and negative length doesn't make sense.
+    float max_proj = dot(half_size, abs(u));
 
-    // Divide by 2*half_size to squash the values between 0 and 1
-    max_v = max_v / (2 * half_size);
-    curr_v = curr_v / (2 * half_size);
+    float t = (proj + max_proj) / (2.0 * max_proj);
 
-    float t = dot(max_v, curr_v);
-
-    t = clamp(t, 0.0, 1.0);
-    return mix(color_start, color_end, t);
+    return mix(color_start, color_end, clamp(t, 0.0, 1.0));
 }
 
-// TODO(Thomas): Color alpha from the user is not respected here.
 void main() {
     // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
