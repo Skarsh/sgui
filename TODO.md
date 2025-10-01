@@ -1,7 +1,8 @@
 # TODOs
 
 ## Active
-* Border styling
+* In the `build_styled_ui` the footer text border just keep going vertically down
+    making it look like the element is going beyond the bottom of the screen / viewport.
 * Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
     specifically there's been a bug with text color being zeroed out so text was not visible.
     Would text just having a sensible default styling be enough?
