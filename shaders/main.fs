@@ -29,6 +29,14 @@ uniform sampler2D u_image_texture_3;
 uniform sampler2D u_image_texture_4;
 uniform sampler2D u_image_texture_5;
 
+// Calculates alpha based on signed distance for smooth anti-aliasing
+// d: The signed distance from the edge
+// Returns alpha (1.0 for inside and 0.0 for outside, smooth transition on the edge).
+float sdfAlpha(float d) {
+    float width = fwidth(d);
+    return smoothstep(width, -width, d);
+}
+
 // Signed Distance Function for a rounded rectangle.
 // pos: The current fragment's position relative to the center.
 // halfSize: Half the width and height of the rectangle.
@@ -72,6 +80,11 @@ void main() {
     if (v_tex_coords.x < 0.0) {
 
         float d_border = sdfRect(v_local_pos, v_quad_half_size, v_radius);
+        float d_inner = sdfRect(v_local_pos, v_quad_half_size - v_border_thickness, max(0.0, v_radius - v_border_thickness));
+
+        float alpha_border = sdfAlpha(d_border);
+        float alpha_inner = sdfAlpha(d_inner);
+
         vec4 border_color = calcGradientColor(
             v_border_color_start,
             v_border_color_end,
@@ -80,7 +93,6 @@ void main() {
             v_local_pos
         );
 
-        float d_inner = sdfRect(v_local_pos, v_quad_half_size - v_border_thickness, max(0.0, v_radius - v_border_thickness)); 
         vec4 inner_color = calcGradientColor(
             v_color_start,
             v_color_end,
@@ -89,14 +101,9 @@ void main() {
             v_local_pos
         );
 
-        // TODO(Thomas): Figure out how to do AA and use the user given alpha values
-        if (d_inner < 0.0) {
-            o_color = inner_color;
-        } else if(d_border < 0.0) {
-            o_color = border_color;
-        } else {
-            o_color = vec4(0.0);
-        }
+        vec4 final_material = mix(border_color, inner_color, alpha_inner);
+
+        o_color = vec4(final_material.rgb, final_material.a * alpha_border);
 
     } else {
         switch (v_tex_slot){
