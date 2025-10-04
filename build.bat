@@ -2,7 +2,13 @@
 echo Running tests
 odin test ui
 IF %ERRORLEVEL% NEQ 0 (
-    echo Tests failed! Cannot successfully build.
+    echo Ui tests failed! Cannot successfully build.
+    exit /b 1
+)
+
+odin test base
+IF %ERRORLEVEL% NEQ 0 (
+    echo Base tests failed! Cannot successfully build.
     exit /b 1
 )
 
