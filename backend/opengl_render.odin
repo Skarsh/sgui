@@ -97,7 +97,7 @@ init_opengl :: proc(
 
 	gl.Enable(gl.SCISSOR_TEST)
 
-	shader, shader_ok := create_shader(Shader_Config{"shaders/main.vs", "shaders/main.fs"})
+	shader, shader_ok := create_shader(Shader_Config{"shaders/main.vert", "shaders/main.frag"})
 	if !shader_ok {
 		log.error("Failed to create shader")
 		return false
