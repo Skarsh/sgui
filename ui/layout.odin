@@ -746,7 +746,7 @@ resolve_percentage_sizing :: proc(element: ^UI_Element, axis: Axis2) {
 
 		sizing_info := element.config.layout.sizing[axis]
 		if sizing_info.kind == .Percentage_Of_Parent {
-			percentage := sizing_info.value
+			percentage := clamp(sizing_info.value, 0.0, 1.0)
 			element.size[axis] = parent_content_size[axis] * percentage
 		}
 	}
