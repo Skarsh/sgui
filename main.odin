@@ -191,8 +191,7 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		//build_styled_ui(&app_state)
-		build_bug_repro(&app_state)
+		build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_resize_bug_repro(&app_state)
 		//build_grow_ui(&app_state)
@@ -438,42 +437,6 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				},
 			)
 
-		},
-	)
-	ui.end(ctx)
-}
-
-build_bug_repro :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
-	ui.begin(ctx)
-
-	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-
-	ui.push_background_fill(ctx, base.Color{25, 25, 30, 255}); defer ui.pop_background_fill(ctx)
-	ui.push_padding(ctx, {20, 20, 20, 20}); defer ui.pop_padding(ctx)
-	ui.push_layout_direction(ctx, .Top_To_Bottom); defer ui.pop_layout_direction(ctx)
-
-	ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
-	ui.push_corner_radius(ctx, 10); defer ui.pop_corner_radius(ctx)
-
-
-	ui.push_border_fill(
-		ctx,
-		base.Gradient{{2, 0, 36, 255}, {9, 121, 105, 255}, {1, 0}},
-	); defer ui.pop_border_fill(ctx)
-
-	main_container_sizing := ui.Sizing {
-		kind  = .Percentage_Of_Parent,
-		value = 1.0,
-	}
-
-	ui.container(
-		ctx,
-		"main_container",
-		ui.Config_Options{layout = {sizing = {&main_container_sizing, &main_container_sizing}}},
-		proc(ctx: ^ui.Context) {
-			ui.container(ctx, "panel", proc(ctx: ^ui.Context) {
-			})
 		},
 	)
 	ui.end(ctx)

@@ -3058,3 +3058,143 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 	// --- 4. Run the Test ---
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
+@(test)
+test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		main_container_width:  f32,
+		main_container_height: f32,
+		panel_container_pct_x: f32,
+		panel_container_pct_y: f32,
+		fit_element_padding:   Padding,
+		layout_direction:      Layout_Direction,
+	}
+
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+
+		main_container_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.main_container_width},
+			{kind = .Fixed, value = data.main_container_height},
+		}
+
+		container(
+			ctx,
+			"main_container",
+			Config_Options {
+				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				panel_sizing := [2]Sizing {
+					{kind = .Percentage_Of_Parent, value = data.panel_container_pct_x},
+					{kind = .Percentage_Of_Parent, value = data.panel_container_pct_y},
+				}
+
+				container(
+					ctx,
+					"panel_container",
+					Config_Options {
+						layout = {
+							sizing = {&panel_sizing.x, &panel_sizing.y},
+							layout_direction = &data.layout_direction,
+						},
+					},
+					data,
+					proc(ctx: ^Context, data: ^Test_Data) {
+						fit_element_sizing := Sizing {
+							kind = .Fit,
+						}
+						container(
+							ctx,
+							"fit_element",
+							Config_Options {
+								layout = {
+									sizing = {&fit_element_sizing, &fit_element_sizing},
+									padding = &data.fit_element_padding,
+								},
+							},
+						)
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		main_container_pos := base.Vec2{0, 0}
+		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
+
+		// Same pos as main container since no padding etc
+		panel_container_pos := main_container_pos
+		panel_container_size := base.Vec2 {
+			main_container_size.x * data.panel_container_pct_y,
+			main_container_size.y * data.panel_container_pct_y,
+		}
+
+		// Same pos as panel_container,
+		fit_element_pos := panel_container_pos
+		fit_element_size := base.Vec2 {
+			data.fit_element_padding.left + data.fit_element_padding.right,
+			data.fit_element_padding.top + data.fit_element_padding.bottom,
+		}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "main_container",
+					pos = main_container_pos,
+					size = main_container_size,
+					children = []Expected_Element {
+						{
+							id = "panel_container",
+							pos = panel_container_pos,
+							size = panel_container_size,
+							children = []Expected_Element {
+								{
+									id = "fit_element",
+									pos = fit_element_pos,
+									size = fit_element_size,
+									children = []Expected_Element{},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, root, expected_layout_tree.children[0])
+
+	}
+
+	// --- 4. Run the Tests ---
+	// Left_To_Right test
+	ltr_test_data := Test_Data {
+		main_container_width  = 100,
+		main_container_height = 100,
+		panel_container_pct_x = 1.0,
+		panel_container_pct_y = 1.0,
+		fit_element_padding   = Padding{20, 20, 20, 20},
+		layout_direction      = .Left_To_Right,
+	}
+
+	run_layout_test(t, build_ui_proc, verify_proc, &ltr_test_data)
+
+	// Top_To_Bottom test
+	ttb_test_data := Test_Data {
+		main_container_width  = 100,
+		main_container_height = 100,
+		panel_container_pct_x = 1.0,
+		panel_container_pct_y = 1.0,
+		fit_element_padding   = Padding{20, 20, 20, 20},
+		layout_direction      = .Top_To_Bottom,
+	}
+
+	run_layout_test(t, build_ui_proc, verify_proc, &ttb_test_data)
+}

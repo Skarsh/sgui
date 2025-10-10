@@ -230,11 +230,12 @@ end :: proc(ctx: ^Context) {
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
-	// Percentage of parent sizing
-	resolve_percentage_sizing(ctx.root_element, .X)
 
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
+
+	// Percentage of parent sizing
+	resolve_percentage_sizing(ctx.root_element, .X)
 
 	// Resize widths
 	resize_child_elements_for_axis(ctx.root_element, .X)
@@ -243,11 +244,11 @@ end :: proc(ctx: ^Context) {
 	wrap_text(ctx, ctx.root_element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
-	// Percentage of parent sizing
-	resolve_percentage_sizing(ctx.root_element, .Y)
-
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)
+
+	// Percentage of parent sizing
+	resolve_percentage_sizing(ctx.root_element, .Y)
 
 	// Resize heights
 	resize_child_elements_for_axis(ctx.root_element, .Y)
