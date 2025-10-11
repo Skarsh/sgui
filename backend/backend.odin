@@ -8,6 +8,41 @@ import sdl "vendor:sdl2"
 
 import ui "../ui"
 
+// TODO(Thomas): This is hardcoded to use sdl now, this should support any windowing system
+Window :: struct {
+	handle: ^sdl.Window,
+}
+
+// TODO(Thomas): This is hardcoded to use sdl now, this should support any windowing system
+init_and_create_window :: proc(title: string, width, height: i32) -> (Window, bool) {
+	if sdl.Init(sdl.INIT_VIDEO) < 0 {
+		log.error("Unable to init SDL: ", sdl.GetError())
+		return Window{}, false
+	}
+
+	window := sdl.CreateWindow(
+		"ImGUI",
+		sdl.WINDOWPOS_UNDEFINED,
+		sdl.WINDOWPOS_UNDEFINED,
+		width,
+		height,
+		{.SHOWN, .RESIZABLE, .OPENGL},
+	)
+
+	if window == nil {
+		log.error("Unable to create window: ", sdl.GetError())
+		return Window{}, false
+	}
+
+	return Window{handle = window}, true
+}
+
+// TODO(Thomas): sdl.DestroyWindow() is hardcoded here now, this should be dependent on which windowing system
+// backend is actually initalized with
+deinit_window :: proc(window: Window) {
+	sdl.DestroyWindow(window.handle)
+}
+
 Context :: struct {
 	stb_font_ctx: STB_Font_Context,
 	render_ctx:   Render_Context,
@@ -17,7 +52,7 @@ Context :: struct {
 init_ctx :: proc(
 	ctx: ^Context,
 	ui_ctx: ^ui.Context,
-	window: ^sdl.Window,
+	window: Window,
 	window_width, window_height: i32,
 	texture_paths: []string,
 	font_size: f32,
@@ -70,9 +105,12 @@ init_ctx :: proc(
 	return true
 }
 
+// TODO(Thomas): sdl.Quit() is hardcoded here now, this should be dependent on which windowing system
+// backend is actually initalized with
 deinit :: proc(ctx: ^Context) {
 	deinit_stb_font_ctx(&ctx.stb_font_ctx)
 	deinit_render_ctx(&ctx.render_ctx)
+	sdl.Quit()
 }
 
 // TODO(Thomas): Putting process events here to make it easy to

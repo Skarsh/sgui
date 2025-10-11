@@ -43,26 +43,8 @@ main :: proc() {
 	context.logger = logger
 	defer log.destroy_console_logger(logger)
 
-	if sdl.Init(sdl.INIT_VIDEO) < 0 {
-		log.error("Unable to init SDL: ", sdl.GetError())
-		return
-	}
-
-	defer sdl.Quit()
-
-	window := sdl.CreateWindow(
-		"ImGUI",
-		sdl.WINDOWPOS_UNDEFINED,
-		sdl.WINDOWPOS_UNDEFINED,
-		WINDOW_WIDTH,
-		WINDOW_HEIGHT,
-		{.SHOWN, .RESIZABLE, .OPENGL},
-	)
-
-	if window == nil {
-		log.error("Unable to create window: ", sdl.GetError())
-		return
-	}
+	window, window_ok := backend.init_and_create_window("ImGUI", WINDOW_WIDTH, WINDOW_HEIGHT)
+	assert(window_ok)
 
 	ctx := ui.Context{}
 
@@ -203,7 +185,7 @@ main :: proc() {
 }
 
 App_State :: struct {
-	window:      ^sdl.Window,
+	window:      backend.Window,
 	window_size: [2]i32,
 	ctx:         ui.Context,
 	backend_ctx: backend.Context,
@@ -212,7 +194,6 @@ App_State :: struct {
 
 deinit_app_state :: proc(app_state: ^App_State) {
 	backend.deinit(&app_state.backend_ctx)
-	sdl.DestroyWindow(app_state.window)
 }
 
 Image_Data :: struct {

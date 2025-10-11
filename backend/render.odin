@@ -7,10 +7,6 @@ import sdl "vendor:sdl2"
 
 import ui "../ui"
 
-Window :: union {
-	^sdl.Window,
-}
-
 Renderer_Type :: enum {
 	SDL,
 	OpenGL,
@@ -39,7 +35,7 @@ init_render_ctx :: proc(
 	paths: []string,
 ) -> bool {
 
-	win := window.(^sdl.Window)
+	win := window.handle
 	ctx.window = window
 	ctx.allocator = allocator
 	ctx.renderer_type = renderer_type
@@ -101,7 +97,7 @@ render_begin :: proc(render_ctx: ^Render_Context) {
 
 // TODO(Thomas): The command_stack could just be a member of render_ctx instead??
 render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Command) {
-	win := render_ctx.window.(^sdl.Window)
+	win := render_ctx.window.handle
 	switch render_ctx.renderer_type {
 
 	case .SDL:
