@@ -193,7 +193,6 @@ main :: proc() {
 		//build_interactive_button_ui(&app_state)
 		build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
-		//build_resize_bug_repro(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 
@@ -283,49 +282,6 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 				ctx,
 				"image_5",
 				ui.Config_Options{content = {image_data = rawptr(&data.tex_5)}},
-			)
-		},
-	)
-
-	ui.end(ctx)
-}
-
-build_resize_bug_repro :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
-	ui.begin(ctx)
-
-	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-
-	ui.push_background_fill(ctx, base.Color{75, 75, 30, 255}); defer ui.pop_background_fill(ctx)
-	ui.push_layout_direction(ctx, .Left_To_Right); defer ui.pop_layout_direction(ctx)
-
-	parent_sizing := [2]ui.Sizing{{kind = .Fixed, value = 500}, {kind = .Fixed, value = 500}}
-	ui.container(
-		ctx,
-		"parent",
-		ui.Config_Options{layout = {sizing = {&parent_sizing.x, &parent_sizing.y}}},
-		proc(ctx: ^ui.Context) {
-			ui.push_background_fill(
-				ctx,
-				base.Color{255, 75, 30, 255},
-			); defer ui.pop_background_fill(ctx)
-			child_1_sizing := [2]ui.Sizing{{kind = .Grow, min_value = 250}, {kind = .Grow}}
-			ui.container(
-				ctx,
-				"child_1",
-				ui.Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
-			)
-
-			ui.push_background_fill(
-				ctx,
-				base.Color{30, 75, 255, 255},
-			); defer ui.pop_background_fill(ctx)
-			child_2_sizing := [2]ui.Sizing{{kind = .Grow, value = 350}, {kind = .Grow}}
-
-			ui.container(
-				ctx,
-				"child_2",
-				ui.Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
 			)
 		},
 	)
