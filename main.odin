@@ -89,15 +89,6 @@ main :: proc() {
 	)
 	defer ui.deinit(&ctx)
 
-	texture_paths := []string {
-		"./data/textures/skarsh_logo_192x192.png",
-		"./data/textures/copy_icon.png",
-		"./data/textures/paste_icon.png",
-		"./data/textures/delete_icon.png",
-		"./data/textures/comment_icon.png",
-		"./data/textures/cut_icon.png",
-	}
-
 	backend_ctx := backend.Context{}
 	backend.init_ctx(
 		&backend_ctx,
