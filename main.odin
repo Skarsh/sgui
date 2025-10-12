@@ -171,7 +171,8 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		build_styled_ui(&app_state)
+		//build_styled_ui(&app_state)
+		build_fixed_parent_updated_size_from_fit_sizing_child_bug_repro(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
@@ -204,6 +205,32 @@ Image_Data :: struct {
 	tex_3: i32,
 	tex_4: i32,
 	tex_5: i32,
+}
+
+build_fixed_parent_updated_size_from_fit_sizing_child_bug_repro :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+
+	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
+	ui.push_border_thickness(ctx, 5)
+	ui.push_border_fill(ctx, base.Fill(base.Color{255, 255, 0, 255}))
+	ui.push_layout_direction(ctx, .Top_To_Bottom)
+
+	counter_container_padding := ui.Padding{10, 10, 10, 10}
+
+	ui.container(
+		ctx,
+		"counter_container",
+		ui.Config_Options{layout = {padding = &counter_container_padding}},
+		proc(ctx: ^ui.Context) {
+		},
+	)
+	ui.end(ctx)
+
+	root_element := ctx.root_element
+	log.info("root_element.size", root_element.size)
+	counter_container_element := ui.find_element_by_id(ctx.root_element, "counter_container")
+	log.info("counter_container_element.size", counter_container_element.size)
 }
 
 build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data) {

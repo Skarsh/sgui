@@ -230,7 +230,6 @@ end :: proc(ctx: ^Context) {
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
 
-
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
 

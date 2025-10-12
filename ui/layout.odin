@@ -536,8 +536,11 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
+// TODO(Thomas): This will make a parent that is not fit sizing grow, which does
+// not seem to be right
 update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
+
 	if axis == .X && parent.config.layout.layout_direction == .Left_To_Right {
 		parent.size.x += element.size.x
 		parent.min_size.x += element.min_size.x
@@ -1464,7 +1467,6 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 
 }
-
 
 @(test)
 test_grow_sizing_ltr :: proc(t: ^testing.T) {
