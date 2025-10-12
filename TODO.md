@@ -8,6 +8,7 @@
 ## Bugs
 
 ## Backlog
+* Remove SDL renderer, it crashes now and will never be something that we will realistically use.
 * Think of using indexes / handles for referencing / storing ui elements.
 * Embossing (gradient) effects
 * Prune "dead" ui elements (they're still cached in the map)
