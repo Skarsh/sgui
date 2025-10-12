@@ -10,8 +10,8 @@ import base "../../base"
 import ui "../../ui"
 import sdl "vendor:sdl2"
 
-WINDOW_WIDTH :: 480
-WINDOW_HEIGHT :: 360
+WINDOW_WIDTH :: 640
+WINDOW_HEIGHT :: 480
 
 App_State :: struct {
 	window:      backend.Window,
@@ -40,7 +40,7 @@ build_ui :: proc(app_state: ^App_State) {
 	ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
 	ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
 	ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
-	ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
+	ui.push_text_alignment_y(ctx, .Top); defer ui.pop_text_alignment_y(ctx)
 
 
 	main_container_sizing := [2]ui.Sizing {
@@ -58,7 +58,10 @@ build_ui :: proc(app_state: ^App_State) {
 
 			counter_container_padding := ui.Padding{10, 10, 10, 10}
 			counter_container_child_gap: f32 = 10
-			counter_container_sizing := [2]ui.Sizing{{kind = .Fit}, {kind = .Fit}}
+			counter_container_sizing := [2]ui.Sizing {
+				{kind = .Fixed, value = 200},
+				{kind = .Fixed, value = 200},
+			}
 
 			ui.container(
 				ctx,
