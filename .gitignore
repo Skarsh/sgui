@@ -12,9 +12,10 @@ odinfmt.json
 *.rdi
 *.dll
 
-# Linux specific files
+# Linux specific exe files
 *.bin
 sgui
+counter
 
 # Build
 build/
