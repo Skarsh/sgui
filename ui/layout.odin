@@ -483,6 +483,9 @@ container_data :: proc(
 	}
 }
 
+// BUG(Thomas): This seems to be overriding the text_aligment from the style stacks
+// since this always has a valid default value which it makes a config from and passes it
+// to the open_element procedure
 text :: proc(
 	ctx: ^Context,
 	id: string,

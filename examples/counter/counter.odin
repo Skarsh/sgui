@@ -32,21 +32,58 @@ build_ui :: proc(app_state: ^App_State) {
 	ui.begin(ctx)
 
 	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
-	ui.push_border_thickness(ctx, 5)
-	ui.push_border_fill(ctx, base.Fill(base.Color{255, 255, 0, 255}))
 
-	counter_container_padding := ui.Padding{10, 10, 10, 10}
-	counter_container_child_gap: f32 = 10
+	ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
+	ui.push_corner_radius(ctx, 5); defer ui.pop_corner_radius(ctx)
+	ui.push_border_fill(ctx, base.Fill(base.Color{24, 36, 55, 255})); defer ui.pop_border_fill(ctx)
+
+	ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
+	ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
+	ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
+	ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
+
+
+	main_container_sizing := [2]ui.Sizing {
+		{kind = .Percentage_Of_Parent, value = 1.0},
+		{kind = .Percentage_Of_Parent, value = 1.0},
+	}
 
 	ui.container(
 		ctx,
-		"counter_container",
-		ui.Config_Options{layout = {padding = &counter_container_padding}},
+		"main_container",
+		ui.Config_Options {
+			layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+		},
 		proc(ctx: ^ui.Context) {
 
-			ui.text(ctx, "counter_text", "14")
-			ui.button(ctx, "counter_minus_button", "-")
-			ui.button(ctx, "counter_plus_button", "+")
+			counter_container_padding := ui.Padding{10, 10, 10, 10}
+			counter_container_child_gap: f32 = 10
+			counter_container_sizing := [2]ui.Sizing{{kind = .Fit}, {kind = .Fit}}
+
+			ui.container(
+				ctx,
+				"counter_container",
+				ui.Config_Options {
+					layout = {
+						sizing = {&counter_container_sizing.x, &counter_container_sizing.y},
+						padding = &counter_container_padding,
+						child_gap = &counter_container_child_gap,
+					},
+				},
+				proc(ctx: ^ui.Context) {
+
+					ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
+					ui.push_border_fill(
+						ctx,
+						base.Fill(base.Color{24, 36, 0, 255}),
+					); defer ui.pop_border_fill(ctx)
+
+					ui.text(ctx, "counter_text", "14")
+
+					ui.button(ctx, "counter_minus_button", "-")
+					ui.button(ctx, "counter_plus_button", "+")
+				},
+			)
 		},
 	)
 
