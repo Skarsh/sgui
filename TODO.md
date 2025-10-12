@@ -8,6 +8,7 @@
 ## Bugs
 
 ## Backlog
+* Scrolling feature - does this require a strictness value and its own "violations" pass?
 * Remove SDL renderer, it crashes now and will never be something that we will realistically use.
 * Think of using indexes / handles for referencing / storing ui elements.
 * Embossing (gradient) effects
