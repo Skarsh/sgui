@@ -536,18 +536,23 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
-// TODO(Thomas): This will make a parent that is not fit sizing grow, which does
-// not seem to be right
+// TODO(Thomas): The check whether parent sizing kind != .Fixed might not
+// be entirely correct. Maybe this will be changed when we start looking into
+// overflowing for scrolling etc.
 update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
 
-	if axis == .X && parent.config.layout.layout_direction == .Left_To_Right {
+	if axis == .X &&
+	   parent.config.layout.layout_direction == .Left_To_Right &&
+	   parent.config.layout.sizing[axis].kind != .Fixed {
 		parent.size.x += element.size.x
 		parent.min_size.x += element.min_size.x
 		parent.size.y = max(element.size.y, parent.size.y)
 		parent.min_size.y = max(element.min_size.y, parent.min_size.y)
 
-	} else if axis == .Y && parent.config.layout.layout_direction == .Top_To_Bottom {
+	} else if axis == .Y &&
+	   parent.config.layout.layout_direction == .Top_To_Bottom &&
+	   parent.config.layout.sizing[axis].kind != .Fixed {
 		parent.size.x = max(element.size.x, parent.size.x)
 		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
 		parent.size.y += element.size.y
@@ -1027,7 +1032,7 @@ Test_Environment :: struct {
 // NOTE(Thomas): The reason we're returning a pointer to the
 // Test_Environment here is to make sure that the allocators live
 // long enough.
-setup_test_environment :: proc() -> ^Test_Environment {
+setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	env := new(Test_Environment)
 
 	// Setup arena and allocator
@@ -1041,7 +1046,7 @@ setup_test_environment :: proc() -> ^Test_Environment {
 	assert(frame_arena_alloc_err == .None)
 	env.frame_arena_allocator = virtual.arena_allocator(&env.frame_arena)
 
-	init(&env.ctx, env.persistent_arena_allocator, env.frame_arena_allocator, {0, 0}, 0, 0)
+	init(&env.ctx, env.persistent_arena_allocator, env.frame_arena_allocator, window_size, 0, 0)
 
 	return env
 }
@@ -1069,13 +1074,16 @@ Expected_Element :: struct {
 	children: []Expected_Element,
 }
 
+DEFAULT_TESTING_WINDOW_SIZE :: [2]i32{480, 360}
+
 run_layout_test :: proc(
 	t: ^testing.T,
 	build_ui: proc(ctx: ^Context, data: ^$T),
 	verify: proc(t: ^testing.T, root: ^UI_Element, data: ^T),
 	data: ^T,
+	window_size := DEFAULT_TESTING_WINDOW_SIZE,
 ) {
-	test_env := setup_test_environment()
+	test_env := setup_test_environment(window_size)
 	defer cleanup_test_environment(test_env)
 
 	ctx := &test_env.ctx
@@ -1183,6 +1191,11 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := base.Vec2 {
+			f32(DEFAULT_TESTING_WINDOW_SIZE.x),
+			f32(DEFAULT_TESTING_WINDOW_SIZE.y),
+		}
 		size := base.Vec2 {
 			data.panel_padding.left + data.panel_padding.right,
 			data.panel_padding.top + data.panel_padding.bottom,
@@ -1191,9 +1204,11 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
 			children = []Expected_Element{{id = "empty_panel", pos = pos, size = size}},
 		}
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -1205,6 +1220,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
+		root_size:              base.Vec2,
 		panel_layout_direction: Layout_Direction,
 		panel_sizing:           [2]Sizing,
 		panel_padding:          Padding,
@@ -1215,6 +1231,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 		largest_container_y:    f32,
 	}
 	test_data := Test_Data {
+		root_size = {500, 500},
 		panel_layout_direction = .Left_To_Right,
 		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
@@ -1285,7 +1302,10 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := data.root_size
 
+		panel_pos := base.Vec2{0, 0}
 		panel_size := base.Vec2 {
 			data.panel_padding.left +
 			data.panel_padding.right +
@@ -1296,13 +1316,14 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			data.largest_container_y + data.panel_padding.top + data.panel_padding.bottom,
 		}
 
-		panel_pos := base.Vec2{0, 0}
 		c1_pos_x := data.panel_padding.left
 		c2_pos_x := c1_pos_x + data.container_1_size.x + data.panel_child_gap
 		c3_pos_x := c2_pos_x + data.container_2_size.x + data.panel_child_gap
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
 			children = []Expected_Element {
 				{
 					id = "panel",
@@ -1328,11 +1349,18 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_layout_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+
 }
 
 
@@ -1340,6 +1368,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
+		root_size:              base.Vec2,
 		panel_layout_direction: Layout_Direction,
 		panel_sizing:           [2]Sizing,
 		panel_padding:          Padding,
@@ -1350,6 +1379,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 		largest_container_x:    f32,
 	}
 	test_data := Test_Data {
+		root_size = {500, 500},
 		panel_layout_direction = .Top_To_Bottom,
 		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
@@ -1417,6 +1447,8 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := data.root_size
 
 		panel_size := base.Vec2 {
 			data.largest_container_x + data.panel_padding.left + data.panel_padding.right,
@@ -1435,6 +1467,8 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
 			children = []Expected_Element {
 				{
 					id = "panel",
@@ -1460,11 +1494,17 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_layout_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
 
 }
 
