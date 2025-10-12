@@ -3,13 +3,72 @@ package main
 import "core:fmt"
 import "core:log"
 import "core:mem"
+import "core:mem/virtual"
 
 import backend "../../backend"
+import base "../../base"
 import ui "../../ui"
 import sdl "vendor:sdl2"
 
 WINDOW_WIDTH :: 480
 WINDOW_HEIGHT :: 360
+
+App_State :: struct {
+	window:      backend.Window,
+	window_size: [2]i32,
+	ctx:         ui.Context,
+	backend_ctx: backend.Context,
+	running:     bool,
+	counter:     i32,
+}
+
+deinit_app_state :: proc(app_state: ^App_State) {
+	backend.deinit(&app_state.backend_ctx)
+}
+
+build_ui :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+
+	ui.begin(ctx)
+
+	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
+	ui.push_border_thickness(ctx, 5)
+	ui.push_border_fill(ctx, base.Fill(base.Color{255, 255, 0, 255}))
+
+	counter_container_padding := ui.Padding{10, 10, 10, 10}
+	counter_container_child_gap: f32 = 10
+
+	ui.container(
+		ctx,
+		"counter_container",
+		ui.Config_Options{layout = {padding = &counter_container_padding}},
+		proc(ctx: ^ui.Context) {
+
+			ui.text(ctx, "counter_text", "14")
+			ui.button(ctx, "counter_minus_button", "-")
+			ui.button(ctx, "counter_plus_button", "+")
+		},
+	)
+
+	ui.end(ctx)
+}
+
+process_events :: proc(app_state: ^App_State) {
+	// Process input
+	event := sdl.Event{}
+	for sdl.PollEvent(&event) {
+		backend.enqueue_sdl_event(&app_state.backend_ctx.io, event)
+		#partial switch event.type {
+		case .KEYUP:
+			#partial switch event.key.keysym.sym {
+			case .ESCAPE:
+				app_state.running = false
+			}
+		case .QUIT:
+			app_state.running = false
+		}
+	}
+}
 
 main :: proc() {
 	track: mem.Tracking_Allocator
@@ -41,5 +100,79 @@ main :: proc() {
 
 	ctx := ui.Context{}
 
-	fmt.println("Hellope!")
+	app_arena := virtual.Arena{}
+	arena_err := virtual.arena_init_static(&app_arena, 10 * mem.Megabyte)
+	assert(arena_err == .None)
+	app_arena_allocator := virtual.arena_allocator(&app_arena)
+
+	persistent_arena := virtual.Arena{}
+	arena_err = virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
+	assert(arena_err == .None)
+	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
+
+	frame_arena := virtual.Arena{}
+	arena_err = virtual.arena_init_static(&frame_arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
+	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
+
+	io_arena := virtual.Arena{}
+	arena_err = virtual.arena_init_static(&io_arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
+	io_arena_allocator := virtual.arena_allocator(&io_arena)
+
+	font_size: f32 = 48
+	font_id: u16 = 0
+
+	ui.init(
+		&ctx,
+		persistent_arena_allocator,
+		frame_arena_allocator,
+		{WINDOW_WIDTH, WINDOW_HEIGHT},
+		font_id,
+		font_size,
+	)
+	defer ui.deinit(&ctx)
+
+	backend_ctx := backend.Context{}
+	backend.init_ctx(
+		&backend_ctx,
+		&ctx,
+		window,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT,
+		font_size,
+		app_arena_allocator,
+		io_arena_allocator,
+	)
+
+	app_state := App_State {
+		window      = window,
+		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		ctx         = ctx,
+		backend_ctx = backend_ctx,
+		running     = true,
+	}
+	defer deinit_app_state(&app_state)
+
+
+	io := &app_state.backend_ctx.io
+	for app_state.running {
+		backend.time(io)
+		app_state.ctx.dt = io.frame_time.dt
+		if io.frame_time.counter % 100 == 0 {
+			log.infof("dt: %.2fms", io.frame_time.dt * 1000)
+		}
+
+		process_events(&app_state)
+		backend.process_events(&app_state.backend_ctx, &app_state.ctx)
+
+		backend.render_begin(&app_state.backend_ctx.render_ctx)
+
+		build_ui(&app_state)
+
+		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
+
+		sdl.Delay(10)
+	}
+
 }

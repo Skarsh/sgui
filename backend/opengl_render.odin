@@ -258,7 +258,8 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteProgram(render_data.shader.id)
 }
 
-opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data, paths: []string) -> bool {
+// TODO(Thomas): Just remove this?
+opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data) -> bool {
 	return true
 }
 

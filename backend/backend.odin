@@ -49,12 +49,12 @@ Context :: struct {
 	io:           Io,
 }
 
+// TODO(Thomas): This shouldn't be aware of texture paths at all. That is app specific knowledge.
 init_ctx :: proc(
 	ctx: ^Context,
 	ui_ctx: ^ui.Context,
 	window: Window,
 	window_width, window_height: i32,
-	texture_paths: []string,
 	font_size: f32,
 	allocator: mem.Allocator,
 	io_allocator: mem.Allocator,
@@ -89,13 +89,12 @@ init_ctx :: proc(
 		allocator,
 		//.SDL,
 		.OpenGL,
-		texture_paths,
 	)
 	if !render_ctx_ok {
 		log.error("failed to init render context")
 		return false
 	}
-	init_resources(&render_ctx, texture_paths)
+	init_resources(&render_ctx)
 	ctx.render_ctx = render_ctx
 
 	io := Io{}

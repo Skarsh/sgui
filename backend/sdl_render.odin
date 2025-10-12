@@ -105,11 +105,8 @@ sdl_load_texture :: proc(render_data: ^SDL_Render_Data, full_path: string) -> bo
 	return true
 }
 
-sdl_init_resources :: proc(render_data: ^SDL_Render_Data, paths: []string) -> bool {
-	for path in paths {
-		sdl_load_texture(render_data, path)
-	}
-
+// TODO(Thomas): Just remove this??
+sdl_init_resources :: proc(render_data: ^SDL_Render_Data) -> bool {
 	return true
 }
 

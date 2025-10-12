@@ -19,6 +19,8 @@ WINDOW_WIDTH :: 1920
 WINDOW_HEIGHT :: 1080
 
 main :: proc() {
+	// TODO(Thomas): Not having to inline this trakcing allocator stuff would be great.
+	// I tried to move this into a struct once before, but that had some issues for some reason.
 	track: mem.Tracking_Allocator
 	mem.tracking_allocator_init(&track, context.allocator)
 	context.allocator = mem.tracking_allocator(&track)
@@ -45,9 +47,15 @@ main :: proc() {
 
 	window, window_ok := backend.init_and_create_window("ImGUI", WINDOW_WIDTH, WINDOW_HEIGHT)
 	assert(window_ok)
+	defer backend.deinit_window(window)
 
 	ctx := ui.Context{}
 
+
+	// TODO(Thomas): This is annoying for the user to have to make, what if a compromise
+	// could be to take in three pre-allocated blocks of memory for this instead?
+	// so ui.init would take two blocks, one for persistent and one for the frame arena
+	// and the backend would take the app_arena and io_arena?
 	app_arena := virtual.Arena{}
 	arena_err := virtual.arena_init_static(&app_arena, 10 * mem.Megabyte)
 	assert(arena_err == .None)
@@ -97,7 +105,6 @@ main :: proc() {
 		window,
 		WINDOW_WIDTH,
 		WINDOW_HEIGHT,
-		texture_paths,
 		font_size,
 		app_arena_allocator,
 		io_arena_allocator,
@@ -180,10 +187,14 @@ main :: proc() {
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
+		// TODO(Thomas): Shouldn't use sdl.Delay directly here. Should use our own variant.
 		sdl.Delay(10)
 	}
 }
 
+// TODO(Thomas): Should this App_State be something that the library can give when initalized?
+// The only app specific thing here is the running boolean, all the rest is something every application
+// that uses this library would need to set up. This is really part of the API design for the library.
 App_State :: struct {
 	window:      backend.Window,
 	window_size: [2]i32,

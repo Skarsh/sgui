@@ -32,7 +32,6 @@ init_render_ctx :: proc(
 	font_size: f32,
 	allocator := context.allocator,
 	renderer_type: Renderer_Type,
-	paths: []string,
 ) -> bool {
 
 	win := window.handle
@@ -66,13 +65,13 @@ deinit_render_ctx :: proc(ctx: ^Render_Context) {
 	}
 }
 
-init_resources :: proc(ctx: ^Render_Context, paths: []string) -> bool {
+init_resources :: proc(ctx: ^Render_Context) -> bool {
 	ok := false
 	switch ctx.renderer_type {
 	case .SDL:
-		ok = sdl_init_resources(&ctx.render_data.(SDL_Render_Data), paths)
+		ok = sdl_init_resources(&ctx.render_data.(SDL_Render_Data))
 	case .OpenGL:
-		ok = opengl_init_resources(&ctx.render_data.(OpenGL_Render_Data), paths)
+		ok = opengl_init_resources(&ctx.render_data.(OpenGL_Render_Data))
 	}
 	return ok
 }
