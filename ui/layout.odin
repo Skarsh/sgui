@@ -483,45 +483,22 @@ container_data :: proc(
 	}
 }
 
-// BUG(Thomas): This seems to be overriding the text_aligment from the style stacks
-// since this always has a valid default value which it makes a config from and passes it
-// to the open_element procedure
-text :: proc(
-	ctx: ^Context,
-	id: string,
-	text: string,
-	min_width: f32 = 0,
-	min_height: f32 = 0,
-	max_width: f32 = math.F32_MAX,
-	max_height: f32 = math.F32_MAX,
-	text_padding: Padding = {},
-	text_alignment_x := Alignment_X.Left,
-	text_alignment_y := Alignment_Y.Top,
-	text_fill: base.Fill = base.Color{255, 255, 255, 255},
-) {
-	assert(min_width >= 0)
-	assert(min_height >= 0)
+text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
+	default_text_padding := Padding{}
+	default_text_alignment_x := Alignment_X.Left
+	default_text_alignment_y := Alignment_Y.Top
+	default_text_fill := base.Fill(base.Color{255, 255, 255, 255})
 
-	text_padding := text_padding
-	capability_flags := Capability_Flags{.Text}
-	text_alignment_x := text_alignment_x
-	text_alignment_y := text_alignment_y
-	text_fill := text_fill
-
-
-	config := Config_Options{}
-	config.layout.text_padding = &text_padding
-	config.layout.sizing = {
-		&Sizing{min_value = min_width, max_value = max_width},
-		&Sizing{min_value = min_height, max_value = max_height},
+	default_opts := Config_Options {
+		layout = {
+			text_padding = &default_text_padding,
+			text_alignment_x = &default_text_alignment_x,
+			text_alignment_y = &default_text_alignment_y,
+		},
+		text_fill = &default_text_fill,
 	}
 
-	config.capability_flags = &capability_flags
-	config.layout.text_alignment_x = &text_alignment_x
-	config.layout.text_alignment_y = &text_alignment_y
-	config.text_fill = &text_fill
-
-	element, open_ok := open_element(ctx, id, config)
+	element, open_ok := open_element(ctx, id, opts, default_opts)
 	assert(open_ok)
 	if open_ok {
 		element_equip_text(ctx, element, text)
@@ -2020,7 +1997,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 
-				text(ctx, "text_1", "First", min_width = data.text_1_min_width)
+				text(
+					ctx,
+					"text_1",
+					"First",
+					Config_Options {
+						layout = {
+							sizing = {
+								&{kind = .Grow, min_value = data.text_1_min_width},
+								&{kind = .Grow},
+							},
+						},
+					},
+				)
 
 				grow_box_sizing := [2]Sizing {
 					{kind = .Grow, min_value = data.grow_box_min_width},
@@ -2033,7 +2022,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					Config_Options{layout = {sizing = {&grow_box_sizing.x, &grow_box_sizing.y}}},
 				)
 
-				text(ctx, "text_2", "Last", min_width = data.text_2_min_width)
+				text(
+					ctx,
+					"text_2",
+					"Last",
+					Config_Options {
+						layout = {
+							sizing = {
+								&{kind = .Grow, min_value = data.text_2_min_width},
+								&{kind = .Grow},
+							},
+						},
+					},
+				)
 
 			},
 		)
@@ -2136,8 +2137,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
-
-				text(ctx, "text_1", "First", min_height = data.text_1_min_height)
+				text(
+					ctx,
+					"text_1",
+					"First",
+					Config_Options {
+						layout = {
+							sizing = {
+								&{kind = .Grow},
+								&{kind = .Grow, min_value = data.text_1_min_height},
+							},
+						},
+					},
+				)
 
 				grow_box_sizing := [2]Sizing {
 					{kind = .Grow},
@@ -2150,7 +2162,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					Config_Options{layout = {sizing = {&grow_box_sizing.x, &grow_box_sizing.y}}},
 				)
 
-				text(ctx, "text_2", "Last", min_height = data.text_2_min_height)
+				text(
+					ctx,
+					"text_2",
+					"Last",
+					Config_Options {
+						layout = {
+							sizing = {
+								&{kind = .Grow},
+								&{kind = .Grow, min_value = data.text_1_min_height},
+							},
+						},
+					},
+				)
 
 			},
 		)
@@ -2242,8 +2266,18 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 					ctx,
 					"text",
 					"012345",
-					min_width = data.text_min_width,
-					max_width = data.text_max_width,
+					Config_Options {
+						layout = {
+							sizing = {
+								&{
+									kind = .Grow,
+									min_value = data.text_min_width,
+									max_value = data.text_max_width,
+								},
+								&{kind = .Grow},
+							},
+						},
+					},
 				)
 			},
 		)
@@ -2428,8 +2462,14 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 					ctx,
 					"text",
 					"01",
-					min_width = data.text_min_width,
-					min_height = data.text_min_height,
+					Config_Options {
+						layout = {
+							sizing = {
+								&{kind = .Grow, min_value = data.text_min_width},
+								&{kind = .Grow, min_value = data.text_min_height},
+							},
+						},
+					},
 				)
 			},
 		)

@@ -402,8 +402,6 @@ build_styled_ui :: proc(app_state: ^App_State) {
 		base.Gradient{{2, 0, 36, 255}, {9, 121, 105, 255}, {1, 0}},
 	); defer ui.pop_border_fill(ctx)
 
-	//ui.push_border_fill(ctx, base.Fill(base.Color{255, 0, 0, 255})); defer ui.pop_border_fill(ctx)
-
 	main_container_sizing := ui.Sizing {
 		kind  = .Percentage_Of_Parent,
 		value = 1.0,
@@ -415,12 +413,16 @@ build_styled_ui :: proc(app_state: ^App_State) {
 		ui.Config_Options{layout = {sizing = {&main_container_sizing, &main_container_sizing}}},
 		proc(ctx: ^ui.Context) {
 
+			title_text_fill := base.Fill(base.Color{230, 230, 230, 255})
+			title_text_padding := ui.Padding{5, 5, 5, 5}
 			ui.text(
 				ctx,
 				"title",
 				"Themed UI Demo",
-				text_fill = base.Color{230, 230, 230, 255},
-				text_padding = ui.Padding{5, 5, 5, 5},
+				ui.Config_Options {
+					layout = {text_padding = &title_text_padding},
+					text_fill = &title_text_fill,
+				},
 			)
 
 			{
@@ -465,12 +467,16 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				})
 			}
 
+			footer_text_fill := base.Fill(base.Color{255, 150, 150, 255})
+			footer_text_padding := ui.Padding{5, 5, 5, 5}
 			ui.text(
 				ctx,
 				"footer_text",
 				"The styles above were scoped.",
-				text_fill = base.Color{255, 150, 150, 255},
-				text_padding = ui.Padding{5, 5, 5, 5},
+				ui.Config_Options {
+					layout = {text_padding = &footer_text_padding},
+					text_fill = &footer_text_fill,
+				},
 			)
 		},
 	)
@@ -562,9 +568,14 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"text",
 				"one two three four five six seven eight  nine ten",
-				min_width = 100,
-				max_width = 100,
-				min_height = 30,
+				ui.Config_Options {
+					layout = {
+						sizing = {
+							&{kind = .Grow, min_value = 100, max_value = 100},
+							&{kind = .Grow, min_value = 30},
+						},
+					},
+				},
 			)
 		},
 	)
@@ -764,12 +775,18 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 								item := data.items[data.idx]
 								strings.write_int(&data.builder, len(data.items) + data.idx)
 								text_id := strings.to_string(data.builder)
+								text_alignment_x := ui.Alignment_X.Left
+								text_alignment_y := ui.Alignment_Y.Center
 								ui.text(
 									ctx,
 									text_id,
 									item,
-									text_alignment_x = .Left,
-									text_alignment_y = .Center,
+									ui.Config_Options {
+										layout = {
+											text_alignment_x = &text_alignment_x,
+											text_alignment_y = &text_alignment_y,
+										},
+									},
 								)
 							},
 						)

@@ -529,9 +529,6 @@ resolve_default :: proc(user_value: ^$T) -> T {
 	return T{}
 }
 
-// BUG(Thomas): This seems to be overriding the text_aligment from the style stacks
-// since this always has a valid default value which it makes a config from and passes it
-// to the open_element procedure
 button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Comm {
 	sizing_grow := Sizing {
 		kind = .Grow,

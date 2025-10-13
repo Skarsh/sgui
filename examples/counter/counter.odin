@@ -40,8 +40,7 @@ build_ui :: proc(app_state: ^App_State) {
 	ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
 	ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
 	ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
-	ui.push_text_alignment_y(ctx, .Top); defer ui.pop_text_alignment_y(ctx)
-
+	ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
 
 	main_container_sizing := [2]ui.Sizing {
 		{kind = .Percentage_Of_Parent, value = 1.0},
@@ -60,7 +59,7 @@ build_ui :: proc(app_state: ^App_State) {
 			counter_container_child_gap: f32 = 10
 			counter_container_sizing := [2]ui.Sizing {
 				{kind = .Fixed, value = 200},
-				{kind = .Fixed, value = 200},
+				{kind = .Fixed, value = 100},
 			}
 
 			ui.container(
@@ -75,7 +74,6 @@ build_ui :: proc(app_state: ^App_State) {
 				},
 				proc(ctx: ^ui.Context) {
 
-					ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 					ui.push_border_fill(
 						ctx,
 						base.Fill(base.Color{24, 36, 0, 255}),
@@ -83,6 +81,7 @@ build_ui :: proc(app_state: ^App_State) {
 
 					ui.text(ctx, "counter_text", "14")
 
+					ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 					ui.button(ctx, "counter_minus_button", "-")
 					ui.button(ctx, "counter_plus_button", "+")
 				},
