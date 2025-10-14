@@ -59,7 +59,7 @@ build_ui :: proc(app_state: ^App_State) {
 			counter_container_child_gap: f32 = 10
 			counter_container_sizing := [2]ui.Sizing {
 				{kind = .Fixed, value = 200},
-				{kind = .Fixed, value = 100},
+				{kind = .Fixed, value = 70},
 			}
 
 			ui.container(
@@ -79,7 +79,13 @@ build_ui :: proc(app_state: ^App_State) {
 						base.Fill(base.Color{24, 36, 0, 255}),
 					); defer ui.pop_border_fill(ctx)
 
-					ui.text(ctx, "counter_text", "14")
+					counter_text_border_fill := base.Fill(base.Color{0, 0, 0, 0})
+					ui.text(
+						ctx,
+						"counter_text",
+						"14",
+						ui.Config_Options{border_fill = &counter_text_border_fill},
+					)
 
 					ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 					ui.button(ctx, "counter_minus_button", "-")
