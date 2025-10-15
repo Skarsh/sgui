@@ -14,8 +14,6 @@ odinfmt.json
 
 # Linux specific exe files
 *.bin
-./sgui
-./counter
 
 # Build
 build/
