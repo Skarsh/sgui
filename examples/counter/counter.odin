@@ -224,6 +224,7 @@ main :: proc() {
 	io := &app_state.backend_ctx.io
 	for app_state.running {
 		backend.time(io)
+		app_state.ctx.dt = io.frame_time.dt
 		process_events(&app_state)
 		backend.process_events(&app_state.backend_ctx, &app_state.ctx)
 
