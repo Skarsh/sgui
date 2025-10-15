@@ -12,8 +12,14 @@ if ! odin test base; then
     exit 1
 fi
 
-echo "Building SDL2 example"
-if ! odin build . -strict-style -vet -debug; then
+echo "Building main"
+if ! odin build . -strict-style -vet -debug -out:./build/sgui.bin; then
+    echo "Build failed!"
+    exit 1
+fi
+
+echo "Building counter example"
+if ! odin build examples/counter -strict-style -vet -debug -out:./build/counter.bin; then
     echo "Build failed!"
     exit 1
 fi
