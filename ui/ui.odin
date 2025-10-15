@@ -380,8 +380,9 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	last_comm := element.last_comm
 
-	// TODO(Thomas): Implement Gradient case.
-	// Also is this a good way of doing this?
+	// TODO(Thomas): Click could have an embossed / debossed animation effect instead.
+	// There's lots left to figure out for hot and active too, it could be highlighted with
+	// a border instead or many other things. This is a temporary a solution.
 	switch fill in final_bg_fill {
 	case base.Color:
 		if .Hot_Animation in cap_flags {
@@ -406,6 +407,32 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		}
 
 	case base.Gradient:
+		gradient := final_bg_fill.(base.Gradient)
+
+		if .Hot_Animation in cap_flags {
+			hot_color := default_color_style[.Hot]
+			gradient.color_start = base.lerp_color(gradient.color_start, hot_color, element.hot)
+			gradient.color_end = base.lerp_color(gradient.color_end, hot_color, element.hot)
+		}
+
+		if .Active_Animation in cap_flags {
+			active_color := default_color_style[.Active]
+			gradient.color_start = base.lerp_color(
+				gradient.color_start,
+				active_color,
+				element.active,
+			)
+			gradient.color_end = base.lerp_color(gradient.color_end, active_color, element.active)
+		}
+
+		final_bg_fill = gradient
+
+		if .Clickable in cap_flags {
+			if last_comm.held {
+				click_color := default_color_style[.Click]
+				final_bg_fill = click_color
+			}
+		}
 	}
 
 
