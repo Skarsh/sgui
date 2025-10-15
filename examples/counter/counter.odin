@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"
+import "core:strings"
 
 import backend "../../backend"
 import base "../../base"
@@ -13,13 +14,18 @@ import sdl "vendor:sdl2"
 WINDOW_WIDTH :: 640
 WINDOW_HEIGHT :: 480
 
+Data :: struct {
+	counter: int,
+	sb:      strings.Builder,
+}
+
 App_State :: struct {
 	window:      backend.Window,
 	window_size: [2]i32,
 	ctx:         ui.Context,
 	backend_ctx: backend.Context,
 	running:     bool,
-	counter:     i32,
+	data:        Data,
 }
 
 deinit_app_state :: proc(app_state: ^App_State) {
@@ -53,7 +59,8 @@ build_ui :: proc(app_state: ^App_State) {
 		ui.Config_Options {
 			layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
 		},
-		proc(ctx: ^ui.Context) {
+		&app_state.data,
+		proc(ctx: ^ui.Context, data: ^Data) {
 
 			counter_container_padding := ui.Padding{10, 10, 10, 10}
 			counter_container_child_gap: f32 = 10
@@ -72,7 +79,8 @@ build_ui :: proc(app_state: ^App_State) {
 						child_gap = &counter_container_child_gap,
 					},
 				},
-				proc(ctx: ^ui.Context) {
+				data,
+				proc(ctx: ^ui.Context, data: ^Data) {
 
 					ui.push_border_fill(
 						ctx,
@@ -80,16 +88,27 @@ build_ui :: proc(app_state: ^App_State) {
 					); defer ui.pop_border_fill(ctx)
 
 					counter_text_border_fill := base.Fill(base.Color{0, 0, 0, 0})
+
+					strings.write_int(&data.sb, data.counter)
+					num_str := strings.to_string(data.sb)
+					defer strings.builder_reset(&data.sb)
+
 					ui.text(
 						ctx,
 						"counter_text",
-						"14",
+						num_str,
 						ui.Config_Options{border_fill = &counter_text_border_fill},
 					)
 
 					ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
-					ui.button(ctx, "counter_minus_button", "-")
-					ui.button(ctx, "counter_plus_button", "+")
+
+					if ui.button(ctx, "counter_minus_button", "-").clicked {
+						data.counter -= 1
+					}
+
+					if ui.button(ctx, "counter_plus_button", "+").clicked {
+						data.counter += 1
+					}
 				},
 			)
 		},
@@ -190,24 +209,21 @@ main :: proc() {
 		io_arena_allocator,
 	)
 
+	string_buffer := [16]u8{}
+
 	app_state := App_State {
-		window      = window,
+		window = window,
 		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		ctx         = ctx,
+		ctx = ctx,
 		backend_ctx = backend_ctx,
-		running     = true,
+		running = true,
+		data = Data{counter = 0, sb = strings.builder_from_bytes(string_buffer[:])},
 	}
 	defer deinit_app_state(&app_state)
-
 
 	io := &app_state.backend_ctx.io
 	for app_state.running {
 		backend.time(io)
-		app_state.ctx.dt = io.frame_time.dt
-		if io.frame_time.counter % 100 == 0 {
-			log.infof("dt: %.2fms", io.frame_time.dt * 1000)
-		}
-
 		process_events(&app_state)
 		backend.process_events(&app_state.backend_ctx, &app_state.ctx)
 
@@ -219,5 +235,4 @@ main :: proc() {
 
 		sdl.Delay(10)
 	}
-
 }

@@ -18,6 +18,7 @@ Color_Type :: enum u32 {
 	Hot,
 	Active,
 	Base,
+	Click,
 }
 
 Command :: union {
@@ -123,6 +124,7 @@ Capability :: enum {
 	Image,
 	Active_Animation,
 	Hot_Animation,
+	Clickable,
 }
 
 Capability_Flags :: bit_set[Capability]
@@ -154,6 +156,7 @@ default_color_style := Color_Style {
 	.Hot          = {95, 95, 95, 255},
 	.Active       = {115, 115, 115, 255},
 	.Base         = {30, 30, 30, 255},
+	.Click        = {200, 200, 200, 255},
 }
 
 init :: proc(
@@ -375,6 +378,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	cap_flags := element.config.capability_flags
 	final_bg_fill := element.fill
 
+	last_comm := element.last_comm
+
 	// TODO(Thomas): Implement Gradient case.
 	// Also is this a good way of doing this?
 	switch fill in final_bg_fill {
@@ -392,8 +397,17 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				element.active,
 			)
 		}
+
+		if .Clickable in cap_flags {
+			if last_comm.held {
+				click_color := default_color_style[.Click]
+				final_bg_fill = click_color
+			}
+		}
+
 	case base.Gradient:
 	}
+
 
 	if .Background in element.config.capability_flags {
 		draw_rect(
@@ -544,7 +558,7 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	text_alignment_x := Alignment_X.Center
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
 	text_fill := base.Fill(base.Color{255, 128, 255, 128})
-	capability_flags := Capability_Flags{.Background, .Active_Animation, .Hot_Animation}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 	clip := Clip_Config{{true, true}}
 
 	default_opts := Config_Options {
