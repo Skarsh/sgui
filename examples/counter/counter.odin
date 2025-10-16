@@ -3,38 +3,18 @@ package main
 import "core:fmt"
 import "core:log"
 import "core:mem"
-import "core:mem/virtual"
 import "core:strings"
 
-import backend "../../backend"
-import base "../../base"
-import ui "../../ui"
-import sdl "vendor:sdl2"
-
-WINDOW_WIDTH :: 640
-WINDOW_HEIGHT :: 480
+import "../../app"
+import "../../base"
+import "../../ui"
 
 Data :: struct {
 	counter: int,
 	sb:      strings.Builder,
 }
 
-App_State :: struct {
-	window:      backend.Window,
-	window_size: [2]i32,
-	ctx:         ui.Context,
-	backend_ctx: backend.Context,
-	running:     bool,
-	data:        Data,
-}
-
-deinit_app_state :: proc(app_state: ^App_State) {
-	backend.deinit(&app_state.backend_ctx)
-}
-
-build_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
-
+build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	ui.begin(ctx)
 
 	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
@@ -59,7 +39,7 @@ build_ui :: proc(app_state: ^App_State) {
 		ui.Config_Options {
 			layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
 		},
-		&app_state.data,
+		data,
 		proc(ctx: ^ui.Context, data: ^Data) {
 
 			counter_container_padding := ui.Padding{10, 10, 10, 10}
@@ -117,21 +97,8 @@ build_ui :: proc(app_state: ^App_State) {
 	ui.end(ctx)
 }
 
-process_events :: proc(app_state: ^App_State) {
-	// Process input
-	event := sdl.Event{}
-	for sdl.PollEvent(&event) {
-		backend.enqueue_sdl_event(&app_state.backend_ctx.io, event)
-		#partial switch event.type {
-		case .KEYUP:
-			#partial switch event.key.keysym.sym {
-			case .ESCAPE:
-				app_state.running = false
-			}
-		case .QUIT:
-			app_state.running = false
-		}
-	}
+update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
+	build_ui(ctx, data)
 }
 
 main :: proc() {
@@ -159,81 +126,26 @@ main :: proc() {
 	context.logger = logger
 	defer log.destroy_console_logger(logger)
 
-	window, window_ok := backend.init_and_create_window("ImGUI", WINDOW_WIDTH, WINDOW_HEIGHT)
-	assert(window_ok)
+	config := app.App_Config {
+		title     = "Counter App",
+		width     = 640,
+		height    = 480,
+		font_path = "",
+		font_id   = 0,
+		font_size = 48,
+	}
 
-	ctx := ui.Context{}
-
-	app_arena := virtual.Arena{}
-	arena_err := virtual.arena_init_static(&app_arena, 10 * mem.Megabyte)
-	assert(arena_err == .None)
-	app_arena_allocator := virtual.arena_allocator(&app_arena)
-
-	persistent_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
-	assert(arena_err == .None)
-	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
-
-	frame_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&frame_arena, 10 * mem.Kilobyte)
-	assert(arena_err == .None)
-	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
-
-	io_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&io_arena, 10 * mem.Kilobyte)
-	assert(arena_err == .None)
-	io_arena_allocator := virtual.arena_allocator(&io_arena)
-
-	font_size: f32 = 48
-	font_id: u16 = 0
-
-	ui.init(
-		&ctx,
-		persistent_arena_allocator,
-		frame_arena_allocator,
-		{WINDOW_WIDTH, WINDOW_HEIGHT},
-		font_id,
-		font_size,
-	)
-	defer ui.deinit(&ctx)
-
-	backend_ctx := backend.Context{}
-	backend.init_ctx(
-		&backend_ctx,
-		&ctx,
-		window,
-		WINDOW_WIDTH,
-		WINDOW_HEIGHT,
-		font_size,
-		app_arena_allocator,
-		io_arena_allocator,
-	)
+	my_app, my_app_ok := app.init(config)
+	if !my_app_ok {
+		log.error("Failed to initialize GUI application")
+		return
+	}
+	defer app.deinit(my_app)
 
 	string_buffer := [16]u8{}
-
-	app_state := App_State {
-		window = window,
-		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		ctx = ctx,
-		backend_ctx = backend_ctx,
-		running = true,
-		data = Data{counter = 0, sb = strings.builder_from_bytes(string_buffer[:])},
+	my_data := Data {
+		counter = 0,
+		sb      = strings.builder_from_bytes(string_buffer[:]),
 	}
-	defer deinit_app_state(&app_state)
-
-	io := &app_state.backend_ctx.io
-	for app_state.running {
-		backend.time(io)
-		app_state.ctx.dt = io.frame_time.dt
-		process_events(&app_state)
-		backend.process_events(&app_state.backend_ctx, &app_state.ctx)
-
-		backend.render_begin(&app_state.backend_ctx.render_ctx)
-
-		build_ui(&app_state)
-
-		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
-
-		sdl.Delay(10)
-	}
+	app.run(my_app, &my_data, update_and_draw)
 }
