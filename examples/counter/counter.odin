@@ -21,6 +21,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			ui.Capability_Flags{.Background},
 		); defer ui.pop_capability_flags(ctx)
 
+		ui.push_background_fill(
+			ctx,
+			base.Fill(base.Color{55, 55, 55, 255}),
+		); defer ui.pop_background_fill(ctx)
+
 		ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
 		ui.push_corner_radius(ctx, 5); defer ui.pop_corner_radius(ctx)
 		ui.push_border_fill(
@@ -75,13 +80,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				num_str := strings.to_string(data.sb)
 				defer strings.builder_reset(&data.sb)
 
+
+				text_background_fill := base.Fill(base.Color{0, 0, 0, 0})
 				ui.text(
 					ctx,
 					"counter_text",
 					num_str,
-					ui.Config_Options{border_fill = &counter_text_border_fill},
+					ui.Config_Options {
+						border_fill = &counter_text_border_fill,
+						background_fill = &text_background_fill,
+					},
 				)
 
+				ui.push_background_fill(
+					ctx,
+					base.Fill(base.Color{95, 95, 95, 255}),
+				); defer ui.pop_background_fill(ctx)
 				ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 
 				if ui.button(ctx, "counter_minus_button", "-").clicked {

@@ -12,18 +12,21 @@ import "../../ui"
 Data :: struct {}
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
-
-	ui.push_capability_flags(
-		ctx,
-		ui.Capability_Flags{.Background},
-	); defer ui.pop_capability_flags(ctx)
-
-	main_container_sizing := [2]ui.Sizing {
-		{kind = .Percentage_Of_Parent, value = 1.0},
-		{kind = .Percentage_Of_Parent, value = 1.0},
-	}
-
 	if ui.begin(ctx) {
+		ui.push_capability_flags(
+			ctx,
+			ui.Capability_Flags{.Background},
+		); defer ui.pop_capability_flags(ctx)
+
+		ui.push_background_fill(
+			ctx,
+			base.Fill(base.Color{55, 55, 55, 255}),
+		); defer ui.pop_background_fill(ctx)
+
+		main_container_sizing := [2]ui.Sizing {
+			{kind = .Percentage_Of_Parent, value = 1.0},
+			{kind = .Percentage_Of_Parent, value = 1.0},
+		}
 		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
 		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
 
@@ -63,6 +66,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				green_slider_val: f32 = 0
 				blue_slider_val: f32 = 0
 
+
+				ui.push_background_fill(
+					ctx,
+					base.Fill(base.Color{95, 95, 95, 255}),
+				); defer ui.pop_background_fill(ctx)
 				ui.slider(ctx, "red_slider", &red_slider_val, 0, 100)
 				ui.slider(ctx, "green_slider", &green_slider_val, 0, 100)
 				ui.slider(ctx, "blue_slider", &blue_slider_val, 0, 100)
