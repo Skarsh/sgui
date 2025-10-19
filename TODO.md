@@ -1,13 +1,17 @@
 # TODOs
 
 ## Active
-* Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
-    specifically there's been a bug with text color being zeroed out so text was not visible.
-    Would text just having a sensible default styling be enough?
+* Slider widget
 
 ## Bugs
 
 ## Backlog
+* Simpler text helper procedure, important to think about life time there, it probably
+    has to take an allocator that lives for the length of the frame, e.g. an arena allocator
+    that lives on the App that gets reset for every frame. We don't wanna clone strings.
+* Rethink how to structure text creation, meaning `text` helper proc vs `element_equip_text`.
+    specifically there's been a bug with text color being zeroed out so text was not visible.
+    Would text just having a sensible default styling be enough?
 * Scrolling feature - does this require a strictness value and its own "violations" pass?
 * Remove SDL renderer, it crashes now and will never be something that we will realistically use.
 * Think of using indexes / handles for referencing / storing ui elements.
