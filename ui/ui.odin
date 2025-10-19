@@ -636,6 +636,38 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	return element.last_comm
 }
 
+slider :: proc(
+	ctx: ^Context,
+	id: string,
+	value: ^f32,
+	min: f32,
+	max: f32,
+	opts: Config_Options = {},
+) -> Comm {
+	sizing_x := Sizing {
+		kind = .Grow,
+	}
+	sizing_y := Sizing {
+		kind  = .Fixed,
+		value = 20,
+	}
+	background_fill := base.Fill(base.Color{24, 24, 24, 255})
+	capability_flags := Capability_Flags{.Background, .Clickable}
+
+	default_opts := Config_Options {
+		layout = {sizing = {&sizing_x, &sizing_y}},
+		background_fill = &background_fill,
+		capability_flags = &capability_flags,
+	}
+
+	element, open_ok := open_element(ctx, id, opts, default_opts)
+	if open_ok {
+		close_element(ctx)
+	}
+	append(&ctx.interactive_elements, element)
+	return element.last_comm
+}
+
 push_sizing_x :: proc(ctx: ^Context, sizing: Sizing) -> bool {
 	return push(&ctx.sizing_x_stack, sizing)
 }

@@ -24,4 +24,10 @@ if ! odin build examples/counter -strict-style -vet -debug -out:./build/counter.
     exit 1
 fi
 
+echo "Building color_picker example"
+if ! odin build examples/color_picker -strict-style -vet -debug -out:./build/color_picker.bin; then
+    echo "Build failed!"
+    exit 1
+fi
+
 echo "Build and tests completed successfully."
