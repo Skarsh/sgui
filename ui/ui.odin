@@ -190,7 +190,7 @@ set_ctx_font_id :: proc(ctx: ^Context, font_id: u16) {
 deinit :: proc(ctx: ^Context) {
 }
 
-begin :: proc(ctx: ^Context) {
+begin :: proc(ctx: ^Context) -> bool {
 	clear_dynamic_array(&ctx.interactive_elements)
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
@@ -215,6 +215,7 @@ begin :: proc(ctx: ^Context) {
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
 	ctx.root_element = root_element
+	return root_open_ok
 }
 
 end :: proc(ctx: ^Context) {

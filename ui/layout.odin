@@ -410,6 +410,27 @@ open_element :: proc(
 	return element, true
 }
 
+begin_container :: proc {
+	begin_container_no_config,
+	begin_container_with_config,
+}
+
+begin_container_no_config :: proc(ctx: ^Context, id: string) -> bool {
+	_, open_ok := open_element(ctx, id)
+	assert(open_ok)
+	return open_ok
+}
+
+begin_container_with_config :: proc(ctx: ^Context, id: string, opts: Config_Options) -> bool {
+	_, open_ok := open_element(ctx, id, opts)
+	assert(open_ok)
+	return open_ok
+}
+
+end_container :: proc(ctx: ^Context) {
+	close_element(ctx)
+}
+
 container :: proc {
 	container_data,
 	container_data_no_config,

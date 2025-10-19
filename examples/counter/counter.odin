@@ -15,32 +15,33 @@ Data :: struct {
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
-	ui.begin(ctx)
+	if ui.begin(ctx) {
+		ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
 
-	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
+		ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
+		ui.push_corner_radius(ctx, 5); defer ui.pop_corner_radius(ctx)
+		ui.push_border_fill(
+			ctx,
+			base.Fill(base.Color{24, 36, 55, 255}),
+		); defer ui.pop_border_fill(ctx)
 
-	ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
-	ui.push_corner_radius(ctx, 5); defer ui.pop_corner_radius(ctx)
-	ui.push_border_fill(ctx, base.Fill(base.Color{24, 36, 55, 255})); defer ui.pop_border_fill(ctx)
+		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
+		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
+		ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
+		ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
 
-	ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
-	ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
-	ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
-	ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
+		main_container_sizing := [2]ui.Sizing {
+			{kind = .Percentage_Of_Parent, value = 1.0},
+			{kind = .Percentage_Of_Parent, value = 1.0},
+		}
 
-	main_container_sizing := [2]ui.Sizing {
-		{kind = .Percentage_Of_Parent, value = 1.0},
-		{kind = .Percentage_Of_Parent, value = 1.0},
-	}
-
-	ui.container(
-		ctx,
-		"main_container",
-		ui.Config_Options {
-			layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
-		},
-		data,
-		proc(ctx: ^ui.Context, data: ^Data) {
+		if ui.begin_container(
+			ctx,
+			"main_container",
+			ui.Config_Options {
+				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+			},
+		) {
 
 			counter_container_padding := ui.Padding{10, 10, 10, 10}
 			counter_container_child_gap: f32 = 10
@@ -49,7 +50,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				{kind = .Fixed, value = 70},
 			}
 
-			ui.container(
+			if ui.begin_container(
 				ctx,
 				"counter_container",
 				ui.Config_Options {
@@ -59,42 +60,43 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						child_gap = &counter_container_child_gap,
 					},
 				},
-				data,
-				proc(ctx: ^ui.Context, data: ^Data) {
+			) {
+				ui.push_border_fill(
+					ctx,
+					base.Fill(base.Color{24, 36, 0, 255}),
+				); defer ui.pop_border_fill(ctx)
 
-					ui.push_border_fill(
-						ctx,
-						base.Fill(base.Color{24, 36, 0, 255}),
-					); defer ui.pop_border_fill(ctx)
+				counter_text_border_fill := base.Fill(base.Color{0, 0, 0, 0})
 
-					counter_text_border_fill := base.Fill(base.Color{0, 0, 0, 0})
+				strings.write_int(&data.sb, data.counter)
+				num_str := strings.to_string(data.sb)
+				defer strings.builder_reset(&data.sb)
 
-					strings.write_int(&data.sb, data.counter)
-					num_str := strings.to_string(data.sb)
-					defer strings.builder_reset(&data.sb)
+				ui.text(
+					ctx,
+					"counter_text",
+					num_str,
+					ui.Config_Options{border_fill = &counter_text_border_fill},
+				)
 
-					ui.text(
-						ctx,
-						"counter_text",
-						num_str,
-						ui.Config_Options{border_fill = &counter_text_border_fill},
-					)
+				ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 
-					ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
+				if ui.button(ctx, "counter_minus_button", "-").clicked {
+					data.counter -= 1
+				}
 
-					if ui.button(ctx, "counter_minus_button", "-").clicked {
-						data.counter -= 1
-					}
+				if ui.button(ctx, "counter_plus_button", "+").clicked {
+					data.counter += 1
+				}
 
-					if ui.button(ctx, "counter_plus_button", "+").clicked {
-						data.counter += 1
-					}
-				},
-			)
-		},
-	)
+				ui.end_container(ctx)
+			}
 
-	ui.end(ctx)
+			ui.end_container(ctx)
+		}
+
+		ui.end(ctx)
+	}
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
