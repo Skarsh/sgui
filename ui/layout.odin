@@ -504,29 +504,6 @@ container_data :: proc(
 	}
 }
 
-text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
-	default_text_padding := Padding{}
-	default_text_alignment_x := Alignment_X.Left
-	default_text_alignment_y := Alignment_Y.Top
-	default_text_fill := base.Fill(base.Color{255, 255, 255, 255})
-
-	default_opts := Config_Options {
-		layout = {
-			text_padding = &default_text_padding,
-			text_alignment_x = &default_text_alignment_x,
-			text_alignment_y = &default_text_alignment_y,
-		},
-		text_fill = &default_text_fill,
-	}
-
-	element, open_ok := open_element(ctx, id, opts, default_opts)
-	assert(open_ok)
-	if open_ok {
-		element_equip_text(ctx, element, text)
-		close_element(ctx)
-	}
-}
-
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	for child in element.children {
 		fit_size_axis(child, axis)
