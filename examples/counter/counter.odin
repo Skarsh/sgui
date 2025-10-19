@@ -16,7 +16,10 @@ Data :: struct {
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
-		ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
+		ui.push_capability_flags(
+			ctx,
+			ui.Capability_Flags{.Background},
+		); defer ui.pop_capability_flags(ctx)
 
 		ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
 		ui.push_corner_radius(ctx, 5); defer ui.pop_corner_radius(ctx)
