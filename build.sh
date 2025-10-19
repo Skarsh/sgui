@@ -1,7 +1,10 @@
 #!/bin/bash
 set -eo pipefail
 
-echo "Running tests"
+# Ensure the build output directory exists
+mkdir -p build
+
+echo "--- Running tests ---"
 if ! odin test ui; then
     echo "Ui tests failed! Cannot successfully build."
     exit 1
@@ -12,22 +15,25 @@ if ! odin test base; then
     exit 1
 fi
 
-echo "Building main"
+echo ""
+echo "--- Building main application ---"
 if ! odin build . -strict-style -vet -debug -out:./build/sgui.bin; then
     echo "Build failed!"
     exit 1
 fi
 
-echo "Building counter example"
-if ! odin build examples/counter -strict-style -vet -debug -out:./build/counter.bin; then
-    echo "Build failed!"
-    exit 1
-fi
+echo ""
+echo "--- Building all examples ---"
+for example_path in examples/*/; do
+    # Remove the trailing slash and the 'examples/' prefix to get the name
+    example_name=$(basename "$example_path")
+    
+    echo "Building example: $example_name"
+    if ! odin build "$example_path" -strict-style -vet -debug -out:./build/"$example_name".bin; then
+        echo "Build for example '$example_name' failed!"
+        exit 1
+    fi
+done
 
-echo "Building color_picker example"
-if ! odin build examples/color_picker -strict-style -vet -debug -out:./build/color_picker.bin; then
-    echo "Build failed!"
-    exit 1
-fi
-
+echo ""
 echo "Build and tests completed successfully."
