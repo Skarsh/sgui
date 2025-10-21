@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 REM Ensure the build output directory exists
 if not exist build mkdir build
