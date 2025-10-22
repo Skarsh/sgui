@@ -9,7 +9,11 @@ import "../../app"
 import "../../base"
 import "../../ui"
 
-Data :: struct {}
+Data :: struct {
+	r: f32,
+	g: f32,
+	b: f32,
+}
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
@@ -62,18 +66,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ui.end_container(ctx)
 				}
 
-				red_slider_val: f32 = 0
-				green_slider_val: f32 = 0
-				blue_slider_val: f32 = 0
-
-
 				ui.push_background_fill(
 					ctx,
 					base.Fill(base.Color{95, 95, 95, 255}),
 				); defer ui.pop_background_fill(ctx)
-				ui.slider(ctx, "red_slider", &red_slider_val, 0, 100)
-				ui.slider(ctx, "green_slider", &green_slider_val, 0, 100)
-				ui.slider(ctx, "blue_slider", &blue_slider_val, 0, 100)
+				ui.slider(ctx, "red_slider", &data.r, 0, 100)
+				ui.slider(ctx, "green_slider", &data.g, 0, 100)
+				ui.slider(ctx, "blue_slider", &data.b, 0, 100)
 
 				ui.end_container(ctx)
 			}
