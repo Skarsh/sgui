@@ -70,9 +70,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ctx,
 					base.Fill(base.Color{95, 95, 95, 255}),
 				); defer ui.pop_background_fill(ctx)
-				ui.slider(ctx, "red_slider", &data.r, 0, 100)
-				ui.slider(ctx, "green_slider", &data.g, 0, 100)
-				ui.slider(ctx, "blue_slider", &data.b, 0, 100)
+				ui.slider(ctx, "red_slider", &data.r, 0, 1)
+				//ui.slider(ctx, "green_slider", &data.g, 0, 100)
+				//ui.slider(ctx, "blue_slider", &data.b, 0, 100)
 
 				ui.end_container(ctx)
 			}
@@ -131,7 +131,9 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
-	my_data := Data{}
+	my_data := Data {
+		r = 0.5,
+	}
 
 	app.run(my_app, &my_data, update_and_draw)
 }

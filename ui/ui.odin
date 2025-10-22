@@ -652,7 +652,7 @@ slider :: proc(
 		value = 20,
 	}
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
-	capability_flags := Capability_Flags{.Background, .Clickable}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 
 	default_opts := Config_Options {
 		layout = {sizing = {&sizing_x, &sizing_y}},
@@ -662,8 +662,87 @@ slider :: proc(
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 	if open_ok {
+
+		ratio: f32 = 0
+		range := max - min
+		if range != 0 {
+			current_value := math.clamp(value^, min, max)
+			ratio = (current_value - min) / range
+		}
+
+		// 1. Filled Track
+		filled_track_sizing_x := Sizing {
+			kind  = .Percentage_Of_Parent,
+			value = ratio,
+		}
+
+		filled_track_sizing_y := Sizing {
+			kind = .Grow,
+		}
+
+		filled_track_fill := base.Fill(base.Color{255, 25, 25, 255})
+		filled_track_caps := Capability_Flags{.Background}
+
+		// TODO(Thomas): Better ids, simple solution for now is to concatenate
+		// the passed in id with _track, _thumb, _spacer etc.
+
+		if begin_container(
+			ctx,
+			"filled_track",
+			{
+				layout = {sizing = {&filled_track_sizing_x, &filled_track_sizing_y}},
+				background_fill = &filled_track_fill,
+				capability_flags = &filled_track_caps,
+			},
+		) {
+			end_container(ctx)
+		}
+
+		// 2. Thumb
+		thumb_sizing_x := Sizing {
+			kind  = .Fixed,
+			value = 20,
+		}
+
+		thumb_sizing_y := Sizing {
+			kind = .Grow,
+		}
+
+		thumb_fill := base.Fill(base.Color{25, 255, 25, 255})
+		thumb_caps := Capability_Flags{.Background}
+
+		if begin_container(
+			ctx,
+			"thumb",
+			{
+				layout = {sizing = {&thumb_sizing_x, &thumb_sizing_y}},
+				background_fill = &thumb_fill,
+				capability_flags = &thumb_caps,
+			},
+		) {
+			end_container(ctx)
+		}
+
+		// 3. Right spacer
+		right_spacer_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+		right_spacer_fill := base.Fill(base.Color{25, 25, 255, 255})
+		right_spacer_caps := Capability_Flags{.Background}
+
+		if begin_container(
+			ctx,
+			"right_spacer",
+			{
+				layout = {sizing = {&right_spacer_sizing.x, &right_spacer_sizing.y}},
+				background_fill = &right_spacer_fill,
+				capability_flags = &right_spacer_caps,
+			},
+		) {
+			end_container(ctx)
+		}
+
 		close_element(ctx)
 	}
+
 	append(&ctx.interactive_elements, element)
 	return element.last_comm
 }
