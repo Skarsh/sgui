@@ -91,6 +91,9 @@ init_opengl :: proc(
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
+	// TODO(Thomas): Hardcoding VSync here, should be coming from options struct eventually
+	sdl.GL_SetSwapInterval(1)
+
 	gl.load_up_to(3, 3, sdl.gl_set_proc_address)
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
@@ -265,6 +268,7 @@ opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data) -> bool {
 
 opengl_resize :: proc(render_data: ^OpenGL_Render_Data, width, height: i32) {
 	gl.Viewport(0, 0, width, height)
+	gl.Scissor(0, 0, width, height)
 	render_data.proj = linalg.matrix_ortho3d_f32(0, f32(width), f32(height), 0, -1, 1)
 	render_data.window_size.x = width
 	render_data.window_size.y = height

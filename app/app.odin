@@ -149,7 +149,7 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		update_proc(&app.ui_ctx, app_data)
 		backend.render_end(&app.backend_ctx.render_ctx, app.ui_ctx.command_queue[:])
 
-		// TODO(Thomas): Shouldn't use sdl directly here
-		sdl.Delay(10)
+		// 4. TODO(Thomas): Sleep to hit target framerate if not vsync.
+		// currently hardcoded to use vsync, so no sleeping.
 	}
 }
