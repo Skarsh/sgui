@@ -3281,3 +3281,125 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 
 	run_layout_test(t, build_ui_proc, verify_proc, &ttb_test_data)
 }
+
+@(test)
+test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Data ---
+	Test_Data :: struct {
+		root_size:              base.Vec2,
+		panel_layout_direction: Layout_Direction,
+		main_container_size_y:  f32,
+		container_1_pct:        f32,
+		container_2_size:       base.Vec2,
+	}
+
+	test_data := Test_Data {
+		root_size              = {500, 500},
+		panel_layout_direction = .Left_To_Right,
+		main_container_size_y  = 20,
+		container_1_pct        = 0.1,
+		container_2_size       = {20, 20},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+
+		main_container_sizing := [2]Sizing {
+			{kind = .Grow},
+			{kind = .Fixed, value = data.main_container_size_y},
+		}
+
+		if begin_container(
+			ctx,
+			"main_container",
+			{layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}}},
+		) {
+
+			container_1_sizing := [2]Sizing {
+				{kind = .Percentage_Of_Parent, value = data.container_1_pct},
+				{kind = .Grow},
+			}
+
+			container(
+				ctx,
+				"container_1",
+				Config_Options{layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}}},
+			)
+
+
+			container_2_sizing := [2]Sizing {
+				{kind = .Fixed, value = data.container_2_size.x},
+				{kind = .Grow},
+			}
+
+			container(
+				ctx,
+				"container_2",
+				Config_Options{layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}}},
+			)
+
+			container_3_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+			container(
+				ctx,
+				"container_3",
+				Config_Options{layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}}},
+			)
+
+			end_container(ctx)
+		}
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := data.root_size
+
+		main_container_pos := root_pos
+		main_container_size := base.Vec2{root_size.x, data.main_container_size_y}
+
+		container_1_pos := main_container_pos
+		container_1_size := base.Vec2 {
+			main_container_size.x * data.container_1_pct,
+			main_container_size.y,
+		}
+
+		container_2_pos := base.Vec2{container_1_pos.x + container_1_size.x, container_1_pos.y}
+		container_2_size := data.container_2_size
+
+		container_3_pos := base.Vec2{container_2_pos.x + container_2_size.x, container_2_pos.y}
+		container_3_size := base.Vec2 {
+			main_container_size.x - container_2_size.x - container_1_size.x,
+			main_container_size.y,
+		}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
+			children = []Expected_Element {
+				{
+					id = "main_container",
+					pos = main_container_pos,
+					size = main_container_size,
+					children = []Expected_Element {
+						{id = "container_1", pos = container_1_pos, size = container_1_size},
+						{id = "container_2", pos = container_2_pos, size = container_2_size},
+						{id = "container_3", pos = container_3_pos, size = container_3_size},
+					},
+				},
+			},
+		}
+		expect_layout(t, root, expected_layout_tree)
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+
+}
