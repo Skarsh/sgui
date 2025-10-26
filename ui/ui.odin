@@ -222,13 +222,15 @@ end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
 	// 1. Percentage of parent
 	// 2. Fit sizing widths
-	// 3. Grow & shrink sizing widths
-	// 4. Wrap text
-	// 5. Fit sizing heights
-	// 6. Grow & shrink sizing heights
-	// 7. Positions
-	// 8. Draw commands
-	// 9. Process interactions
+	// 4. Resolve percentage of parent widths
+	// 5. Grow & shrink sizing widths
+	// 6. Wrap text
+	// 7. Fit sizing heights
+	// 6. Resolve percentage of parent heights
+	// 7. Grow & shrink sizing heights
+	// 8. Positions
+	// 9. Draw commands
+	// 10. Process interactions
 
 	// Close the root element
 	close_element(ctx)
