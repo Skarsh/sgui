@@ -222,15 +222,13 @@ end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
 	// 1. Percentage of parent
 	// 2. Fit sizing widths
-	// 4. Resolve percentage of parent widths
-	// 5. Grow & shrink sizing widths
-	// 6. Wrap text
-	// 7. Fit sizing heights
-	// 6. Resolve percentage of parent heights
-	// 7. Grow & shrink sizing heights
-	// 8. Positions
-	// 9. Draw commands
-	// 10. Process interactions
+	// 3. Resolve dependent sizs widths
+	// 4. Wrap text
+	// 5. Fit sizing heights
+	// 6. Resolve dependent sizs heights
+	// 7. Positions
+	// 8. Draw commands
+	// 9. Process interactions
 
 	// Close the root element
 	close_element(ctx)
@@ -239,11 +237,8 @@ end :: proc(ctx: ^Context) {
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
 
-	// Percentage of parent sizing
-	resolve_percentage_sizing(ctx.root_element, .X)
-
-	// Resize widths
-	resize_child_elements_for_axis(ctx.root_element, .X)
+	// Resolve dependent widths
+	resolve_dependent_sizes_for_axis(ctx.root_element, .X)
 
 	// Wrap text
 	wrap_text(ctx, ctx.root_element, context.temp_allocator)
@@ -252,11 +247,8 @@ end :: proc(ctx: ^Context) {
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)
 
-	// Percentage of parent sizing
-	resolve_percentage_sizing(ctx.root_element, .Y)
-
-	// Resize heights
-	resize_child_elements_for_axis(ctx.root_element, .Y)
+	// Reolve dependent heights
+	resolve_dependent_sizes_for_axis(ctx.root_element, .Y)
 
 	calculate_positions_and_alignment(ctx.root_element)
 
@@ -268,7 +260,6 @@ end :: proc(ctx: ^Context) {
 
 	ctx.frame_idx += 1
 }
-
 
 process_interactions :: proc(ctx: ^Context) {
 	top_element: ^UI_Element

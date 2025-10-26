@@ -566,7 +566,7 @@ is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 @(private)
 RESIZE_ITER_MAX :: 32
 // Combined grow and shrink size procedure
-resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	// NOTE(Thomas): The reason I went for using a Small_Array here instead
 	// of just a normal [dynamic]^UI_Element array is because dynamic arrays
 	// can have issues with arena allocators if growing, which would be the case
@@ -713,34 +713,36 @@ resize_child_elements_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 			}
 		}
 	}
+}
 
-	for child in element.children {
-		resize_child_elements_for_axis(child, axis)
+@(private)
+resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) {
+	parent_padding := parent.config.layout.padding
+	parent_content_width := parent.size.x - parent_padding.left - parent_padding.right
+	parent_content_height := parent.size.y - parent_padding.top - parent_padding.bottom
+
+	parent_content_size := axis == .X ? parent_content_width : parent_content_height
+
+	for child in parent.children {
+		sizing_info := child.config.layout.sizing[axis]
+		if sizing_info.kind == .Percentage_Of_Parent {
+			percentage := clamp(sizing_info.value, 0.0, 1.0)
+			child.size[axis] = parent_content_size * percentage
+		}
 	}
 }
 
-resolve_percentage_sizing :: proc(element: ^UI_Element, axis: Axis2) {
+resolve_dependent_sizes_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if element == nil {
 		return
 	}
 
-	parent_content_size: base.Vec2
-	if element.parent != nil {
-		parent_padding := element.parent.config.layout.padding
-		parent_content_size.x = element.parent.size.x - parent_padding.left - parent_padding.right
-		parent_content_size.y = element.parent.size.y - parent_padding.top - parent_padding.bottom
-
-		sizing_info := element.config.layout.sizing[axis]
-		if sizing_info.kind == .Percentage_Of_Parent {
-			percentage := clamp(sizing_info.value, 0.0, 1.0)
-			element.size[axis] = parent_content_size[axis] * percentage
-		}
-	}
+	resolve_percentage_sizes_for_children(element, axis)
+	resolve_grow_sizes_for_children(element, axis)
 
 	for child in element.children {
-		resolve_percentage_sizing(child, axis)
+		resolve_dependent_sizes_for_axis(child, axis)
 	}
-
 }
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
@@ -3401,5 +3403,4 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		&test_data,
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
-
 }
