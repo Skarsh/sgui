@@ -1,6 +1,7 @@
 package ui
 
 import "core:container/queue"
+import "core:fmt"
 import "core:math"
 import "core:mem"
 
@@ -664,32 +665,28 @@ slider :: proc(
 		}
 
 		// 1. Filled Track
-		filled_track_sizing_x := Sizing {
+		left_track_sizing_x := Sizing {
 			kind  = .Percentage_Of_Parent,
 			value = ratio,
 		}
 
-		filled_track_sizing_y := Sizing {
+		left_track_sizing_y := Sizing {
 			kind = .Grow,
 		}
 
-		filled_track_fill := base.Fill(base.Color{255, 25, 25, 255})
-		filled_track_caps := Capability_Flags{.Background}
+		left_track_fill := base.Fill(base.Color{255, 25, 25, 255})
+		left_track_caps := Capability_Flags{.Background}
+		left_track_id := fmt.tprintf("%s_left_track", id)
 
-		// TODO(Thomas): Better ids, simple solution for now is to concatenate
-		// the passed in id with _track, _thumb, _spacer etc.
-
-		if begin_container(
+		container(
 			ctx,
-			"filled_track",
-			{
-				layout = {sizing = {&filled_track_sizing_x, &filled_track_sizing_y}},
-				background_fill = &filled_track_fill,
-				capability_flags = &filled_track_caps,
+			left_track_id,
+			Config_Options {
+				layout = {sizing = {&left_track_sizing_x, &left_track_sizing_y}},
+				background_fill = &left_track_fill,
+				capability_flags = &left_track_caps,
 			},
-		) {
-			end_container(ctx)
-		}
+		)
 
 		// 2. Thumb
 		thumb_sizing_x := Sizing {
@@ -703,35 +700,33 @@ slider :: proc(
 
 		thumb_fill := base.Fill(base.Color{25, 255, 25, 255})
 		thumb_caps := Capability_Flags{.Background}
+		thumb_id := fmt.tprintf("%s_thumb", id)
 
-		if begin_container(
+		container(
 			ctx,
-			"thumb",
-			{
+			thumb_id,
+			Config_Options {
 				layout = {sizing = {&thumb_sizing_x, &thumb_sizing_y}},
 				background_fill = &thumb_fill,
 				capability_flags = &thumb_caps,
 			},
-		) {
-			end_container(ctx)
-		}
+		)
 
 		// 3. Right spacer
-		right_spacer_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
-		right_spacer_fill := base.Fill(base.Color{25, 25, 255, 255})
-		right_spacer_caps := Capability_Flags{.Background}
+		right_track_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+		right_track_fill := base.Fill(base.Color{25, 25, 255, 255})
+		right_track_caps := Capability_Flags{.Background}
+		right_track_id := fmt.tprintf("%s_right_track")
 
-		if begin_container(
+		container(
 			ctx,
-			"right_spacer",
-			{
-				layout = {sizing = {&right_spacer_sizing.x, &right_spacer_sizing.y}},
-				background_fill = &right_spacer_fill,
-				capability_flags = &right_spacer_caps,
+			right_track_id,
+			Config_Options {
+				layout = {sizing = {&right_track_sizing.x, &right_track_sizing.y}},
+				background_fill = &right_track_fill,
+				capability_flags = &right_track_caps,
 			},
-		) {
-			end_container(ctx)
-		}
+		)
 
 		close_element(ctx)
 	}
