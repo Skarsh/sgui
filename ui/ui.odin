@@ -196,7 +196,6 @@ begin :: proc(ctx: ^Context) -> bool {
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
 
-
 	background_fill := base.Fill(base.Color{128, 128, 128, 255})
 	sizing_x := Sizing {
 		kind  = .Fixed,
@@ -215,6 +214,13 @@ begin :: proc(ctx: ^Context) -> bool {
 	)
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
+
+	//NOTE(Thomas): Root element size needs to be updated every frame, meaning not cached like other elements.
+	if root_element != nil {
+		root_element.size.x = f32(ctx.window_size.x)
+		root_element.size.y = f32(ctx.window_size.y)
+	}
+
 	ctx.root_element = root_element
 	return root_open_ok
 }

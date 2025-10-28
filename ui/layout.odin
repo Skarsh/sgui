@@ -792,6 +792,27 @@ make_element :: proc(
 			return nil, false
 		}
 		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
+
+		element.size.x = element_config.layout.sizing.x.value
+		element.size.y = element_config.layout.sizing.y.value
+
+		element.min_size.x = element_config.layout.sizing.x.min_value
+		element.min_size.y = element_config.layout.sizing.y.min_value
+
+		// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
+		// the user wants it to just fit whatever, so we set it to f32 max value
+		if base.approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
+			element.max_size.x = math.F32_MAX
+		} else {
+			element.max_size.x = element_config.layout.sizing.x.max_value
+		}
+
+		if base.approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
+			element.max_size.y = math.F32_MAX
+		} else {
+			element.max_size.y = element_config.layout.sizing.y.max_value
+		}
+
 		ctx.element_cache[key] = element
 	}
 
@@ -810,28 +831,8 @@ make_element :: proc(
 	// calculations?
 	element.last_frame_idx = ctx.frame_idx
 	element.fill = element_config.background_fill
-
-	element.size.x = element_config.layout.sizing.x.value
-	element.size.y = element_config.layout.sizing.y.value
-
-	element.min_size.x = element_config.layout.sizing.x.min_value
-	element.min_size.y = element_config.layout.sizing.y.min_value
-
 	element.config = element_config
 
-	// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
-	// the user wants it to just fit whatever, so we set it to f32 max value
-	if base.approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
-		element.max_size.x = math.F32_MAX
-	} else {
-		element.max_size.x = element_config.layout.sizing.x.max_value
-	}
-
-	if base.approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
-		element.max_size.y = math.F32_MAX
-	} else {
-		element.max_size.y = element_config.layout.sizing.y.max_value
-	}
 
 	return element, true
 }
