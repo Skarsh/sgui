@@ -29,6 +29,10 @@ Alignment_Y :: enum {
 	Bottom,
 }
 
+Layout_Mode :: enum {
+	Flow,
+	Relative,
+}
 
 Layout_Direction :: enum {
 	Left_To_Right,
@@ -60,17 +64,19 @@ Element_Content :: struct {
 }
 
 Layout_Config :: struct {
-	sizing:           [2]Sizing,
-	padding:          Padding,
-	child_gap:        f32,
-	layout_direction: Layout_Direction,
-	alignment_x:      Alignment_X,
-	alignment_y:      Alignment_Y,
-	text_padding:     Padding,
-	text_alignment_x: Alignment_X,
-	text_alignment_y: Alignment_Y,
-	corner_radius:    f32,
-	border_thickness: f32,
+	sizing:            [2]Sizing,
+	padding:           Padding,
+	child_gap:         f32,
+	layout_mode:       Layout_Mode,
+	layout_direction:  Layout_Direction,
+	relative_position: base.Vec2,
+	alignment_x:       Alignment_X,
+	alignment_y:       Alignment_Y,
+	text_padding:      Padding,
+	text_alignment_x:  Alignment_X,
+	text_alignment_y:  Alignment_Y,
+	corner_radius:     f32,
+	border_thickness:  f32,
 }
 
 Clip_Config :: struct {
@@ -114,17 +120,19 @@ Element_Config :: struct {
 }
 
 Layout_Options :: struct {
-	sizing:           [2]^Sizing,
-	padding:          ^Padding,
-	child_gap:        ^f32,
-	layout_direction: ^Layout_Direction,
-	alignment_x:      ^Alignment_X,
-	alignment_y:      ^Alignment_Y,
-	text_padding:     ^Padding,
-	text_alignment_x: ^Alignment_X,
-	text_alignment_y: ^Alignment_Y,
-	corner_radius:    ^f32,
-	border_thickness: ^f32,
+	sizing:            [2]^Sizing,
+	padding:           ^Padding,
+	child_gap:         ^f32,
+	layout_mode:       ^Layout_Mode,
+	layout_direction:  ^Layout_Direction,
+	relative_position: ^base.Vec2,
+	alignment_x:       ^Alignment_X,
+	alignment_y:       ^Alignment_Y,
+	text_padding:      ^Padding,
+	text_alignment_x:  ^Alignment_X,
+	text_alignment_y:  ^Alignment_Y,
+	corner_radius:     ^f32,
+	border_thickness:  ^f32,
 }
 
 Config_Options :: struct {
@@ -308,10 +316,22 @@ open_element :: proc(
 		resolve_default(default_opts.layout.child_gap),
 	)
 
+	final_config.layout.layout_mode = resolve_value(
+		opts.layout.layout_mode,
+		&ctx.layout_mode_stack,
+		resolve_default(default_opts.layout.layout_mode),
+	)
+
 	final_config.layout.layout_direction = resolve_value(
 		opts.layout.layout_direction,
 		&ctx.layout_direction_stack,
 		resolve_default(default_opts.layout.layout_direction),
+	)
+
+	final_config.layout.relative_position = resolve_value(
+		opts.layout.relative_position,
+		&ctx.relative_position_stack,
+		resolve_default(default_opts.layout.relative_position),
 	)
 
 	final_config.layout.alignment_x = resolve_value(
@@ -841,114 +861,164 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	if parent == nil {
 		return
 	}
-	parent_child_gap := calc_child_gap(parent^)
 
-	// Calculate content area bounds
-	content_start_x := parent.position.x + parent.config.layout.padding.left
-	content_start_y := parent.position.y + parent.config.layout.padding.top
+	if parent.config.layout.layout_mode == .Flow {
+		// Flow Layout_Mode
 
-	layout_direction := parent.config.layout.layout_direction
-	if layout_direction == .Left_To_Right {
-		// Calculate total width used by all children
-		total_children_width: f32 = 0
-		for child in parent.children {
-			total_children_width += child.size.x
-		}
+		parent_child_gap := calc_child_gap(parent^)
 
-		// Calculate remaining space after children and gaps
-		padding := parent.config.layout.padding
-		remaining_size_x :=
-			parent.size.x - padding.left - padding.right - parent_child_gap - total_children_width
+		// Calculate content area bounds
+		content_start_x := parent.position.x + parent.config.layout.padding.left
+		content_start_y := parent.position.y + parent.config.layout.padding.top
 
-		// Calculate starting X position based on alignment
-		start_x := content_start_x
-		switch parent.config.layout.alignment_x {
-		case .Left:
-			start_x = content_start_x
-		case .Center:
-			start_x = content_start_x + (remaining_size_x / 2)
-		case .Right:
-			start_x = content_start_x + remaining_size_x
-		}
-
-		current_x := start_x
-		for i in 0 ..< len(parent.children) {
-			child := parent.children[i]
-			child.position.x = current_x
-
-			// Y position alignment, in horizontal layout
-			// each child can have different alignment offset on the y axis
-			remaining_size_y := parent.size.y - padding.top - padding.bottom - child.size.y
-
-			switch parent.config.layout.alignment_y {
-			case .Top:
-				child.position.y = content_start_y
-			case .Center:
-				child.position.y = content_start_y + (remaining_size_y / 2)
-			case .Bottom:
-				child.position.y = content_start_y + remaining_size_y
+		layout_direction := parent.config.layout.layout_direction
+		if layout_direction == .Left_To_Right {
+			// Calculate total width used by all children
+			total_children_width: f32 = 0
+			for child in parent.children {
+				total_children_width += child.size.x
 			}
 
-			// Move to next child position
-			if i < len(parent.children) - 1 {
-				current_x += child.size.x + parent.config.layout.child_gap
-			}
-		}
+			// Calculate remaining space after children and gaps
+			padding := parent.config.layout.padding
+			remaining_size_x :=
+				parent.size.x -
+				padding.left -
+				padding.right -
+				parent_child_gap -
+				total_children_width
 
-	} else {
-
-		// Calculate total height used by all children
-		total_children_height: f32 = 0
-		for child in parent.children {
-			total_children_height += child.size.y
-		}
-
-		// Calculate remaining space after children and gaps
-		padding := parent.config.layout.padding
-		remaining_size_y :=
-			parent.size.y - padding.top - padding.bottom - parent_child_gap - total_children_height
-
-		// Calculate starting Y position based on alignment
-		start_y := content_start_y
-		switch parent.config.layout.alignment_y {
-		case .Top:
-			start_y = content_start_y
-		case .Center:
-			start_y = content_start_y + (remaining_size_y / 2)
-		case .Bottom:
-			start_y = content_start_y + remaining_size_y
-		}
-
-		current_y := start_y
-		for i in 0 ..< len(parent.children) {
-			child := parent.children[i]
-			child.position.y = current_y
-
-			// X position alignment, in vertical layout
-			// each child can have different alignment offset on the x axis
-			remaining_size_x := parent.size.x - padding.left - padding.right - child.size.x
-
+			// Calculate starting X position based on alignment
+			start_x := content_start_x
 			switch parent.config.layout.alignment_x {
 			case .Left:
-				child.position.x = content_start_x
+				start_x = content_start_x
 			case .Center:
-				child.position.x = content_start_x + (remaining_size_x / 2)
+				start_x = content_start_x + (remaining_size_x / 2)
 			case .Right:
-				child.position.x = content_start_x + remaining_size_x
+				start_x = content_start_x + remaining_size_x
 			}
 
-			// Move to next child position
-			if i < len(parent.children) - 1 {
-				current_y += child.size.y + parent.config.layout.child_gap
+			current_x := start_x
+			for i in 0 ..< len(parent.children) {
+				child := parent.children[i]
+				child.position.x = current_x
+
+				// Y position alignment, in horizontal layout
+				// each child can have different alignment offset on the y axis
+				remaining_size_y := parent.size.y - padding.top - padding.bottom - child.size.y
+
+				switch parent.config.layout.alignment_y {
+				case .Top:
+					child.position.y = content_start_y
+				case .Center:
+					child.position.y = content_start_y + (remaining_size_y / 2)
+				case .Bottom:
+					child.position.y = content_start_y + remaining_size_y
+				}
+
+				// Move to next child position
+				if i < len(parent.children) - 1 {
+					current_x += child.size.x + parent.config.layout.child_gap
+				}
+			}
+
+		} else {
+
+			// Calculate total height used by all children
+			total_children_height: f32 = 0
+			for child in parent.children {
+				total_children_height += child.size.y
+			}
+
+			// Calculate remaining space after children and gaps
+			padding := parent.config.layout.padding
+			remaining_size_y :=
+				parent.size.y -
+				padding.top -
+				padding.bottom -
+				parent_child_gap -
+				total_children_height
+
+			// Calculate starting Y position based on alignment
+			start_y := content_start_y
+			switch parent.config.layout.alignment_y {
+			case .Top:
+				start_y = content_start_y
+			case .Center:
+				start_y = content_start_y + (remaining_size_y / 2)
+			case .Bottom:
+				start_y = content_start_y + remaining_size_y
+			}
+
+			current_y := start_y
+			for i in 0 ..< len(parent.children) {
+				child := parent.children[i]
+				child.position.y = current_y
+
+				// X position alignment, in vertical layout
+				// each child can have different alignment offset on the x axis
+				remaining_size_x := parent.size.x - padding.left - padding.right - child.size.x
+
+				switch parent.config.layout.alignment_x {
+				case .Left:
+					child.position.x = content_start_x
+				case .Center:
+					child.position.x = content_start_x + (remaining_size_x / 2)
+				case .Right:
+					child.position.x = content_start_x + remaining_size_x
+				}
+
+				// Move to next child position
+				if i < len(parent.children) - 1 {
+					current_y += child.size.y + parent.config.layout.child_gap
+				}
 			}
 		}
-	}
+	} else {
+		// Relative Layout_Mode
+
+		// Calculate content area bounds of the parent
+		padding := parent.config.layout.padding
+		content_start_x := parent.position.x + padding.left
+		content_start_y := parent.position.y + padding.top
+		content_width := parent.size.x - padding.left - padding.right
+		content_height := parent.size.y - padding.top - padding.bottom
+
+		for child in parent.children {
+			// Child's position is based on its own alignment settings, relative to the parent's content area.
+			// It is not influenced by its siblings.
+			// Calculate the anchor point on the parent based on the CHILD's alignment settings.
+			anchor_x: f32
+			switch child.config.layout.alignment_x {
+			case .Left:
+				anchor_x = content_start_x
+			case .Center:
+				anchor_x = content_start_x + content_width / 2 - child.size.x / 2
+			case .Right:
+				anchor_x = content_start_x + content_width - child.size.x
+			}
+
+			anchor_y: f32
+			switch child.config.layout.alignment_y {
+			case .Top:
+				anchor_y = content_start_y
+			case .Center:
+				anchor_y = content_start_y + content_height / 2 - child.size.y / 2
+			case .Bottom:
+				anchor_y = content_start_y + content_height - child.size.y
+			}
+
+			// Apply the anchor position and the child's specific relative offset.
+			child.position.x = anchor_x + child.config.layout.relative_position.x
+			child.position.y = anchor_y + child.config.layout.relative_position.y
+		}}
+
 	// Recursively calculate positions for all children's children
 	for child in parent.children {
 		calculate_positions_and_alignment(child)
 	}
 }
-
 
 // Helper to verify element size
 compare_element_size :: proc(

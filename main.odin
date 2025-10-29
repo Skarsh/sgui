@@ -171,10 +171,11 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		build_styled_ui(&app_state)
+		//build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
+		build_relative_layout_ui(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -204,6 +205,63 @@ Image_Data :: struct {
 	tex_3: i32,
 	tex_4: i32,
 	tex_5: i32,
+}
+
+build_relative_layout_ui :: proc(app_state: ^App_State) {
+	ctx := &app_state.ctx
+	ui.begin(ctx)
+
+	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
+	ui.push_background_fill(
+		ctx,
+		base.Fill(base.Color{128, 128, 128, 255}),
+	); defer ui.pop_background_fill(ctx)
+
+	main_container_sizing := [2]ui.Sizing {
+		{kind = .Fixed, value = 400},
+		{kind = .Fixed, value = 400},
+	}
+
+	layout_mode := ui.Layout_Mode.Relative
+
+	if ui.begin_container(
+		ctx,
+		"main_container",
+		ui.Config_Options {
+			layout = {
+				sizing = {&main_container_sizing.x, &main_container_sizing.y},
+				layout_mode = &layout_mode,
+			},
+		},
+	) {
+
+		ui.push_background_fill(
+			ctx,
+			base.Fill(base.Color{255, 0, 0, 255}),
+		); defer ui.pop_background_fill(ctx)
+
+		child_sizing := [2]ui.Sizing{{kind = .Fixed, value = 50}, {kind = .Fixed, value = 50}}
+
+		child_align_x := ui.Alignment_X.Right
+		child_align_y := ui.Alignment_Y.Bottom
+		child_rel_pos := base.Vec2{-10, -10}
+
+		ui.container(
+			ctx,
+			"child",
+			ui.Config_Options {
+				layout = {
+					sizing = {&child_sizing.x, &child_sizing.y},
+					alignment_x = &child_align_x,
+					alignment_y = &child_align_y,
+					relative_position = &child_rel_pos,
+				},
+			},
+		)
+		ui.end_container(ctx)
+	}
+
+	ui.end(ctx)
 }
 
 build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data) {

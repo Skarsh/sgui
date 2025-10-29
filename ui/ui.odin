@@ -79,44 +79,46 @@ Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> 
 
 
 Context :: struct {
-	persistent_allocator:   mem.Allocator,
-	frame_allocator:        mem.Allocator,
-	element_stack:          Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	persistent_allocator:    mem.Allocator,
+	frame_allocator:         mem.Allocator,
+	element_stack:           Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// TODO(Thomas): Style stacks, move them into its own struct?
 	// Maybe even do some metaprogramming to generate them if it becomes
 	// too many of them?
-	sizing_x_stack:         Stack(Sizing, STYLE_STACK_SIZE),
-	sizing_y_stack:         Stack(Sizing, STYLE_STACK_SIZE),
-	clip_stack:             Stack(Clip_Config, STYLE_STACK_SIZE),
-	capability_flags_stack: Stack(Capability_Flags, STYLE_STACK_SIZE),
-	background_fill_stack:  Stack(base.Fill, STYLE_STACK_SIZE),
-	text_fill_stack:        Stack(base.Fill, STYLE_STACK_SIZE),
-	padding_stack:          Stack(Padding, STYLE_STACK_SIZE),
-	child_gap_stack:        Stack(f32, STYLE_STACK_SIZE),
-	layout_direction_stack: Stack(Layout_Direction, STYLE_STACK_SIZE),
-	alignment_x_stack:      Stack(Alignment_X, STYLE_STACK_SIZE),
-	alignment_y_stack:      Stack(Alignment_Y, STYLE_STACK_SIZE),
-	text_padding_stack:     Stack(Padding, STYLE_STACK_SIZE),
-	text_alignment_x_stack: Stack(Alignment_X, STYLE_STACK_SIZE),
-	text_alignment_y_stack: Stack(Alignment_Y, STYLE_STACK_SIZE),
-	corner_radius_stack:    Stack(f32, STYLE_STACK_SIZE),
-	border_thickness_stack: Stack(f32, STYLE_STACK_SIZE),
-	border_fill_stack:      Stack(base.Fill, STYLE_STACK_SIZE),
-	command_queue:          [dynamic]Command,
-	current_parent:         ^UI_Element,
-	root_element:           ^UI_Element,
-	input:                  Input,
-	element_cache:          map[UI_Key]^UI_Element,
-	interactive_elements:   [dynamic]^UI_Element,
-	measure_text_proc:      Measure_Text_Proc,
-	measure_glyph_proc:     Measure_Glyph_Proc,
-	font_user_data:         rawptr,
-	frame_idx:              u64,
-	dt:                     f32,
+	sizing_x_stack:          Stack(Sizing, STYLE_STACK_SIZE),
+	sizing_y_stack:          Stack(Sizing, STYLE_STACK_SIZE),
+	clip_stack:              Stack(Clip_Config, STYLE_STACK_SIZE),
+	capability_flags_stack:  Stack(Capability_Flags, STYLE_STACK_SIZE),
+	background_fill_stack:   Stack(base.Fill, STYLE_STACK_SIZE),
+	text_fill_stack:         Stack(base.Fill, STYLE_STACK_SIZE),
+	padding_stack:           Stack(Padding, STYLE_STACK_SIZE),
+	child_gap_stack:         Stack(f32, STYLE_STACK_SIZE),
+	layout_mode_stack:       Stack(Layout_Mode, STYLE_STACK_SIZE),
+	layout_direction_stack:  Stack(Layout_Direction, STYLE_STACK_SIZE),
+	relative_position_stack: Stack(base.Vec2, STYLE_STACK_SIZE),
+	alignment_x_stack:       Stack(Alignment_X, STYLE_STACK_SIZE),
+	alignment_y_stack:       Stack(Alignment_Y, STYLE_STACK_SIZE),
+	text_padding_stack:      Stack(Padding, STYLE_STACK_SIZE),
+	text_alignment_x_stack:  Stack(Alignment_X, STYLE_STACK_SIZE),
+	text_alignment_y_stack:  Stack(Alignment_Y, STYLE_STACK_SIZE),
+	corner_radius_stack:     Stack(f32, STYLE_STACK_SIZE),
+	border_thickness_stack:  Stack(f32, STYLE_STACK_SIZE),
+	border_fill_stack:       Stack(base.Fill, STYLE_STACK_SIZE),
+	command_queue:           [dynamic]Command,
+	current_parent:          ^UI_Element,
+	root_element:            ^UI_Element,
+	input:                   Input,
+	element_cache:           map[UI_Key]^UI_Element,
+	interactive_elements:    [dynamic]^UI_Element,
+	measure_text_proc:       Measure_Text_Proc,
+	measure_glyph_proc:      Measure_Glyph_Proc,
+	font_user_data:          rawptr,
+	frame_idx:               u64,
+	dt:                      f32,
 	// TODO(Thomas): Does font size and font id belong here??
-	font_size:              f32,
-	font_id:                u16,
-	window_size:            [2]i32,
+	font_size:               f32,
+	font_id:                 u16,
+	window_size:             [2]i32,
 }
 
 Capability :: enum {
@@ -805,12 +807,28 @@ pop_child_gap :: proc(ctx: ^Context) -> (f32, bool) {
 	return pop(&ctx.child_gap_stack)
 }
 
+push_layout_mode :: proc(ctx: ^Context, layout_mode: Layout_Mode) -> bool {
+	return push(&ctx.layout_mode_stack, layout_mode)
+}
+
+pop_layout_mode :: proc(ctx: ^Context) -> (Layout_Mode, bool) {
+	return pop(&ctx.layout_mode_stack)
+}
+
 push_layout_direction :: proc(ctx: ^Context, layout_direction: Layout_Direction) -> bool {
 	return push(&ctx.layout_direction_stack, layout_direction)
 }
 
 pop_layout_direction :: proc(ctx: ^Context) -> (Layout_Direction, bool) {
 	return pop(&ctx.layout_direction_stack)
+}
+
+push_relative_position :: proc(ctx: ^Context, relative_position: base.Vec2) -> bool {
+	return push(&ctx.relative_position_stack, relative_position)
+}
+
+pop_relative_position :: proc(ctx: ^Context) -> (base.Vec2, bool) {
+	return pop(&ctx.relative_position_stack)
 }
 
 push_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {
