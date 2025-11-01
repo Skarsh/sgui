@@ -64,32 +64,48 @@ vec4 calcGradientColor(vec4 color_start, vec4 color_end, vec2 dir, vec2 half_siz
 void main() {
     // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
+        if (v_border_thickness <= 0.0 ) {
+            // No border, use a simpler path
+            float d = sdfRect(v_local_pos, v_quad_half_size, v_radius);
+            float alpha = sdfAlpha(d);
 
-        float d_border = sdfRect(v_local_pos, v_quad_half_size, v_radius);
-        float d_inner = sdfRect(v_local_pos, v_quad_half_size - v_border_thickness, max(0.0, v_radius - v_border_thickness));
+            vec4 inner_color = calcGradientColor(
+                v_color_start,
+                v_color_end,
+                v_gradient_dir,
+                v_quad_half_size,
+                v_local_pos
+            );
 
-        float alpha_border = sdfAlpha(d_border);
-        float alpha_inner = sdfAlpha(d_inner);
+            o_color = vec4(inner_color.rgb, inner_color.a * alpha);
 
-        vec4 border_color = calcGradientColor(
-            v_border_color_start,
-            v_border_color_end,
-            v_border_gradient_dir,
-            v_quad_half_size,
-            v_local_pos
-        );
+        } else {
+            float d_border = sdfRect(v_local_pos, v_quad_half_size, v_radius);
+            float d_inner = sdfRect(v_local_pos, v_quad_half_size - v_border_thickness, max(0.0, v_radius - v_border_thickness));
 
-        vec4 inner_color = calcGradientColor(
-            v_color_start,
-            v_color_end,
-            v_gradient_dir,
-            v_quad_half_size - v_border_thickness,
-            v_local_pos
-        );
+            float alpha_border = sdfAlpha(d_border);
+            float alpha_inner = sdfAlpha(d_inner);
 
-        vec4 final_material = mix(border_color, inner_color, alpha_inner);
+            vec4 border_color = calcGradientColor(
+                v_border_color_start,
+                v_border_color_end,
+                v_border_gradient_dir,
+                v_quad_half_size,
+                v_local_pos
+            );
 
-        o_color = vec4(final_material.rgb, final_material.a * alpha_border);
+            vec4 inner_color = calcGradientColor(
+                v_color_start,
+                v_color_end,
+                v_gradient_dir,
+                v_quad_half_size - v_border_thickness,
+                v_local_pos
+            );
+
+            vec4 final_material = mix(border_color, inner_color, alpha_inner);
+
+            o_color = vec4(final_material.rgb, final_material.a * alpha_border);
+        }
 
     } else {
         switch (v_tex_slot){
