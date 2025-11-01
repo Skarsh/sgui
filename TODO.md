@@ -6,6 +6,7 @@
 ## Bugs
 
 ## Backlog
+* Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
 * Spacer helper, this will require to think about null ids though so its more complicated than
     it might seem like.
 * Simpler text helper procedure, important to think about life time there, it probably
