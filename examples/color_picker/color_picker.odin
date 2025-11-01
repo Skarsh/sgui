@@ -43,18 +43,26 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		) {
 
 			panel_container_layout_direction := ui.Layout_Direction.Top_To_Bottom
+			panel_container_child_gap: f32 = 5.0
 
 			if ui.begin_container(
 				ctx,
 				"panel_container",
-				ui.Config_Options{layout = {layout_direction = &panel_container_layout_direction}},
+				ui.Config_Options {
+					layout = {
+						layout_direction = &panel_container_layout_direction,
+						child_gap = &panel_container_child_gap,
+					},
+				},
 			) {
 
 				color_viewer_sizing := [2]ui.Sizing {
 					{kind = .Fixed, value = 256},
 					{kind = .Fixed, value = 256},
 				}
-				bg_fill := base.Fill(base.Color{0, 0, 0, 255})
+				bg_fill := base.Fill(
+					base.Color{u8(data.r * 255), u8(data.g * 255), u8(data.b * 255), 255},
+				)
 				if ui.begin_container(
 					ctx,
 					"color_viewer",
@@ -71,8 +79,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					base.Fill(base.Color{95, 95, 95, 255}),
 				); defer ui.pop_background_fill(ctx)
 				ui.slider(ctx, "red_slider", &data.r, 0, 1)
-				//ui.slider(ctx, "green_slider", &data.g, 0, 100)
-				//ui.slider(ctx, "blue_slider", &data.b, 0, 100)
+				ui.slider(ctx, "green_slider", &data.g, 0, 1)
+				ui.slider(ctx, "blue_slider", &data.b, 0, 1)
 
 				ui.end_container(ctx)
 			}
