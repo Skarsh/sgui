@@ -56,28 +56,36 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				},
 			) {
 
+				color_viewer_width: f32 = 256
+				color_viewer_height: f32 = 256
 				color_viewer_sizing := [2]ui.Sizing {
-					{kind = .Fixed, value = 256},
-					{kind = .Fixed, value = 256},
+					{kind = .Fixed, value = color_viewer_width},
+					{kind = .Fixed, value = color_viewer_height},
 				}
-				bg_fill := base.Fill(
+
+				color_viewer_bg_fill := base.Fill(
 					base.Color{u8(data.r * 255), u8(data.g * 255), u8(data.b * 255), 255},
 				)
-				if ui.begin_container(
+
+				color_viewer_radius: f32 = color_viewer_width / 2
+
+				ui.container(
 					ctx,
 					"color_viewer",
 					ui.Config_Options {
-						layout = {sizing = {&color_viewer_sizing.x, &color_viewer_sizing.y}},
-						background_fill = &bg_fill,
+						layout = {
+							sizing = {&color_viewer_sizing.x, &color_viewer_sizing.y},
+							corner_radius = &color_viewer_radius,
+						},
+						background_fill = &color_viewer_bg_fill,
 					},
-				) {
-					ui.end_container(ctx)
-				}
+				)
 
 				ui.push_background_fill(
 					ctx,
 					base.Fill(base.Color{95, 95, 95, 255}),
 				); defer ui.pop_background_fill(ctx)
+
 				ui.slider(ctx, "red_slider", &data.r, 0, 1)
 				ui.slider(ctx, "green_slider", &data.g, 0, 1)
 				ui.slider(ctx, "blue_slider", &data.b, 0, 1)
@@ -124,7 +132,7 @@ main :: proc() {
 	defer log.destroy_console_logger(logger)
 
 	config := app.App_Config {
-		title     = "Counter App",
+		title     = "Color Picker App",
 		width     = 640,
 		height    = 480,
 		font_path = "",
@@ -140,7 +148,9 @@ main :: proc() {
 	defer app.deinit(my_app)
 
 	my_data := Data {
-		r = 0.5,
+		r = 0.0,
+		g = 0.0,
+		b = 0.0,
 	}
 
 	app.run(my_app, &my_data, update_and_draw)
