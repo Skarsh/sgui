@@ -1,10 +1,9 @@
 # TODOs
 
 ## Active
-* Slider widget
+* (BUG) Slight border seems to be showing in cases where it shouldn't?
 
 ## Bugs
-* Slight border seems to be showing in cases where it shouldn't?
 
 ## Backlog
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
