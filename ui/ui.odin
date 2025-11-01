@@ -119,6 +119,7 @@ Context :: struct {
 	font_size:               f32,
 	font_id:                 u16,
 	window_size:             [2]i32,
+	active_element:          ^UI_Element,
 }
 
 Capability :: enum {
@@ -288,9 +289,11 @@ process_interactions :: proc(ctx: ^Context) {
 		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
 
 		if base.point_in_rect(ctx.input.mouse_pos, rect) {
-			if v.z_index > highest_z_index {
-				highest_z_index = v.z_index
-				top_element = v
+			if .Clickable in v.config.capability_flags {
+				if v.z_index > highest_z_index {
+					highest_z_index = v.z_index
+					top_element = v
+				}
 			}
 		}
 
@@ -308,35 +311,51 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 	}
 
+	// End an interaction if the mouse is released
+	if is_mouse_released(ctx^, .Left) {
+		ctx.active_element = nil
+	}
+
 	for element in ctx.interactive_elements {
 		comm := Comm {
 			element = element,
 		}
 
+		is_top_element := (top_element != nil && top_element.id_string == element.id_string)
+		is_active_element :=
+			(ctx.active_element != nil && ctx.active_element.id_string == element.id_string)
+
 		button_animation_rate_of_change := (1.0 / 0.2) * ctx.dt
 
-		is_top_element := (top_element != nil && top_element.id_string == element.id_string)
-
-		if is_top_element {
-			comm.hovering = true
+		// Handle hover state
+		if is_top_element || is_active_element {
 			element.hot += button_animation_rate_of_change
+			comm.hovering = true
+		} else {
+			element.hot -= button_animation_rate_of_change
+		}
 
-			if is_mouse_pressed(ctx^, .Left) {
-				comm.clicked = true
-				element.active = 1.0
-			}
-
+		// Handle active state
+		if is_active_element {
 			if is_mouse_down(ctx^, .Left) {
 				comm.held = true
 			}
-		} else {
-			// This element is not the top one, so it's not hot or active from this frame's input.
-			element.hot -= button_animation_rate_of_change
+		} else if is_top_element {
+			// Set new active element
 			if is_mouse_pressed(ctx^, .Left) {
-				element.active = 0.0
+				ctx.active_element = element
+				comm.clicked = true
+				comm.held = true
+				element.active = 1.0
 			}
 		}
 
+		// Reset active animation if not active anymore
+		if !is_active_element && is_mouse_released(ctx^, .Left) {
+			element.active = 0
+		}
+
+		// Clamp animations and set final comm state
 		element.hot = math.clamp(element.hot, 0, 1)
 
 		if base.approx_equal(element.active, 1.0, 0.001) {
@@ -655,9 +674,10 @@ slider :: proc(
 	}
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+	layout_mode: Layout_Mode = .Relative
 
 	default_opts := Config_Options {
-		layout = {sizing = {&sizing_x, &sizing_y}},
+		layout = {sizing = {&sizing_x, &sizing_y}, layout_mode = &layout_mode},
 		background_fill = &background_fill,
 		capability_flags = &capability_flags,
 	}
@@ -665,76 +685,85 @@ slider :: proc(
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 	if open_ok {
 
-		ratio: f32 = 0
+		// Thumb propertis
+		thumb_width: f32 = 20
+		thumb_height: f32 = 20
+
+		padding := element.config.layout.padding
+		content_width := element.size.x - padding.left - padding.right
+
 		range := max - min
+
+		// Handle mouse dragging to update the slider's value
+		if element.last_comm.held && content_width > 0 {
+			mouse_relative_x := f32(ctx.input.mouse_pos.x) - (element.position.x + padding.left)
+			new_ratio := math.clamp(mouse_relative_x / content_width, 0, 1)
+			value^ = min + (new_ratio * range)
+		}
+
+		// Calculate the ratio based on the current value
+		ratio: f32 = 0
 		if range != 0 {
-			current_value := math.clamp(value^, min, max)
-			ratio = (current_value - min) / range
+			ratio = (value^ - min) / range
 		}
 
-		// 1. Filled Track
-		left_track_sizing_x := Sizing {
-			kind  = .Percentage_Of_Parent,
-			value = ratio,
+		// Calculate positions, keeping thumb inside bounds
+		// The total distance the thumb's left edge can travel
+		thumb_travel_width := content_width - thumb_width
+		thumb_relative_pos_x := ratio * thumb_travel_width
+
+		// Filled track
+		filled_track_sizing := [2]Sizing {
+			{kind = .Fixed, value = thumb_relative_pos_x + (thumb_width / 2)},
+			{kind = .Grow},
 		}
 
-		left_track_sizing_y := Sizing {
-			kind = .Grow,
-		}
-
-		left_track_fill := base.Fill(base.Color{255, 25, 25, 255})
-		left_track_caps := Capability_Flags{.Background}
-		left_track_id := fmt.tprintf("%s_left_track", id)
+		filled_track_alignment_x := Alignment_X.Left
+		filled_track_bg_fill := base.Fill(base.Color{150, 150, 150, 255})
+		filled_track_caps := Capability_Flags{.Background}
 
 		container(
 			ctx,
-			left_track_id,
+			fmt.tprintf("%v_filled_track", id),
 			Config_Options {
-				layout = {sizing = {&left_track_sizing_x, &left_track_sizing_y}},
-				background_fill = &left_track_fill,
-				capability_flags = &left_track_caps,
+				layout = {
+					sizing = {&filled_track_sizing.x, &filled_track_sizing.y},
+					alignment_x = &filled_track_alignment_x,
+				},
+				background_fill = &filled_track_bg_fill,
+				capability_flags = &filled_track_caps,
 			},
 		)
 
-		// 2. Thumb
-		thumb_sizing_x := Sizing {
-			kind  = .Fixed,
-			value = 20,
+		// Thumb
+		thumb_sizing := [2]Sizing {
+			{kind = .Fixed, value = thumb_width},
+			{kind = .Fixed, value = thumb_height},
 		}
-
-		thumb_sizing_y := Sizing {
-			kind = .Grow,
-		}
-
-		thumb_fill := base.Fill(base.Color{25, 255, 25, 255})
+		thumb_align_x := Alignment_X.Left
+		thumb_align_y := Alignment_Y.Center
+		thumb_rel_pos := base.Vec2{thumb_relative_pos_x, 0}
+		thumb_bg_fill := base.Fill(base.Color{255, 200, 200, 255})
 		thumb_caps := Capability_Flags{.Background}
-		thumb_id := fmt.tprintf("%s_thumb", id)
+		thumb_radius: f32 = thumb_width / 2
+		thumb_id := fmt.tprintf("%v_thumb", id)
 
 		container(
 			ctx,
 			thumb_id,
 			Config_Options {
-				layout = {sizing = {&thumb_sizing_x, &thumb_sizing_y}},
-				background_fill = &thumb_fill,
+				layout = {
+					sizing = {&thumb_sizing.x, &thumb_sizing.y},
+					alignment_x = &thumb_align_x,
+					alignment_y = &thumb_align_y,
+					relative_position = &thumb_rel_pos,
+					corner_radius = &thumb_radius,
+				},
+				background_fill = &thumb_bg_fill,
 				capability_flags = &thumb_caps,
 			},
 		)
 
-		// 3. Right spacer
-		right_track_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
-		right_track_fill := base.Fill(base.Color{25, 25, 255, 255})
-		right_track_caps := Capability_Flags{.Background}
-		right_track_id := fmt.tprintf("%s_right_track")
-
-		container(
-			ctx,
-			right_track_id,
-			Config_Options {
-				layout = {sizing = {&right_track_sizing.x, &right_track_sizing.y}},
-				background_fill = &right_track_fill,
-				capability_flags = &right_track_caps,
-			},
-		)
 
 		close_element(ctx)
 	}

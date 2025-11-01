@@ -160,7 +160,7 @@ Key :: enum u32 {
 	// Continue here
 }
 
-// TODO(Thomas): This has a limitation of only being able to represent 128 keys, 
+// TODO(Thomas): This has a limitation of only being able to represent 128 keys,
 // since 128-bits is the highest number of bits an integer value can have in Odin.
 // If we want to use a bit_set for a more complete Key enumeration, we would have
 // go for another solution (e.g. core:container/bit_array?), but this works for now.
@@ -227,6 +227,10 @@ is_mouse_pressed :: proc(ctx: Context, mouse: Mouse) -> bool {
 	return mouse in ctx.input.mouse_pressed_bits
 }
 
+is_mouse_released :: proc(ctx: Context, mouse: Mouse) -> bool {
+	return mouse in ctx.input.mouse_released_bits
+}
+
 is_key_down :: proc(ctx: Context, key: Key) -> bool {
 	return key in ctx.input.key_down_bits
 }
@@ -238,4 +242,5 @@ is_key_pressed :: proc(ctx: Context, key: Key) -> bool {
 clear_input :: proc(ctx: ^Context) {
 	ctx.input.key_pressed_bits = {}
 	ctx.input.mouse_pressed_bits = {}
+	ctx.input.mouse_released_bits = {}
 }
