@@ -148,9 +148,9 @@ main :: proc() {
 	defer app.deinit(my_app)
 
 	my_data := Data {
-		r = 0.0,
-		g = 0.0,
-		b = 0.0,
+		r = 0.5,
+		g = 0.5,
+		b = 0.5,
 	}
 
 	app.run(my_app, &my_data, update_and_draw)

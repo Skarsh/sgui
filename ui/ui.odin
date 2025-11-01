@@ -717,33 +717,6 @@ slider :: proc(
 		thumb_travel_width := content_width - thumb_width
 		thumb_relative_pos_x := ratio * thumb_travel_width
 
-		filled_track_width := thumb_relative_pos_x + (thumb_width / 2)
-		filled_track_width = math.max(0, filled_track_width)
-
-		// Filled track
-		filled_track_sizing := [2]Sizing {
-			{kind = .Fixed, value = filled_track_width},
-			{kind = .Grow},
-		}
-
-		filled_track_alignment_x := Alignment_X.Left
-		filled_track_bg_fill := base.Fill(base.Color{255, 0, 0, 255})
-		filled_track_caps := Capability_Flags{.Background}
-		filled_track_id := fmt.tprintf("%v_filled_track", id)
-
-		container(
-			ctx,
-			filled_track_id,
-			Config_Options {
-				layout = {
-					sizing = {&filled_track_sizing.x, &filled_track_sizing.y},
-					alignment_x = &filled_track_alignment_x,
-				},
-				background_fill = &filled_track_bg_fill,
-				capability_flags = &filled_track_caps,
-			},
-		)
-
 		// Thumb
 		thumb_sizing := [2]Sizing {
 			{kind = .Fixed, value = thumb_width},
