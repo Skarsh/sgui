@@ -171,11 +171,11 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		//build_styled_ui(&app_state)
+		build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
-		build_relative_layout_ui(&app_state)
+		//build_relative_layout_ui(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
