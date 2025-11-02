@@ -79,6 +79,10 @@ Measure_Text_Proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text
 // Function pointer for glyph measurement
 Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> Glyph_Metrics
 
+UI_Element_Text_Input_State :: struct {
+	builder: strings.Builder,
+	state:   textedit.State,
+}
 
 Context :: struct {
 	persistent_allocator:    mem.Allocator,
@@ -111,6 +115,7 @@ Context :: struct {
 	root_element:            ^UI_Element,
 	input:                   Input,
 	element_cache:           map[UI_Key]^UI_Element,
+	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
 	interactive_elements:    [dynamic]^UI_Element,
 	measure_text_proc:       Measure_Text_Proc,
 	measure_glyph_proc:      Measure_Glyph_Proc,
@@ -122,10 +127,6 @@ Context :: struct {
 	font_id:                 u16,
 	window_size:             [2]i32,
 	active_element:          ^UI_Element,
-	// TODO(Thomas): This is just temporary for experimenting with a single text input
-	// this needs to be revised when we got a basic text input working.
-	text_builder:            strings.Builder,
-	text_state:              textedit.State,
 }
 
 Capability :: enum {
@@ -187,6 +188,7 @@ init :: proc(
 
 	ctx.command_queue = make([dynamic]Command, frame_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
+	ctx.text_input_states = make(map[UI_Key]UI_Element_Text_Input_State, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
 }
 
@@ -318,11 +320,14 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 	}
 
-	// TODO(Thomas): This isn't going to work for long.
-	// An element should be active until clicked on another element
-	// End an interaction if the mouse is released
-	if is_mouse_released(ctx^, .Left) {
-		ctx.active_element = nil
+	if is_mouse_pressed(ctx^, .Left) {
+		is_on_active :=
+			top_element != nil &&
+			ctx.active_element != nil &&
+			top_element.id_string == ctx.active_element.id_string
+		if !is_on_active {
+			ctx.active_element = nil
+		}
 	}
 
 	for element in ctx.interactive_elements {
@@ -607,6 +612,9 @@ text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 	default_text_alignment_x := Alignment_X.Left
 	default_text_alignment_y := Alignment_Y.Top
 	default_text_fill := base.Fill(base.Color{255, 255, 255, 255})
+	default_clip_config := Clip_Config {
+		clip_axes = {true, true},
+	}
 
 	default_opts := Config_Options {
 		layout = {
@@ -615,6 +623,7 @@ text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 			text_alignment_y = &default_text_alignment_y,
 		},
 		text_fill = &default_text_fill,
+		clip = &default_clip_config,
 	}
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
@@ -762,17 +771,26 @@ slider :: proc(
 	return element.last_comm
 }
 
-// TODO(Thomas): The backing buffer is provided by the user, so we don't need to cache that,
-// but should we cache the builder and text_edit, so we don't have to re-create that every frame?
-text_input :: proc(ctx: ^Context, id: string, buf: []u8, opts: Config_Options = {}) -> Comm {
+text_input :: proc(
+	ctx: ^Context,
+	id: string,
+	buf: []u8,
+	buf_len: ^int,
+	opts: Config_Options = {},
+) -> Comm {
+
+	// TODO(Thomas): Figure out how to do the sizing properly
+	// Y-axis sizing is just hard-coded for now
 	sizing_x := Sizing {
 		kind = .Grow,
 	}
+
 	sizing_y := Sizing {
-		kind = .Fit,
+		kind  = .Fixed,
+		value = 48,
 	}
 
-	background_fill := base.Fill(base.Color{24, 24, 24, 255})
+	background_fill := base.Fill(base.Color{255, 128, 128, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 
 	default_opts := Config_Options {
@@ -784,20 +802,33 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, opts: Config_Options = 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 	if open_ok {
 
-		ctx.text_builder = strings.builder_from_bytes(buf)
-		ctx.text_state.builder = &ctx.text_builder
+		key := ui_key_hash(element.id_string)
+		state, state_exists := &ctx.text_input_states[key]
 
-		text_content := strings.to_string(ctx.text_builder)
+		if !state_exists {
+			new_state := UI_Element_Text_Input_State{}
+			new_state.builder = strings.builder_from_bytes(buf)
 
+			if buf_len^ > 0 {
+				// Sanity check to prevent reading past the buffer's capacity
+				initial_len := min(buf_len^, len(buf))
+				strings.write_bytes(&new_state.builder, buf[:initial_len])
+			}
+
+			new_state.state.builder = &new_state.builder
+
+			ctx.text_input_states[key] = new_state
+			state = &ctx.text_input_states[key]
+		}
+
+		text_content := strings.to_string(state.builder)
+
+		buf_len^ = strings.builder_len(state.builder)
+
+		// TODO(Thomas): Shouldn't really be necessary to make text child component here
+		// Could just equip it, but that seems to be buggy
 		text_id := fmt.tprintf("%v_text", id)
-		text_alignment_x := Alignment_X.Center
-		text(
-			ctx,
-			text_id,
-			text_content,
-			Config_Options{layout = {text_alignment_x = &text_alignment_x}},
-		)
-
+		text(ctx, text_id, text_content)
 
 		close_element(ctx)
 	}

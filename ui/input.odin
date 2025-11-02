@@ -222,7 +222,12 @@ handle_key_up :: proc(ctx: ^Context, key: Key) {
 }
 
 handle_text :: proc(ctx: ^Context, text: string) {
-	strings.write_string(&ctx.text_builder, text)
+	if ctx.active_element != nil {
+		key := ui_key_hash(ctx.active_element.id_string)
+		if state, ok := &ctx.text_input_states[key]; ok {
+			strings.write_string(&state.builder, text)
+		}
+	}
 }
 
 is_mouse_down :: proc(ctx: Context, mouse: Mouse) -> bool {
