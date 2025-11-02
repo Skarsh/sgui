@@ -1,8 +1,10 @@
 package main
 
+import "core:encoding/hex"
 import "core:fmt"
 import "core:log"
 import "core:mem"
+import "core:strings"
 
 
 import "../../app"
@@ -92,8 +94,31 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				ui.slider(ctx, "green_slider", &data.g, 0, 1)
 				ui.slider(ctx, "blue_slider", &data.b, 0, 1)
 
-				ui.text_input(ctx, "hex_field", data.buf, &data.buf_len)
+				text_comm := ui.text_input(ctx, "hex_field", data.buf, &data.buf_len)
 
+				// TODO(Thomas): This is very dumb, make it better when text input is more complete.
+				if len(text_comm.text) >= 6 {
+					if r_str, r_str_ok := strings.substring(text_comm.text, 0, 2); r_str_ok {
+						r, r_ok := hex.decode_sequence(r_str)
+						if r_ok {
+							data.r = f32(r) / 255
+						}
+					}
+
+					if g_str, g_str_ok := strings.substring(text_comm.text, 2, 4); g_str_ok {
+						g, g_ok := hex.decode_sequence(g_str)
+						if g_ok {
+							data.g = f32(g) / 255
+						}
+					}
+
+					if b_str, b_str_ok := strings.substring(text_comm.text, 4, 6); b_str_ok {
+						b, b_ok := hex.decode_sequence(b_str)
+						if b_ok {
+							data.b = f32(b) / 255
+						}
+					}
+				}
 
 				ui.end_container(ctx)
 			}

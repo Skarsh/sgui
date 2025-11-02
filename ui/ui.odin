@@ -841,6 +841,8 @@ text_input :: proc(
 		text_id := fmt.tprintf("%v_text", id)
 		text(ctx, text_id, text_content)
 
+		element.last_comm.text = text_content
+
 		close_element(ctx)
 	}
 
