@@ -160,6 +160,9 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			ui.handle_key_down(ctx, key)
 			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
 			ui.handle_keymod_up(ctx, keymod)
+		case .TEXTINPUT:
+			text := string(cstring(&event.text.text[0]))
+			ui.handle_text(ctx, text)
 		case .WINDOWEVENT:
 			#partial switch event.window.event {
 			case .SIZE_CHANGED:

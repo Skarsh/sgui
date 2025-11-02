@@ -10,9 +10,10 @@ import "../../base"
 import "../../ui"
 
 Data :: struct {
-	r: f32,
-	g: f32,
-	b: f32,
+	r:   f32,
+	g:   f32,
+	b:   f32,
+	buf: []u8,
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
@@ -90,6 +91,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				ui.slider(ctx, "green_slider", &data.g, 0, 1)
 				ui.slider(ctx, "blue_slider", &data.b, 0, 1)
 
+				ui.text_input(ctx, "hex_field", data.buf)
+
+
 				ui.end_container(ctx)
 			}
 
@@ -147,10 +151,14 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
+	buf := make([]u8, 16)
+	defer delete(buf)
+
 	my_data := Data {
-		r = 0.5,
-		g = 0.5,
-		b = 0.5,
+		r   = 0.5,
+		g   = 0.5,
+		b   = 0.5,
+		buf = buf,
 	}
 
 	app.run(my_app, &my_data, update_and_draw)

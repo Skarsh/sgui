@@ -1,5 +1,7 @@
 package ui
 
+import "core:strings"
+
 import base "../base"
 
 Mouse :: enum u32 {
@@ -217,6 +219,10 @@ handle_key_down :: proc(ctx: ^Context, key: Key) {
 
 handle_key_up :: proc(ctx: ^Context, key: Key) {
 	ctx.input.key_down_bits -= {key}
+}
+
+handle_text :: proc(ctx: ^Context, text: string) {
+	strings.write_string(&ctx.text_builder, text)
 }
 
 is_mouse_down :: proc(ctx: Context, mouse: Mouse) -> bool {

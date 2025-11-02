@@ -4,6 +4,8 @@ import "core:container/queue"
 import "core:fmt"
 import "core:math"
 import "core:mem"
+import "core:strings"
+import textedit "core:text/edit"
 
 import base "../base"
 
@@ -120,6 +122,10 @@ Context :: struct {
 	font_id:                 u16,
 	window_size:             [2]i32,
 	active_element:          ^UI_Element,
+	// TODO(Thomas): This is just temporary for experimenting with a single text input
+	// this needs to be revised when we got a basic text input working.
+	text_builder:            strings.Builder,
+	text_state:              textedit.State,
 }
 
 Capability :: enum {
@@ -140,6 +146,7 @@ Comm :: struct {
 	clicked:  bool,
 	held:     bool,
 	hovering: bool,
+	text:     string,
 }
 
 set_text_measurement_callbacks :: proc(
@@ -311,6 +318,8 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 	}
 
+	// TODO(Thomas): This isn't going to work for long.
+	// An element should be active until clicked on another element
 	// End an interaction if the mouse is released
 	if is_mouse_released(ctx^, .Left) {
 		ctx.active_element = nil
@@ -745,6 +754,50 @@ slider :: proc(
 				capability_flags = &thumb_caps,
 			},
 		)
+
+		close_element(ctx)
+	}
+
+	append(&ctx.interactive_elements, element)
+	return element.last_comm
+}
+
+// TODO(Thomas): The backing buffer is provided by the user, so we don't need to cache that,
+// but should we cache the builder and text_edit, so we don't have to re-create that every frame?
+text_input :: proc(ctx: ^Context, id: string, buf: []u8, opts: Config_Options = {}) -> Comm {
+	sizing_x := Sizing {
+		kind = .Grow,
+	}
+	sizing_y := Sizing {
+		kind = .Fit,
+	}
+
+	background_fill := base.Fill(base.Color{24, 24, 24, 255})
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+
+	default_opts := Config_Options {
+		layout = {sizing = {&sizing_x, &sizing_y}},
+		background_fill = &background_fill,
+		capability_flags = &capability_flags,
+	}
+
+	element, open_ok := open_element(ctx, id, opts, default_opts)
+	if open_ok {
+
+		ctx.text_builder = strings.builder_from_bytes(buf)
+		ctx.text_state.builder = &ctx.text_builder
+
+		text_content := strings.to_string(ctx.text_builder)
+
+		text_id := fmt.tprintf("%v_text", id)
+		text_alignment_x := Alignment_X.Center
+		text(
+			ctx,
+			text_id,
+			text_content,
+			Config_Options{layout = {text_alignment_x = &text_alignment_x}},
+		)
+
 
 		close_element(ctx)
 	}
