@@ -3,8 +3,6 @@
 ## Active
 
 ## Bugs
-* Clicking buttons on the counter example only works once until they're active it seems, meaning trying to decrement the 
-    counter twice doesn't work because then it's already active. Buttons shouldn't be able to become active.
 * Using `element_equip_text` in the `text_input` helper proc makes the text invisible compared to just using the `text` proc
 
 ## Backlog

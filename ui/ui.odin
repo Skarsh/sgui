@@ -136,6 +136,7 @@ Capability :: enum {
 	Active_Animation,
 	Hot_Animation,
 	Clickable,
+	Focusable,
 }
 
 Capability_Flags :: bit_set[Capability]
@@ -320,12 +321,21 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 	}
 
+	// Clearing the active element when clicking elsewhere
 	if is_mouse_pressed(ctx^, .Left) {
 		is_on_active :=
 			top_element != nil &&
 			ctx.active_element != nil &&
 			top_element.id_string == ctx.active_element.id_string
 		if !is_on_active {
+			ctx.active_element = nil
+		}
+	}
+
+	// If mouse released and element is not focusable, immediately lose active status
+	if is_mouse_released(ctx^, .Left) {
+		if ctx.active_element != nil &&
+		   .Focusable not_in ctx.active_element.config.capability_flags {
 			ctx.active_element = nil
 		}
 	}
@@ -357,16 +367,17 @@ process_interactions :: proc(ctx: ^Context) {
 		} else if is_top_element {
 			// Set new active element
 			if is_mouse_pressed(ctx^, .Left) {
-				ctx.active_element = element
+				if .Focusable in element.config.capability_flags {
+					ctx.active_element = element
+				}
 				comm.clicked = true
 				comm.held = true
 				element.active = 1.0
 			}
 		}
 
-		// Reset active animation if not active anymore
-		if !is_active_element && is_mouse_released(ctx^, .Left) {
-			element.active = 0
+		if !comm.held {
+			element.active -= button_animation_rate_of_change
 		}
 
 		// Clamp animations and set final comm state
@@ -691,7 +702,7 @@ slider :: proc(
 		value = 20,
 	}
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 	layout_mode: Layout_Mode = .Relative
 	corner_radius: f32 = 2
 
@@ -791,7 +802,7 @@ text_input :: proc(
 	}
 
 	background_fill := base.Fill(base.Color{255, 128, 128, 255})
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 
 	default_opts := Config_Options {
 		layout = {sizing = {&sizing_x, &sizing_y}},
