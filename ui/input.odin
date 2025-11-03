@@ -1,6 +1,6 @@
 package ui
 
-import "core:strings"
+import textedit "core:text/edit"
 
 import base "../base"
 
@@ -221,11 +221,14 @@ handle_key_up :: proc(ctx: ^Context, key: Key) {
 	ctx.input.key_down_bits -= {key}
 }
 
+// TODO(Thomas): Should we really do the textedit input here???
+// I do think I would prefer that this doesn't know details about
+// how text are inputted into the textedit etc.
 handle_text :: proc(ctx: ^Context, text: string) {
 	if ctx.active_element != nil {
 		key := ui_key_hash(ctx.active_element.id_string)
 		if state, ok := &ctx.text_input_states[key]; ok {
-			strings.write_string(&state.builder, text)
+			textedit.input_text(&state.state, text)
 		}
 	}
 }

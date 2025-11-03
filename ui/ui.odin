@@ -391,6 +391,42 @@ process_interactions :: proc(ctx: ^Context) {
 			comm.hot = true
 		}
 
+		// Text edit
+		if is_active_element {
+			key := ui_key_hash(ctx.active_element.id_string)
+			state, state_ok := &ctx.text_input_states[key]
+
+			if state_ok {
+				if is_key_pressed(ctx^, .Backspace) {
+					translation: textedit.Translation
+					if is_key_down(ctx^, .Left_Shift) {
+						translation = textedit.Translation.Word_Left
+					} else {
+						translation = textedit.Translation.Left
+					}
+					textedit.delete_to(&state.state, translation)
+				} else if is_key_pressed(ctx^, .Left) {
+					translation: textedit.Translation
+					if is_key_down(ctx^, .Left_Shift) {
+						translation = textedit.Translation.Word_Left
+					} else {
+						translation = textedit.Translation.Left
+					}
+
+					textedit.move_to(&state.state, translation)
+
+				} else if is_key_pressed(ctx^, .Right) {
+					translation: textedit.Translation
+					if is_key_down(ctx^, .Left_Shift) {
+						translation = textedit.Translation.Word_Right
+					} else {
+						translation = textedit.Translation.Right
+					}
+					textedit.move_to(&state.state, translation)
+				}
+			}
+		}
+
 		element.last_comm = comm
 	}
 }
@@ -817,6 +853,8 @@ text_input :: proc(
 		state, state_exists := &ctx.text_input_states[key]
 
 		if !state_exists {
+			// TODO(Thomas): Call textedit.init() on the new_state.state here
+			// to ensure allocators and stuff are set to what we expect.
 			new_state := UI_Element_Text_Input_State{}
 			new_state.builder = strings.builder_from_bytes(buf)
 
@@ -830,6 +868,8 @@ text_input :: proc(
 
 			ctx.text_input_states[key] = new_state
 			state = &ctx.text_input_states[key]
+
+			textedit.setup_once(&state.state, &state.builder)
 		}
 
 		text_content := strings.to_string(state.builder)

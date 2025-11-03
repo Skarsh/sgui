@@ -70,6 +70,10 @@ sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
 		key = ui.Key.Up
 	case .DOWN:
 		key = ui.Key.Down
+	case .LEFT:
+		key = ui.Key.Left
+	case .RIGHT:
+		key = ui.Key.Right
 	case .LSHIFT:
 		key = ui.Key.Left_Shift
 	case .RSHIFT:

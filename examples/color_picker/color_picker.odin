@@ -177,7 +177,7 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
-	buf := make([]u8, 16)
+	buf := make([]u8, 8)
 	defer delete(buf)
 
 	my_data := Data {
