@@ -3,6 +3,8 @@
 ## Active
 
 ## Bugs
+* blinking caret in `text_input` widget resizes the text element for some reason
+* `find_element_by_id` seems to not be traversing all children correctly
 * Using `element_equip_text` in the `text_input` helper proc makes the text invisible compared to just using the `text` proc
 
 ## Backlog
