@@ -80,8 +80,9 @@ Measure_Text_Proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text
 Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> Glyph_Metrics
 
 UI_Element_Text_Input_State :: struct {
-	builder: strings.Builder,
-	state:   textedit.State,
+	builder:           strings.Builder,
+	state:             textedit.State,
+	caret_blink_timer: f32,
 }
 
 Context :: struct {
@@ -825,7 +826,6 @@ text_input :: proc(
 	buf_len: ^int,
 	opts: Config_Options = {},
 ) -> Comm {
-
 	// TODO(Thomas): Figure out how to do the sizing properly
 	// Y-axis sizing is just hard-coded for now
 	sizing_x := Sizing {
@@ -839,9 +839,10 @@ text_input :: proc(
 
 	background_fill := base.Fill(base.Color{255, 128, 128, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
+	layout_mode := Layout_Mode.Relative
 
 	default_opts := Config_Options {
-		layout = {sizing = {&sizing_x, &sizing_y}},
+		layout = {sizing = {&sizing_x, &sizing_y}, layout_mode = &layout_mode},
 		background_fill = &background_fill,
 		capability_flags = &capability_flags,
 	}
@@ -880,6 +881,54 @@ text_input :: proc(
 		// Could just equip it, but that seems to be buggy
 		text_id := fmt.tprintf("%v_text", id)
 		text(ctx, text_id, text_content)
+
+		if element == ctx.active_element {
+			state.caret_blink_timer += ctx.dt
+			CARET_BLINK_PERIOD :: 1.0
+			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
+				cursor_pos := state.state.selection[0]
+				text_before_cursor := text_content[:cursor_pos]
+
+				metrics := ctx.measure_text_proc(
+					text_before_cursor,
+					ctx.font_id,
+					ctx.font_user_data,
+				)
+
+				line_metrics := ctx.measure_text_proc("", ctx.font_id, ctx.font_user_data)
+				caret_x_offset := metrics.width
+				caret_height := line_metrics.line_height
+
+				// TODO(Thomas): Caret should be stylable
+				CARET_WIDTH :: 2.0
+				caret_sizing := [2]Sizing {
+					{kind = .Fixed, value = CARE_WIDTH},
+					{kind = .Fixed, value = caret_height},
+				}
+
+				caret_align_x := Alignment_X.Left
+				caret_align_y := Alignment_Y.Center
+				caret_rel_pos := base.Vec2{caret_x_offset, 0}
+				caret_bg_fill := base.Fill(default_color_style[.Text])
+				caret_caps := Capability_Flags{.Background}
+				caret_id := fmt.tprintf("%s_caret", id)
+
+				container(
+					ctx,
+					caret_id,
+					Config_Options {
+						layout = {
+							sizing = {&caret_sizing.x, &caret_sizing.y},
+							alignment_x = &caret_align_x,
+							alignment_y = &caret_align_y,
+							relative_position = &caret_rel_pos,
+						},
+						background_fill = &caret_bg_fill,
+						capability_flags = &caret_caps,
+					},
+				)
+			}
+		}
 
 		element.last_comm.text = text_content
 
