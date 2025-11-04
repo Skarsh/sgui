@@ -1039,21 +1039,11 @@ compare_element_position :: proc(
 }
 
 // Helper to find an element in element hierarchy by id string
-find_element_by_id :: proc(root: ^UI_Element, id: string) -> ^UI_Element {
-	if root == nil {
-		return nil
+find_element_by_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
+	key := ui_key_hash(id)
+	if element, ok := ctx.element_cache[key]; ok {
+		return element
 	}
-
-	if root.id_string == id {
-		return root
-	}
-
-	for child in root.children {
-		if result := find_element_by_id(child, id); result != nil {
-			return result
-		}
-	}
-
 	return nil
 }
 
@@ -1130,7 +1120,7 @@ DEFAULT_TESTING_WINDOW_SIZE :: [2]i32{480, 360}
 run_layout_test :: proc(
 	t: ^testing.T,
 	build_ui: proc(ctx: ^Context, data: ^$T),
-	verify: proc(t: ^testing.T, root: ^UI_Element, data: ^T),
+	verify: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^T),
 	data: ^T,
 	window_size := DEFAULT_TESTING_WINDOW_SIZE,
 ) {
@@ -1145,17 +1135,18 @@ run_layout_test :: proc(
 	build_ui(ctx, data)
 	end(ctx)
 
-	verify(t, ctx.root_element, data)
+	verify(t, ctx, ctx.root_element, data)
 }
 
 expect_layout :: proc(
 	t: ^testing.T,
+	ctx: ^Context,
 	parent_element: ^UI_Element,
 	expected: Expected_Element,
 	epsilon: f32 = EPSILON,
 ) {
 	// Find the actual element in the UI tree corresponding to the expected ID
-	element_to_check := find_element_by_id(parent_element, expected.id)
+	element_to_check := find_element_by_id(ctx, expected.id)
 
 	// Fail the test if the element doesn't exist
 	if element_to_check == nil {
@@ -1203,7 +1194,7 @@ expect_layout :: proc(
 	}
 
 	for child in expected.children {
-		expect_layout(t, element_to_check, child, epsilon)
+		expect_layout(t, ctx, element_to_check, child, epsilon)
 	}
 }
 
@@ -1241,7 +1232,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := base.Vec2 {
 			f32(DEFAULT_TESTING_WINDOW_SIZE.x),
@@ -1259,7 +1250,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 			size     = root_size,
 			children = []Expected_Element{{id = "empty_panel", pos = pos, size = size}},
 		}
-		expect_layout(t, root, expected_layout_tree)
+		expect_layout(t, ctx, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -1352,7 +1343,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -1400,7 +1391,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, root, expected_layout_tree)
+		expect_layout(t, ctx, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -1497,7 +1488,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -1545,7 +1536,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, root, expected_layout_tree)
+		expect_layout(t, ctx, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -1636,7 +1627,12 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Grow_Sizing_Ltr_Context) {
+	verify_proc :: proc(
+		t: ^testing.T,
+		ctx: ^Context,
+		root: ^UI_Element,
+		data: ^Test_Grow_Sizing_Ltr_Context,
+	) {
 		inner_panel_w := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
 		inner_panel_h := data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
 
@@ -1676,7 +1672,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 
 	}
 
@@ -1768,7 +1764,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		container_1_size := base.Vec2 {
 			data.container_1_max_value,
 			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom,
@@ -1811,7 +1807,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1896,7 +1892,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 
 		inner_panel_w := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
 		inner_panel_h := data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
@@ -1937,7 +1933,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1991,7 +1987,7 @@ test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testi
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		parent_pos := base.Vec2{0, 0}
 		parent_size := base.Vec2{data.parent_width, data.parent_height}
 
@@ -2017,7 +2013,7 @@ test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testi
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2113,7 +2109,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 
 		available_width :=
 			data.panel_size.x -
@@ -2158,7 +2154,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2253,7 +2249,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 
 		available_height :=
 			data.panel_size.y -
@@ -2297,7 +2293,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2355,7 +2351,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		text_width: f32 = 6 * MOCK_CHAR_WIDTH
 		text_height: f32 = MOCK_LINE_HEIGHT
 
@@ -2373,7 +2369,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2413,7 +2409,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		text_width: f32 = 3 * MOCK_CHAR_WIDTH
 		text_height: f32 = 2 * MOCK_LINE_HEIGHT
 
@@ -2431,7 +2427,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2472,7 +2468,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		padding := data.container_padding
 		container_size := base.Vec2{60, 2 * MOCK_LINE_HEIGHT + padding.top + padding.bottom}
 
@@ -2494,7 +2490,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2547,7 +2543,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		text_width: f32 = data.text_min_width
 		text_height: f32 = data.text_min_height
 
@@ -2565,7 +2561,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2602,7 +2598,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		expected_elements: [5]Expected_Element
 		width_offset: f32 = 0
 		for item, idx in data.items {
@@ -2621,7 +2617,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 			children = expected_elements[:],
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2809,7 +2805,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		}
 
 		// --- 3. Define the Verification Logic ---
-		verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+		verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 			expected_layout_tree := Expected_Element {
 				id       = "root",
 				children = []Expected_Element {
@@ -2828,7 +2824,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 				},
 			}
 
-			expect_layout(t, root, expected_layout_tree.children[0])
+			expect_layout(t, ctx, root, expected_layout_tree.children[0])
 		}
 
 		// --- 4. Run the Test ---
@@ -2910,7 +2906,7 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		// No padding so its the same as the parent pos
 		child_1_pos := base.Vec2{data.parent_pos.x, data.parent_pos.y}
 		child_1_size := base.Vec2 {
@@ -2950,7 +2946,7 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -3031,7 +3027,7 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		// No padding so its the same as the parent pos
 		child_1_pos := base.Vec2{data.parent_pos.x, data.parent_pos.y}
 		child_1_size := base.Vec2 {
@@ -3071,7 +3067,7 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -3158,7 +3154,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		main_container_pos := base.Vec2{0, 0}
 		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
 
@@ -3208,7 +3204,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -3281,7 +3277,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		main_container_pos := base.Vec2{0, 0}
 		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
 
@@ -3325,7 +3321,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 			},
 		}
 
-		expect_layout(t, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
 
 	}
 
@@ -3424,7 +3420,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -3463,7 +3459,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 				},
 			},
 		}
-		expect_layout(t, root, expected_layout_tree)
+		expect_layout(t, ctx, root, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---

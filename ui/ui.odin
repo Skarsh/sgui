@@ -902,7 +902,7 @@ text_input :: proc(
 				// TODO(Thomas): Caret should be stylable
 				CARET_WIDTH :: 2.0
 				caret_sizing := [2]Sizing {
-					{kind = .Fixed, value = CARE_WIDTH},
+					{kind = .Fixed, value = CARET_WIDTH},
 					{kind = .Fixed, value = caret_height},
 				}
 
