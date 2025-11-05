@@ -525,6 +525,10 @@ container_data :: proc(
 }
 
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
+	if element.config.layout.layout_mode != .Flow {
+		return
+	}
+
 	for child in element.children {
 		fit_size_axis(child, axis)
 	}
@@ -587,6 +591,9 @@ is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 RESIZE_ITER_MAX :: 32
 // Combined grow and shrink size procedure
 resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
+	if element.config.layout.layout_mode != .Flow {
+		return
+	}
 	// NOTE(Thomas): The reason I went for using a Small_Array here instead
 	// of just a normal [dynamic]^UI_Element array is because dynamic arrays
 	// can have issues with arena allocators if growing, which would be the case

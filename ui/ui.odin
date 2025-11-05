@@ -880,7 +880,21 @@ text_input :: proc(
 		// TODO(Thomas): Shouldn't really be necessary to make text child component here
 		// Could just equip it, but that seems to be buggy
 		text_id := fmt.tprintf("%v_text", id)
-		text(ctx, text_id, text_content)
+		// TODO(Thomas): Can we somehow make it possible for the user to choose alignment here?
+		// That would require the caret calculation to change too of course.
+		text_container_alignment_x := Alignment_X.Left
+		text_container_alignment_y := Alignment_Y.Center
+		text(
+			ctx,
+			text_id,
+			text_content,
+			Config_Options {
+				layout = {
+					alignment_x = &text_container_alignment_x,
+					alignment_y = &text_container_alignment_y,
+				},
+			},
+		)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt
