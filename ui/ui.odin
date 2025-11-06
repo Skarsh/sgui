@@ -723,12 +723,16 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	return element.last_comm
 }
 
+// TODO(Thomas): Make it possible to style the thumb. Maybe by taking in a thumb Config_Options?
 slider :: proc(
 	ctx: ^Context,
 	id: string,
 	value: ^f32,
 	min: f32,
 	max: f32,
+	thumb_color: base.Fill = base.Color{255, 200, 200, 255},
+	thumb_border_thickness: f32 = 0,
+	thumb_border_fill: base.Fill = base.Color{240, 240, 240, 255},
 	opts: Config_Options = {},
 ) -> Comm {
 	sizing_x := Sizing {
@@ -791,7 +795,9 @@ slider :: proc(
 		thumb_align_x := Alignment_X.Left
 		thumb_align_y := Alignment_Y.Center
 		thumb_rel_pos := base.Vec2{thumb_relative_pos_x, 0}
-		thumb_bg_fill := base.Fill(base.Color{255, 200, 200, 255})
+		thumb_bg_fill := base.Fill(thumb_color)
+		thumb_border_fill := thumb_border_fill
+		thumb_border_thickness := thumb_border_thickness
 		thumb_caps := Capability_Flags{.Background}
 		thumb_radius: f32 = thumb_width / 2
 		thumb_id := fmt.tprintf("%v_thumb", id)
@@ -806,8 +812,10 @@ slider :: proc(
 					alignment_y = &thumb_align_y,
 					relative_position = &thumb_rel_pos,
 					corner_radius = &thumb_radius,
+					border_thickness = &thumb_border_thickness,
 				},
 				background_fill = &thumb_bg_fill,
+				border_fill = &thumb_border_fill,
 				capability_flags = &thumb_caps,
 			},
 		)
