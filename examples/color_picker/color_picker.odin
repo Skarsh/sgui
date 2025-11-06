@@ -12,66 +12,165 @@ import "../../base"
 import "../../ui"
 
 Data :: struct {
-	r:       f32,
-	g:       f32,
-	b:       f32,
-	buf:     []u8,
-	buf_len: int,
+	r:        f32,
+	g:        f32,
+	b:        f32,
+	buf:      []u8,
+	buf_len:  int,
+	red_sb:   strings.Builder,
+	green_sb: strings.Builder,
+	blue_sb:  strings.Builder,
+}
+
+// --- Style Palette ---
+WINDOW_BG :: base.Color{30, 30, 30, 255}
+PANEL_BG :: base.Color{45, 45, 45, 255}
+ITEM_BG :: base.Color{60, 60, 60, 255}
+TEXT_COLOR :: base.Color{220, 220, 220, 255}
+BORDER_COLOR :: base.Color{75, 75, 75, 255}
+
+RED_COLOR :: base.Color{217, 74, 74, 255}
+GREEN_COLOR :: base.Color{99, 217, 74, 255}
+BLUE_COLOR :: base.Color{74, 99, 217, 255}
+THUMB_BORDER_COLOR :: base.Color{240, 240, 240, 255}
+
+
+make_slider_row :: proc(
+	ctx: ^ui.Context,
+	id_suffix, label: string,
+	value: ^f32,
+	color: base.Color,
+	sb: ^strings.Builder,
+) -> ui.Comm {
+
+	row_layout_dir := ui.Layout_Direction.Left_To_Right
+	row_align_y := ui.Alignment_Y.Center
+	row_chlid_gap: f32 = 10
+	row_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+	comm: ui.Comm
+
+	if ui.begin_container(
+		ctx,
+		fmt.tprintf("%s_slider_row", id_suffix),
+		ui.Config_Options {
+			layout = {
+				sizing = {&row_sizing.x, &row_sizing.y},
+				layout_direction = &row_layout_dir,
+				alignment_y = &row_align_y,
+				child_gap = &row_chlid_gap,
+			},
+		},
+	) {
+
+		label_sizing := [2]ui.Sizing{{kind = .Fixed, value = 20}, {kind = .Fit}}
+		ui.text(
+			ctx,
+			fmt.tprintf("%s_label", id_suffix),
+			label,
+			ui.Config_Options{layout = {sizing = {&label_sizing.x, &label_sizing.y}}},
+		)
+
+		comm = ui.slider(ctx, fmt.tprintf("%s_slider", id_suffix), value, 0, 1, color, 2)
+
+		value_sizing := [2]ui.Sizing{{kind = .Fixed, value = 40}, {kind = .Fit}}
+		value_align_x := ui.Alignment_X.Right
+
+		// TODO(Thomas): This has to be made using a string builder instead
+		value_str := fmt.tprintf("%x", u8(value^ * 255))
+		strings.write_string(sb, value_str)
+		ui.text(
+			ctx,
+			fmt.tprintf("%s_value", id_suffix),
+			strings.to_string(sb^),
+			ui.Config_Options {
+				layout = {
+					sizing = {&value_sizing.x, &value_sizing.y},
+					text_alignment_x = &value_align_x,
+				},
+			},
+		)
+
+		ui.end_container(ctx)
+	}
+
+	return comm
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
-		ui.push_capability_flags(
-			ctx,
-			ui.Capability_Flags{.Background},
-		); defer ui.pop_capability_flags(ctx)
+		// --- Global Style Scope ---
+		ui.push_background_fill(ctx, base.Fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
+		ui.push_text_fill(ctx, base.Fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
-		ui.push_background_fill(
-			ctx,
-			base.Fill(base.Color{55, 55, 55, 255}),
-		); defer ui.pop_background_fill(ctx)
-
-		main_container_sizing := [2]ui.Sizing {
+		// --- Main Panel (centered) ---
+		main_panel_sizing := [2]ui.Sizing {
 			{kind = .Percentage_Of_Parent, value = 1.0},
 			{kind = .Percentage_Of_Parent, value = 1.0},
 		}
-		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
-		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
+		main_panel_align_x := ui.Alignment_X.Center
+		main_panel_align_y := ui.Alignment_Y.Center
+		main_panel_caps := ui.Capability_Flags{.Background}
 
 		if ui.begin_container(
 			ctx,
-			"main_container",
+			"main_panel",
 			ui.Config_Options {
-				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+				layout = {
+					sizing = {&main_panel_sizing.x, &main_panel_sizing.y},
+					alignment_x = &main_panel_align_x,
+					alignment_y = &main_panel_align_y,
+				},
+				capability_flags = &main_panel_caps,
 			},
 		) {
 
-			panel_container_layout_direction := ui.Layout_Direction.Top_To_Bottom
-			panel_container_child_gap: f32 = 5.0
+			panel_align_x := ui.Alignment_X.Center
+			panel_align_y := ui.Alignment_Y.Center
+			panel_padding := ui.Padding{15, 15, 15, 15}
+			panel_radius: f32 = 10
+			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
+			panel_child_gap: f32 = 20
+			panel_bg := base.Fill(PANEL_BG)
+			panel_caps := ui.Capability_Flags{.Background}
 
 			if ui.begin_container(
 				ctx,
-				"panel_container",
+				"panel",
 				ui.Config_Options {
 					layout = {
-						layout_direction = &panel_container_layout_direction,
-						child_gap = &panel_container_child_gap,
+						alignment_x = &panel_align_x,
+						alignment_y = &panel_align_y,
+						layout_direction = &panel_layout_dir,
+						padding = &panel_padding,
+						child_gap = &panel_child_gap,
+						corner_radius = &panel_radius,
 					},
+					background_fill = &panel_bg,
+					capability_flags = &panel_caps,
 				},
 			) {
 
-				color_viewer_width: f32 = 256
-				color_viewer_height: f32 = 256
+				// --- Color Viewer ---
+				color_viewer_size: f32 = 300
 				color_viewer_sizing := [2]ui.Sizing {
-					{kind = .Fixed, value = color_viewer_width},
-					{kind = .Fixed, value = color_viewer_height},
+					{kind = .Fixed, value = color_viewer_size},
+					{kind = .Fixed, value = color_viewer_size},
 				}
 
 				color_viewer_bg_fill := base.Fill(
 					base.Color{u8(data.r * 255), u8(data.g * 255), u8(data.b * 255), 255},
 				)
 
-				color_viewer_radius: f32 = color_viewer_width / 2
+				color_viewer_radius := color_viewer_size / 2
+				color_viewer_align_x := ui.Alignment_X.Center
+				border_thickness: f32 = 4
+				border_color := base.Color {
+					u8(data.r * 200),
+					u8(data.g * 200),
+					u8(data.b * 200),
+					255,
+				}
+				border_fill := base.Fill(border_color)
 
 				ui.container(
 					ctx,
@@ -80,56 +179,115 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						layout = {
 							sizing = {&color_viewer_sizing.x, &color_viewer_sizing.y},
 							corner_radius = &color_viewer_radius,
+							alignment_x = &color_viewer_align_x,
+							border_thickness = &border_thickness,
 						},
 						background_fill = &color_viewer_bg_fill,
+						border_fill = &border_fill,
+						capability_flags = &panel_caps,
 					},
 				)
 
-				ui.push_background_fill(
+				// --- Sliders ---
+				strings.builder_reset(&data.red_sb)
+				red_comm := make_slider_row(ctx, "red", "R", &data.r, RED_COLOR, &data.red_sb)
+				strings.builder_reset(&data.green_sb)
+				green_comm := make_slider_row(
 					ctx,
-					base.Fill(base.Color{95, 95, 95, 255}),
-				); defer ui.pop_background_fill(ctx)
+					"green",
+					"G",
+					&data.g,
+					GREEN_COLOR,
+					&data.green_sb,
+				)
+				strings.builder_reset(&data.blue_sb)
+				blue_comm := make_slider_row(ctx, "blue", "B", &data.b, BLUE_COLOR, &data.blue_sb)
 
-				ui.slider(ctx, "red_slider", &data.r, 0, 1)
-				ui.slider(ctx, "green_slider", &data.g, 0, 1)
-				ui.slider(ctx, "blue_slider", &data.b, 0, 1)
+				// --- Hex Input ---
+				hex_comm: ui.Comm
+				hex_layout_dir := ui.Layout_Direction.Left_To_Right
+				hex_align_y := ui.Alignment_Y.Center
+				hex_padding := ui.Padding {
+					left   = 10,
+					right  = 10,
+					top    = 5,
+					bottom = 5,
+				}
+				hex_radius: f32 = 5
+				hex_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+				hex_bg := base.Fill(ITEM_BG)
 
-				text_comm := ui.text_input(ctx, "hex_field", data.buf, &data.buf_len)
+				if ui.begin_container(
+					ctx,
+					"hex_container",
+					ui.Config_Options {
+						layout = {
+							sizing = {&hex_sizing.x, &hex_sizing.y},
+							layout_direction = &hex_layout_dir,
+							alignment_y = &hex_align_y,
+							padding = &hex_padding,
+							corner_radius = &hex_radius,
+						},
+						background_fill = &hex_bg,
+						capability_flags = &panel_caps,
+					},
+				) {
 
-				// TODO(Thomas): This is very dumb, make it better when text input is more complete.
-				if len(text_comm.text) >= 6 {
-					if r_str, r_str_ok := strings.substring(text_comm.text, 0, 2); r_str_ok {
-						r, r_ok := hex.decode_sequence(r_str)
-						if r_ok {
+					ui.text(ctx, "hex_label", "#")
+					input_bg := base.Fill(base.Color{0, 0, 0, 0})
+					hex_comm = ui.text_input(
+						ctx,
+						"hex_field",
+						data.buf,
+						&data.buf_len,
+						ui.Config_Options{background_fill = &input_bg},
+					)
+
+					ui.end_container(ctx)
+				}
+
+				// --- Two-Way Data Binding Logic ---
+				hex_from_sliders := fmt.tprintf(
+					"%02x%02x%02x",
+					u8(data.r * 255),
+					u8(data.g * 255),
+					u8(data.b * 255),
+				)
+				hex_from_input := hex_comm.text
+				is_dragging_slider := red_comm.held || green_comm.held || blue_comm.held
+
+				if is_dragging_slider {
+					// Sliders are source of truth, update text field
+					n := copy(data.buf, transmute([]u8)hex_from_sliders)
+					data.buf_len = n
+				} else if hex_from_input != hex_from_sliders && len(hex_from_input) >= 6 {
+					// Text field is source of truth, update sliders
+					if r_str, ok := strings.substring(hex_from_input, 0, 2); ok {
+						if r, r_ok := hex.decode_sequence(r_str); r_ok {
 							data.r = f32(r) / 255
 						}
 					}
-
-					if g_str, g_str_ok := strings.substring(text_comm.text, 2, 4); g_str_ok {
-						g, g_ok := hex.decode_sequence(g_str)
-						if g_ok {
+					if g_str, ok := strings.substring(hex_from_input, 2, 4); ok {
+						if g, g_ok := hex.decode_sequence(g_str); g_ok {
 							data.g = f32(g) / 255
 						}
 					}
-
-					if b_str, b_str_ok := strings.substring(text_comm.text, 4, 6); b_str_ok {
-						b, b_ok := hex.decode_sequence(b_str)
-						if b_ok {
+					if b_str, ok := strings.substring(hex_from_input, 4, 6); ok {
+						if b, b_ok := hex.decode_sequence(b_str); b_ok {
 							data.b = f32(b) / 255
 						}
 					}
 				}
+
 
 				ui.end_container(ctx)
 			}
 
 			ui.end_container(ctx)
 		}
-
-		ui.end(ctx)
 	}
+	ui.end(ctx)
 }
-
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
 	build_ui(ctx, data)
@@ -163,8 +321,8 @@ main :: proc() {
 
 	config := app.App_Config {
 		title     = "Color Picker App",
-		width     = 640,
-		height    = 480,
+		width     = 1280,
+		height    = 720,
 		font_path = "",
 		font_id   = 0,
 		font_size = 48,
@@ -177,15 +335,30 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
-	buf := make([]u8, 8)
+	buf := make([]u8, 6)
 	defer delete(buf)
 
+	red_sb_buf := make([]u8, 64)
+	defer delete(red_sb_buf)
+	red_sb := strings.builder_from_bytes(red_sb_buf)
+
+	green_sb_buf := make([]u8, 64)
+	defer delete(green_sb_buf)
+	green_sb := strings.builder_from_bytes(green_sb_buf)
+
+	blue_sb_buf := make([]u8, 64)
+	defer delete(blue_sb_buf)
+	blue_sb := strings.builder_from_bytes(blue_sb_buf)
+
 	my_data := Data {
-		r       = 0.5,
-		g       = 0.5,
-		b       = 0.5,
-		buf     = buf,
-		buf_len = 0,
+		r        = 0.5,
+		g        = 0.5,
+		b        = 0.5,
+		buf      = buf,
+		buf_len  = 0,
+		red_sb   = red_sb,
+		green_sb = green_sb,
+		blue_sb  = blue_sb,
 	}
 
 	app.run(my_app, &my_data, update_and_draw)
