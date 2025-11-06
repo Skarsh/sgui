@@ -3,7 +3,6 @@
 ## Active
 
 ## Bugs
-* blinking caret in `text_input` widget resizes the text element for some reason
 * Using `element_equip_text` in the `text_input` helper proc makes the text invisible compared to just using the `text` proc
 
 ## Backlog
