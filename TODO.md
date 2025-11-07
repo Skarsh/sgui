@@ -1,8 +1,10 @@
 # TODOs
 
 ## Active
+* (Bug) Sizing of `slider` and `text_input` is not working correctly in the `color_picker` example.
 
 ## Bugs
+* Setting background color on `Config_Options` for the `text` helper doesn't have an effect.
 * Using `element_equip_text` in the `text_input` helper proc makes the text invisible compared to just using the `text` proc
 
 ## Backlog
