@@ -11,6 +11,7 @@ import "../../app"
 import "../../base"
 import "../../ui"
 
+// TODO(Thomas): One string builder for each color is wasteful and bad practice. Hacky solution for now.
 Data :: struct {
 	r:        f32,
 	g:        f32,
@@ -62,7 +63,9 @@ make_slider_row :: proc(
 		},
 	) {
 
-		label_sizing := [2]ui.Sizing{{kind = .Fixed, value = 20}, {kind = .Fit}}
+		// TODO(Thomas): @Perf string font size caching
+		label_string_width := ui.measure_string_width(ctx, label, ctx.font_id)
+		label_sizing := [2]ui.Sizing{{kind = .Grow, max_value = label_string_width}, {kind = .Fit}}
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_label", id_suffix),
@@ -72,12 +75,13 @@ make_slider_row :: proc(
 
 		comm = ui.slider(ctx, fmt.tprintf("%s_slider", id_suffix), value, 0, 1, color, 2)
 
-		value_sizing := [2]ui.Sizing{{kind = .Fixed, value = 40}, {kind = .Fit}}
-		value_align_x := ui.Alignment_X.Right
-
 		// TODO(Thomas): This has to be made using a string builder instead
 		value_str := fmt.tprintf("%x", u8(value^ * 255))
 		strings.write_string(sb, value_str)
+		// TODO(Thomas): @Perf string font size caching
+		value_string_width := ui.measure_string_width(ctx, value_str, ctx.font_id)
+		value_sizing := [2]ui.Sizing{{kind = .Grow, max_value = value_string_width}, {kind = .Fit}}
+		value_align_x := ui.Alignment_X.Right
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_value", id_suffix),
@@ -213,6 +217,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					top    = 5,
 					bottom = 5,
 				}
+				hex_child_gap: f32 = 10
 				hex_radius: f32 = 5
 				hex_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
 				hex_bg := base.Fill(ITEM_BG)
@@ -227,13 +232,32 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_y = &hex_align_y,
 							padding = &hex_padding,
 							corner_radius = &hex_radius,
+							child_gap = &hex_child_gap,
 						},
 						background_fill = &hex_bg,
 						capability_flags = &panel_caps,
 					},
 				) {
 
-					ui.text(ctx, "hex_label", "#")
+					hex_label_str := "#"
+					// TODO(Thomas): @Perf string font size caching
+					hex_label_string_width := ui.measure_string_width(
+						ctx,
+						hex_label_str,
+						ctx.font_id,
+					)
+					hex_label_sizing := [2]ui.Sizing {
+						{kind = .Grow, max_value = hex_label_string_width},
+						{kind = .Fit},
+					}
+					ui.text(
+						ctx,
+						"hex_label",
+						hex_label_str,
+						ui.Config_Options {
+							layout = {sizing = {&hex_label_sizing.x, &hex_label_sizing.y}},
+						},
+					)
 					input_bg := base.Fill(base.Color{0, 0, 0, 0})
 					hex_comm = ui.text_input(
 						ctx,
