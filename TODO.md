@@ -6,6 +6,9 @@
 ## Bugs
 * Setting background color on `Config_Options` for the `text` helper doesn't have an effect.
 * Using `element_equip_text` in the `text_input` helper proc makes the text invisible compared to just using the `text` proc
+* Setting a max value for the y axis on grow sizing kind on a text() element doesn' restrict it.
+* The `id_string` of some (all?) the elements in `make_slider_row` is nil when querying them using `find_element_by_id`
+    after the end of the build proc. That is not the case usually??
 
 ## Backlog
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
