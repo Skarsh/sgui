@@ -6,6 +6,7 @@ import "core:log"
 import "core:math"
 import "core:mem"
 import "core:mem/virtual"
+import "core:strings"
 import "core:testing"
 
 import base "../base"
@@ -818,6 +819,18 @@ make_element :: proc(
 			log.error("failed to allocate UI_Element")
 			return nil, false
 		}
+
+		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
+		// The alternative is to put the responsibility of ensuring the lifetime of the string
+		// is valid over onto the user?? The id string is really unly used to calculuate the hash
+		// so keeping it alive in the element is mostly for debugging purposes.
+		str_clone_err: mem.Allocator_Error
+		element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
+		assert(str_clone_err == .None)
+		if str_clone_err != .None {
+			log.error("failed to allocate memory for cloning id string")
+			return nil, false
+		}
 		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
 
 		element.size.x = element_config.layout.sizing.x.value
@@ -844,7 +857,6 @@ make_element :: proc(
 	}
 
 	element.parent = ctx.current_parent
-	element.id_string = id
 	clear_dynamic_array(&element.children)
 	if element.parent != nil {
 		append(&element.parent.children, element)
