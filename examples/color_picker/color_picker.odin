@@ -16,11 +16,13 @@ Data :: struct {
 	r:        f32,
 	g:        f32,
 	b:        f32,
+	a:        f32,
 	buf:      []u8,
 	buf_len:  int,
 	red_sb:   strings.Builder,
 	green_sb: strings.Builder,
 	blue_sb:  strings.Builder,
+	alpha_sb: strings.Builder,
 }
 
 // --- Style Palette ---
@@ -33,6 +35,7 @@ BORDER_COLOR :: base.Color{75, 75, 75, 255}
 RED_COLOR :: base.Color{217, 74, 74, 255}
 GREEN_COLOR :: base.Color{99, 217, 74, 255}
 BLUE_COLOR :: base.Color{74, 99, 217, 255}
+ALPHA_COLOR :: base.Color{200, 200, 200, 255}
 THUMB_BORDER_COLOR :: base.Color{240, 240, 240, 255}
 
 
@@ -133,7 +136,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			panel_padding := ui.Padding{15, 15, 15, 15}
 			panel_radius: f32 = 10
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
-			panel_child_gap: f32 = 20
+			panel_child_gap: f32 = 10
 			panel_bg := base.Fill(PANEL_BG)
 			panel_caps := ui.Capability_Flags{.Background}
 
@@ -162,7 +165,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				}
 
 				color_viewer_bg_fill := base.Fill(
-					base.Color{u8(data.r * 255), u8(data.g * 255), u8(data.b * 255), 255},
+					base.Color {
+						u8(data.r * 255),
+						u8(data.g * 255),
+						u8(data.b * 255),
+						u8(data.a * 255),
+					},
 				)
 
 				color_viewer_radius := color_viewer_size / 2
@@ -172,7 +180,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					u8(data.r * 200),
 					u8(data.g * 200),
 					u8(data.b * 200),
-					255,
+					u8(data.a * 200),
 				}
 				border_fill := base.Fill(border_color)
 
@@ -206,6 +214,15 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 				strings.builder_reset(&data.blue_sb)
 				blue_comm := make_slider_row(ctx, "blue", "B", &data.b, BLUE_COLOR, &data.blue_sb)
+				strings.builder_reset(&data.alpha_sb)
+				alpha_comm := make_slider_row(
+					ctx,
+					"alpha",
+					"A",
+					&data.a,
+					BLUE_COLOR,
+					&data.blue_sb,
+				)
 
 				// --- Hex Input ---
 				hex_comm: ui.Comm
@@ -272,19 +289,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 				// --- Two-Way Data Binding Logic ---
 				hex_from_sliders := fmt.tprintf(
-					"%02x%02x%02x",
+					"%02x%02x%02x%02x",
 					u8(data.r * 255),
 					u8(data.g * 255),
 					u8(data.b * 255),
+					u8(data.a * 255),
 				)
 				hex_from_input := hex_comm.text
-				is_dragging_slider := red_comm.held || green_comm.held || blue_comm.held
+				is_dragging_slider :=
+					red_comm.held || green_comm.held || blue_comm.held || alpha_comm.held
 
 				if is_dragging_slider {
 					// Sliders are source of truth, update text field
 					n := copy(data.buf, transmute([]u8)hex_from_sliders)
 					data.buf_len = n
-				} else if hex_from_input != hex_from_sliders && len(hex_from_input) >= 6 {
+				} else if hex_from_input != hex_from_sliders && len(hex_from_input) >= 8 {
 					// Text field is source of truth, update sliders
 					if r_str, ok := strings.substring(hex_from_input, 0, 2); ok {
 						if r, r_ok := hex.decode_sequence(r_str); r_ok {
@@ -299,6 +318,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					if b_str, ok := strings.substring(hex_from_input, 4, 6); ok {
 						if b, b_ok := hex.decode_sequence(b_str); b_ok {
 							data.b = f32(b) / 255
+						}
+					}
+					if a_str, ok := strings.substring(hex_from_input, 6, 8); ok {
+						if a, a_ok := hex.decode_sequence(a_str); a_ok {
+							data.a = f32(a) / 255
 						}
 					}
 				}
@@ -359,7 +383,7 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
-	buf := make([]u8, 6)
+	buf := make([]u8, 8)
 	defer delete(buf)
 
 	red_sb_buf := make([]u8, 64)
@@ -374,15 +398,21 @@ main :: proc() {
 	defer delete(blue_sb_buf)
 	blue_sb := strings.builder_from_bytes(blue_sb_buf)
 
+	alpha_sb_buf := make([]u8, 64)
+	defer delete(alpha_sb_buf)
+	alpha_sb := strings.builder_from_bytes(alpha_sb_buf)
+
 	my_data := Data {
 		r        = 0.5,
 		g        = 0.5,
 		b        = 0.5,
+		a        = 1.0,
 		buf      = buf,
 		buf_len  = 0,
 		red_sb   = red_sb,
 		green_sb = green_sb,
 		blue_sb  = blue_sb,
+		alpha_sb = alpha_sb,
 	}
 
 	app.run(my_app, &my_data, update_and_draw)
