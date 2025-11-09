@@ -836,6 +836,7 @@ make_element :: proc(
 		element.size.x = element_config.layout.sizing.x.value
 		element.size.y = element_config.layout.sizing.y.value
 
+		// TODO(Thomas): Guard against negative min values??
 		element.min_size.x = element_config.layout.sizing.x.min_value
 		element.min_size.y = element_config.layout.sizing.y.min_value
 
@@ -1745,8 +1746,14 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
-				container_1_sizing := [2]Sizing{{kind = .Grow, max_value = 150}, {kind = .Grow}}
-				container_2_sizing := [2]Sizing{{kind = .Grow, max_value = 50}, {kind = .Grow}}
+				container_1_sizing := [2]Sizing {
+					{kind = .Grow, max_value = data.container_1_max_value},
+					{kind = .Grow},
+				}
+				container_2_sizing := [2]Sizing {
+					{kind = .Grow, max_value = data.container_2_max_value},
+					{kind = .Grow},
+				}
 				container_3_sizing := [2]Sizing {
 					{kind = .Fixed, value = data.container_3_size.x},
 					{kind = .Fixed, value = data.container_3_size.y},
@@ -1958,6 +1965,144 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
+@(test)
+test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_layout_direction:       Layout_Direction,
+		panel_padding:                Padding,
+		panel_child_gap:              f32,
+		panel_size:                   base.Vec2,
+		container_1_max_value:        f32,
+		container_2_max_value:        f32,
+		container_3_size:             base.Vec2,
+		container_3_layout_direction: Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		panel_layout_direction = .Top_To_Bottom,
+		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		panel_size = {600, 400},
+		container_1_max_value = 100,
+		container_2_max_value = 50,
+		container_3_size = {150, 150},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
+		container(
+			ctx,
+			"panel",
+			Config_Options {
+				layout = {
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container_1_sizing := [2]Sizing {
+					{kind = .Grow},
+					{kind = .Grow, max_value = data.container_1_max_value},
+				}
+				container_2_sizing := [2]Sizing {
+					{kind = .Grow},
+					{kind = .Grow, max_value = data.container_2_max_value},
+				}
+				container_3_sizing := [2]Sizing {
+					{kind = .Fixed, value = data.container_3_size.x},
+					{kind = .Fixed, value = data.container_3_size.y},
+				}
+
+				container(
+					ctx,
+					"container_1",
+					Config_Options {
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
+					},
+				)
+				container(
+					ctx,
+					"container_2",
+					Config_Options {
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
+					},
+				)
+				container(
+					ctx,
+					"container_3",
+					Config_Options {
+						layout = {
+							sizing = {&container_3_sizing.x, &container_3_sizing.y},
+							layout_direction = &data.container_3_layout_direction,
+							padding = &data.panel_padding,
+							child_gap = &data.panel_child_gap,
+						},
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		container_1_size := base.Vec2 {
+			data.panel_size.x - data.panel_padding.left - data.panel_padding.right,
+			data.container_1_max_value,
+		}
+
+		container_2_size := base.Vec2 {
+			data.panel_size.x - data.panel_padding.left - data.panel_padding.right,
+			data.container_2_max_value,
+		}
+
+		c1_pos_y := data.panel_padding.top
+		c2_pos_y := c1_pos_y + container_1_size.y + data.panel_child_gap
+		c3_pos_y := c2_pos_y + container_2_size.y + data.panel_child_gap
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "panel",
+					pos = {0, 0},
+					size = data.panel_size,
+					children = []Expected_Element {
+						{
+							id = "container_1",
+							pos = {data.panel_padding.left, c1_pos_y},
+							size = container_1_size,
+						},
+						{
+							id = "container_2",
+							pos = {data.panel_padding.left, c2_pos_y},
+							size = container_2_size,
+						},
+						{
+							id = "container_3",
+							pos = {data.panel_padding.left, c3_pos_y},
+							size = data.container_3_size,
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
 
 @(test)
 test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testing.T) {
