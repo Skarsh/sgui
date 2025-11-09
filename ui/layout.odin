@@ -737,7 +737,9 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 				// and we'll add size to the child.
 				// If remaining_size is negative, we need to shrink the child
 				// so we'll be adding a negative number to the size, effectively shrinking it.
-				child.size[axis] += (remaining_size - child.size[axis])
+				new_size := child.size[axis] + (remaining_size - child.size[axis])
+				// Restricting the child size to be within it's min and max size
+				child.size[axis] = clamp(new_size, child.min_size[axis], child.max_size[axis])
 			}
 		}
 	}
@@ -1777,12 +1779,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"container_3",
 					Config_Options {
-						layout = {
-							sizing = {&container_3_sizing.x, &container_3_sizing.y},
-							layout_direction = &data.container_3_layout_direction,
-							padding = &data.panel_padding,
-							child_gap = &data.panel_child_gap,
-						},
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
 					},
 				)
 			},
@@ -2040,12 +2037,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 					ctx,
 					"container_3",
 					Config_Options {
-						layout = {
-							sizing = {&container_3_sizing.x, &container_3_sizing.y},
-							layout_direction = &data.container_3_layout_direction,
-							padding = &data.panel_padding,
-							child_gap = &data.panel_child_gap,
-						},
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
 					},
 				)
 			},
@@ -2103,6 +2095,362 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+@(test)
+test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_layout_direction:  Layout_Direction,
+		panel_padding:           Padding,
+		panel_child_gap:         f32,
+		panel_size:              base.Vec2,
+		container_1_max_value_x: f32,
+		container_1_max_value_y: f32,
+		container_2_max_value_y: f32,
+		container_3_max_value_x: f32,
+	}
+
+	test_data := Test_Data {
+		panel_layout_direction = .Left_To_Right,
+		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		panel_size = {600, 400},
+		container_1_max_value_x = 100,
+		container_1_max_value_y = 100,
+		container_2_max_value_y = 75,
+		container_3_max_value_x = 150,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
+		container(
+			ctx,
+			"panel",
+			Config_Options {
+				layout = {
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+
+				container_1_sizing := [2]Sizing {
+					{kind = .Grow, max_value = data.container_1_max_value_x},
+					{kind = .Grow, max_value = data.container_1_max_value_y},
+				}
+
+				container_2_sizing := [2]Sizing {
+					{kind = .Grow},
+					{kind = .Grow, max_value = data.container_2_max_value_y},
+				}
+
+				container_3_sizing := [2]Sizing {
+					{kind = .Grow, max_value = data.container_3_max_value_x},
+					{kind = .Grow},
+				}
+
+				container(
+					ctx,
+					"container_1",
+					Config_Options {
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
+					},
+				)
+
+				container(
+					ctx,
+					"container_2",
+					Config_Options {
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
+					},
+				)
+
+				container(
+					ctx,
+					"container_3",
+					Config_Options {
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+
+		// --- Primary Axis Calculation (X-axis) ---
+		num_children := 3
+		panel_inner_width := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		total_gap_width := f32(num_children - 1) * data.panel_child_gap
+		available_primary_space := panel_inner_width - total_gap_width
+		initial_share_x := available_primary_space / f32(num_children)
+
+		// Pass 1: Calculate total surplus from all clamped elements.
+		surplus_x: f32 = 0
+		uncapped_count := 0
+
+		// Check container 1
+		if initial_share_x > data.container_1_max_value_x {
+			surplus_x += initial_share_x - data.container_1_max_value_x
+		} else {
+			uncapped_count += 1
+		}
+
+		// Check container 2 (no max_x, always uncapped)
+		uncapped_count += 1
+
+		// Check container 3
+		if initial_share_x > data.container_3_max_value_x {
+			surplus_x += initial_share_x - data.container_3_max_value_x
+		} else {
+			uncapped_count += 1
+		}
+
+		// Pass 2: Distribute surplus and calculate final sizes.
+		surplus_share_x: f32 = 0
+		if uncapped_count > 0 {
+			surplus_share_x = surplus_x / f32(uncapped_count)
+		}
+
+		// Calculate final width of each container based on whether it was clamped
+		c1_final_x := min(initial_share_x, data.container_1_max_value_x)
+		if c1_final_x == initial_share_x {
+			c1_final_x += surplus_share_x
+		}
+
+		// c2 has no max value, so it was not clamped and always gets the surplus share
+		c2_final_x := initial_share_x + surplus_share_x
+
+		c3_final_x := min(initial_share_x, data.container_3_max_value_x)
+		if c3_final_x == initial_share_x {
+			c3_final_x += surplus_share_x
+		}
+
+		// --- Cross Axis Calculation (Y-axis) ---
+		panel_inner_height :=
+			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+		c1_final_y := min(panel_inner_height, data.container_1_max_value_y)
+		c2_final_y := min(panel_inner_height, data.container_2_max_value_y)
+		c3_final_y := panel_inner_height
+
+		// --- Final Sizes and Positions
+		c1_size := base.Vec2{c1_final_x, c1_final_y}
+		c2_size := base.Vec2{c2_final_x, c2_final_y}
+		c3_size := base.Vec2{c3_final_x, c3_final_y}
+
+		c1_pos := base.Vec2{data.panel_padding.left, data.panel_padding.top}
+		c2_pos := base.Vec2{c1_pos.x + c1_size.x + data.panel_child_gap, data.panel_padding.top}
+		c3_pos := base.Vec2{c2_pos.x + c2_size.x + data.panel_child_gap, data.panel_padding.top}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "panel",
+					pos = {0, 0},
+					size = data.panel_size,
+					children = []Expected_Element {
+						{id = "container_1", pos = c1_pos, size = c1_size},
+						{id = "container_2", pos = c2_pos, size = c2_size},
+						{id = "container_3", pos = c3_pos, size = c3_size},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+
+@(test)
+test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		panel_layout_direction:  Layout_Direction,
+		panel_padding:           Padding,
+		panel_child_gap:         f32,
+		panel_size:              base.Vec2,
+		container_1_max_value_x: f32,
+		container_1_max_value_y: f32,
+		container_2_max_value_x: f32,
+		container_3_max_value_y: f32,
+	}
+
+	test_data := Test_Data {
+		panel_layout_direction = .Top_To_Bottom,
+		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		panel_size = {600, 400},
+		container_1_max_value_x = 100,
+		container_1_max_value_y = 100,
+		container_2_max_value_x = 75,
+		container_3_max_value_y = 150,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		panel_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.panel_size.x},
+			{kind = .Fixed, value = data.panel_size.y},
+		}
+		container(
+			ctx,
+			"panel",
+			Config_Options {
+				layout = {
+					sizing = {&panel_sizing.x, &panel_sizing.y},
+					layout_direction = &data.panel_layout_direction,
+					padding = &data.panel_padding,
+					child_gap = &data.panel_child_gap,
+				},
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+
+				container_1_sizing := [2]Sizing {
+					{kind = .Grow, max_value = data.container_1_max_value_x},
+					{kind = .Grow, max_value = data.container_1_max_value_y},
+				}
+
+				container_2_sizing := [2]Sizing {
+					{kind = .Grow, max_value = data.container_2_max_value_x},
+					{kind = .Grow},
+				}
+
+				container_3_sizing := [2]Sizing {
+					{kind = .Grow},
+					{kind = .Grow, max_value = data.container_3_max_value_y},
+				}
+
+				container(
+					ctx,
+					"container_1",
+					Config_Options {
+						layout = {sizing = {&container_1_sizing.x, &container_1_sizing.y}},
+					},
+				)
+
+				container(
+					ctx,
+					"container_2",
+					Config_Options {
+						layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}},
+					},
+				)
+
+				container(
+					ctx,
+					"container_3",
+					Config_Options {
+						layout = {sizing = {&container_3_sizing.x, &container_3_sizing.y}},
+					},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+
+		// --- Primary Axis Calculation (Y-axis) ---
+		num_children := 3
+		panel_inner_height :=
+			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+		total_gap_height := f32(num_children - 1) * data.panel_child_gap
+		available_primary_space := panel_inner_height - total_gap_height
+		initial_share_y := available_primary_space / f32(num_children)
+
+		// Pass 1: Calculate total surplus from all clamped elements.
+		surplus_y: f32 = 0
+		uncapped_count := 0
+
+		// Check container 1
+		if initial_share_y > data.container_1_max_value_y {
+			surplus_y += initial_share_y - data.container_1_max_value_y
+		} else {
+			uncapped_count += 1
+		}
+
+		// Check container 2 (no max_y, always uncapped)
+		uncapped_count += 1
+
+		// Check container 3
+		if initial_share_y > data.container_3_max_value_y {
+			surplus_y += initial_share_y - data.container_3_max_value_y
+		} else {
+			uncapped_count += 1
+		}
+
+		// Pass 2: Distribute surplus and calculate final sizes.
+		surplus_share_y: f32 = 0
+		if uncapped_count > 0 {
+			surplus_share_y = surplus_y / f32(uncapped_count)
+		}
+
+		// Calculate final width of each container based on whether it was clamped
+		c1_final_y := min(initial_share_y, data.container_1_max_value_y)
+		if c1_final_y == initial_share_y {
+			c1_final_y += surplus_share_y
+		}
+
+		// c2 has no max value, so it was not clamped and always gets the surplus share
+		c2_final_y := initial_share_y + surplus_share_y
+
+		c3_final_y := min(initial_share_y, data.container_3_max_value_y)
+		if c3_final_y == initial_share_y {
+			c3_final_y += surplus_share_y
+		}
+
+		// --- Cross Axis Calculation (X-axis) ---
+		panel_inner_width := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		c1_final_x := min(panel_inner_width, data.container_1_max_value_x)
+		c2_final_x := min(panel_inner_width, data.container_2_max_value_x)
+		c3_final_x := panel_inner_width
+
+		// --- Final Sizes and Positions
+		c1_size := base.Vec2{c1_final_x, c1_final_y}
+		c2_size := base.Vec2{c2_final_x, c2_final_y}
+		c3_size := base.Vec2{c3_final_x, c3_final_y}
+
+		c1_pos := base.Vec2{data.panel_padding.left, data.panel_padding.top}
+		c2_pos := base.Vec2{data.panel_padding.left, c1_pos.y + c1_size.y + data.panel_child_gap}
+		c3_pos := base.Vec2{data.panel_padding.left, c2_pos.y + c2_size.y + data.panel_child_gap}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "panel",
+					pos = {0, 0},
+					size = data.panel_size,
+					children = []Expected_Element {
+						{id = "container_1", pos = c1_pos, size = c1_size},
+						{id = "container_2", pos = c2_pos, size = c2_size},
+						{id = "container_3", pos = c3_pos, size = c3_size},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
 
 @(test)
 test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testing.T) {
