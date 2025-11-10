@@ -848,9 +848,16 @@ text_input :: proc(
 	background_fill := base.Fill(base.Color{255, 128, 128, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 	layout_mode := Layout_Mode.Relative
+	alignment_x := Alignment_X.Left
+	alignment_y := Alignment_Y.Center
 
 	default_opts := Config_Options {
-		layout = {sizing = {&sizing_x, &sizing_y}, layout_mode = &layout_mode},
+		layout = {
+			sizing = {&sizing_x, &sizing_y},
+			layout_mode = &layout_mode,
+			alignment_x = &alignment_x,
+			alignment_y = &alignment_y,
+		},
 		background_fill = &background_fill,
 		capability_flags = &capability_flags,
 	}
@@ -862,9 +869,9 @@ text_input :: proc(
 		state, state_exists := &ctx.text_input_states[key]
 
 		if !state_exists {
-			// TODO(Thomas): Call textedit.init() on the new_state.state here
-			// to ensure allocators and stuff are set to what we expect.
 			new_state := UI_Element_Text_Input_State{}
+			// TODO(Thomas): Review which allocator to use here for the textedit.init()
+			textedit.init(&new_state.state, ctx.persistent_allocator, ctx.persistent_allocator)
 			new_state.builder = strings.builder_from_bytes(buf)
 
 			if buf_len^ > 0 {
@@ -885,24 +892,7 @@ text_input :: proc(
 
 		buf_len^ = strings.builder_len(state.builder)
 
-		// TODO(Thomas): Shouldn't really be necessary to make text child component here
-		// Could just equip it, but that seems to be buggy
-		text_id := fmt.tprintf("%v_text", id)
-		// TODO(Thomas): Can we somehow make it possible for the user to choose alignment here?
-		// That would require the caret calculation to change too of course.
-		text_container_alignment_x := Alignment_X.Left
-		text_container_alignment_y := Alignment_Y.Center
-		text(
-			ctx,
-			text_id,
-			text_content,
-			Config_Options {
-				layout = {
-					alignment_x = &text_container_alignment_x,
-					alignment_y = &text_container_alignment_y,
-				},
-			},
-		)
+		element_equip_text(ctx, element, text_content)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt
