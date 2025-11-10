@@ -1,10 +1,8 @@
 # TODOs
 
 ## Active
-* Setting a max value for the y axis on grow sizing kind on a text() element doesn' restrict it.
 
 ## Bugs
-* Using `element_equip_text` in the `text_input` helper proc makes the text invisible compared to just using the `text` proc
 
 ## Backlog
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
