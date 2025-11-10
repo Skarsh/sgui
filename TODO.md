@@ -1,6 +1,8 @@
 # TODOs
 
 ## Active
+* To-Do List
+* Styling ergonomy - Need to improve this before there's too much code to change.
 
 ## Bugs
 
