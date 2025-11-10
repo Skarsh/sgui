@@ -333,8 +333,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			ui.end_container(ctx)
 		}
+
+		ui.end(ctx)
 	}
-	ui.end(ctx)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
