@@ -2,6 +2,9 @@
 
 ## Active
 * To-Do List
+    * Grow sizing bug, implement test that catches this
+    * Need spacer helper here
+    * Need checkbox helper with checkmarking
 * Styling ergonomy - Need to improve this before there's too much code to change.
 
 ## Bugs
