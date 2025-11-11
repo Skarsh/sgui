@@ -230,6 +230,7 @@ begin :: proc(ctx: ^Context) -> bool {
 	root_element, _ := peek(&ctx.element_stack)
 
 	//NOTE(Thomas): Root element size needs to be updated every frame, meaning not cached like other elements.
+	// TODO(Thomas): We can maybe remove this special case by making the root be a NULL key type element, like a spacer.
 	if root_element != nil {
 		root_element.size.x = f32(ctx.window_size.x)
 		root_element.size.y = f32(ctx.window_size.y)
@@ -654,6 +655,18 @@ resolve_default :: proc(user_value: ^$T) -> T {
 	return T{}
 }
 
+spacer :: proc(ctx: ^Context, id: string = "") {
+	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+	default_opts := Config_Options {
+		layout = {sizing = {&sizing.x, &sizing.y}},
+	}
+
+	_, open_ok := open_element(ctx, id, default_opts)
+	assert(open_ok)
+	if open_ok {
+		close_element(ctx)
+	}
+}
 
 text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 	default_text_padding := Padding{}

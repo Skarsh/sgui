@@ -171,11 +171,12 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		build_styled_ui(&app_state)
+		//build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 		//build_relative_layout_ui(&app_state)
+		build_bug_repro(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -205,6 +206,140 @@ Image_Data :: struct {
 	tex_3: i32,
 	tex_4: i32,
 	tex_5: i32,
+}
+
+texts := [?]string{"Learn Odin", "Build a UI library"}
+
+build_bug_repro :: proc(app_state: ^App_State) {
+
+	// --- Style Palette ---
+	WINDOW_BG :: base.Color{28, 30, 35, 255}
+	PANEL_BG :: base.Color{40, 42, 48, 255}
+	TEXT_COLOR :: base.Color{220, 220, 220, 255}
+	DELETE_BUTTON_COLOR :: base.Color{217, 74, 74, 255}
+
+	ctx := &app_state.ctx
+	if ui.begin(ctx) {
+
+		// --- Global Style Scope ---
+		ui.push_background_fill(ctx, base.Fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
+		ui.push_capability_flags(
+			ctx,
+			ui.Capability_Flags{.Background},
+		); defer ui.pop_capability_flags(ctx)
+		ui.push_text_fill(ctx, base.Fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
+
+		// --- Main Panel (centered) ---
+		main_panel_sizing := [2]ui.Sizing {
+			{kind = .Percentage_Of_Parent, value = 1.0},
+			{kind = .Percentage_Of_Parent, value = 1.0},
+		}
+		main_panel_align_x := ui.Alignment_X.Center
+		main_panel_align_y := ui.Alignment_Y.Center
+
+		if ui.begin_container(
+			ctx,
+			"main_panel",
+			ui.Config_Options {
+				layout = {
+					sizing = {&main_panel_sizing.x, &main_panel_sizing.y},
+					alignment_x = &main_panel_align_x,
+					alignment_y = &main_panel_align_y,
+				},
+			},
+		) {
+
+			// --- Inner content panel ---
+			panel_padding := ui.Padding{25, 25, 25, 25}
+			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
+			panel_bg := base.Fill(PANEL_BG)
+
+			if ui.begin_container(
+				ctx,
+				"panel",
+				ui.Config_Options {
+					layout = {layout_direction = &panel_layout_dir, padding = &panel_padding},
+					background_fill = &panel_bg,
+				},
+			) {
+
+				// --- Task List ---
+				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
+				if ui.begin_container(
+					ctx,
+					"task_list",
+					ui.Config_Options{layout = {layout_direction = &task_list_layout_dir}},
+				) {
+
+					for text, i in texts {
+
+						// --- Task Row ---
+						row_layout_dir := ui.Layout_Direction.Left_To_Right
+						row_align_y := ui.Alignment_Y.Center
+						if ui.begin_container(
+							ctx,
+							fmt.tprintf("task_row_%d", i),
+							ui.Config_Options {
+								layout = {
+									layout_direction = &row_layout_dir,
+									alignment_y = &row_align_y,
+								},
+							},
+						) {
+
+							// --- Task Text ---
+							alignment_y := ui.Alignment_Y.Center
+							text_alignment_y := ui.Alignment_Y.Center
+							ui.text(
+								ctx,
+								fmt.tprintf("task_text_%d", i),
+								text,
+								ui.Config_Options {
+									layout = {
+										alignment_y = &alignment_y,
+										text_alignment_y = &text_alignment_y,
+									},
+								},
+							)
+
+							// --- Spacer ---
+							//ui.spacer(ctx)
+
+							spacer_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow}}
+							ui.container(
+								ctx,
+								"spacer",
+								ui.Config_Options {
+									layout = {sizing = {&spacer_sizing.x, &spacer_sizing.y}},
+								},
+							)
+
+							// --- Delete Button ---
+							delete_button_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
+							ui.button(
+								ctx,
+								fmt.tprintf("task_delete_button_%d", i),
+								"Delete",
+								ui.Config_Options{background_fill = &delete_button_bg_fill},
+							)
+
+							ui.end_container(ctx)
+						}
+					}
+
+					ui.end_container(ctx)
+				}
+
+				ui.end_container(ctx)
+			}
+
+			ui.end_container(ctx)
+		}
+
+		ui.end(ctx)
+	}
+
+	ui.print_element_hierarchy(ctx.root_element)
 }
 
 build_relative_layout_ui :: proc(app_state: ^App_State) {

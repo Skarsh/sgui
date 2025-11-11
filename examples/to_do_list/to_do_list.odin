@@ -137,6 +137,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 								},
 							)
 
+							// --- Spacer ---
+							//ui.spacer(ctx)
+
+							spacer_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow}}
+							ui.container(
+								ctx,
+								"spacer",
+								ui.Config_Options {
+									layout = {sizing = {&spacer_sizing.x, &spacer_sizing.y}},
+								},
+							)
+
 							// --- Delete Button ---
 							ui.button(ctx, fmt.tprintf("task_delete_button_%d", i), "Delete")
 
@@ -155,6 +167,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 		ui.end(ctx)
 	}
+
+	log.info("--- end of frame ---")
+	ui.print_element_hierarchy(ctx.root_element)
+
+	//spacer_element := ui.find_element_in_hierarchy(ctx.root_element, "")
+	//log.info("spacer_element.size", spacer_element.size)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {

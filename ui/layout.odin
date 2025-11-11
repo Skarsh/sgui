@@ -811,6 +811,71 @@ make_element :: proc(
 
 	key := ui_key_hash(id)
 
+	// TODO(Thomas): This is almost completely duplicate from the cached variant.
+	// Should be able to do something common here or move out into procedure.
+	if key == ui_key_null() {
+		element: ^UI_Element
+		err: mem.Allocator_Error
+		element, err = new(UI_Element, ctx.frame_allocator)
+		assert(err == .None)
+		if err != .None {
+			log.error("failed to allocate UI_Element")
+			return nil, false
+		}
+
+		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
+		// The alternative is to put the responsibility of ensuring the lifetime of the string
+		// is valid over onto the user?? The id string is really unly used to calculuate the hash
+		// so keeping it alive in the element is mostly for debugging purposes.
+		str_clone_err: mem.Allocator_Error
+		element.id_string, str_clone_err = strings.clone(id, ctx.frame_allocator)
+		assert(str_clone_err == .None)
+		if str_clone_err != .None {
+			log.error("failed to allocate memory for cloning id string")
+			return nil, false
+		}
+		element.children = make([dynamic]^UI_Element, ctx.frame_allocator)
+
+		element.size.x = element_config.layout.sizing.x.value
+		element.size.y = element_config.layout.sizing.y.value
+
+		// TODO(Thomas): Guard against negative min values??
+		element.min_size.x = element_config.layout.sizing.x.min_value
+		element.min_size.y = element_config.layout.sizing.y.min_value
+
+		// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
+		// the user wants it to just fit whatever, so we set it to f32 max value
+		if base.approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
+			element.max_size.x = math.F32_MAX
+		} else {
+			element.max_size.x = element_config.layout.sizing.x.max_value
+		}
+
+		if base.approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
+			element.max_size.y = math.F32_MAX
+		} else {
+			element.max_size.y = element_config.layout.sizing.y.max_value
+		}
+
+		element.parent = ctx.current_parent
+		clear_dynamic_array(&element.children)
+		if element.parent != nil {
+			append(&element.parent.children, element)
+		}
+
+		// TODO(Thomas): Prune which of these fields actually has to be set every frame
+		// or which can be cached.
+		// We need to set this fields every frame
+		// TODO(Thomas): Every field that is set from the config here is essentially
+		// redundant. We should probably just set the config and then use that for further
+		// calculations?
+		element.last_frame_idx = ctx.frame_idx
+		element.fill = element_config.background_fill
+		element.config = element_config
+
+		return element, true
+	}
+
 	element, found := ctx.element_cache[key]
 
 	if !found {
@@ -1069,13 +1134,34 @@ find_element_by_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
 	return nil
 }
 
+
+// Finds and returns a pointer to the element with matchin id string in current hierarchy.
+find_element_in_hierarchy :: proc(root: ^UI_Element, id: string) -> ^UI_Element {
+	if root == nil {
+		return nil
+	}
+
+	if root.id_string == id {
+		return root
+	}
+
+	for child in root.children {
+		result := find_element_in_hierarchy(child, id)
+
+		if result != nil {
+			return result
+		}
+	}
+
+	return nil
+}
 // Helper to print all the element_ids in the hierarchy
 print_element_hierarchy :: proc(root: ^UI_Element) {
 	if root == nil {
 		return
 	}
 
-	fmt.printfln("%v", root.id_string)
+	log.infof("id: %v, size: %v", root.id_string, root.size)
 
 	for child in root.children {
 		print_element_hierarchy(child)
