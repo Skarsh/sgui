@@ -242,15 +242,14 @@ begin :: proc(ctx: ^Context) -> bool {
 
 end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
-	// 1. Percentage of parent
-	// 2. Fit sizing widths
-	// 3. Resolve dependent sizs widths
-	// 4. Wrap text
-	// 5. Fit sizing heights
-	// 6. Resolve dependent sizs heights
-	// 7. Positions
+	// 1. Fit sizing widths
+	// 2. Resolve dependent sizs widths
+	// 3. Wrap text
+	// 4. Fit sizing heights
+	// 5. Resolve dependent sizs heights
+	// 6. Positions
+	// 7. Process interactions
 	// 8. Draw commands
-	// 9. Process interactions
 
 	// Close the root element
 	close_element(ctx)
