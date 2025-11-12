@@ -208,127 +208,67 @@ Image_Data :: struct {
 	tex_5: i32,
 }
 
-texts := [?]string{"Learn Odin", "Build a UI library"}
-
+// Description of bug:
+// A fit container with a pure grow container inside has 0 size, this makes sense.
+// A fit container with a text or button container (which both are grow containers, but with min and pref size)
+// will the size of at least the min size, most likely pref size, if the parent of the fit container allows it.
+//
+// Here seems to be the potential bug we're seeing in the to_do_list example
+// A fit sizing task list, containing multiple rows of text / button containers and a pure grow spacer container
+// The problem is that the pure spacer on a row that doesn't grow to its full parent size, will still be 0.
+// So somehow the grow container doesn't get to know that there is more available space.
+// What is the cause of this?
 build_bug_repro :: proc(app_state: ^App_State) {
-
-	// --- Style Palette ---
-	WINDOW_BG :: base.Color{28, 30, 35, 255}
-	PANEL_BG :: base.Color{40, 42, 48, 255}
-	TEXT_COLOR :: base.Color{220, 220, 220, 255}
-	DELETE_BUTTON_COLOR :: base.Color{217, 74, 74, 255}
-
 	ctx := &app_state.ctx
 	if ui.begin(ctx) {
 
-		// --- Global Style Scope ---
-		ui.push_background_fill(ctx, base.Fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
 		ui.push_capability_flags(
 			ctx,
 			ui.Capability_Flags{.Background},
 		); defer ui.pop_capability_flags(ctx)
-		ui.push_text_fill(ctx, base.Fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
-		// --- Main Panel (centered) ---
-		main_panel_sizing := [2]ui.Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
-		main_panel_align_x := ui.Alignment_X.Center
-		main_panel_align_y := ui.Alignment_Y.Center
-
+		main_sizing := [2]ui.Sizing{{kind = .Fit}, {kind = .Fit}}
+		main_bg_fill := base.Fill(base.Color{255, 0, 0, 255})
+		main_padding := ui.Padding{10, 10, 10, 10}
+		main_layout_direction := ui.Layout_Direction.Top_To_Bottom
 		if ui.begin_container(
 			ctx,
-			"main_panel",
+			"main",
 			ui.Config_Options {
 				layout = {
-					sizing = {&main_panel_sizing.x, &main_panel_sizing.y},
-					alignment_x = &main_panel_align_x,
-					alignment_y = &main_panel_align_y,
+					sizing = {&main_sizing.x, &main_sizing.y},
+					padding = &main_padding,
+					layout_direction = &main_layout_direction,
 				},
+				background_fill = &main_bg_fill,
 			},
 		) {
 
-			// --- Inner content panel ---
-			panel_padding := ui.Padding{25, 25, 25, 25}
-			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
-			panel_bg := base.Fill(PANEL_BG)
+			// containers with text and spacer
+			// one text must be larger than the other, so
+			// that the smaller "row" should have it spacer have x > 0
+			// row 2 container will be smaller, even though the main container
+			// will have the size of the row 1 container
 
-			if ui.begin_container(
-				ctx,
-				"panel",
-				ui.Config_Options {
-					layout = {layout_direction = &panel_layout_dir, padding = &panel_padding},
-					background_fill = &panel_bg,
-				},
-			) {
-
-				// --- Task List ---
-				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
-				if ui.begin_container(
+			// row 1
+			if ui.begin_container(ctx, "row_1") {
+				text_1_bg_fill := base.Fill(base.Color{0, 255, 0, 255})
+				ui.text(
 					ctx,
-					"task_list",
-					ui.Config_Options{layout = {layout_direction = &task_list_layout_dir}},
-				) {
+					"text_1",
+					"AAAA",
+					ui.Config_Options{background_fill = &text_1_bg_fill},
+				)
+				ui.spacer(ctx)
 
-					for text, i in texts {
+				ui.end_container(ctx)
+			}
 
-						// --- Task Row ---
-						row_layout_dir := ui.Layout_Direction.Left_To_Right
-						row_align_y := ui.Alignment_Y.Center
-						if ui.begin_container(
-							ctx,
-							fmt.tprintf("task_row_%d", i),
-							ui.Config_Options {
-								layout = {
-									layout_direction = &row_layout_dir,
-									alignment_y = &row_align_y,
-								},
-							},
-						) {
-
-							// --- Task Text ---
-							alignment_y := ui.Alignment_Y.Center
-							text_alignment_y := ui.Alignment_Y.Center
-							ui.text(
-								ctx,
-								fmt.tprintf("task_text_%d", i),
-								text,
-								ui.Config_Options {
-									layout = {
-										alignment_y = &alignment_y,
-										text_alignment_y = &text_alignment_y,
-									},
-								},
-							)
-
-							// --- Spacer ---
-							//ui.spacer(ctx)
-
-							spacer_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow}}
-							ui.container(
-								ctx,
-								"spacer",
-								ui.Config_Options {
-									layout = {sizing = {&spacer_sizing.x, &spacer_sizing.y}},
-								},
-							)
-
-							// --- Delete Button ---
-							delete_button_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
-							ui.button(
-								ctx,
-								fmt.tprintf("task_delete_button_%d", i),
-								"Delete",
-								ui.Config_Options{background_fill = &delete_button_bg_fill},
-							)
-
-							ui.end_container(ctx)
-						}
-					}
-
-					ui.end_container(ctx)
-				}
+			// row 2
+			if ui.begin_container(ctx, "row_2") {
+				text_2_bg_fill := base.Fill(base.Color{0, 0, 255, 255})
+				ui.text(ctx, "text_2", "AA", ui.Config_Options{background_fill = &text_2_bg_fill})
+				ui.spacer(ctx)
 
 				ui.end_container(ctx)
 			}
@@ -338,7 +278,6 @@ build_bug_repro :: proc(app_state: ^App_State) {
 
 		ui.end(ctx)
 	}
-
 	ui.print_element_hierarchy(ctx.root_element)
 }
 
