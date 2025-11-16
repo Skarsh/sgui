@@ -243,13 +243,15 @@ begin :: proc(ctx: ^Context) -> bool {
 end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
 	// 1. Fit sizing widths
-	// 2. Resolve dependent sizs widths
-	// 3. Wrap text
-	// 4. Fit sizing heights
-	// 5. Resolve dependent sizs heights
-	// 6. Positions
-	// 7. Process interactions
-	// 8. Draw commands
+	// 2. Update children cross axis widths
+	// 3. Resolve dependent sizs widths
+	// 4. Wrap text
+	// 5. Fit sizing heights
+	// 6. Update chilren corss axis heights
+	// 7. Resolve dependent sizs heights
+	// 8. Positions
+	// 9. Process interactions
+	// 10. Draw commands
 
 	// Close the root element
 	close_element(ctx)
