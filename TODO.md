@@ -2,7 +2,6 @@
 
 ## Active
 * To-Do List
-    * Grow sizing bug, implement test that catches this
     * Need spacer helper here
     * Need checkbox helper with checkmarking
 * Styling ergonomy - Need to improve this before there's too much code to change.
@@ -11,8 +10,6 @@
 
 ## Backlog
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
-* Spacer helper, this will require to think about null ids though so its more complicated than
-    it might seem like.
 * Simpler text helper procedure, important to think about life time there, it probably
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator
     that lives on the App that gets reset for every frame. We don't wanna clone strings.
