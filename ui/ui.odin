@@ -971,7 +971,7 @@ text_input :: proc(
 	return element.last_comm
 }
 
-checkbox :: proc(ctx: ^Context, id: string, opts: Config_Options = {}) -> Comm {
+checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
 
 	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
 	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
@@ -997,14 +997,14 @@ checkbox :: proc(ctx: ^Context, id: string, opts: Config_Options = {}) -> Comm {
 	if open_ok {
 
 		if element.last_comm.clicked {
-			if element.checked {
-				element.checked = false
+			if checked^ {
+				checked^ = false
 			} else {
-				element.checked = true
+				checked^ = true
 			}
 		}
 
-		if element.checked {
+		if checked^ {
 			element_equip_text(ctx, element, "[X]")
 		} else {
 			element_equip_text(ctx, element, "[ ]")

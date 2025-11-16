@@ -13,10 +13,6 @@
     on the left and the right, is not really possible due to space being distributed evenly
     between the spacers. A solution could be something along the lines of being able
     to give weight to the spacer, e.g. give all space to this spacer until it can't grow anymore, or something.
-* Think more about how per element state should be managed. Currently we have `text_input_states` stored
-    in a map in the ctx. But the checked boolean is stored on the `UI_Element`. Having a unified and well thought 
-    through solution for this would be nice. This might become relevant when we start with element cache pruning, so
-    waiting until then might be good.
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
 * Simpler text helper procedure, important to think about life time there, it probably
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator

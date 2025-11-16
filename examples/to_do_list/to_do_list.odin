@@ -101,7 +101,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				) {
 
-					for task, i in data.tasks {
+					for &task, i in data.tasks {
 
 						// --- Task Row ---
 						row_layout_dir := ui.Layout_Direction.Left_To_Right
@@ -120,7 +120,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						) {
 
 							// --- Checkbox Button ---
-							ui.checkbox(ctx, fmt.tprintf("task_checkbox_%d", i))
+							ui.checkbox(ctx, fmt.tprintf("task_checkbox_%d", i), &task.completed)
 
 							// --- Spacer ---
 							ui.spacer(ctx)
@@ -144,10 +144,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							ui.spacer(ctx)
 
 							// --- Delete Button ---
+							delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
 							delete_comm := ui.button(
 								ctx,
 								fmt.tprintf("task_delete_button_%d", i),
 								"Delete",
+								ui.Config_Options{background_fill = &delete_bg_fill},
 							)
 							if delete_comm.clicked {
 								ordered_remove(&data.tasks, i)
