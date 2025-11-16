@@ -218,6 +218,10 @@ Image_Data :: struct {
 // The problem is that the pure spacer on a row that doesn't grow to its full parent size, will still be 0.
 // So somehow the grow container doesn't get to know that there is more available space.
 // What is the cause of this?
+//
+// The core of the issue here is that row_2 container is fit sizing, so it will be the size of
+// its children summed up. The problem is that it could, and in this case should have the size of its parent.
+// This feels like a size propagation issue though, and is probably pretty fundamental it seems like.
 build_bug_repro :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	if ui.begin(ctx) {
@@ -251,24 +255,27 @@ build_bug_repro :: proc(app_state: ^App_State) {
 			// will have the size of the row 1 container
 
 			// row 1
-			if ui.begin_container(ctx, "row_1") {
-				text_1_bg_fill := base.Fill(base.Color{0, 255, 0, 255})
-				ui.text(
-					ctx,
-					"text_1",
-					"AAAA",
-					ui.Config_Options{background_fill = &text_1_bg_fill},
-				)
-				ui.spacer(ctx)
+			row_1_bg_fill := base.Fill(base.Color{0, 255, 0, 255})
+			if ui.begin_container(
+				ctx,
+				"row_1",
+				ui.Config_Options{background_fill = &row_1_bg_fill},
+			) {
+				ui.text(ctx, "text&_1", "AAAA")
+				ui.spacer(ctx, "spacer_1")
 
 				ui.end_container(ctx)
 			}
 
 			// row 2
-			if ui.begin_container(ctx, "row_2") {
-				text_2_bg_fill := base.Fill(base.Color{0, 0, 255, 255})
-				ui.text(ctx, "text_2", "AA", ui.Config_Options{background_fill = &text_2_bg_fill})
-				ui.spacer(ctx)
+			row_2_bg_fill := base.Fill(base.Color{0, 0, 255, 255})
+			if ui.begin_container(
+				ctx,
+				"row_2",
+				ui.Config_Options{background_fill = &row_2_bg_fill},
+			) {
+				ui.text(ctx, "text_2", "AA")
+				ui.spacer(ctx, "spacer_2")
 
 				ui.end_container(ctx)
 			}
