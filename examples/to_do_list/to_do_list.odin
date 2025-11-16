@@ -144,7 +144,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							ui.spacer(ctx)
 
 							// --- Delete Button ---
-							ui.button(ctx, fmt.tprintf("task_delete_button_%d", i), "Delete")
+							delete_comm := ui.button(
+								ctx,
+								fmt.tprintf("task_delete_button_%d", i),
+								"Delete",
+							)
+							if delete_comm.clicked {
+								ordered_remove(&data.tasks, i)
+							}
 
 							ui.end_container(ctx)
 						}
