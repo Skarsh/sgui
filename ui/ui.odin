@@ -258,7 +258,7 @@ end :: proc(ctx: ^Context) {
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
 
-	// Align the cross axis size
+	// Update the cross axis size
 	size_children_on_cross_axis(ctx.root_element, .X)
 
 	// Resolve dependent widths
@@ -271,7 +271,7 @@ end :: proc(ctx: ^Context) {
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)
 
-	// Align the cross axis size
+	// Update the cross axis size
 	size_children_on_cross_axis(ctx.root_element, .Y)
 
 	// Reolve dependent heights
