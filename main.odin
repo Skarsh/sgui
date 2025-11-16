@@ -171,12 +171,11 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		//build_styled_ui(&app_state)
+		build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 		//build_relative_layout_ui(&app_state)
-		build_bug_repro(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -206,85 +205,6 @@ Image_Data :: struct {
 	tex_3: i32,
 	tex_4: i32,
 	tex_5: i32,
-}
-
-// Description of bug:
-// A fit container with a pure grow container inside has 0 size, this makes sense.
-// A fit container with a text or button container (which both are grow containers, but with min and pref size)
-// will the size of at least the min size, most likely pref size, if the parent of the fit container allows it.
-//
-// Here seems to be the potential bug we're seeing in the to_do_list example
-// A fit sizing task list, containing multiple rows of text / button containers and a pure grow spacer container
-// The problem is that the pure spacer on a row that doesn't grow to its full parent size, will still be 0.
-// So somehow the grow container doesn't get to know that there is more available space.
-// What is the cause of this?
-//
-// The core of the issue here is that row_2 container is fit sizing, so it will be the size of
-// its children summed up. The problem is that it could, and in this case should have the size of its parent.
-// This feels like a size propagation issue though, and is probably pretty fundamental it seems like.
-build_bug_repro :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
-	if ui.begin(ctx) {
-
-		ui.push_capability_flags(
-			ctx,
-			ui.Capability_Flags{.Background},
-		); defer ui.pop_capability_flags(ctx)
-
-		main_sizing := [2]ui.Sizing{{kind = .Fit}, {kind = .Fit}}
-		main_bg_fill := base.Fill(base.Color{255, 0, 0, 255})
-		main_padding := ui.Padding{10, 10, 10, 10}
-		main_layout_direction := ui.Layout_Direction.Top_To_Bottom
-		if ui.begin_container(
-			ctx,
-			"main",
-			ui.Config_Options {
-				layout = {
-					sizing = {&main_sizing.x, &main_sizing.y},
-					padding = &main_padding,
-					layout_direction = &main_layout_direction,
-				},
-				background_fill = &main_bg_fill,
-			},
-		) {
-
-			// containers with text and spacer
-			// one text must be larger than the other, so
-			// that the smaller "row" should have it spacer have x > 0
-			// row 2 container will be smaller, even though the main container
-			// will have the size of the row 1 container
-
-			// row 1
-			row_1_bg_fill := base.Fill(base.Color{0, 255, 0, 255})
-			if ui.begin_container(
-				ctx,
-				"row_1",
-				ui.Config_Options{background_fill = &row_1_bg_fill},
-			) {
-				ui.text(ctx, "text&_1", "AAAA")
-				ui.spacer(ctx, "spacer_1")
-
-				ui.end_container(ctx)
-			}
-
-			// row 2
-			row_2_bg_fill := base.Fill(base.Color{0, 0, 255, 255})
-			if ui.begin_container(
-				ctx,
-				"row_2",
-				ui.Config_Options{background_fill = &row_2_bg_fill},
-			) {
-				ui.text(ctx, "text_2", "AA")
-				ui.spacer(ctx, "spacer_2")
-
-				ui.end_container(ctx)
-			}
-
-			ui.end_container(ctx)
-		}
-
-		ui.end(ctx)
-	}
 }
 
 build_relative_layout_ui :: proc(app_state: ^App_State) {
