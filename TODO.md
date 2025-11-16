@@ -9,6 +9,10 @@
 ## Bugs
 
 ## Backlog
+* Aligning text elements on different rows, where on the row the text element has a spacer
+    on the left and the right, is not really possible due to space being distributed evenly
+    between the spacers. A solution could be something along the lines of being able
+    to give weight to the spacer, e.g. give all space to this spacer until it can't grow anymore, or something.
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
 * Simpler text helper procedure, important to think about life time there, it probably
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator
