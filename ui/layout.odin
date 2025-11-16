@@ -101,6 +101,9 @@ UI_Element :: struct {
 	active:         f32,
 	last_comm:      Comm,
 	last_frame_idx: u64,
+	// TODO(Thomas): Does checked belong in here, or in centralized
+	// state store instead?
+	checked:        bool,
 }
 
 Sizing :: struct {

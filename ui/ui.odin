@@ -971,6 +971,53 @@ text_input :: proc(
 	return element.last_comm
 }
 
+checkbox :: proc(ctx: ^Context, id: string, opts: Config_Options = {}) -> Comm {
+
+	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+
+	text_padding := Padding {
+		left   = 10,
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+	}
+	text_alignment_x := Alignment_X.Center
+
+	default_opts := Config_Options {
+		layout = {
+			sizing = {&sizing.x, &sizing.y},
+			text_alignment_x = &text_alignment_x,
+			text_padding = &text_padding,
+		},
+		capability_flags = &capability_flags,
+	}
+
+	element, open_ok := open_element(ctx, id, opts, default_opts)
+	if open_ok {
+
+		if element.last_comm.clicked {
+			if element.checked {
+				element.checked = false
+			} else {
+				element.checked = true
+			}
+		}
+
+		if element.checked {
+			element_equip_text(ctx, element, "[X]")
+		} else {
+			element_equip_text(ctx, element, "[ ]")
+		}
+
+		close_element(ctx)
+	}
+
+	append(&ctx.interactive_elements, element)
+	return element.last_comm
+}
+
+
 push_sizing_x :: proc(ctx: ^Context, sizing: Sizing) -> bool {
 	return push(&ctx.sizing_x_stack, sizing)
 }

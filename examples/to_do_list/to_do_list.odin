@@ -120,7 +120,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						) {
 
 							// --- Checkbox Button ---
-							ui.button(ctx, fmt.tprintf("task_checkbox_%d", i), "[ ]")
+							ui.checkbox(ctx, fmt.tprintf("task_checkbox_%d", i))
 
 							// --- Spacer ---
 							ui.spacer(ctx)
