@@ -613,7 +613,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 @(private)
-RESIZE_ITER_MAX :: 64
+RESIZE_ITER_MAX :: 32
 // Combined grow and shrink size procedure
 resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	if element.config.layout.layout_mode != .Flow {

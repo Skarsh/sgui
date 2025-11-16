@@ -122,6 +122,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							// --- Checkbox Button ---
 							ui.button(ctx, fmt.tprintf("task_checkbox_%d", i), "[ ]")
 
+							// --- Spacer ---
+							ui.spacer(ctx)
+
 							// --- Task Text ---
 							alignment_y := ui.Alignment_Y.Center
 							text_alignment_y := ui.Alignment_Y.Center
@@ -138,16 +141,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							)
 
 							// --- Spacer ---
-							//ui.spacer(ctx)
-
-							spacer_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow}}
-							ui.container(
-								ctx,
-								"spacer",
-								ui.Config_Options {
-									layout = {sizing = {&spacer_sizing.x, &spacer_sizing.y}},
-								},
-							)
+							ui.spacer(ctx)
 
 							// --- Delete Button ---
 							ui.button(ctx, fmt.tprintf("task_delete_button_%d", i), "Delete")
