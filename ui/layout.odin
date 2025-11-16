@@ -588,8 +588,32 @@ is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 	return is_primary_axis
 }
 
+size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
+	if element == nil {
+		return
+	}
+
+	if element.config.layout.sizing[axis].kind == .Fit && !is_primary_axis(element^, axis) {
+		content_size_on_axis := calc_remaining_size(element^, axis)
+		for child in element.children {
+			child_sizing_kind := child.config.layout.sizing[axis].kind
+			if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage_Of_Parent {
+				child.size[axis] = clamp(
+					content_size_on_axis,
+					child.min_size[axis],
+					child.max_size[axis],
+				)
+			}
+		}
+	}
+
+	for child in element.children {
+		size_children_on_cross_axis(child, axis)
+	}
+}
+
 @(private)
-RESIZE_ITER_MAX :: 32
+RESIZE_ITER_MAX :: 64
 // Combined grow and shrink size procedure
 resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	if element.config.layout.layout_mode != .Flow {
@@ -2898,6 +2922,164 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
+@(test)
+test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		main_layout_direction: Layout_Direction,
+		main_padding:          Padding,
+		main_child_gap:        f32,
+		row_layout_direction:  Layout_Direction,
+		row_padding:           Padding,
+		row_child_gap:         f32,
+	}
+
+	test_data := Test_Data {
+		main_layout_direction = .Top_To_Bottom,
+		main_padding          = {10, 10, 10, 10},
+		main_child_gap        = 5,
+		row_layout_direction  = .Left_To_Right,
+		row_padding           = {5, 5, 5, 5},
+		row_child_gap         = 2,
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		main_sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
+		if begin_container(
+			ctx,
+			"main",
+			Config_Options {
+				layout = {
+					sizing = {&main_sizing.x, &main_sizing.y},
+					padding = &data.main_padding,
+					child_gap = &data.main_child_gap,
+					layout_direction = &data.main_layout_direction,
+				},
+			},
+		) {
+
+			// Row 1
+			if begin_container(
+				ctx,
+				"row_1",
+				Config_Options {
+					layout = {padding = &data.row_padding, child_gap = &data.row_child_gap},
+				},
+			) {
+				text(ctx, "text_1", "AAAA")
+				spacer(ctx, "spacer_1")
+				end_container(ctx)
+			}
+
+
+			// Row 2
+			if begin_container(
+				ctx,
+				"row_2",
+				Config_Options {
+					layout = {padding = &data.row_padding, child_gap = &data.row_child_gap},
+				},
+			) {
+				text(ctx, "text_2", "AA")
+				spacer(ctx, "spacer_2")
+				end_container(ctx)
+			}
+
+			end_container(ctx)
+		}
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+
+		text_1_size := base.Vec2{4 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT}
+		text_2_size := base.Vec2{2 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT}
+
+		row_1_size := base.Vec2 {
+			data.row_padding.left +
+			text_1_size.x +
+			data.row_child_gap +
+			0 +
+			data.row_padding.right,
+			data.row_padding.top + text_1_size.y + data.row_padding.bottom,
+		}
+
+		main_content_width := row_1_size.x
+		row_2_stretched_size := base.Vec2{main_content_width, row_1_size.y}
+		row_2_content_width :=
+			row_2_stretched_size.x - data.row_padding.left - data.row_padding.right
+		spacer_2_width := row_2_content_width - text_2_size.x - data.row_child_gap
+		spacer_2_size := base.Vec2{spacer_2_width, MOCK_LINE_HEIGHT}
+
+		// spacer_1 has no space to grow into
+		spacer_1_size := base.Vec2{0, MOCK_LINE_HEIGHT}
+
+		main_size := base.Vec2 {
+			data.main_padding.left + data.main_padding.right + row_1_size.x,
+			data.main_padding.top +
+			data.main_padding.bottom +
+			row_1_size.y +
+			row_2_stretched_size.y +
+			data.main_child_gap,
+		}
+
+		main_pos := base.Vec2{0, 0}
+		row_1_pos := base.Vec2 {
+			main_pos.x + data.main_padding.left,
+			main_pos.y + data.main_padding.top,
+		}
+		row_2_pos := base.Vec2{row_1_pos.x, row_1_pos.y + row_1_size.y + data.main_child_gap}
+
+		text_1_pos := base.Vec2 {
+			row_1_pos.x + data.row_padding.left,
+			row_1_pos.y + data.row_padding.top,
+		}
+		spacer_1_pos := base.Vec2{text_1_pos.x + text_1_size.x + data.row_child_gap, text_1_pos.y}
+
+		text_2_pos := base.Vec2 {
+			row_2_pos.x + data.row_padding.left,
+			row_2_pos.y + data.row_padding.top,
+		}
+		spacer_2_pos := base.Vec2{text_2_pos.x + text_2_size.x + data.row_child_gap, text_2_pos.y}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "main",
+					pos = main_pos,
+					size = main_size,
+					children = []Expected_Element {
+						{
+							id = "row_1",
+							pos = row_1_pos,
+							size = row_1_size,
+							children = {
+								{id = "text_1", pos = text_1_pos, size = text_1_size},
+								{id = "spacer_1", pos = spacer_1_pos, size = spacer_1_size},
+							},
+						},
+						{
+							id = "row_2",
+							pos = row_2_pos,
+							size = row_2_stretched_size,
+							children = {
+								{id = "text_2", pos = text_2_pos, size = text_2_size},
+								{id = "spacer_2", pos = spacer_2_pos, size = spacer_2_size},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+	}
+
+	// --- 4. Run the Test ---
+	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+}
 
 // TODO(Thomas): Add other tests where we overflow the max sizing within and outside
 // of a fit sizing container.

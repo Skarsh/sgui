@@ -285,7 +285,6 @@ build_bug_repro :: proc(app_state: ^App_State) {
 
 		ui.end(ctx)
 	}
-	ui.print_element_hierarchy(ctx.root_element)
 }
 
 build_relative_layout_ui :: proc(app_state: ^App_State) {

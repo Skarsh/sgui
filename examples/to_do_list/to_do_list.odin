@@ -167,12 +167,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 		ui.end(ctx)
 	}
-
-	log.info("--- end of frame ---")
-	ui.print_element_hierarchy(ctx.root_element)
-
-	//spacer_element := ui.find_element_in_hierarchy(ctx.root_element, "")
-	//log.info("spacer_element.size", spacer_element.size)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
