@@ -7,6 +7,8 @@
 * Styling ergonomy - Need to improve this before there's too much code to change.
 
 ## Bugs
+* Text input had no height before adding the Add button in the `to_do_list` example.
+    Need to try to make a repro of this in a reduced example.
 
 ## Backlog
 * Aligning text elements on different rows, where on the row the text element has a spacer
