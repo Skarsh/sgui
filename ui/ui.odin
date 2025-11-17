@@ -2,6 +2,7 @@ package ui
 
 import "core:container/queue"
 import "core:fmt"
+import "core:log"
 import "core:math"
 import "core:mem"
 import "core:strings"

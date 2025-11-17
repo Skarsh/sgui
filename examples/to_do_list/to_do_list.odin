@@ -3,6 +3,8 @@ package main
 import "core:fmt"
 import "core:log"
 import "core:mem"
+import "core:mem/virtual"
+import "core:strings"
 
 import "../../app"
 import "../../base"
@@ -14,6 +16,7 @@ Task :: struct {
 }
 
 Data :: struct {
+	allocator:        mem.Allocator,
 	tasks:            [dynamic]Task,
 	new_task_buf:     []u8,
 	new_task_buf_len: int,
@@ -27,6 +30,25 @@ ITEM_HOVER_BG :: base.Color{70, 73, 80, 255}
 TEXT_COLOR :: base.Color{220, 220, 220, 255}
 COMPLETED_TEXT_COLOR :: base.Color{140, 140, 140, 255}
 DELETE_BUTTON_COLOR :: base.Color{217, 74, 74, 255}
+ADD_BUTTON_COLOR :: base.Color{74, 137, 217, 255}
+
+add_new_task :: proc(data: ^Data) {
+	if data.new_task_buf_len == 0 {
+		return
+	}
+
+	//new_task_text, alloc_err := strings.clone_from_bytes(
+	//	data.new_task_buf[0:data.new_task_buf_len],
+	//	data.allocator,
+	//)
+
+	//assert(alloc_err == .None)
+
+	new_task_text := "AA"
+
+
+	append(&data.tasks, Task{text = new_task_text, completed = false})
+}
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
@@ -128,9 +150,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							// --- Task Text ---
 							alignment_y := ui.Alignment_Y.Center
 							text_alignment_y := ui.Alignment_Y.Center
+							task_id := fmt.tprintf("task_text_%d", i)
 							ui.text(
 								ctx,
-								fmt.tprintf("task_text_%d", i),
+								task_id,
 								task.text,
 								ui.Config_Options {
 									layout = {
@@ -145,9 +168,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 							// --- Delete Button ---
 							delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
+							delete_button_id := fmt.tprintf("task_delete_button_%d", i)
+							log.info("delete_button_id: ", delete_button_id)
 							delete_comm := ui.button(
 								ctx,
-								fmt.tprintf("task_delete_button_%d", i),
+								delete_button_id,
 								"Delete",
 								ui.Config_Options{background_fill = &delete_bg_fill},
 							)
@@ -161,6 +186,48 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 					ui.end_container(ctx)
 				}
+
+				// --- Add Task Panel ---
+				add_task_layout_direction := ui.Layout_Direction.Left_To_Right
+				add_task_child_gap: f32 = 10
+				input_comm, add_button_comm: ui.Comm
+				if ui.begin_container(
+					ctx,
+					"add_task_panel",
+					ui.Config_Options {
+						layout = {
+							layout_direction = &add_task_layout_direction,
+							child_gap = &add_task_child_gap,
+						},
+					},
+				) {
+					// --- Text Input field ---
+					input_bg := base.Fill(ITEM_BG)
+
+					input_comm = ui.text_input(
+						ctx,
+						"new_task_input",
+						data.new_task_buf,
+						&data.new_task_buf_len,
+						ui.Config_Options{background_fill = &input_bg},
+					)
+
+					// --- Add Button ---
+					add_button_fill := base.Fill(ADD_BUTTON_COLOR)
+					add_button_comm = ui.button(
+						ctx,
+						"add_task_button",
+						"Add",
+						ui.Config_Options{background_fill = &add_button_fill},
+					)
+
+					if add_button_comm.clicked {
+						add_new_task(data)
+					}
+
+					ui.end_container(ctx)
+				}
+
 
 				ui.end_container(ctx)
 			}
@@ -227,7 +294,14 @@ main :: proc() {
 	new_task_buf := make([]u8, 256)
 	defer delete(new_task_buf)
 
+	arena := virtual.Arena{}
+	arena_err := virtual.arena_init_static(&arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
+
 	my_data := Data {
+		allocator        = arena_allocator,
 		tasks            = tasks,
 		new_task_buf     = new_task_buf,
 		new_task_buf_len = 0,
