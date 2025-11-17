@@ -2,6 +2,10 @@
 
 ## Active
 * To-Do List
+    * Spacer segfault, this seems to happen when add a new row and we have 2 (or probably more), spacers
+        with an empty / null id. The segfault goes away if I give the second spacer element in the task list
+        an unique id.  The issue seems to be that the newly added second spacer in the new row has null pointer children.
+        Make reduction that repros this.
     * Need spacer helper here
     * Need checkbox helper with checkmarking
 * Styling ergonomy - Need to improve this before there's too much code to change.
