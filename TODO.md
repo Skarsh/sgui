@@ -5,6 +5,8 @@
     * Spacer segfault, this seems to happen when add a new row and we have 2 (or probably more), spacers
         with an empty / null id. The segfault goes away if I give the second spacer element in the task list
         an unique id.  The issue seems to be that the newly added second spacer in the new row has null pointer children.
+        When starting with three tasks in the `to_do_list` example, then one can remove one and add it back without this
+        segfault triggering. It only happens when there is a task added.
         Make reduction that repros this.
     * Need spacer helper here
     * Need checkbox helper with checkmarking
