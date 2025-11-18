@@ -832,6 +832,32 @@ make_element :: proc(
 	^UI_Element,
 	bool,
 ) {
+
+	set_element_size :: proc(element: ^UI_Element, config: Element_Config) {
+		element.size.x = config.layout.sizing.x.value
+		element.size.y = config.layout.sizing.y.value
+
+		min_x := config.layout.sizing.x.min_value
+		min_y := config.layout.sizing.y.min_value
+
+		element.min_size.x = min_x > 0 ? min_x : 0
+		element.min_size.y = min_y > 0 ? min_y : 0
+
+		// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
+		// the user wants it to just fit whatever, so we set it to f32 max value
+		if base.approx_equal(config.layout.sizing.x.max_value, 0, 0.001) {
+			element.max_size.x = math.F32_MAX
+		} else {
+			element.max_size.x = config.layout.sizing.x.max_value
+		}
+
+		if base.approx_equal(config.layout.sizing.y.max_value, 0, 0.001) {
+			element.max_size.y = math.F32_MAX
+		} else {
+			element.max_size.y = config.layout.sizing.y.max_value
+		}
+	}
+
 	key := ui_key_hash(id)
 
 	// TODO(Thomas): This is almost completely duplicate from the cached variant.
@@ -859,26 +885,7 @@ make_element :: proc(
 		}
 		element.children = make([dynamic]^UI_Element, ctx.frame_allocator)
 
-		element.size.x = element_config.layout.sizing.x.value
-		element.size.y = element_config.layout.sizing.y.value
-
-		// TODO(Thomas): Guard against negative min values??
-		element.min_size.x = element_config.layout.sizing.x.min_value
-		element.min_size.y = element_config.layout.sizing.y.min_value
-
-		// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
-		// the user wants it to just fit whatever, so we set it to f32 max value
-		if base.approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
-			element.max_size.x = math.F32_MAX
-		} else {
-			element.max_size.x = element_config.layout.sizing.x.max_value
-		}
-
-		if base.approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
-			element.max_size.y = math.F32_MAX
-		} else {
-			element.max_size.y = element_config.layout.sizing.y.max_value
-		}
+		set_element_size(element, element_config)
 
 		element.parent = ctx.current_parent
 		clear_dynamic_array(&element.children)
@@ -923,26 +930,7 @@ make_element :: proc(
 		}
 		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
 
-		element.size.x = element_config.layout.sizing.x.value
-		element.size.y = element_config.layout.sizing.y.value
-
-		// TODO(Thomas): Guard against negative min values??
-		element.min_size.x = element_config.layout.sizing.x.min_value
-		element.min_size.y = element_config.layout.sizing.y.min_value
-
-		// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
-		// the user wants it to just fit whatever, so we set it to f32 max value
-		if base.approx_equal(element_config.layout.sizing.x.max_value, 0, 0.001) {
-			element.max_size.x = math.F32_MAX
-		} else {
-			element.max_size.x = element_config.layout.sizing.x.max_value
-		}
-
-		if base.approx_equal(element_config.layout.sizing.y.max_value, 0, 0.001) {
-			element.max_size.y = math.F32_MAX
-		} else {
-			element.max_size.y = element_config.layout.sizing.y.max_value
-		}
+		set_element_size(element, element_config)
 
 		ctx.element_cache[key] = element
 	}
@@ -962,7 +950,6 @@ make_element :: proc(
 	element.last_frame_idx = ctx.frame_idx
 	element.fill = element_config.background_fill
 	element.config = element_config
-
 
 	return element, true
 }
