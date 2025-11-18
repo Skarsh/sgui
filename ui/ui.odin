@@ -2,7 +2,6 @@ package ui
 
 import "core:container/queue"
 import "core:fmt"
-import "core:log"
 import "core:math"
 import "core:mem"
 import "core:strings"
@@ -189,7 +188,8 @@ init :: proc(
 	ctx.font_id = font_id
 	ctx.font_size = font_size
 
-	ctx.command_queue = make([dynamic]Command, frame_allocator)
+	// TODO(Thomas): Use a separate draw arena allocator for the command queue?
+	ctx.command_queue = make([dynamic]Command, persistent_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.text_input_states = make(map[UI_Key]UI_Element_Text_Input_State, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
