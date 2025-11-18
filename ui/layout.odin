@@ -832,9 +832,7 @@ make_element :: proc(
 	^UI_Element,
 	bool,
 ) {
-
 	key := ui_key_hash(id)
-	log.info("id: ", id)
 
 	// TODO(Thomas): This is almost completely duplicate from the cached variant.
 	// Should be able to do something common here or move out into procedure.

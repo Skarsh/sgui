@@ -37,15 +37,12 @@ add_new_task :: proc(data: ^Data) {
 		return
 	}
 
-	//new_task_text, alloc_err := strings.clone_from_bytes(
-	//	data.new_task_buf[0:data.new_task_buf_len],
-	//	data.allocator,
-	//)
+	new_task_text, alloc_err := strings.clone_from_bytes(
+		data.new_task_buf[0:data.new_task_buf_len],
+		data.allocator,
+	)
 
-	//assert(alloc_err == .None)
-
-	new_task_text := "AA"
-
+	assert(alloc_err == .None)
 
 	append(&data.tasks, Task{text = new_task_text, completed = false})
 }
@@ -169,7 +166,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							// --- Delete Button ---
 							delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
 							delete_button_id := fmt.tprintf("task_delete_button_%d", i)
-							log.info("delete_button_id: ", delete_button_id)
 							delete_comm := ui.button(
 								ctx,
 								delete_button_id,
