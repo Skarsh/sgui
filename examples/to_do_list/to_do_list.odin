@@ -270,7 +270,7 @@ main :: proc() {
 		height    = 720,
 		font_path = "",
 		font_id   = 0,
-		font_size = 48,
+		font_size = 24,
 	}
 
 	my_app, my_app_ok := app.init(config)
