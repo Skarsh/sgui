@@ -874,6 +874,7 @@ text_input :: proc(
 	layout_mode := Layout_Mode.Relative
 	alignment_x := Alignment_X.Left
 	alignment_y := Alignment_Y.Center
+	text_alignment_y := Alignment_Y.Center
 
 	default_opts := Config_Options {
 		layout = {
@@ -881,6 +882,7 @@ text_input :: proc(
 			layout_mode = &layout_mode,
 			alignment_x = &alignment_x,
 			alignment_y = &alignment_y,
+			text_alignment_y = &text_alignment_y,
 		},
 		background_fill = &background_fill,
 		capability_flags = &capability_flags,
