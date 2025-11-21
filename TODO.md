@@ -1,14 +1,18 @@
 # TODOs
 
 ## Active
+* When deleting all the rows in the `to_list` example, the width of the `text_input`
+    goes to zero because the add button takes it all, making it impossible to click the 
+    text input.
+* Text input had no height before adding the Add button in the `to_do_list` example.
+    Need to try to make a repro of this in a reduced example.
+* Checkmark and delete button for the row in `to_do` example grows to different size than
+    the other rows if the length of the text is large.
 * To-Do List
-    * Need spacer helper here
     * Need checkbox helper with checkmarking
 * Styling ergonomy - Need to improve this before there's too much code to change.
 
 ## Bugs
-* Text input had no height before adding the Add button in the `to_do_list` example.
-    Need to try to make a repro of this in a reduced example.
 
 ## Backlog
 * Aligning text elements on different rows, where on the row the text element has a spacer
