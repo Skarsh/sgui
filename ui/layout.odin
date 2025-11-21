@@ -1186,6 +1186,8 @@ Test_Environment :: struct {
 	persistent_arena_allocator: mem.Allocator,
 	frame_arena:                virtual.Arena,
 	frame_arena_allocator:      mem.Allocator,
+	draw_cmd_arena:             virtual.Arena,
+	draw_cmd_arena_allocator:   mem.Allocator,
 }
 
 // NOTE(Thomas): The reason we're returning a pointer to the
@@ -1205,7 +1207,20 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	assert(frame_arena_alloc_err == .None)
 	env.frame_arena_allocator = virtual.arena_allocator(&env.frame_arena)
 
-	init(&env.ctx, env.persistent_arena_allocator, env.frame_arena_allocator, window_size, 0, 0)
+	env.draw_cmd_arena = virtual.Arena{}
+	draw_cmd_arena_alloc_err := virtual.arena_init_static(&env.draw_cmd_arena)
+	assert(draw_cmd_arena_alloc_err == .None)
+	env.draw_cmd_arena_allocator = virtual.arena_allocator(&env.draw_cmd_arena)
+
+	init(
+		&env.ctx,
+		env.persistent_arena_allocator,
+		env.frame_arena_allocator,
+		env.draw_cmd_arena_allocator,
+		window_size,
+		0,
+		0,
+	)
 
 	return env
 }

@@ -71,6 +71,11 @@ main :: proc() {
 	assert(arena_err == .None)
 	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
 
+	draw_cmd_arena := virtual.Arena{}
+	arena_err = virtual.arena_init_static(&draw_cmd_arena, 10 * mem.Kilobyte)
+	assert(arena_err == .None)
+	draw_cmd_arena_allocator := virtual.arena_allocator(&draw_cmd_arena)
+
 	io_arena := virtual.Arena{}
 	arena_err = virtual.arena_init_static(&io_arena, 10 * mem.Kilobyte)
 	assert(arena_err == .None)
@@ -83,6 +88,7 @@ main :: proc() {
 		&ctx,
 		persistent_arena_allocator,
 		frame_arena_allocator,
+		draw_cmd_arena_allocator,
 		{WINDOW_WIDTH, WINDOW_HEIGHT},
 		font_id,
 		font_size,

@@ -88,6 +88,7 @@ UI_Element_Text_Input_State :: struct {
 Context :: struct {
 	persistent_allocator:    mem.Allocator,
 	frame_allocator:         mem.Allocator,
+	draw_cmd_allocator:      mem.Allocator,
 	element_stack:           Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// TODO(Thomas): Style stacks, move them into its own struct?
 	// Maybe even do some metaprogramming to generate them if it becomes
@@ -177,6 +178,7 @@ init :: proc(
 	ctx: ^Context,
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
+	draw_cmd_allocator: mem.Allocator,
 	screen_size: [2]i32,
 	font_id: u16,
 	font_size: f32,
@@ -184,12 +186,12 @@ init :: proc(
 	ctx^ = {} // zero memory
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
+	ctx.draw_cmd_allocator = draw_cmd_allocator
 	ctx.window_size = screen_size
 	ctx.font_id = font_id
 	ctx.font_size = font_size
 
-	// TODO(Thomas): Use a separate draw arena allocator for the command queue?
-	ctx.command_queue = make([dynamic]Command, persistent_allocator)
+	ctx.command_queue = make([dynamic]Command, draw_cmd_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.text_input_states = make(map[UI_Key]UI_Element_Text_Input_State, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
@@ -210,6 +212,7 @@ begin :: proc(ctx: ^Context) -> bool {
 	clear_dynamic_array(&ctx.interactive_elements)
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
+	free_all(ctx.draw_cmd_allocator)
 
 	background_fill := base.Fill(base.Color{128, 128, 128, 255})
 	sizing_x := Sizing {

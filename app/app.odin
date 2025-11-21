@@ -12,6 +12,7 @@ App :: struct {
 	app_arena:        virtual.Arena,
 	persistent_arena: virtual.Arena,
 	frame_arena:      virtual.Arena,
+	draw_cmd_arena:   virtual.Arena,
 	io_arena:         virtual.Arena,
 	window:           backend.Window,
 	ui_ctx:           ui.Context,
@@ -62,6 +63,15 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	frame_arena_allocator := virtual.arena_allocator(&app.frame_arena)
 
+	arena_err = virtual.arena_init_static(&app.draw_cmd_arena)
+	assert(arena_err == .None)
+	if arena_err != .None {
+		log.error("Failed to allocator draw_cmd_arena")
+		free(app)
+		return nil, false
+	}
+	draw_cmd_arena_allocator := virtual.arena_allocator(&app.draw_cmd_arena)
+
 	arena_err = virtual.arena_init_static(&app.io_arena, 10 * mem.Kilobyte)
 	assert(arena_err == .None)
 	if arena_err != .None {
@@ -88,6 +98,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		&app.ui_ctx,
 		persistent_arena_allocator,
 		frame_arena_allocator,
+		draw_cmd_arena_allocator,
 		{app_config.width, app_config.height},
 		app_config.font_id,
 		app_config.font_size,
