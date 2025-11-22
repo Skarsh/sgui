@@ -859,7 +859,7 @@ text_input :: proc(
 	opts: Config_Options = {},
 ) -> Comm {
 	// TODO(Thomas): Figure out how to do the sizing properly.
-	sizing := [2]Sizing{{kind = .Fixed, value = 200}, {kind = .Fixed, value = 48}}
+	sizing := [2]Sizing{{kind = .Grow}, {kind = .Fixed, value = 48}}
 
 	background_fill := base.Fill(base.Color{255, 128, 128, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
