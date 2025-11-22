@@ -1,11 +1,7 @@
 # TODOs
 
 ## Active
-* When deleting all the rows in the `to_list` example, the width of the `text_input`
-    goes to zero because the add button takes it all, making it impossible to click the 
-    text input.
-* Text input had no height before adding the Add button in the `to_do_list` example.
-    Need to try to make a repro of this in a reduced example.
+* `text_input` has hardcoded sizing values now, figure out how to do this in a better way.
 * Checkmark and delete button for the row in `to_do` example grows to different size than
     the other rows if the length of the text is large.
 * To-Do List
