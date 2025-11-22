@@ -146,12 +146,26 @@ Config_Options :: struct {
 	content:          Element_Content,
 }
 
-// TODO(Thomas): A lot of duplicated code between this and the text procedure!
-// An idea would be to have the text procedure just make an element, and then
-// equip the string. When style stacks are implemented, it could push those onto
-// aswell.
-element_equip_text :: proc(ctx: ^Context, element: ^UI_Element, text: string) {
+element_equip_text :: proc(
+	ctx: ^Context,
+	element: ^UI_Element,
+	text: string,
+	set_sizing: bool,
+	text_fill: base.Fill = base.Color{255, 255, 255, 255},
+) {
 	element.config.capability_flags |= {.Text}
+
+	if element.config.text_fill == nil {
+		element.config.text_fill = text_fill
+	}
+
+	element.config.content.text_data = Text_Data {
+		text = text,
+	}
+
+	if !set_sizing {
+		return
+	}
 
 	// NOTE(Thomas): We need to pre-calculate the line widths to make
 	// sure that the element gets a reasonable preferred sizing.
@@ -811,12 +825,16 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		layout_lines(ctx, text, tokens[:], available_width, &lines, allocator)
 
 		element.config.content.text_data.lines = lines[:]
-		text_height: f32 = 0
-		for line in lines {
-			text_height += line.height
+
+		if element.config.layout.sizing.y.kind == .Grow {
+			text_height: f32 = 0
+			for line in lines {
+				text_height += line.height
+			}
+			final_height := text_height + text_padding.top + text_padding.bottom
+
+			element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
 		}
-		final_height := text_height + text_padding.top + text_padding.bottom
-		element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
 	}
 
 	for child in element.children {

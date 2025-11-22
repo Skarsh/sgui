@@ -701,7 +701,7 @@ text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 	assert(open_ok)
 	if open_ok {
-		element_equip_text(ctx, element, text)
+		element_equip_text(ctx, element, text, true)
 		close_element(ctx)
 	}
 }
@@ -739,7 +739,7 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 
 	if open_ok {
-		element_equip_text(ctx, element, text)
+		element_equip_text(ctx, element, text, true)
 		close_element(ctx)
 	}
 	append(&ctx.interactive_elements, element)
@@ -858,19 +858,14 @@ text_input :: proc(
 	buf_len: ^int,
 	opts: Config_Options = {},
 ) -> Comm {
-	// TODO(Thomas): Figure out how to do the sizing properly
-	// Y-axis sizing is just hard-coded for now
-	sizing_x := Sizing {
-		kind = .Grow,
-	}
-
-	sizing_y := Sizing {
-		kind  = .Fixed,
-		value = 48,
-	}
+	// TODO(Thomas): Figure out how to do the sizing properly.
+	sizing := [2]Sizing{{kind = .Fixed, value = 200}, {kind = .Fixed, value = 48}}
 
 	background_fill := base.Fill(base.Color{255, 128, 128, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
+	clip_config := Clip_Config {
+		clip_axes = {true, true},
+	}
 	layout_mode := Layout_Mode.Relative
 	alignment_x := Alignment_X.Left
 	alignment_y := Alignment_Y.Center
@@ -878,7 +873,7 @@ text_input :: proc(
 
 	default_opts := Config_Options {
 		layout = {
-			sizing = {&sizing_x, &sizing_y},
+			sizing = {&sizing.x, &sizing.y},
 			layout_mode = &layout_mode,
 			alignment_x = &alignment_x,
 			alignment_y = &alignment_y,
@@ -886,6 +881,7 @@ text_input :: proc(
 		},
 		background_fill = &background_fill,
 		capability_flags = &capability_flags,
+		clip = &clip_config,
 	}
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
@@ -918,7 +914,7 @@ text_input :: proc(
 
 		buf_len^ = strings.builder_len(state.builder)
 
-		element_equip_text(ctx, element, text_content)
+		element_equip_text(ctx, element, text_content, false)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt
@@ -1011,9 +1007,9 @@ checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options
 		}
 
 		if checked^ {
-			element_equip_text(ctx, element, "[X]")
+			element_equip_text(ctx, element, "[X]", true)
 		} else {
-			element_equip_text(ctx, element, "[ ]")
+			element_equip_text(ctx, element, "[ ]", true)
 		}
 
 		close_element(ctx)
