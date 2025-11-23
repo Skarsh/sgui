@@ -177,11 +177,12 @@ main :: proc() {
 		//build_nested_text_ui(&app_state)
 		//build_complex_ui(&app_state, &complex_ui_data)
 		//build_interactive_button_ui(&app_state)
-		build_styled_ui(&app_state)
+		//build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
 		//build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 		//build_relative_layout_ui(&app_state)
+		build_bug_repro(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -211,6 +212,91 @@ Image_Data :: struct {
 	tex_3: i32,
 	tex_4: i32,
 	tex_5: i32,
+}
+
+texts := []string{"yes", "nonnnnnnnnnnnnnnnnnnnnnn", "maybe"}
+build_bug_repro :: proc(app_state: ^App_State) {
+
+	build_rows :: proc(ctx: ^ui.Context, texts: []string) {
+		b := false
+		row_padding := ui.Padding{10, 10, 10, 10}
+		row_child_gap: f32 = 5
+		bg_fill: base.Fill
+		for text, i in texts {
+			if i % 3 == 0 {
+				bg_fill = base.Fill(base.Color{255, 0, 0, 255})
+			} else if i % 3 == 1 {
+				bg_fill = base.Fill(base.Color{0, 255, 0, 255})
+			} else if i % 3 == 2 {
+				bg_fill = base.Fill(base.Color{0, 0, 255, 255})
+			}
+
+			if ui.begin_container(
+				ctx,
+				fmt.tprintf("row_%d", i),
+				ui.Config_Options {
+					layout = {padding = &row_padding, child_gap = &row_child_gap},
+					background_fill = &bg_fill,
+				},
+			) {
+
+				ui.checkbox(ctx, fmt.tprintf("checkbox_%d", i), &b)
+				ui.spacer(ctx)
+				ui.text(ctx, fmt.tprintf("text_%d", i), text)
+				ui.spacer(ctx)
+				ui.button(ctx, fmt.tprintf("button_%d", i), "Delete")
+
+				ui.end_container(ctx)
+			}
+		}
+	}
+
+	ctx := &app_state.ctx
+	if ui.begin(ctx) {
+
+		ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
+		ui.push_background_fill(
+			ctx,
+			base.Fill(base.Color{50, 50, 50, 255}),
+		); defer ui.pop_background_fill(ctx)
+
+		main_container_sizing := [2]ui.Sizing {
+			{kind = .Percentage_Of_Parent, value = 0.5},
+			{kind = .Percentage_Of_Parent, value = 0.5},
+		}
+		main_container_alignment_x := ui.Alignment_X.Center
+		main_container_alignment_y := ui.Alignment_Y.Center
+
+		if ui.begin_container(
+			ctx,
+			"main_container",
+			ui.Config_Options {
+				layout = {
+					sizing = {&main_container_sizing.x, &main_container_sizing.y},
+					alignment_x = &main_container_alignment_x,
+					alignment_y = &main_container_alignment_y,
+				},
+			},
+		) {
+
+			panel_layout_direction := ui.Layout_Direction.Top_To_Bottom
+			if ui.begin_container(
+				ctx,
+				"panel_container",
+				ui.Config_Options{layout = {layout_direction = &panel_layout_direction}},
+			) {
+
+				build_rows(ctx, texts)
+
+				ui.end_container(ctx)
+			}
+
+			ui.end_container(ctx)
+		}
+
+
+		ui.end(ctx)
+	}
 }
 
 build_relative_layout_ui :: proc(app_state: ^App_State) {
