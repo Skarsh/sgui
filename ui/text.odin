@@ -238,22 +238,22 @@ layout_lines :: proc(
 }
 
 
-// TODO(Thomas): Cache the tokenization, we don't have to redo
-// this for the `wrap_text` procedure.
+// TODO(Thomas): Cache the tokenization and line layouting
 measure_text_content :: proc(
 	ctx: ^Context,
 	text: string,
 	available_width: f32,
+	allocator: mem.Allocator,
 ) -> (
 	width: f32,
 	height: f32,
+	lines: [dynamic]Text_Line,
 ) {
-	tokens := make([dynamic]Text_Token, context.temp_allocator)
-	defer free_all(context.temp_allocator)
+	tokens := make([dynamic]Text_Token, allocator)
 	tokenize_text(ctx, text, ctx.font_id, &tokens)
 
-	lines := make([dynamic]Text_Line, context.temp_allocator)
-	layout_lines(ctx, text, tokens[:], available_width, &lines, context.temp_allocator)
+	lines = make([dynamic]Text_Line, allocator)
+	layout_lines(ctx, text, tokens[:], available_width, &lines, allocator)
 
 	w: f32 = 0
 	h: f32 = 0
@@ -261,7 +261,7 @@ measure_text_content :: proc(
 		w = math.max(w, line.width)
 		h += line.height
 	}
-	return w, h
+	return w, h, lines
 }
 
 measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {

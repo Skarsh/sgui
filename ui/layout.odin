@@ -174,7 +174,13 @@ element_equip_text :: proc(
 	// will only split the lines based on `\n`.
 	// We need to do this before we're doing any proper sizing calculations
 	// so we're not screwing with that.
-	largest_line_width, text_height := measure_text_content(ctx, text, math.F32_MAX)
+	largest_line_width, text_height, _ := measure_text_content(
+		ctx,
+		text,
+		math.F32_MAX,
+		context.temp_allocator,
+	)
+	defer free_all(context.temp_allocator)
 
 	min_width := element.min_size.x
 	min_height := element.min_size.y
@@ -797,22 +803,13 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 	if .Text in element.config.capability_flags {
 		text_padding := element.config.layout.text_padding
 		text := element.config.content.text_data.text
-		tokens := make([dynamic]Text_Token, allocator)
-		tokenize_text(ctx, text, ctx.font_id, &tokens)
 
-		lines := make([dynamic]Text_Line, allocator)
 		available_width := element.size.x - text_padding.left - text_padding.right
-		layout_lines(ctx, text, tokens[:], available_width, &lines, allocator)
+		_, h, lines := measure_text_content(ctx, text, available_width, allocator)
 
 		element.config.content.text_data.lines = lines[:]
-
 		if element.config.layout.sizing.y.kind == .Grow {
-			text_height: f32 = 0
-			for line in lines {
-				text_height += line.height
-			}
-			final_height := text_height + text_padding.top + text_padding.bottom
-
+			final_height := h + text_padding.top + text_padding.bottom
 			element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
 		}
 	}
