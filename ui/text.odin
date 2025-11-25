@@ -1,6 +1,7 @@
 package ui
 
 import "core:log"
+import "core:math"
 import "core:mem"
 import "core:strings"
 import "core:testing"
@@ -234,6 +235,33 @@ layout_lines :: proc(
 	if line_width > 0 {
 		flush_line(ctx, text, line_tokens[:], lines)
 	}
+}
+
+
+// TODO(Thomas): Cache the tokenization, we don't have to redo
+// this for the `wrap_text` procedure.
+measure_text_content :: proc(
+	ctx: ^Context,
+	text: string,
+	available_width: f32,
+) -> (
+	width: f32,
+	height: f32,
+) {
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(ctx, text, ctx.font_id, &tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+	layout_lines(ctx, text, tokens[:], available_width, &lines, context.temp_allocator)
+
+	w: f32 = 0
+	h: f32 = 0
+	for line in lines {
+		w = math.max(w, line.width)
+		h += line.height
+	}
+	return w, h
 }
 
 measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {
