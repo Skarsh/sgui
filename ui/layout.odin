@@ -146,6 +146,34 @@ Config_Options :: struct {
 	content:          Element_Content,
 }
 
+
+// TODO(Thomas): Cache the tokenization, we don't have to redo
+// this for the `wrap_text` procedure.
+measure_text_content :: proc(
+	ctx: ^Context,
+	text: string,
+	available_width: f32,
+) -> (
+	width: f32,
+	height: f32,
+) {
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(ctx, text, ctx.font_id, &tokens)
+
+	lines := make([dynamic]Text_Line, context.temp_allocator)
+	layout_lines(ctx, text, tokens[:], available_width, &lines, context.temp_allocator)
+
+	w: f32 = 0
+	h: f32 = 0
+	for line in lines {
+		w = math.max(w, line.width)
+		h += line.height
+	}
+	return w, h
+}
+
+
 element_equip_text :: proc(
 	ctx: ^Context,
 	element: ^UI_Element,
@@ -174,27 +202,7 @@ element_equip_text :: proc(
 	// will only split the lines based on `\n`.
 	// We need to do this before we're doing any proper sizing calculations
 	// so we're not screwing with that.
-	// TODO(Thomas): Cache the tokenization, we don't have to redo
-	// this for the `wrap_text` procedure.
-	// TODO(Thomas): Calculate a reasonable min_size for the text element too.
-	// Something like the smallest word in the tokens would make sense.
-	tokens := make([dynamic]Text_Token, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-
-	tokenize_text(ctx, text, ctx.font_id, &tokens)
-
-	lines := make([dynamic]Text_Line, context.temp_allocator)
-
-	layout_lines(ctx, text, tokens[:], math.F32_MAX, &lines, context.temp_allocator)
-
-	largest_line_width: f32 = 0
-	text_height: f32 = 0
-	for line in lines {
-		if line.width > largest_line_width {
-			largest_line_width = line.width
-		}
-		text_height += line.height
-	}
+	largest_line_width, text_height := measure_text_content(ctx, text, math.F32_MAX)
 
 	min_width := element.min_size.x
 	min_height := element.min_size.y
