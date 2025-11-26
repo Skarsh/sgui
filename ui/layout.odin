@@ -146,11 +146,20 @@ Config_Options :: struct {
 	content:          Element_Content,
 }
 
+Text_Sizing_Mode :: enum {
+	// Do not adjust element sizing
+	None,
+	// Set preferred size to text size, but respect element min/max and allow stretching
+	Grow,
+	// Force the element size to equal the text size exactly (Strict)
+	Fixed,
+}
+
 element_equip_text :: proc(
 	ctx: ^Context,
 	element: ^UI_Element,
 	text: string,
-	set_sizing: bool,
+	mode: Text_Sizing_Mode = .Grow,
 	text_fill: base.Fill = base.Color{255, 255, 255, 255},
 ) {
 	element.config.capability_flags |= {.Text}
@@ -163,17 +172,10 @@ element_equip_text :: proc(
 		text = text,
 	}
 
-	if !set_sizing {
+	if mode == .None {
 		return
 	}
 
-	// NOTE(Thomas): We need to pre-calculate the line widths to make
-	// sure that the element gets a reasonable preferred sizing.
-	// We do this by doing the same line layout calculation we do in
-	// `wrap_text`, but we pass in a very large `max_width`, so we
-	// will only split the lines based on `\n`.
-	// We need to do this before we're doing any proper sizing calculations
-	// so we're not screwing with that.
 	largest_line_width, text_height, _ := measure_text_content(
 		ctx,
 		text,
@@ -182,47 +184,71 @@ element_equip_text :: proc(
 	)
 	defer free_all(context.temp_allocator)
 
-	min_width := element.min_size.x
-	min_height := element.min_size.y
+	text_padding := element.config.layout.text_padding
+	content_width := largest_line_width + text_padding.left + text_padding.right
+	content_height := text_height + text_padding.top + text_padding.bottom
 
+	target_width: f32
+	target_height: f32
+
+	min_width := element.min_size.x
 	max_width := element.max_size.x
+
+	sizing_kind_x: Size_Kind
+
+	switch mode {
+
+	case .Fixed:
+		// STRICT: The element must be exactly the size of the text.
+		// We override min and max to ensure no resizing happens.
+		target_width = content_width
+		min_width = content_width
+		max_width = content_width
+		sizing_kind_x = .Fixed
+	case .Grow:
+		// FLEXIBLE: The preferred size is the text size, but we clamp
+		// it to the element's existing limits and allow it to grow.
+		if content_width < min_width {
+			target_width = min_width
+		} else if content_width > max_width {
+			target_width = max_width
+		} else {
+			target_width = content_width
+		}
+		sizing_kind_x = .Grow
+	case .None:
+		// Unreachable due to early return, but good for completeness
+		return
+	}
+
+
+	min_height := element.min_size.y
 	max_height := element.max_size.y
 
-	text_padding := element.config.layout.text_padding
-	width := largest_line_width + text_padding.left + text_padding.right
-	height := text_height + text_padding.top + text_padding.bottom
-
-	if width < min_width {
-		width = min_width
-	} else if width > max_width {
-		width = max_width
+	if content_height < min_height {
+		target_height = min_height
+	} else if content_height > max_height {
+		target_height = max_height
+	} else {
+		target_height = content_height
 	}
 
-	if height < min_height {
-		height = min_height
-	} else if height > max_height {
-		height = max_height
-	}
-
-	element.size.x = width
-	element.size.y = height
+	// 5. Apply Values
+	element.size.x = target_width
+	element.size.y = target_height
 
 	element.config.layout.sizing.x = {
-		kind      = .Grow,
+		kind      = sizing_kind_x,
 		min_value = min_width,
-		value     = width,
+		value     = target_width,
 		max_value = max_width,
 	}
 
 	element.config.layout.sizing.y = {
 		kind      = .Grow,
 		min_value = min_height,
-		value     = height,
+		value     = target_height,
 		max_value = max_height,
-	}
-
-	element.config.content.text_data = Text_Data {
-		text = text,
 	}
 }
 

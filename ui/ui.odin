@@ -701,7 +701,7 @@ text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 	assert(open_ok)
 	if open_ok {
-		element_equip_text(ctx, element, text, true)
+		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
 }
@@ -739,7 +739,7 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 
 	if open_ok {
-		element_equip_text(ctx, element, text, true)
+		element_equip_text(ctx, element, text, .Fixed)
 		close_element(ctx)
 	}
 	append(&ctx.interactive_elements, element)
@@ -914,7 +914,7 @@ text_input :: proc(
 
 		buf_len^ = strings.builder_len(state.builder)
 
-		element_equip_text(ctx, element, text_content, false)
+		element_equip_text(ctx, element, text_content, .None)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt
@@ -1007,9 +1007,9 @@ checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options
 		}
 
 		if checked^ {
-			element_equip_text(ctx, element, "[X]", true)
+			element_equip_text(ctx, element, "[X]", .Fixed)
 		} else {
-			element_equip_text(ctx, element, "[ ]", true)
+			element_equip_text(ctx, element, "[ ]", .Fixed)
 		}
 
 		close_element(ctx)
