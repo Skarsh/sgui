@@ -1,14 +1,15 @@
 # TODOs
 
 ## Active
-* `text_input` has hardcoded sizing values now, figure out how to do this in a better way.
 * To-Do List
+    * Fix `Tracking allocator error: Bad free of pointer` segfault when overflow to-do list on the y axis.
     * Need checkbox helper with checkmarking
-* Styling ergonomy - Need to improve this before there's too much code to change.
 
 ## Bugs
 
 ## Backlog
+* Styling ergonomy - Need to improve this before there's too much code to change.
+* `text_input` has hardcoded sizing values now, figure out how to do this in a better way.
 * Text sizing is a bit complicated now, with different modes. Text should probably just work with
     .Fit `Size_Kind`. This might cause some other issues, so holding it off for now.
 * Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
