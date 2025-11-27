@@ -199,14 +199,14 @@ element_equip_text :: proc(
 	switch mode {
 
 	case .Fixed:
-		// STRICT: The element must be exactly the size of the text.
+		// The element must be exactly the size of the text.
 		// We override min and max to ensure no resizing happens.
 		target_width = content_width
 		min_width = content_width
 		max_width = content_width
 		sizing_kind_x = .Fixed
 	case .Grow:
-		// FLEXIBLE: The preferred size is the text size, but we clamp
+		// The preferred size is the text size, but we clamp
 		// it to the element's existing limits and allow it to grow.
 		if content_width < min_width {
 			target_width = min_width
