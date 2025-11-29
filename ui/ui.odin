@@ -2,6 +2,7 @@ package ui
 
 import "core:container/queue"
 import "core:fmt"
+//import "core:log"
 import "core:math"
 import "core:mem"
 import "core:strings"
@@ -294,6 +295,11 @@ end :: proc(ctx: ^Context) {
 	ctx.frame_idx += 1
 }
 
+
+// BUG(Thomas): When adding rows to the to_do_list that overflows on the y-axis
+// suddenly the v.id_string doesn't get logged for row 8-12
+// but when there's 11 rows, it shows all the rows 0-11. This shows that
+// Something happens when this overflows here, either with the BFS or something else.
 process_interactions :: proc(ctx: ^Context) {
 	top_element: ^UI_Element
 	highest_z_index: i32 = -1
@@ -309,6 +315,8 @@ process_interactions :: proc(ctx: ^Context) {
 	for queue.len(q) > 0 {
 		v := queue.pop_front(&q)
 
+		//log.info("v.id_string", v.id_string)
+
 		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
 
 		if base.point_in_rect(ctx.input.mouse_pos, rect) {
@@ -320,6 +328,7 @@ process_interactions :: proc(ctx: ^Context) {
 			}
 		}
 
+		// TODO(Thomas): @Perf - This is O(n²)
 		for child in v.children {
 			found := false
 			for n in visited {
