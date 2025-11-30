@@ -109,6 +109,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				// --- Task List ---
 				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
 				task_list_child_gap: f32 = 8
+				task_list_padding: ui.Padding = {10, 10, 10, 10}
 				if ui.begin_container(
 					ctx,
 					"task_list",
@@ -116,6 +117,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						layout = {
 							layout_direction = &task_list_layout_dir,
 							child_gap = &task_list_child_gap,
+							padding = &task_list_padding,
 						},
 					},
 				) {
