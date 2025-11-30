@@ -2,7 +2,7 @@ package ui
 
 import "core:container/queue"
 import "core:fmt"
-//import "core:log"
+import "core:log"
 import "core:math"
 import "core:mem"
 import "core:strings"
@@ -296,10 +296,54 @@ end :: proc(ctx: ^Context) {
 }
 
 
-// BUG(Thomas): When adding rows to the to_do_list that overflows on the y-axis
-// suddenly the v.id_string doesn't get logged for row 8-12
-// but when there's 11 rows, it shows all the rows 0-11. This shows that
-// Something happens when this overflows here, either with the BFS or something else.
+// TODO(Thomas): Think about which allocator to use here.
+// Using the temp allocator or some scratch allocator would be nice here,
+// since this doesn't need to live for longer than the search. The problem with
+// using the context.temp_allocator here is that something is relying on that memory.
+bfs :: proc(ctx: ^Context, top_element: ^^UI_Element, highest_z_index: ^i32) {
+
+	q := queue.Queue(^UI_Element){}
+	queue.init(&q, allocator = ctx.frame_allocator)
+	visited := make(map[string]bool, ctx.frame_allocator)
+	visited[ctx.root_element.id_string] = true
+	ok, alloc_err := queue.push_back(&q, ctx.root_element)
+	if alloc_err != .None {
+		log.errorf("failed to allocate when push_back onto queue: %v", alloc_err)
+	}
+	assert(ok)
+	assert(alloc_err == .None)
+
+	for queue.len(q) > 0 {
+		v := queue.pop_front(&q)
+
+		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
+
+		if base.point_in_rect(ctx.input.mouse_pos, rect) {
+			if .Clickable in v.config.capability_flags {
+				if v.z_index > highest_z_index^ {
+					highest_z_index^ = v.z_index
+					top_element^ = v
+				}
+			}
+		}
+
+		for child in v.children {
+			_, found := visited[child.id_string]
+			if !found {
+				visited[child.id_string] = true
+				ok, alloc_err = queue.push_back(&q, child)
+
+				if alloc_err != .None {
+					log.errorf("failed to allocate when push_back onto queue: %v", alloc_err)
+				}
+
+				assert(alloc_err == .None)
+				assert(ok)
+			}
+		}
+	}
+}
+
 process_interactions :: proc(ctx: ^Context) {
 	top_element: ^UI_Element
 	highest_z_index: i32 = -1
@@ -307,41 +351,7 @@ process_interactions :: proc(ctx: ^Context) {
 	// BFS traversal, we're traversing the layout hierarchy instead
 	// of iterating over the element_cache because in this way we
 	// know we'll always just have fresh and existing UI_Elements.
-	q := queue.Queue(^UI_Element){}
-	queue.init(&q, allocator = ctx.frame_allocator)
-	visited := make([dynamic]^UI_Element, ctx.frame_allocator)
-
-	queue.push_back(&q, ctx.root_element)
-	for queue.len(q) > 0 {
-		v := queue.pop_front(&q)
-
-		//log.info("v.id_string", v.id_string)
-
-		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
-
-		if base.point_in_rect(ctx.input.mouse_pos, rect) {
-			if .Clickable in v.config.capability_flags {
-				if v.z_index > highest_z_index {
-					highest_z_index = v.z_index
-					top_element = v
-				}
-			}
-		}
-
-		// TODO(Thomas): @Perf - This is O(n²)
-		for child in v.children {
-			found := false
-			for n in visited {
-				if child.id_string == n.id_string {
-					found = true
-				}
-			}
-			if !found {
-				append(&visited, child)
-				queue.push_back(&q, child)
-			}
-		}
-	}
+	bfs(ctx, &top_element, &highest_z_index)
 
 	// Clearing the active element when clicking elsewhere
 	if is_mouse_pressed(ctx^, .Left) {
