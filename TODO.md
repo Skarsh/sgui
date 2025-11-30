@@ -9,6 +9,8 @@
 ## Bugs
 
 ## Backlog
+* Make it possible to pass in memory chunks to the app, so that the usage code
+    can control how much memory is used for the app and to which part.
 * Styling ergonomy - Need to improve this before there's too much code to change.
 * `text_input` has hardcoded sizing values now, figure out how to do this in a better way.
 * Text sizing is a bit complicated now, with different modes. Text should probably just work with
