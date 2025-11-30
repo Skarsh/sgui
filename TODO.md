@@ -2,8 +2,6 @@
 
 ## Active
 * To-Do List
-    * Fix `Tracking allocator error: Bad free of pointer` when certain amount of tasks
-        is added to the `to_do_list`.
     * Need checkbox helper with checkmarking
 
 ## Bugs
