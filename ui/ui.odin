@@ -294,11 +294,6 @@ end :: proc(ctx: ^Context) {
 	ctx.frame_idx += 1
 }
 
-
-// TODO(Thomas): Think about which allocator to use here.
-// Using the temp allocator or some scratch allocator would be nice here,
-// since this doesn't need to live for longer than the search. The problem with
-// using the context.temp_allocator here is that something is relying on that memory.
 bfs :: proc(ctx: ^Context, top_element: ^^UI_Element, highest_z_index: ^i32) {
 
 	q := queue.Queue(^UI_Element){}
