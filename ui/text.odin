@@ -51,10 +51,14 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 		if r == '\n' {
 			rune_pos += 1
 			length := rune_pos - start_pos
-			append(
+			_, alloc_err := append(
 				tokens,
 				Text_Token{start = start_pos, length = length, width = 0, kind = .Newline},
 			)
+			if alloc_err != .None {
+				log.errorf("failed to allocate when appending token onto tokens: %v", alloc_err)
+			}
+			assert(alloc_err == .None)
 		} else if unicode.is_space(r) {
 			// Continue to eat whitespace until we've hit something that's not a whitespace rune
 			for rune_pos < rune_count {
@@ -73,10 +77,14 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 			assert(ok)
 			width := measure_string_width(ctx, token_str, font_id)
 
-			append(
+			_, alloc_err := append(
 				tokens,
 				Text_Token{start = start_pos, length = length, width = width, kind = .Whitespace},
 			)
+			if alloc_err != .None {
+				log.errorf("failed to allocate when appending token onto tokens: %v", alloc_err)
+			}
+			assert(alloc_err == .None)
 		} else {
 			// We accumulate all other runes that are not newline or whitespace into words
 			for rune_pos < rune_count {
@@ -93,10 +101,14 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 			token_str, ok := strings.substring(text, start_pos, rune_pos)
 			assert(ok)
 			width := measure_string_width(ctx, token_str, font_id)
-			append(
+			_, alloc_err := append(
 				tokens,
 				Text_Token{start = start_pos, length = length, width = width, kind = .Word},
 			)
+			if alloc_err != .None {
+				log.errorf("failed to allocate when appending token onto tokens: %v", alloc_err)
+			}
+			assert(alloc_err == .None)
 		}
 	}
 }
@@ -187,8 +199,11 @@ flush_line :: proc(
 		height = line_height,
 	}
 
-
-	append(lines, line)
+	_, alloc_err := append(lines, line)
+	if alloc_err != .None {
+		log.errorf("failed to allocate when appending line onto lines: %v", alloc_err)
+	}
+	assert(alloc_err == .None)
 }
 
 layout_lines :: proc(
@@ -223,10 +238,24 @@ layout_lines :: proc(
 			if line_width + token.width > available_width + EPSILON {
 				flush_line(ctx, text, line_tokens[:], lines)
 				clear_dynamic_array(&line_tokens)
-				append(&line_tokens, token)
+				_, alloc_err := append(&line_tokens, token)
+				if alloc_err != .None {
+					log.errorf(
+						"failed to allocate appending token onto line_tokens: %v",
+						alloc_err,
+					)
+				}
+				assert(alloc_err == .None)
 				line_width = token.width
 			} else {
-				append(&line_tokens, token)
+				_, alloc_err := append(&line_tokens, token)
+				if alloc_err != .None {
+					log.errorf(
+						"failed to allocate when appending token onto line_tokens: %v",
+						alloc_err,
+					)
+				}
+				assert(alloc_err == .None)
 				line_width += token.width
 			}
 		}
@@ -245,14 +274,24 @@ measure_text_content :: proc(
 	available_width: f32,
 	allocator: mem.Allocator,
 ) -> (
-	width: f32,
-	height: f32,
-	lines: [dynamic]Text_Line,
+	f32,
+	f32,
+	[dynamic]Text_Line,
 ) {
-	tokens := make([dynamic]Text_Token, allocator)
+	tokens, tokens_alloc_err := make([dynamic]Text_Token, allocator)
+	if tokens_alloc_err != .None {
+		log.errorf("failed to allocate tokens dynamic array: %v", tokens_alloc_err)
+	}
+	assert(tokens_alloc_err == .None)
+
 	tokenize_text(ctx, text, ctx.font_id, &tokens)
 
-	lines = make([dynamic]Text_Line, allocator)
+	lines, lines_alloc_err := make([dynamic]Text_Line, allocator)
+	if lines_alloc_err != .None {
+		log.errorf("failed to allocate lines dynamic array: %v", lines_alloc_err)
+	}
+	assert(lines_alloc_err == .None)
+
 	layout_lines(ctx, text, tokens[:], available_width, &lines, allocator)
 
 	w: f32 = 0

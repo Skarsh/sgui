@@ -272,8 +272,7 @@ end :: proc(ctx: ^Context) {
 	resolve_dependent_sizes_for_axis(ctx.root_element, .X)
 
 	// Wrap text
-	wrap_text(ctx, ctx.root_element, context.temp_allocator)
-	defer free_all(context.temp_allocator)
+	wrap_text(ctx, ctx.root_element, ctx.frame_allocator)
 
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)
@@ -303,8 +302,9 @@ end :: proc(ctx: ^Context) {
 bfs :: proc(ctx: ^Context, top_element: ^^UI_Element, highest_z_index: ^i32) {
 
 	q := queue.Queue(^UI_Element){}
-	queue.init(&q, allocator = ctx.frame_allocator)
-	visited := make(map[string]bool, ctx.frame_allocator)
+	queue.init(&q, allocator = context.temp_allocator)
+	visited := make(map[string]bool, context.temp_allocator)
+	defer free_all(context.temp_allocator)
 	visited[ctx.root_element.id_string] = true
 	ok, alloc_err := queue.push_back(&q, ctx.root_element)
 	if alloc_err != .None {
