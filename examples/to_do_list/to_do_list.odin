@@ -281,12 +281,6 @@ main :: proc() {
 	defer app.deinit(my_app)
 
 	// --- Initialize Application Data ---
-	tasks := make([dynamic]Task)
-	append(&tasks, Task{text = "Learn Odin", completed = true})
-	append(&tasks, Task{text = "Build a UI library", completed = true})
-	append(&tasks, Task{text = "Create a to-do app", completed = false})
-	defer delete(tasks)
-
 	new_task_buf := make([]u8, 256)
 	defer delete(new_task_buf)
 
@@ -295,6 +289,11 @@ main :: proc() {
 	assert(arena_err == .None)
 	arena_allocator := virtual.arena_allocator(&arena)
 	defer free_all(arena_allocator)
+
+	tasks := make([dynamic]Task, arena_allocator)
+	append(&tasks, Task{text = "Learn Odin", completed = true})
+	append(&tasks, Task{text = "Build a UI library", completed = true})
+	append(&tasks, Task{text = "Create a to-do app", completed = false})
 
 	my_data := Data {
 		allocator        = arena_allocator,
