@@ -274,6 +274,8 @@ sdl_render_draw_commands :: proc(render_data: ^SDL_Render_Data, command_queue: [
 			}
 		case ui.Command_Image:
 			sdl_render_image(render_data, val.x, val.y, val.w, val.h, val.data)
+		case ui.Command_Shape:
+			panic("TODO! Impelement Shape Command")
 		case ui.Command_Push_Scissor:
 			new_scissor_rect := sdl.Rect{val.rect.x, val.rect.y, val.rect.w, val.rect.h}
 

@@ -25,10 +25,15 @@ Color_Type :: enum u32 {
 	Click,
 }
 
+Shape_Kind :: enum {
+	Checkmark,
+}
+
 Command :: union {
 	Command_Rect,
 	Command_Text,
 	Command_Image,
+	Command_Shape,
 	Command_Push_Scissor,
 	Command_Pop_Scissor,
 }
@@ -50,6 +55,13 @@ Command_Text :: struct {
 Command_Image :: struct {
 	x, y, w, h: f32,
 	data:       rawptr,
+}
+
+Command_Shape :: struct {
+	rect:      base.Rect,
+	fill:      base.Fill,
+	kind:      Shape_Kind,
+	thickness: f32,
 }
 
 Command_Push_Scissor :: struct {
@@ -136,6 +148,7 @@ Capability :: enum {
 	Background,
 	Text,
 	Image,
+	Shape,
 	Active_Animation,
 	Hot_Animation,
 	Clickable,
@@ -573,6 +586,25 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		)
 	}
 
+	if .Shape in cap_flags {
+		fill := base.Fill(base.Color{255, 255, 255, 255})
+		kind := Shape_Kind.Checkmark
+		thickness: f32 = 2.0
+
+		draw_shape(
+			ctx,
+			base.Rect {
+				i32(element.position.x),
+				i32(element.position.y),
+				i32(element.size.x),
+				i32(element.size.y),
+			},
+			fill,
+			kind,
+			thickness,
+		)
+	}
+
 	if .Text in cap_flags {
 		text_padding := element.config.layout.text_padding
 		content_area_x := element.position.x + text_padding.left
@@ -650,6 +682,16 @@ draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Fill) {
 
 draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 	append(&ctx.command_queue, Command_Image{x, y, w, h, data})
+}
+
+draw_shape :: proc(
+	ctx: ^Context,
+	rect: base.Rect,
+	fill: base.Fill,
+	kind: Shape_Kind,
+	thickness: f32,
+) {
+	append(&ctx.command_queue, Command_Shape{rect, fill, kind, thickness})
 }
 
 
@@ -979,6 +1021,52 @@ text_input :: proc(
 		}
 
 		element.last_comm.text = text_content
+
+		close_element(ctx)
+	}
+
+	append(&ctx.interactive_elements, element)
+	return element.last_comm
+}
+
+checkbox_2 :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
+
+	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+
+	default_opts := Config_Options {
+		layout = {sizing = {&sizing.x, &sizing.y}},
+		capability_flags = &capability_flags,
+	}
+
+	element, open_ok := open_element(ctx, id, opts, default_opts)
+	if open_ok {
+
+		if element.last_comm.clicked {
+			if checked^ {
+				checked^ = false
+			} else {
+				checked^ = true
+			}
+		}
+
+		shape_id := fmt.tprintf("%v_shape", id)
+		shape_sizing := [2]Sizing {
+			{kind = .Percentage_Of_Parent, value = 1.0},
+			{kind = .Percentage_Of_Parent, value = 1.0},
+		}
+		shape_caps := Capability_Flags{.Shape}
+
+		shape_default_opts := Config_Options {
+			layout = {sizing = {&shape_sizing.x, &shape_sizing.y}},
+			capability_flags = &shape_caps,
+		}
+
+		_, shape_open_ok := open_element(ctx, shape_id, shape_default_opts)
+		if shape_open_ok {
+			close_element(ctx)
+		}
+
 
 		close_element(ctx)
 	}

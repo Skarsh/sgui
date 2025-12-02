@@ -633,6 +633,9 @@ opengl_render_end :: proc(
 			append(&batch.indices, ..rect_indices[:])
 
 			batch.vertex_offset += 4
+		case ui.Command_Shape:
+			panic("TODO! Implement rendering of Shape draw command")
+
 		case ui.Command_Push_Scissor:
 			// NOTE(Thomas): We'll now flush every time we get a scissor command.
 			// If a lot of different ui elements has clipping enabled, then this
