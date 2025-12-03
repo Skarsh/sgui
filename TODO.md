@@ -7,6 +7,7 @@
 ## Bugs
 
 ## Backlog
+* Review coordinate systems. Seems like origin is at upper left corner for fragment shader.
 * Make it possible to pass in memory chunks to the app, so that the usage code
     can control how much memory is used for the app and to which part.
 * Styling ergonomy - Need to improve this before there's too much code to change.
