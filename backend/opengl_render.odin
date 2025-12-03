@@ -44,6 +44,7 @@ Vertex :: struct {
 	tex_slot:            i32,
 	radius:              f32,
 	border_thickness:    f32,
+	shape_kind:          i32,
 }
 
 Batch :: struct {
@@ -197,6 +198,9 @@ init_opengl :: proc(
 		offset_of(Vertex, border_thickness),
 	)
 	gl.EnableVertexAttribArray(12)
+
+	gl.VertexAttribPointer(13, 1, gl.INT, false, size_of(Vertex), offset_of(Vertex, shape_kind))
+	gl.EnableVertexAttribArray(13)
 
 	gl.BindVertexArray(0)
 
@@ -397,6 +401,7 @@ opengl_render_end :: proc(
 				tex                 = {-1, -1},
 				radius              = radius,
 				border_thickness    = border_thickness,
+				shape_kind          = -1,
 			}
 
 
@@ -472,6 +477,7 @@ opengl_render_end :: proc(
 						gradient_dir = {0, 0},
 						tex = {q.s1, q.t1},
 						tex_slot = 0,
+						shape_kind = -1,
 					},
 				)
 
@@ -485,6 +491,7 @@ opengl_render_end :: proc(
 						gradient_dir = {0, 0},
 						tex = {q.s1, q.t0},
 						tex_slot = 0,
+						shape_kind = -1,
 					},
 				)
 
@@ -498,6 +505,7 @@ opengl_render_end :: proc(
 						gradient_dir = {0, 0},
 						tex = {q.s0, q.t0},
 						tex_slot = 0,
+						shape_kind = -1,
 					},
 				)
 
@@ -511,6 +519,7 @@ opengl_render_end :: proc(
 						gradient_dir = {0, 0},
 						tex = {q.s0, q.t1},
 						tex_slot = 0,
+						shape_kind = -1,
 					},
 				)
 
@@ -580,6 +589,7 @@ opengl_render_end :: proc(
 					gradient_dir = {0, 0},
 					tex = {1, 1},
 					tex_slot = tex_slot,
+					shape_kind = -1,
 				},
 			)
 
@@ -593,6 +603,7 @@ opengl_render_end :: proc(
 					gradient_dir = {0, 0},
 					tex = {1, 0},
 					tex_slot = tex_slot,
+					shape_kind = -1,
 				},
 			)
 
@@ -606,6 +617,7 @@ opengl_render_end :: proc(
 					gradient_dir = {0, 0},
 					tex = {0, 0},
 					tex_slot = tex_slot,
+					shape_kind = -1,
 				},
 			)
 
@@ -619,6 +631,7 @@ opengl_render_end :: proc(
 					gradient_dir = {0, 0},
 					tex = {0, 1},
 					tex_slot = tex_slot,
+					shape_kind = -1,
 				},
 			)
 
@@ -634,7 +647,70 @@ opengl_render_end :: proc(
 
 			batch.vertex_offset += 4
 		case ui.Command_Shape:
-			panic("TODO! Implement rendering of Shape draw command")
+			rect := val.rect
+			x := f32(rect.x)
+			y := f32(rect.y)
+			w := f32(rect.w)
+			h := f32(rect.h)
+
+			color_start, color_end: base.Vec4
+			gradient_dir: base.Vec2
+
+			half_w := w / 2
+			half_h := h / 2
+
+			center_x := x + half_w
+			center_y := y + half_h
+
+			switch fill in val.fill {
+			case base.Color:
+				r := f32(fill.r) / 255
+				g := f32(fill.g) / 255
+				b := f32(fill.b) / 255
+				a := f32(fill.a) / 255
+				color_start = {r, g, b, a}
+				color_end = {r, g, b, a}
+				gradient_dir = {0, 0}
+
+			case base.Gradient:
+				cs := fill.color_start
+				ce := fill.color_end
+				color_start = {f32(cs.r) / 255, f32(cs.g) / 255, f32(cs.b) / 255, f32(cs.a) / 255}
+				color_end = {f32(ce.r) / 255, f32(ce.g) / 255, f32(ce.b) / 255, f32(ce.a) / 255}
+				gradient_dir = fill.direction
+			}
+
+			vertex_template := Vertex {
+				// Fill
+				color_start    = color_start,
+				color_end      = color_end,
+				gradient_dir   = gradient_dir,
+				// Others
+				quad_half_size = {half_w, half_h},
+				quad_pos       = {center_x, center_y},
+				tex            = {-1, -1},
+				// TODO(Thomas): Use the actual shape kind
+				shape_kind     = 1,
+			}
+
+			v1 := vertex_template; v1.pos = {x + w, y + h, 0}
+			v2 := vertex_template; v2.pos = {x + w, y, 0}
+			v3 := vertex_template; v3.pos = {x, y, 0}
+			v4 := vertex_template; v4.pos = {x, y + h, 0}
+
+			append(&batch.vertices, v1, v2, v3, v4)
+
+			rect_indices := [6]u32 {
+				batch.vertex_offset + 0,
+				batch.vertex_offset + 1,
+				batch.vertex_offset + 2,
+				batch.vertex_offset + 2,
+				batch.vertex_offset + 3,
+				batch.vertex_offset + 0,
+			}
+			append(&batch.indices, ..rect_indices[:])
+
+			batch.vertex_offset += 4
 
 		case ui.Command_Push_Scissor:
 			// NOTE(Thomas): We'll now flush every time we get a scissor command.

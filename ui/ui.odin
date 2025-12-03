@@ -1031,7 +1031,13 @@ text_input :: proc(
 
 checkbox_2 :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
 
-	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+	// TODO(Thomas): The same min_value and max_value here is to make sure
+	// that the checkbox will look similar on all the rows of the to_do_list example.
+	// This shouldn't be hardcoded like this of course, and requires a proper solution.
+	sizing := [2]Sizing {
+		{kind = .Grow, min_value = 36, max_value = 36},
+		{kind = .Grow, min_value = 36, max_value = 36},
+	}
 	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 
 	default_opts := Config_Options {
@@ -1050,16 +1056,20 @@ checkbox_2 :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Optio
 			}
 		}
 
+		shape_bg_fill := base.Fill(base.Color{255, 0, 0, 255})
 		shape_id := fmt.tprintf("%v_shape", id)
 		shape_sizing := [2]Sizing {
 			{kind = .Percentage_Of_Parent, value = 1.0},
 			{kind = .Percentage_Of_Parent, value = 1.0},
 		}
-		shape_caps := Capability_Flags{.Shape}
+		// TODO(Thomas): .Background capability for the Shape is just temporary
+		// for debugging purposes.
+		shape_caps := Capability_Flags{.Background, .Shape}
 
 		shape_default_opts := Config_Options {
 			layout = {sizing = {&shape_sizing.x, &shape_sizing.y}},
 			capability_flags = &shape_caps,
+			background_fill = &shape_bg_fill,
 		}
 
 		_, shape_open_ok := open_element(ctx, shape_id, shape_default_opts)

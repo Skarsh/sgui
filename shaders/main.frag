@@ -16,6 +16,7 @@ in vec2 v_tex_coords;
 flat in int v_tex_slot;
 in float v_radius;
 in float v_border_thickness;
+flat in int v_shape_kind;
 
 out vec4 o_color;
 
@@ -28,6 +29,16 @@ uniform sampler2D u_image_texture_2;
 uniform sampler2D u_image_texture_3;
 uniform sampler2D u_image_texture_4;
 uniform sampler2D u_image_texture_5;
+
+// p: The current fragment's position relative to the center
+// a: Start point of the line segment
+// b: End point of the line segment
+float sdSegment(vec2 p, vec2 a, vec2 b) {
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - (ba * h));
+}
 
 // Calculates alpha based on signed distance for smooth anti-aliasing
 // d: The signed distance from the edge
@@ -105,6 +116,20 @@ void main() {
             vec4 final_material = mix(border_color, inner_color, alpha_inner);
 
             o_color = vec4(final_material.rgb, final_material.a * alpha_border);
+        }
+
+        if (v_shape_kind > 0.0) {
+            vec2 p1 = vec2(-0.75 * v_quad_half_size.x, 0.1 * v_quad_half_size.y);
+            vec2 p2 = vec2(0.0 * v_quad_half_size.x, 0.75 * v_quad_half_size.y);
+            float d1 = sdSegment(v_local_pos, p1,  p2);
+
+            vec2 p3 = vec2(0.7 * v_quad_half_size.x, -0.65 * v_quad_half_size.y);
+            float d2 = sdSegment(v_local_pos, p2, p3);
+
+            float combined_d = min(d1, d2);
+            float stroke_width = 1.0;
+            float alpha = 1.0 - smoothstep(0.0, 1.0, combined_d - stroke_width);
+            o_color = mix(vec4(0.3, 0.3, 0.3, 1.0), vec4(1.0, 1.0, 1.0, 1.0), alpha);
         }
 
     } else {

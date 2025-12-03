@@ -16,6 +16,7 @@ layout(location=9) in vec2 a_tex_coords;
 layout(location=10) in int a_tex_slot;
 layout(location=11) in float a_radius;
 layout(location=12) in float a_border_thickness;
+layout(location=13) in int a_shape_kind;
 
 uniform mat4 transform;
 
@@ -35,6 +36,7 @@ out vec2 v_local_pos;
 flat out int v_tex_slot;
 out float v_radius;
 out float v_border_thickness;
+flat out int v_shape_kind;
 
 void main() {
     gl_Position = transform * vec4(a_position, 1.0);
@@ -58,4 +60,5 @@ void main() {
     v_tex_slot = a_tex_slot;
     v_radius = a_radius;
     v_border_thickness = a_border_thickness;
+    v_shape_kind = a_shape_kind;
 }
