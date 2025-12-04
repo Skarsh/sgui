@@ -7,6 +7,8 @@
 ## Bugs
 
 ## Backlog
+* Review how capability flags are set in `open_element`. Currently they are additive, which
+    works fine usually, but we've already seen cases where overriding it would be nice. 
 * Review coordinate systems. Seems like origin is at upper left corner for fragment shader.
 * Make it possible to pass in memory chunks to the app, so that the usage code
     can control how much memory is used for the app and to which part.
