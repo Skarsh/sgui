@@ -1029,7 +1029,11 @@ text_input :: proc(
 	return element.last_comm
 }
 
-checkbox_2 :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
+// TODO(Thomas): Having the Shape be it's own element raises some challenges when it comes to stylability.
+// This checkbox procedure would have to take in two Config_Options then, which kind of breaks with the
+// way it's usually done. What if the shape is content like an Image? Or it can be equipped onto an existing
+// element such element_equip_text?
+checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
 
 	// TODO(Thomas): The same min_value and max_value here is to make sure
 	// that the checkbox will look similar on all the rows of the to_do_list example.
@@ -1056,81 +1060,34 @@ checkbox_2 :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Optio
 			}
 		}
 
-		shape_bg_fill := base.Fill(base.Color{255, 0, 0, 255})
-		shape_id := fmt.tprintf("%v_shape", id)
-		shape_sizing := [2]Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
-		// TODO(Thomas): .Background capability for the Shape is just temporary
-		// for debugging purposes.
-		shape_caps := Capability_Flags{.Background, .Shape}
+		if checked^ {
 
-		shape_default_opts := Config_Options {
-			layout = {sizing = {&shape_sizing.x, &shape_sizing.y}},
-			capability_flags = &shape_caps,
-			background_fill = &shape_bg_fill,
-		}
+			shape_opts := Config_Options{}
 
-		_, shape_open_ok := open_element(ctx, shape_id, shape_default_opts)
-		if shape_open_ok {
-			close_element(ctx)
-		}
+			shape_id := fmt.tprintf("%v_shape", id)
+			shape_default_sizing := [2]Sizing {
+				{kind = .Percentage_Of_Parent, value = 0.5},
+				{kind = .Percentage_Of_Parent, value = 0.5},
+			}
+			shape_default_caps := Capability_Flags{.Shape}
 
+			shape_default_opts := Config_Options {
+				layout = {sizing = {&shape_default_sizing.x, &shape_default_sizing.y}},
+				capability_flags = &shape_default_caps,
+			}
 
-		close_element(ctx)
-	}
-
-	append(&ctx.interactive_elements, element)
-	return element.last_comm
-}
-
-checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
-
-	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
-
-	text_padding := Padding {
-		left   = 10,
-		top    = 10,
-		right  = 10,
-		bottom = 10,
-	}
-	text_alignment_x := Alignment_X.Center
-
-	default_opts := Config_Options {
-		layout = {
-			sizing = {&sizing.x, &sizing.y},
-			text_alignment_x = &text_alignment_x,
-			text_padding = &text_padding,
-		},
-		capability_flags = &capability_flags,
-	}
-
-	element, open_ok := open_element(ctx, id, opts, default_opts)
-	if open_ok {
-
-		if element.last_comm.clicked {
-			if checked^ {
-				checked^ = false
-			} else {
-				checked^ = true
+			_, shape_open_ok := open_element(ctx, shape_id, shape_default_opts, shape_default_opts)
+			if shape_open_ok {
+				close_element(ctx)
 			}
 		}
 
-		if checked^ {
-			element_equip_text(ctx, element, "[X]", .Fixed)
-		} else {
-			element_equip_text(ctx, element, "[ ]", .Fixed)
-		}
-
 		close_element(ctx)
 	}
 
 	append(&ctx.interactive_elements, element)
 	return element.last_comm
 }
-
 
 push_sizing_x :: proc(ctx: ^Context, sizing: Sizing) -> bool {
 	return push(&ctx.sizing_x_stack, sizing)
