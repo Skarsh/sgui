@@ -59,9 +59,16 @@ Text_Data :: struct {
 	lines: []Text_Line,
 }
 
+Shape_Data :: struct {
+	kind:      Shape_Kind,
+	fill:      base.Fill,
+	thickness: f32,
+}
+
 Element_Content :: struct {
 	text_data:  Text_Data,
 	image_data: rawptr,
+	shape_data: Shape_Data,
 }
 
 Layout_Config :: struct {

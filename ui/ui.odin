@@ -58,10 +58,8 @@ Command_Image :: struct {
 }
 
 Command_Shape :: struct {
-	rect:      base.Rect,
-	fill:      base.Fill,
-	kind:      Shape_Kind,
-	thickness: f32,
+	rect: base.Rect,
+	data: Shape_Data,
 }
 
 Command_Push_Scissor :: struct {
@@ -587,9 +585,11 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if .Shape in cap_flags {
-		fill := base.Fill(base.Color{255, 255, 255, 255})
-		kind := Shape_Kind.Checkmark
-		thickness: f32 = 2.0
+		shape_data := Shape_Data {
+			kind      = .Checkmark,
+			fill      = base.Fill(base.Color{255, 255, 255, 255}),
+			thickness = 2.0,
+		}
 
 		draw_shape(
 			ctx,
@@ -599,9 +599,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				i32(element.size.x),
 				i32(element.size.y),
 			},
-			fill,
-			kind,
-			thickness,
+			shape_data,
 		)
 	}
 
@@ -684,14 +682,8 @@ draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
 	append(&ctx.command_queue, Command_Image{x, y, w, h, data})
 }
 
-draw_shape :: proc(
-	ctx: ^Context,
-	rect: base.Rect,
-	fill: base.Fill,
-	kind: Shape_Kind,
-	thickness: f32,
-) {
-	append(&ctx.command_queue, Command_Shape{rect, fill, kind, thickness})
+draw_shape :: proc(ctx: ^Context, rect: base.Rect, data: Shape_Data) {
+	append(&ctx.command_queue, Command_Shape{rect, data})
 }
 
 
@@ -1076,7 +1068,7 @@ checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options
 				capability_flags = &shape_default_caps,
 			}
 
-			_, shape_open_ok := open_element(ctx, shape_id, shape_default_opts, shape_default_opts)
+			_, shape_open_ok := open_element(ctx, shape_id, shape_opts, shape_default_opts)
 			if shape_open_ok {
 				close_element(ctx)
 			}

@@ -662,7 +662,7 @@ opengl_render_end :: proc(
 			center_x := x + half_w
 			center_y := y + half_h
 
-			switch fill in val.fill {
+			switch fill in val.data.fill {
 			case base.Color:
 				r := f32(fill.r) / 255
 				g := f32(fill.g) / 255
