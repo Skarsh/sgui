@@ -141,7 +141,16 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						) {
 
 							// --- Checkbox Button ---
-							ui.checkbox(ctx, fmt.tprintf("tasks_checkbox_%d", i), &task.completed)
+							ui.checkbox(
+								ctx,
+								fmt.tprintf("tasks_checkbox_%d", i),
+								&task.completed,
+								ui.Shape_Data {
+									ui.Shape_Kind.Checkmark,
+									base.Fill(base.Color{255, 255, 255, 255}),
+									2.0,
+								},
+							)
 
 							// --- Spacer ---
 							ui.spacer(ctx)

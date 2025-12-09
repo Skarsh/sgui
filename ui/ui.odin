@@ -585,12 +585,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if .Shape in cap_flags {
-		shape_data := Shape_Data {
-			kind      = .Checkmark,
-			fill      = base.Fill(base.Color{255, 255, 255, 255}),
-			thickness = 2.0,
-		}
-
 		draw_shape(
 			ctx,
 			base.Rect {
@@ -599,7 +593,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				i32(element.size.x),
 				i32(element.size.y),
 			},
-			shape_data,
+			element.config.content.shape_data,
 		)
 	}
 
@@ -1021,20 +1015,18 @@ text_input :: proc(
 	return element.last_comm
 }
 
-// TODO(Thomas): Having the Shape be it's own element raises some challenges when it comes to stylability.
-// This checkbox procedure would have to take in two Config_Options then, which kind of breaks with the
-// way it's usually done. What if the shape is content like an Image? Or it can be equipped onto an existing
-// element such element_equip_text?
-checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options = {}) -> Comm {
-
-	// TODO(Thomas): The same min_value and max_value here is to make sure
-	// that the checkbox will look similar on all the rows of the to_do_list example.
-	// This shouldn't be hardcoded like this of course, and requires a proper solution.
+checkbox :: proc(
+	ctx: ^Context,
+	id: string,
+	checked: ^bool,
+	shape_data: Shape_Data,
+	opts: Config_Options = {},
+) -> Comm {
 	sizing := [2]Sizing {
 		{kind = .Grow, min_value = 36, max_value = 36},
 		{kind = .Grow, min_value = 36, max_value = 36},
 	}
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation, .Shape}
 
 	default_opts := Config_Options {
 		layout = {sizing = {&sizing.x, &sizing.y}},
@@ -1053,25 +1045,7 @@ checkbox :: proc(ctx: ^Context, id: string, checked: ^bool, opts: Config_Options
 		}
 
 		if checked^ {
-
-			shape_opts := Config_Options{}
-
-			shape_id := fmt.tprintf("%v_shape", id)
-			shape_default_sizing := [2]Sizing {
-				{kind = .Percentage_Of_Parent, value = 0.5},
-				{kind = .Percentage_Of_Parent, value = 0.5},
-			}
-			shape_default_caps := Capability_Flags{.Shape}
-
-			shape_default_opts := Config_Options {
-				layout = {sizing = {&shape_default_sizing.x, &shape_default_sizing.y}},
-				capability_flags = &shape_default_caps,
-			}
-
-			_, shape_open_ok := open_element(ctx, shape_id, shape_opts, shape_default_opts)
-			if shape_open_ok {
-				close_element(ctx)
-			}
+			element_equip_shape(element, shape_data)
 		}
 
 		close_element(ctx)

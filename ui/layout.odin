@@ -259,6 +259,11 @@ element_equip_text :: proc(
 	}
 }
 
+element_equip_shape :: proc(element: ^UI_Element, shape_data: Shape_Data) {
+	element.config.capability_flags |= {.Text}
+	element.config.content.shape_data = shape_data
+}
+
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	if len(element.children) == 0 {
 		return 0

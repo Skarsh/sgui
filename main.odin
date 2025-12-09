@@ -240,7 +240,7 @@ build_bug_repro :: proc(app_state: ^App_State) {
 				},
 			) {
 
-				ui.checkbox(ctx, fmt.tprintf("checkbox_%d", i), &b)
+				ui.checkbox(ctx, fmt.tprintf("checkbox_%d", i), &b, {})
 				ui.spacer(ctx)
 				ui.text(ctx, fmt.tprintf("text_%d", i), text)
 				ui.spacer(ctx)
