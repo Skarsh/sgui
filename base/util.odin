@@ -4,6 +4,11 @@ import "core:math"
 import "core:testing"
 
 @(require_results)
+color_to_vec4 :: proc(color: Color) -> Vec4 {
+	return Vec4{f32(color.r) / 255, f32(color.g) / 255, f32(color.b) / 255, f32(color.a) / 255}
+}
+
+@(require_results)
 point_in_rect :: proc(p: Vector2i32, rect: Rect) -> bool {
 	if p.x < rect.x || p.y < rect.y || p.x >= rect.x + rect.w || p.y >= rect.y + rect.h {
 		return false

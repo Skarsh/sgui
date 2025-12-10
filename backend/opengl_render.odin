@@ -342,47 +342,30 @@ opengl_render_end :: proc(
 
 			switch fill in val.fill {
 			case base.Color:
-				r := f32(fill.r) / 255
-				g := f32(fill.g) / 255
-				b := f32(fill.b) / 255
-				a := f32(fill.a) / 255
-				color_start = {r, g, b, a}
-				color_end = {r, g, b, a}
-				gradient_dir = {0, 0}
+				color := base.color_to_vec4(fill)
+				color_start = color
+				color_end = color
 
 			case base.Gradient:
 				cs := fill.color_start
 				ce := fill.color_end
-				color_start = {f32(cs.r) / 255, f32(cs.g) / 255, f32(cs.b) / 255, f32(cs.a) / 255}
-				color_end = {f32(ce.r) / 255, f32(ce.g) / 255, f32(ce.b) / 255, f32(ce.a) / 255}
+				color_start = base.color_to_vec4(cs)
+				color_end = base.color_to_vec4(ce)
 				gradient_dir = fill.direction
 			}
 
 			switch border_fill in val.border_fill {
 			case base.Color:
-				r := f32(border_fill.r) / 255
-				g := f32(border_fill.g) / 255
-				b := f32(border_fill.b) / 255
-				a := f32(border_fill.a) / 255
-				border_color_start = {r, g, b, a}
-				border_color_end = {r, g, b, a}
+				color := base.color_to_vec4(border_fill)
+				border_color_start = color
+				border_color_end = color
 				border_gradient_dir = {0, 0}
 
 			case base.Gradient:
 				cs := border_fill.color_start
 				ce := border_fill.color_end
-				border_color_start = {
-					f32(cs.r) / 255,
-					f32(cs.g) / 255,
-					f32(cs.b) / 255,
-					f32(cs.a) / 255,
-				}
-				border_color_end = {
-					f32(ce.r) / 255,
-					f32(ce.g) / 255,
-					f32(ce.b) / 255,
-					f32(ce.a) / 255,
-				}
+				border_color_start = base.color_to_vec4(cs)
+				border_color_end = base.color_to_vec4(ce)
 				border_gradient_dir = border_fill.direction
 			}
 
@@ -429,20 +412,21 @@ opengl_render_end :: proc(
 			start_x := x
 			start_y := y + render_data.font_atlas.metrics.ascent
 
-			red, green, blue, alpha: f32
+			color_start: base.Vec4
+			color_end: base.Vec4
 
 			switch fill in val.fill {
 			case base.Color:
-				red = f32(fill.r) / 255
-				green = f32(fill.g) / 255
-				blue = f32(fill.b) / 255
-				alpha = f32(fill.a) / 255
+				color := base.color_to_vec4(fill)
+				color_start = color
+				color_end = color
 			case base.Gradient:
 				// TODO(Thomas): This is not complete, just a shortcut to get it working for now
-				red = f32(fill.color_start.r) / 255
-				green = f32(fill.color_start.g) / 255
-				blue = f32(fill.color_start.g) / 255
-				alpha = f32(fill.color_start.g) / 255
+				cs := fill.color_start
+				ce := fill.color_end
+				color_start = base.color_to_vec4(cs)
+				color_end = base.color_to_vec4(ce)
+				panic("TODO! Implement properly")
 			}
 
 			for r in val.str {
@@ -467,61 +451,24 @@ opengl_render_end :: proc(
 					true,
 				)
 
-				// Bottom right
-				append(
-					&batch.vertices,
-					Vertex {
-						pos = {q.x1, q.y1, 0},
-						color_start = {red, green, blue, alpha},
-						color_end = {red, green, blue, alpha},
-						gradient_dir = {0, 0},
-						tex = {q.s1, q.t1},
-						tex_slot = 0,
-						shape_kind = -1,
-					},
-				)
+				vertex_template := Vertex {
+					// Fill
+					color_start  = color_start,
+					color_end    = color_end,
+					gradient_dir = base.Vec2{0, 0},
+					// Others
+					tex_slot     = 0,
+					// TODO(Thomas): Use the actual shape kind
+					shape_kind   = -1,
+				}
 
-				// Top right
-				append(
-					&batch.vertices,
-					Vertex {
-						pos = {q.x1, q.y0, 0},
-						color_start = {red, green, blue, alpha},
-						color_end = {red, green, blue, alpha},
-						gradient_dir = {0, 0},
-						tex = {q.s1, q.t0},
-						tex_slot = 0,
-						shape_kind = -1,
-					},
-				)
 
-				// Top left
-				append(
-					&batch.vertices,
-					Vertex {
-						pos = {q.x0, q.y0, 0},
-						color_start = {red, green, blue, alpha},
-						color_end = {red, green, blue, alpha},
-						gradient_dir = {0, 0},
-						tex = {q.s0, q.t0},
-						tex_slot = 0,
-						shape_kind = -1,
-					},
-				)
+				v1 := vertex_template; v1.pos = {q.x1, q.y1, 0}; v1.tex = {q.s1, q.t1}
+				v2 := vertex_template; v2.pos = {q.x1, q.y0, 0}; v2.tex = {q.s1, q.t0}
+				v3 := vertex_template; v3.pos = {q.x0, q.y0, 0}; v3.tex = {q.s0, q.t0}
+				v4 := vertex_template; v4.pos = {q.x0, q.y1, 0}; v4.tex = {q.s0, q.t1}
 
-				// Bottom left
-				append(
-					&batch.vertices,
-					Vertex {
-						pos = {q.x0, q.y1, 0},
-						color_start = {red, green, blue, alpha},
-						color_end = {red, green, blue, alpha},
-						gradient_dir = {0, 0},
-						tex = {q.s0, q.t1},
-						tex_slot = 0,
-						shape_kind = -1,
-					},
-				)
+				append(&batch.vertices, v1, v2, v3, v4)
 
 				rect_indices := [6]u32 {
 					batch.vertex_offset + 0,
@@ -534,6 +481,7 @@ opengl_render_end :: proc(
 				append(&batch.indices, ..rect_indices[:])
 
 				batch.vertex_offset += 4
+
 			}
 		case ui.Command_Image:
 			x := val.x
@@ -579,61 +527,23 @@ opengl_render_end :: proc(
 				render_data.texture_store.slot += 1
 			}
 
-			// Bottom right
-			append(
-				&batch.vertices,
-				Vertex {
-					pos = {x + w, y + h, 0},
-					color_start = {1, 1, 1, 1},
-					color_end = {1, 1, 1, 1},
-					gradient_dir = {0, 0},
-					tex = {1, 1},
-					tex_slot = tex_slot,
-					shape_kind = -1,
-				},
-			)
+			vertex_template := Vertex {
+				// Fill
+				color_start  = base.Vec4{1, 1, 1, 1},
+				color_end    = base.Vec4{1, 1, 1, 1},
+				gradient_dir = base.Vec2{0, 0},
+				// Others
+				tex_slot     = tex_slot,
+				// TODO(Thomas): Use the actual shape kind
+				shape_kind   = -1,
+			}
 
-			// Top right
-			append(
-				&batch.vertices,
-				Vertex {
-					pos = {x + w, y, 0},
-					color_start = {1, 1, 1, 1},
-					color_end = {1, 1, 1, 1},
-					gradient_dir = {0, 0},
-					tex = {1, 0},
-					tex_slot = tex_slot,
-					shape_kind = -1,
-				},
-			)
+			v1 := vertex_template; v1.pos = {x + w, y + h, 0}; v1.tex = {1, 1}
+			v2 := vertex_template; v2.pos = {x + w, y, 0}; v2.tex = {1, 0}
+			v3 := vertex_template; v3.pos = {x, y, 0}; v3.tex = {0, 0}
+			v4 := vertex_template; v4.pos = {x, y + h, 0}; v4.tex = {0, 1}
 
-			// Top left
-			append(
-				&batch.vertices,
-				Vertex {
-					pos = {x, y, 0},
-					color_start = {1, 1, 1, 1},
-					color_end = {1, 1, 1, 1},
-					gradient_dir = {0, 0},
-					tex = {0, 0},
-					tex_slot = tex_slot,
-					shape_kind = -1,
-				},
-			)
-
-			// Bottom left
-			append(
-				&batch.vertices,
-				Vertex {
-					pos = {x, y + h, 0},
-					color_start = {1, 1, 1, 1},
-					color_end = {1, 1, 1, 1},
-					gradient_dir = {0, 0},
-					tex = {0, 1},
-					tex_slot = tex_slot,
-					shape_kind = -1,
-				},
-			)
+			append(&batch.vertices, v1, v2, v3, v4)
 
 			rect_indices := [6]u32 {
 				batch.vertex_offset + 0,
@@ -646,6 +556,7 @@ opengl_render_end :: proc(
 			append(&batch.indices, ..rect_indices[:])
 
 			batch.vertex_offset += 4
+
 		case ui.Command_Shape:
 			rect := val.rect
 			x := f32(rect.x)
@@ -664,19 +575,16 @@ opengl_render_end :: proc(
 
 			switch fill in val.data.fill {
 			case base.Color:
-				r := f32(fill.r) / 255
-				g := f32(fill.g) / 255
-				b := f32(fill.b) / 255
-				a := f32(fill.a) / 255
-				color_start = {r, g, b, a}
-				color_end = {r, g, b, a}
+				color := base.color_to_vec4(fill)
+				color_start = color
+				color_end = color
 				gradient_dir = {0, 0}
 
 			case base.Gradient:
 				cs := fill.color_start
 				ce := fill.color_end
-				color_start = {f32(cs.r) / 255, f32(cs.g) / 255, f32(cs.b) / 255, f32(cs.a) / 255}
-				color_end = {f32(ce.r) / 255, f32(ce.g) / 255, f32(ce.b) / 255, f32(ce.a) / 255}
+				color_start = base.color_to_vec4(cs)
+				color_end = base.color_to_vec4(ce)
 				gradient_dir = fill.direction
 			}
 

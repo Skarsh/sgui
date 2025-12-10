@@ -69,11 +69,15 @@ make_slider_row :: proc(
 		// TODO(Thomas): @Perf string font size caching
 		label_string_width := ui.measure_string_width(ctx, label, ctx.font_id)
 		label_sizing := [2]ui.Sizing{{kind = .Grow, max_value = label_string_width}, {kind = .Fit}}
+		text_fill := base.Fill(color)
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_label", id_suffix),
 			label,
-			ui.Config_Options{layout = {sizing = {&label_sizing.x, &label_sizing.y}}},
+			ui.Config_Options {
+				layout = {sizing = {&label_sizing.x, &label_sizing.y}},
+				text_fill = &text_fill,
+			},
 		)
 
 		comm = ui.slider(ctx, fmt.tprintf("%s_slider", id_suffix), value, 0, 1, color, 2)
@@ -220,7 +224,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					"alpha",
 					"A",
 					&data.a,
-					BLUE_COLOR,
+					ALPHA_COLOR,
 					&data.blue_sb,
 				)
 
