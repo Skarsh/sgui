@@ -414,6 +414,7 @@ opengl_render_end :: proc(
 
 			color_start: base.Vec4
 			color_end: base.Vec4
+			gradient_dir: base.Vec2
 
 			switch fill in val.fill {
 			case base.Color:
@@ -421,12 +422,14 @@ opengl_render_end :: proc(
 				color_start = color
 				color_end = color
 			case base.Gradient:
-				// TODO(Thomas): This is not complete, just a shortcut to get it working for now
+				// TODO(Thomas): This is not complete. What makes most sense
+				// is for the gradient to span the whole text, and not per character.
 				cs := fill.color_start
 				ce := fill.color_end
 				color_start = base.color_to_vec4(cs)
 				color_end = base.color_to_vec4(ce)
-				panic("TODO! Implement properly")
+				gradient_dir = fill.direction
+				panic("TODO: Implement properly.")
 			}
 
 			for r in val.str {
@@ -455,7 +458,7 @@ opengl_render_end :: proc(
 					// Fill
 					color_start  = color_start,
 					color_end    = color_end,
-					gradient_dir = base.Vec2{0, 0},
+					gradient_dir = gradient_dir,
 					// Others
 					tex_slot     = 0,
 					// TODO(Thomas): Use the actual shape kind
