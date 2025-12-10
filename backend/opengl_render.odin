@@ -154,7 +154,7 @@ init_opengl :: proc(
 		size_of(Vertex),
 		offset_of(Vertex, border_color_end),
 	)
-	gl.EnableVertexAttribArray(6)
+	gl.EnableVertexAttribArray(5)
 
 	gl.VertexAttribPointer(
 		6,
@@ -164,7 +164,7 @@ init_opengl :: proc(
 		size_of(Vertex),
 		offset_of(Vertex, border_gradient_dir),
 	)
-	gl.EnableVertexAttribArray(5)
+	gl.EnableVertexAttribArray(6)
 
 	gl.VertexAttribPointer(
 		7,
