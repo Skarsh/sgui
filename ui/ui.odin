@@ -1015,6 +1015,9 @@ text_input :: proc(
 	return element.last_comm
 }
 
+// TODO(Thomas): Should the .Shape capability always be added
+// but whether it's visible is set through alhpa value?
+// Phase in/out animation?
 checkbox :: proc(
 	ctx: ^Context,
 	id: string,
@@ -1026,7 +1029,7 @@ checkbox :: proc(
 		{kind = .Grow, min_value = 36, max_value = 36},
 		{kind = .Grow, min_value = 36, max_value = 36},
 	}
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation, .Shape}
+	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 
 	default_opts := Config_Options {
 		layout = {sizing = {&sizing.x, &sizing.y}},

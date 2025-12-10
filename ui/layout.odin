@@ -260,7 +260,7 @@ element_equip_text :: proc(
 }
 
 element_equip_shape :: proc(element: ^UI_Element, shape_data: Shape_Data) {
-	element.config.capability_flags |= {.Text}
+	element.config.capability_flags |= {.Shape}
 	element.config.content.shape_data = shape_data
 }
 
