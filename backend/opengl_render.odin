@@ -1,8 +1,11 @@
 package backend
 
+import "base:runtime"
+import "core:fmt"
 import "core:log"
 import "core:math"
 import "core:math/linalg"
+import "core:reflect"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
@@ -20,6 +23,54 @@ Texture_Store :: struct {
 reset_texture_store :: proc(store: ^Texture_Store) {
 	store.slot = store.start_slot
 	clear(&store.idx_to_slot_map)
+}
+
+
+set_and_enable_vertex_attributes :: proc($T: typeid) {
+	ti := runtime.type_info_base(type_info_of(T))
+	info := ti.variant.(runtime.Type_Info_Struct)
+
+	idx: u32 = 0
+	size: i32 = 0
+	normalized := false
+	stride: i32 = size_of(T)
+	offset: uintptr
+
+	for name, i in info.names[:info.field_count] {
+
+		field := reflect.struct_field_by_name(Vertex, name)
+		type := field.type
+
+		idx = u32(i)
+		offset = field.offset
+
+		#partial switch type_info in type.variant {
+		case runtime.Type_Info_Integer:
+			size = 1
+			gl.VertexAttribIPointer(idx, size, gl.INT, stride, offset)
+			gl.EnableVertexAttribArray(idx)
+		case runtime.Type_Info_Float:
+			size = 1
+			gl.VertexAttribPointer(idx, size, gl.FLOAT, normalized, stride, offset)
+			gl.EnableVertexAttribArray(idx)
+		case runtime.Type_Info_Array:
+			size = i32(type_info.count)
+			#partial switch array_type_info in type_info.elem.variant {
+			case runtime.Type_Info_Float:
+				gl.VertexAttribPointer(idx, size, gl.FLOAT, normalized, stride, offset)
+				gl.EnableVertexAttribArray(idx)
+			case:
+				panic(
+					fmt.tprintf(
+						"unsupported array type for setting vertex attribute: %v",
+						type_info.elem.variant,
+					),
+				)
+			}
+		case:
+			panic(fmt.tprintf("unsupported type for setting vertex attribute: %v", type.variant))
+		}
+	}
 }
 
 Vertex :: struct {
@@ -122,85 +173,7 @@ init_opengl :: proc(
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, MAX_INDICES * size_of(u32), nil, gl.DYNAMIC_DRAW)
 
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, pos))
-	gl.EnableVertexAttribArray(0)
-
-	// Fill
-	gl.VertexAttribPointer(1, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color_start))
-	gl.EnableVertexAttribArray(1)
-
-	gl.VertexAttribPointer(2, 4, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, color_end))
-	gl.EnableVertexAttribArray(2)
-
-	gl.VertexAttribPointer(3, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, gradient_dir))
-	gl.EnableVertexAttribArray(3)
-
-	// Border fill
-	gl.VertexAttribPointer(
-		4,
-		4,
-		gl.FLOAT,
-		false,
-		size_of(Vertex),
-		offset_of(Vertex, border_color_start),
-	)
-	gl.EnableVertexAttribArray(4)
-
-	gl.VertexAttribPointer(
-		5,
-		4,
-		gl.FLOAT,
-		false,
-		size_of(Vertex),
-		offset_of(Vertex, border_color_end),
-	)
-	gl.EnableVertexAttribArray(5)
-
-	gl.VertexAttribPointer(
-		6,
-		2,
-		gl.FLOAT,
-		false,
-		size_of(Vertex),
-		offset_of(Vertex, border_gradient_dir),
-	)
-	gl.EnableVertexAttribArray(6)
-
-	gl.VertexAttribPointer(
-		7,
-		2,
-		gl.FLOAT,
-		false,
-		size_of(Vertex),
-		offset_of(Vertex, quad_half_size),
-	)
-	gl.EnableVertexAttribArray(7)
-
-
-	gl.VertexAttribPointer(8, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, quad_pos))
-	gl.EnableVertexAttribArray(8)
-
-	gl.VertexAttribPointer(9, 2, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, tex))
-	gl.EnableVertexAttribArray(9)
-
-	gl.VertexAttribIPointer(10, 1, gl.INT, size_of(Vertex), offset_of(Vertex, tex_slot))
-	gl.EnableVertexAttribArray(10)
-
-	gl.VertexAttribPointer(11, 1, gl.FLOAT, false, size_of(Vertex), offset_of(Vertex, radius))
-	gl.EnableVertexAttribArray(11)
-
-	gl.VertexAttribPointer(
-		12,
-		1,
-		gl.FLOAT,
-		false,
-		size_of(Vertex),
-		offset_of(Vertex, border_thickness),
-	)
-	gl.EnableVertexAttribArray(12)
-
-	gl.VertexAttribPointer(13, 1, gl.INT, false, size_of(Vertex), offset_of(Vertex, shape_kind))
-	gl.EnableVertexAttribArray(13)
+	set_and_enable_vertex_attributes(Vertex)
 
 	gl.BindVertexArray(0)
 
