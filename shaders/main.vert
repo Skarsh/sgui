@@ -1,22 +1,26 @@
 #version 330 core
 
 layout(location=0) in vec3 a_position;
+
 // Fill
 layout(location=1) in vec4 a_color_start;
 layout(location=2) in vec4 a_color_end;
 layout(location=3) in vec2 a_gradient_dir;
-// Border Fill
+
+// Border
 layout(location=4) in vec4 a_border_color_start;
 layout(location=5) in vec4 a_border_color_end;
 layout(location=6) in vec2 a_border_gradient_dir;
+layout(location=7) in float a_border_thickness;
 
-layout(location=7) in vec2 a_quad_half_size;
-layout(location=8) in vec2 a_quad_pos;
-layout(location=9) in vec2 a_tex_coords;
-layout(location=10) in int a_tex_slot;
-layout(location=11) in float a_radius;
-layout(location=12) in float a_border_thickness;
-layout(location=13) in int a_shape_kind;
+// Shape
+layout(location=8) in int a_shape_kind;
+
+layout(location=9) in vec2 a_quad_half_size;
+layout(location=10) in vec2 a_quad_pos;
+layout(location=11) in vec2 a_tex_coords;
+layout(location=12) in int a_tex_slot;
+layout(location=13) in float a_radius;
 
 uniform mat4 transform;
 
@@ -25,18 +29,20 @@ out vec4 v_color_start;
 out vec4 v_color_end;
 out vec2 v_gradient_dir;
 
-// Border Fill
+// Border
 out vec4 v_border_color_start;
 out vec4 v_border_color_end;
 out vec2 v_border_gradient_dir;
+out float v_border_thickness;
+
+// Shape
+flat out int v_shape_kind;
 
 out vec2 v_tex_coords;
 out vec2 v_quad_half_size;
 out vec2 v_local_pos;
 flat out int v_tex_slot;
 out float v_radius;
-out float v_border_thickness;
-flat out int v_shape_kind;
 
 void main() {
     gl_Position = transform * vec4(a_position, 1.0);
@@ -49,6 +55,7 @@ void main() {
     v_border_color_start = a_border_color_start;
     v_border_color_end = a_border_color_end;
     v_border_gradient_dir = a_border_gradient_dir;
+    v_border_thickness = a_border_thickness;
 
     v_quad_half_size = a_quad_half_size;
 
@@ -59,6 +66,5 @@ void main() {
     v_tex_coords = a_tex_coords;
     v_tex_slot = a_tex_slot;
     v_radius = a_radius;
-    v_border_thickness = a_border_thickness;
     v_shape_kind = a_shape_kind;
 }

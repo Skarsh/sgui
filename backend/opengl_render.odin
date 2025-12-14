@@ -78,15 +78,19 @@ Vertex :: struct {
 	// Position
 	pos:                 base.Vec3,
 
-	// Inputs for rect fill
+	// Rect fill
 	color_start:         base.Vec4,
 	color_end:           base.Vec4,
 	gradient_dir:        base.Vec2,
 
-	// Inputs for border fill
+	// Border
 	border_color_start:  base.Vec4,
 	border_color_end:    base.Vec4,
 	border_gradient_dir: base.Vec2,
+	border_thickness:    f32,
+
+	// Shape
+	shape_kind:          i32,
 
 	// Common
 	quad_half_size:      base.Vec2,
@@ -94,8 +98,6 @@ Vertex :: struct {
 	tex:                 base.Vec2,
 	tex_slot:            i32,
 	radius:              f32,
-	border_thickness:    f32,
-	shape_kind:          i32,
 }
 
 Batch :: struct {
