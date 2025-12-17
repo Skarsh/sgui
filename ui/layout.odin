@@ -240,7 +240,6 @@ element_equip_text :: proc(
 		target_height = content_height
 	}
 
-	// 5. Apply Values
 	element.size.x = target_width
 	element.size.y = target_height
 
