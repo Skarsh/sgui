@@ -74,42 +74,47 @@ set_and_enable_vertex_attributes :: proc($T: typeid) {
 }
 
 Vertex :: struct {
-	// TODO(Thomas): Group together with the other common attributes?
-	// Position
-	pos:                 base.Vec3,
+	pos: base.Vec3,
+}
 
+Quad_Param :: struct {
 	// Rect fill
 	color_start:         base.Vec4,
 	color_end:           base.Vec4,
 	gradient_dir:        base.Vec2,
+	// Padding to match OpenGL std140 16 byte alignment
+	_padding_1:          base.Vec2,
 
-	// Border
+	// Border fill
 	border_color_start:  base.Vec4,
 	border_color_end:    base.Vec4,
 	border_gradient_dir: base.Vec2,
-	border_thickness:    f32,
+	// Padding to match OpenGL std140 16 byte alignment
+	_padding_2:          base.Vec2,
 
-	// Shape
-	shape_kind:          i32,
-
-	// Common
-	quad_half_size:      base.Vec2,
+	// Others
 	quad_pos:            base.Vec2,
-	tex:                 base.Vec2,
+	quad_size:           base.Vec2,
+	uv_offset:           base.Vec2,
+	uv_size:             base.Vec2,
 	tex_slot:            i32,
+	shape_kind:          i32,
+	border_thickness:    f32,
 	radius:              f32,
 }
 
 Batch :: struct {
 	vertices:      [dynamic]Vertex,
 	indices:       [dynamic]u32,
-	vertex_offset: u32,
+	vertex_offset: i32,
+	quad_idx:      i32,
 }
 
 reset_batch :: proc(batch: ^Batch) {
 	clear(&batch.vertices)
 	clear(&batch.indices)
 	batch.vertex_offset = 0
+	batch.quad_idx = 0
 }
 
 OpenGL_Render_Data :: struct {
@@ -117,6 +122,8 @@ OpenGL_Render_Data :: struct {
 	vao:           u32,
 	vbo:           u32,
 	ebo:           u32,
+	ubo:           u32,
+	ubo_data:      [MAX_QUADS]Quad_Param,
 	shader:        Shader,
 	font_atlas:    Font_Atlas,
 	font_texture:  OpenGL_Texture,
@@ -125,7 +132,9 @@ OpenGL_Render_Data :: struct {
 	scissor_stack: [dynamic]base.Rect,
 }
 
-MAX_QUADS :: 10000
+// TODO(Thomas): Increment this to 10_000, which is the plan, will cause Stackoverflow issues.
+// So we need to allocate this somehow.
+MAX_QUADS :: 100
 MAX_VERTICES :: MAX_QUADS * 4
 MAX_INDICES :: MAX_QUADS * 6
 
@@ -140,15 +149,15 @@ init_opengl :: proc(
 	allocator := context.allocator,
 ) -> bool {
 	sdl.GL_SetAttribute(.CONTEXT_PROFILE_MASK, i32(sdl.GLprofile.CORE))
-	sdl.GL_SetAttribute(.CONTEXT_MAJOR_VERSION, 3)
-	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, 3)
+	sdl.GL_SetAttribute(.CONTEXT_MAJOR_VERSION, 4)
+	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, 2)
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
 	// TODO(Thomas): Hardcoding VSync here, should be coming from options struct eventually
 	sdl.GL_SetSwapInterval(1)
 
-	gl.load_up_to(3, 3, sdl.gl_set_proc_address)
+	gl.load_up_to(4, 2, sdl.gl_set_proc_address)
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -169,18 +178,39 @@ init_opengl :: proc(
 
 	gl.BindVertexArray(vao)
 
+	unit_vertices := [4]Vertex {
+		{pos = {0.5, 0.5, 0}}, // Top Right
+		{pos = {0.5, -0.5, 0}}, // Bottom Right
+		{pos = {-0.5, -0.5, 0}}, // Bottom Left
+		{pos = {-0.5, 0.5, 0}}, // Top Left
+	}
+	unit_indices := [6]u32{0, 1, 3, 1, 2, 3}
+
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
-	gl.BufferData(gl.ARRAY_BUFFER, MAX_VERTICES * size_of(Vertex), nil, gl.DYNAMIC_DRAW)
+	gl.BufferData(gl.ARRAY_BUFFER, size_of(unit_vertices), &unit_vertices, gl.STATIC_DRAW)
 
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
-	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, MAX_INDICES * size_of(u32), nil, gl.DYNAMIC_DRAW)
+	gl.BufferData(gl.ELEMENT_ARRAY_BUFFER, size_of(unit_indices), &unit_indices, gl.STATIC_DRAW)
 
 	set_and_enable_vertex_attributes(Vertex)
 
+	// UBO
+	ubo_data := [MAX_QUADS]Quad_Param{}
+	ubo: u32
+	gl.GenBuffers(1, &ubo)
+
+	gl.BindBuffer(gl.UNIFORM_BUFFER, ubo)
+	gl.BufferData(
+		gl.UNIFORM_BUFFER,
+		size_of(Quad_Param) * MAX_QUADS,
+		raw_data(&ubo_data),
+		gl.STATIC_DRAW,
+	)
+	gl.BindBuffer(gl.UNIFORM_BUFFER, 0)
+	gl.BindBufferBase(gl.UNIFORM_BUFFER, 0, ubo)
+
 	gl.BindVertexArray(0)
 
-	// TODO(Thomas): Dimensions should come from window size, and it
-	// should be updated when the window resizes.
 	// NOTE(Thomas): Flipped y-axis for top-left coords
 	ortho := linalg.matrix_ortho3d_f32(0, f32(width), f32(height), 0, -1, 1)
 
@@ -201,6 +231,7 @@ init_opengl :: proc(
 	data.vao = vao
 	data.vbo = vbo
 	data.ebo = ebo
+	data.ubo = ubo
 	data.shader = shader
 	data.proj = ortho
 	data.font_atlas = font_atlas
@@ -236,6 +267,7 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteVertexArrays(1, &render_data.vao)
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
+	gl.DeleteBuffers(1, &render_data.ubo)
 	gl.DeleteTextures(1, &render_data.font_texture.id)
 	gl.DeleteProgram(render_data.shader.id)
 }
@@ -263,6 +295,7 @@ opengl_render_end :: proc(
 	render_data: ^OpenGL_Render_Data,
 	command_queue: []ui.Command,
 ) {
+
 	if len(command_queue) == 0 {
 		return
 	}
@@ -273,6 +306,7 @@ opengl_render_end :: proc(
 	batch := Batch {
 		make([dynamic]Vertex, 0, len(command_queue) * 4),
 		make([dynamic]u32, 0, len(command_queue) * 6),
+		0,
 		0,
 	}
 
@@ -293,14 +327,8 @@ opengl_render_end :: proc(
 	reset_texture_store(&render_data.texture_store)
 
 	for command in command_queue {
-		switch val in command {
+		#partial switch val in command {
 		case ui.Command_Rect:
-			rect := val.rect
-			x := f32(rect.x)
-			y := f32(rect.y)
-			w := f32(rect.w)
-			h := f32(rect.h)
-
 			radius := val.radius
 			border_thickness := val.border_thickness
 			color_start, color_end: base.Vec4
@@ -308,12 +336,6 @@ opengl_render_end :: proc(
 
 			border_color_start, border_color_end: base.Vec4
 			border_gradient_dir: base.Vec2
-
-			half_w := w / 2
-			half_h := h / 2
-
-			center_x := x + half_w
-			center_y := y + half_h
 
 			switch fill in val.fill {
 			case base.Color:
@@ -344,8 +366,17 @@ opengl_render_end :: proc(
 				border_gradient_dir = border_fill.direction
 			}
 
-			vertex_template := Vertex {
-				// Fill
+			if batch.quad_idx >= MAX_QUADS {
+				flush_render(render_data, batch)
+				reset_batch(&batch)
+			}
+
+			rect := val.rect
+
+			render_data.ubo_data[batch.quad_idx] = Quad_Param {
+				// TODO(Thomas): Eventually everything will be a gradient in the new shader too
+				// so this needs to be updated.
+				// Rect Fill
 				color_start         = color_start,
 				color_end           = color_end,
 				gradient_dir        = gradient_dir,
@@ -354,33 +385,19 @@ opengl_render_end :: proc(
 				border_color_end    = border_color_end,
 				border_gradient_dir = border_gradient_dir,
 				// Others
-				quad_half_size      = {half_w, half_h},
-				quad_pos            = {center_x, center_y},
-				tex                 = {-1, -1},
-				radius              = radius,
-				border_thickness    = border_thickness,
+				quad_pos            = {
+					f32(rect.x) + f32(rect.w) / 2,
+					f32(rect.y) + f32(rect.h) / 2,
+				},
+				quad_size           = {f32(rect.w), f32(rect.h)},
+				uv_offset           = {-1, -1},
+				uv_size             = {0, 0},
+				tex_slot            = 0,
 				shape_kind          = -1,
+				border_thickness    = border_thickness,
+				radius              = radius,
 			}
-
-
-			v1 := vertex_template; v1.pos = {x + w, y + h, 0}
-			v2 := vertex_template; v2.pos = {x + w, y, 0}
-			v3 := vertex_template; v3.pos = {x, y, 0}
-			v4 := vertex_template; v4.pos = {x, y + h, 0}
-
-			append(&batch.vertices, v1, v2, v3, v4)
-
-			rect_indices := [6]u32 {
-				batch.vertex_offset + 0,
-				batch.vertex_offset + 1,
-				batch.vertex_offset + 2,
-				batch.vertex_offset + 2,
-				batch.vertex_offset + 3,
-				batch.vertex_offset + 0,
-			}
-			append(&batch.indices, ..rect_indices[:])
-
-			batch.vertex_offset += 4
+			batch.quad_idx += 1
 		case ui.Command_Text:
 			x := val.x
 			y := val.y
@@ -397,14 +414,7 @@ opengl_render_end :: proc(
 				color_start = color
 				color_end = color
 			case base.Gradient:
-				// TODO(Thomas): This is not complete. What makes most sense
-				// is for the gradient to span the whole text, and not per character.
-				cs := fill.color_start
-				ce := fill.color_end
-				color_start = base.color_to_vec4(cs)
-				color_end = base.color_to_vec4(ce)
-				gradient_dir = fill.direction
-				panic("TODO: Implement properly.")
+				panic("TODO: Impelement")
 			}
 
 			for r in val.str {
@@ -429,44 +439,31 @@ opengl_render_end :: proc(
 					true,
 				)
 
-				vertex_template := Vertex {
-					// Fill
+				if batch.quad_idx >= MAX_QUADS {
+					flush_render(render_data, batch)
+					reset_batch(&batch)
+				}
+
+				// Set Quad_Param in ubo data
+				width := (q.x1 - q.x0)
+				height := (q.y1 - q.y0)
+				render_data.ubo_data[batch.quad_idx] = Quad_Param {
+					// TODO(Thomas): Eventually everything will be a gradient in the new shader too
+					// so this needs to be updated.
 					color_start  = color_start,
 					color_end    = color_end,
 					gradient_dir = gradient_dir,
-					// Others
+					quad_pos     = {q.x0 + width / 2, q.y0 + height / 2},
+					quad_size    = {width, height},
+					uv_offset    = {q.s0, q.t0},
+					uv_size      = {q.s1 - q.s0, q.t1 - q.t0},
 					tex_slot     = 0,
-					// TODO(Thomas): Use the actual shape kind
 					shape_kind   = -1,
 				}
 
-
-				v1 := vertex_template; v1.pos = {q.x1, q.y1, 0}; v1.tex = {q.s1, q.t1}
-				v2 := vertex_template; v2.pos = {q.x1, q.y0, 0}; v2.tex = {q.s1, q.t0}
-				v3 := vertex_template; v3.pos = {q.x0, q.y0, 0}; v3.tex = {q.s0, q.t0}
-				v4 := vertex_template; v4.pos = {q.x0, q.y1, 0}; v4.tex = {q.s0, q.t1}
-
-				append(&batch.vertices, v1, v2, v3, v4)
-
-				rect_indices := [6]u32 {
-					batch.vertex_offset + 0,
-					batch.vertex_offset + 1,
-					batch.vertex_offset + 2,
-					batch.vertex_offset + 2,
-					batch.vertex_offset + 3,
-					batch.vertex_offset + 0,
-				}
-				append(&batch.indices, ..rect_indices[:])
-
-				batch.vertex_offset += 4
-
+				batch.quad_idx += 1
 			}
 		case ui.Command_Image:
-			x := val.x
-			y := val.y
-			w := val.w
-			h := val.h
-
 			data := val.data
 			tex_id := (cast(^i32)data)^
 
@@ -505,51 +502,27 @@ opengl_render_end :: proc(
 				render_data.texture_store.slot += 1
 			}
 
-			vertex_template := Vertex {
-				// Fill
-				color_start  = base.Vec4{1, 1, 1, 1},
-				color_end    = base.Vec4{1, 1, 1, 1},
-				gradient_dir = base.Vec2{0, 0},
-				// Others
+			x := val.x
+			y := val.y
+			w := val.w
+			h := val.h
+			render_data.ubo_data[batch.quad_idx] = Quad_Param {
+				color_start  = {1, 1, 1, 1},
+				color_end    = {1, 1, 1, 1},
+				gradient_dir = {0, 0},
+				quad_pos     = {x + w / 2, y + h / 2},
+				quad_size    = {w, h},
+				uv_offset    = {0, 0},
+				uv_size      = {1, 1},
 				tex_slot     = tex_slot,
-				// TODO(Thomas): Use the actual shape kind
 				shape_kind   = -1,
 			}
 
-			v1 := vertex_template; v1.pos = {x + w, y + h, 0}; v1.tex = {1, 1}
-			v2 := vertex_template; v2.pos = {x + w, y, 0}; v2.tex = {1, 0}
-			v3 := vertex_template; v3.pos = {x, y, 0}; v3.tex = {0, 0}
-			v4 := vertex_template; v4.pos = {x, y + h, 0}; v4.tex = {0, 1}
-
-			append(&batch.vertices, v1, v2, v3, v4)
-
-			rect_indices := [6]u32 {
-				batch.vertex_offset + 0,
-				batch.vertex_offset + 1,
-				batch.vertex_offset + 2,
-				batch.vertex_offset + 2,
-				batch.vertex_offset + 3,
-				batch.vertex_offset + 0,
-			}
-			append(&batch.indices, ..rect_indices[:])
-
-			batch.vertex_offset += 4
-
+			batch.quad_idx += 1
 		case ui.Command_Shape:
-			rect := val.rect
-			x := f32(rect.x)
-			y := f32(rect.y)
-			w := f32(rect.w)
-			h := f32(rect.h)
-
-			color_start, color_end: base.Vec4
+			color_start: base.Vec4
+			color_end: base.Vec4
 			gradient_dir: base.Vec2
-
-			half_w := w / 2
-			half_h := h / 2
-
-			center_x := x + half_w
-			center_y := y + half_h
 
 			switch fill in val.data.fill {
 			case base.Color:
@@ -557,7 +530,6 @@ opengl_render_end :: proc(
 				color_start = color
 				color_end = color
 				gradient_dir = {0, 0}
-
 			case base.Gradient:
 				cs := fill.color_start
 				ce := fill.color_end
@@ -566,37 +538,22 @@ opengl_render_end :: proc(
 				gradient_dir = fill.direction
 			}
 
-			vertex_template := Vertex {
-				// Fill
-				color_start    = color_start,
-				color_end      = color_end,
-				gradient_dir   = gradient_dir,
-				// Others
-				quad_half_size = {half_w, half_h},
-				quad_pos       = {center_x, center_y},
-				tex            = {-1, -1},
+			rect := val.rect
+
+			render_data.ubo_data[batch.quad_idx] = Quad_Param {
+				color_start  = color_start,
+				color_end    = color_end,
+				gradient_dir = gradient_dir,
+				quad_pos     = {f32(rect.x) + f32(rect.w) / 2, f32(rect.y) + f32(rect.h) / 2},
+				quad_size    = {f32(rect.w), f32(rect.h)},
+				uv_offset    = {-1, -1},
+				uv_size      = {0, 0},
+				tex_slot     = 0,
 				// TODO(Thomas): Use the actual shape kind
-				shape_kind     = 1,
+				shape_kind   = 1,
 			}
 
-			v1 := vertex_template; v1.pos = {x + w, y + h, 0}
-			v2 := vertex_template; v2.pos = {x + w, y, 0}
-			v3 := vertex_template; v3.pos = {x, y, 0}
-			v4 := vertex_template; v4.pos = {x, y + h, 0}
-
-			append(&batch.vertices, v1, v2, v3, v4)
-
-			rect_indices := [6]u32 {
-				batch.vertex_offset + 0,
-				batch.vertex_offset + 1,
-				batch.vertex_offset + 2,
-				batch.vertex_offset + 2,
-				batch.vertex_offset + 3,
-				batch.vertex_offset + 0,
-			}
-			append(&batch.indices, ..rect_indices[:])
-
-			batch.vertex_offset += 4
+			batch.quad_idx += 1
 
 		case ui.Command_Push_Scissor:
 			// NOTE(Thomas): We'll now flush every time we get a scissor command.
@@ -662,6 +619,7 @@ opengl_render_end :: proc(
 					math.clamp(rect.h, 0, render_data.window_size.y),
 				)
 			}
+
 		}
 	}
 
@@ -673,30 +631,19 @@ opengl_render_end :: proc(
 }
 
 flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
+	if batch.quad_idx == 0 do return
 
-	if len(batch.indices) == 0 {
-		return
-	}
+	gl.BindBuffer(gl.UNIFORM_BUFFER, render_data.ubo)
+	gl.BufferSubData(
+		gl.UNIFORM_BUFFER,
+		0,
+		int(batch.quad_idx) * size_of(Quad_Param),
+		raw_data(&render_data.ubo_data),
+	)
 
 	gl.BindVertexArray(render_data.vao)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, render_data.vbo)
-	gl.BufferSubData(
-		gl.ARRAY_BUFFER,
-		0,
-		len(batch.vertices) * size_of(Vertex),
-		raw_data(batch.vertices),
-	)
-
-	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, render_data.ebo)
-	gl.BufferSubData(
-		gl.ELEMENT_ARRAY_BUFFER,
-		0,
-		len(batch.indices) * size_of(u32),
-		raw_data(batch.indices),
-	)
-
 	shader_use_program(render_data.shader)
+
 	model := linalg.Matrix4f32(1.0)
 	transform := render_data.proj * model
 	err := shader_set_mat4(render_data.shader, "transform", &transform)
@@ -704,7 +651,7 @@ flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
 		log.error("Error setting shader uniform: ", err)
 	}
 
-	gl.DrawElements(gl.TRIANGLES, i32(len(batch.indices)), gl.UNSIGNED_INT, nil)
+	gl.DrawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil, batch.quad_idx)
 
 	gl.BindVertexArray(0)
 }

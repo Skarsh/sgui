@@ -1,6 +1,6 @@
-#version 330 core
+#version 420 core
 
-// Fill
+// Rect fiill
 in vec4 v_color_start;
 in vec4 v_color_end;
 in vec2 v_gradient_dir;
@@ -14,9 +14,9 @@ in vec2 v_quad_half_size;
 in vec2 v_local_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
-in float v_radius;
-in float v_border_thickness;
 flat in int v_shape_kind;
+in float v_border_thickness;
+in float v_radius;
 
 out vec4 o_color;
 
@@ -131,9 +131,8 @@ void main() {
             float alpha = 1.0 - smoothstep(0.0, 1.0, combined_d - stroke_width);
             o_color = mix(vec4(0.3, 0.3, 0.3, 1.0), vec4(1.0, 1.0, 1.0, 1.0), alpha);
         }
-
     } else {
-        switch (v_tex_slot){
+        switch (v_tex_slot) {
             case 0:
                 // Sample the font texture. The 'r' component has the alpha value.
                 float alpha = texture(u_font_texture, v_tex_coords).r;

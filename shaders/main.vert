@@ -1,70 +1,92 @@
-#version 330 core
+#version 420 core
 
-layout(location=0) in vec3 a_position;
+layout (location = 0) in vec3 a_position;
 
-// Fill
-layout(location=1) in vec4 a_color_start;
-layout(location=2) in vec4 a_color_end;
-layout(location=3) in vec2 a_gradient_dir;
-
-// Border
-layout(location=4) in vec4 a_border_color_start;
-layout(location=5) in vec4 a_border_color_end;
-layout(location=6) in vec2 a_border_gradient_dir;
-layout(location=7) in float a_border_thickness;
-
-// Shape
-layout(location=8) in int a_shape_kind;
-
-layout(location=9) in vec2 a_quad_half_size;
-layout(location=10) in vec2 a_quad_pos;
-layout(location=11) in vec2 a_tex_coords;
-layout(location=12) in int a_tex_slot;
-layout(location=13) in float a_radius;
-
-uniform mat4 transform;
-
-// Fill
+// Rect Fill
 out vec4 v_color_start;
 out vec4 v_color_end;
 out vec2 v_gradient_dir;
 
-// Border
+// Border Fill
 out vec4 v_border_color_start;
 out vec4 v_border_color_end;
 out vec2 v_border_gradient_dir;
-out float v_border_thickness;
 
-// Shape
-flat out int v_shape_kind;
-
-out vec2 v_tex_coords;
 out vec2 v_quad_half_size;
 out vec2 v_local_pos;
+out vec2 v_tex_coords;
 flat out int v_tex_slot;
+flat out int v_shape_kind;
+out float v_border_thickness;
 out float v_radius;
 
+uniform mat4 transform;
+
+struct QuadParams {
+    // Rect fill
+    vec4 color_start;
+    vec4 color_end;
+    vec2 gradient_dir;
+    vec2 _padding_1;
+
+    // Border fill
+    vec4 border_color_start;
+    vec4 border_color_end;
+    vec2 border_gradient_dir;
+    vec2 _padding_2;
+
+    vec2  quad_pos;
+    vec2  quad_size;
+    vec2  uv_offset;
+    vec2  uv_size;
+    int   tex_slot;
+    int   shape_kind;
+    float border_thickness;
+    float radius;
+};
+
+layout (std140, binding = 0) uniform QuadBlock {
+    QuadParams instanceQuads[100];
+};
+
 void main() {
-    gl_Position = transform * vec4(a_position, 1.0);
-    // Fill
-    v_color_start = a_color_start;
-    v_color_end = a_color_end;
-    v_gradient_dir = a_gradient_dir;
+    QuadParams quad = instanceQuads[gl_InstanceID];
+
+    vec3 world_pos = vec3(
+        (a_position.x * quad.quad_size.x) + quad.quad_pos.x,
+        (a_position.y * quad.quad_size.y) + quad.quad_pos.y,
+        a_position.z
+    );
+
+    gl_Position = transform * vec4(world_pos, 1.0);
+
+    // UV Math:
+    // a_position.xy is in range [-0.5, 0.5].
+    // We map it to [0.0, 1.0] and then scale/offset by the UV data.
+    vec2 uv_unit = a_position.xy + vec2(0.5);
+    v_tex_coords = quad.uv_offset + (uv_unit * quad.uv_size);
+
+    // SDF / Shape Math:
+    // a_position is centered at (0,0) with range [-0.5, 0.5].
+    // Multiplying by quad_size gives us the position in pixels relative to the center.
+    // e.g. for width 100: -0.5 * 100 = -50 (Left edge) to +50 (Right edge).
+    v_local_pos = a_position.xy * quad.quad_size;
+
+    v_quad_half_size = quad.quad_size * 0.5;
+
+    // Pass-throughs
+    // Rect Fill
+    v_color_start = quad.color_start;
+    v_color_end = quad.color_end;
+    v_gradient_dir = quad.gradient_dir;
 
     // Border Fill
-    v_border_color_start = a_border_color_start;
-    v_border_color_end = a_border_color_end;
-    v_border_gradient_dir = a_border_gradient_dir;
-    v_border_thickness = a_border_thickness;
+    v_border_color_start = quad.border_color_start;
+    v_border_color_end = quad.border_color_end;
+    v_border_gradient_dir = quad.border_gradient_dir;
 
-    v_quad_half_size = a_quad_half_size;
-
-    // Calculate the local position of the vertex relative to the quad's center.
-    // This will be interpolated for each fragment
-    v_local_pos = a_position.xy - a_quad_pos;
-
-    v_tex_coords = a_tex_coords;
-    v_tex_slot = a_tex_slot;
-    v_radius = a_radius;
-    v_shape_kind = a_shape_kind;
+    v_tex_slot = quad.tex_slot;
+    v_shape_kind = quad.shape_kind;
+    v_border_thickness = quad.border_thickness;
+    v_radius = quad.radius;
 }
