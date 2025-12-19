@@ -225,7 +225,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					"A",
 					&data.a,
 					ALPHA_COLOR,
-					&data.blue_sb,
+					&data.alpha_sb,
 				)
 
 				// --- Hex Input ---
