@@ -25,8 +25,8 @@ Color_Type :: enum u32 {
 	Click,
 }
 
-Shape_Kind :: enum {
-	Checkmark,
+Shape_Kind :: enum u8 {
+	Checkmark = 1,
 }
 
 Command :: union {
@@ -1025,6 +1025,7 @@ checkbox :: proc(
 	shape_data: Shape_Data,
 	opts: Config_Options = {},
 ) -> Comm {
+	// TODO(Thomas): Don't hardcode min- and max_value like this.
 	sizing := [2]Sizing {
 		{kind = .Grow, min_value = 36, max_value = 36},
 		{kind = .Grow, min_value = 36, max_value = 36},

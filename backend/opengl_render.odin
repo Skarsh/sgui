@@ -535,6 +535,7 @@ opengl_render_end :: proc(
 			}
 
 			rect := val.rect
+			kind := val.data.kind
 
 			render_data.ubo_data[batch.quad_idx] = Quad_Param {
 				color_start  = color_start,
@@ -546,7 +547,7 @@ opengl_render_end :: proc(
 				uv_size      = {0, 0},
 				tex_slot     = 0,
 				// TODO(Thomas): Use the actual shape kind
-				shape_kind   = 1,
+				shape_kind   = i32(kind),
 			}
 
 			batch.quad_idx += 1

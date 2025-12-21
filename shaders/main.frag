@@ -118,7 +118,7 @@ void main() {
             o_color = vec4(final_material.rgb, final_material.a * alpha_border);
         }
 
-        if (v_shape_kind > 0.0) {
+        if (v_shape_kind == 1) {
             vec2 p1 = vec2(-0.75 * v_quad_half_size.x, 0.1 * v_quad_half_size.y);
             vec2 p2 = vec2(0.0 * v_quad_half_size.x, 0.75 * v_quad_half_size.y);
             float d1 = sdSegment(v_local_pos, p1,  p2);
