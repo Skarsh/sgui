@@ -441,16 +441,17 @@ open_element :: proc(
 	// Capability flags are hanled differently by being additive.
 	// TODO(Thomas): Should the user specified flags completely override, e.g.
 	// not OR but set directly?
-	if opts.capability_flags != nil {
-		final_config.capability_flags |= opts.capability_flags^
+
+	if default_opts.capability_flags != nil {
+		final_config.capability_flags |= default_opts.capability_flags^
 	}
 
 	if stack_flags, stack_flags_ok := peek(&ctx.capability_flags_stack); stack_flags_ok {
 		final_config.capability_flags |= stack_flags
 	}
 
-	if default_opts.capability_flags != nil {
-		final_config.capability_flags |= default_opts.capability_flags^
+	if opts.capability_flags != nil {
+		final_config.capability_flags |= opts.capability_flags^
 	}
 
 	// Content is a special case too
