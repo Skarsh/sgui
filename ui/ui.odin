@@ -708,13 +708,13 @@ resolve_default :: proc(user_value: ^$T) -> T {
 	return T{}
 }
 
-spacer :: proc(ctx: ^Context, id: string = "") {
+spacer :: proc(ctx: ^Context, id: string = "", opts := Config_Options{}) {
 	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
 	default_opts := Config_Options {
 		layout = {sizing = {&sizing.x, &sizing.y}},
 	}
 
-	_, open_ok := open_element(ctx, id, default_opts)
+	_, open_ok := open_element(ctx, id, opts, default_opts)
 	assert(open_ok)
 	if open_ok {
 		close_element(ctx)
