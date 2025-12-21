@@ -78,6 +78,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		) {
 
 			// --- Inner content panel ---
+			panel_sizing := [2]ui.Sizing {
+				{kind = .Percentage_Of_Parent, value = 1.0},
+				{kind = .Percentage_Of_Parent, value = 1.0},
+			}
 			panel_padding := ui.Padding{25, 25, 25, 25}
 			panel_radius: f32 = 10
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
@@ -89,6 +93,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				"panel",
 				ui.Config_Options {
 					layout = {
+						sizing = {&panel_sizing.x, &panel_sizing.y},
 						layout_direction = &panel_layout_dir,
 						padding = &panel_padding,
 						child_gap = &panel_child_gap,
@@ -99,14 +104,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			) {
 				// --- Title ---
 				title_text_align_x := ui.Alignment_X.Center
+				title_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow, max_value = 50}}
 				ui.text(
 					ctx,
 					"title",
 					"Odin To-Do List",
-					ui.Config_Options{layout = {text_alignment_x = &title_text_align_x}},
+					ui.Config_Options {
+						layout = {
+							sizing = {&title_sizing.x, &title_sizing.y},
+							text_alignment_x = &title_text_align_x,
+						},
+					},
 				)
 
 				// --- Task List ---
+				task_list_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
 				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
 				task_list_child_gap: f32 = 8
 				task_list_padding: ui.Padding = {10, 10, 10, 10}
@@ -115,6 +127,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					"task_list",
 					ui.Config_Options {
 						layout = {
+							sizing = {&task_list_sizing.x, &task_list_sizing.y},
 							layout_direction = &task_list_layout_dir,
 							child_gap = &task_list_child_gap,
 							padding = &task_list_padding,
@@ -125,6 +138,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					for &task, i in data.tasks {
 
 						// --- Task Row ---
+						row_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
 						row_layout_dir := ui.Layout_Direction.Left_To_Right
 						row_align_y := ui.Alignment_Y.Center
 						row_child_gap: f32 = 10
@@ -133,6 +147,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							fmt.tprintf("task_row_%d", i),
 							ui.Config_Options {
 								layout = {
+									sizing = {&row_sizing.x, &row_sizing.y},
 									layout_direction = &row_layout_dir,
 									alignment_y = &row_align_y,
 									child_gap = &row_child_gap,
@@ -194,7 +209,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ui.end_container(ctx)
 				}
 
+				ui.spacer(ctx)
+
 				// --- Add Task Panel ---
+				add_task_panel_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
 				add_task_layout_direction := ui.Layout_Direction.Left_To_Right
 				add_task_child_gap: f32 = 10
 				input_comm, add_button_comm: ui.Comm
@@ -203,6 +221,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					"add_task_panel",
 					ui.Config_Options {
 						layout = {
+							sizing = {&add_task_panel_sizing.x, &add_task_panel_sizing.y},
 							layout_direction = &add_task_layout_direction,
 							child_gap = &add_task_child_gap,
 						},
@@ -277,8 +296,8 @@ main :: proc() {
 
 	config := app.App_Config {
 		title     = "To-Do List App",
-		width     = 1280,
-		height    = 720,
+		width     = 600,
+		height    = 800,
 		font_path = "",
 		font_id   = 0,
 		font_size = 24,
