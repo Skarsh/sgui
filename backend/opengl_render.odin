@@ -123,7 +123,7 @@ OpenGL_Render_Data :: struct {
 	vbo:           u32,
 	ebo:           u32,
 	ubo:           u32,
-	ubo_data:      [MAX_QUADS]Quad_Param,
+	ubo_data:      []Quad_Param,
 	shader:        Shader,
 	font_atlas:    Font_Atlas,
 	font_texture:  OpenGL_Texture,
@@ -132,9 +132,7 @@ OpenGL_Render_Data :: struct {
 	scissor_stack: [dynamic]base.Rect,
 }
 
-// TODO(Thomas): Increment this to 10_000, which is the plan, will cause Stackoverflow issues.
-// So we need to allocate this somehow.
-MAX_QUADS :: 100
+MAX_QUADS :: 10_000
 MAX_VERTICES :: MAX_QUADS * 4
 MAX_INDICES :: MAX_QUADS * 6
 
@@ -195,7 +193,8 @@ init_opengl :: proc(
 	set_and_enable_vertex_attributes(Vertex)
 
 	// UBO
-	ubo_data := [MAX_QUADS]Quad_Param{}
+	ubo_data := make([]Quad_Param, MAX_QUADS, allocator)
+
 	ubo: u32
 	gl.GenBuffers(1, &ubo)
 
@@ -203,7 +202,7 @@ init_opengl :: proc(
 	gl.BufferData(
 		gl.UNIFORM_BUFFER,
 		size_of(Quad_Param) * MAX_QUADS,
-		raw_data(&ubo_data),
+		raw_data(ubo_data),
 		gl.STATIC_DRAW,
 	)
 	gl.BindBuffer(gl.UNIFORM_BUFFER, 0)
@@ -232,6 +231,7 @@ init_opengl :: proc(
 	data.vbo = vbo
 	data.ebo = ebo
 	data.ubo = ubo
+	data.ubo_data = ubo_data
 	data.shader = shader
 	data.proj = ortho
 	data.font_atlas = font_atlas
@@ -638,7 +638,7 @@ flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
 		gl.UNIFORM_BUFFER,
 		0,
 		int(batch.quad_idx) * size_of(Quad_Param),
-		raw_data(&render_data.ubo_data),
+		raw_data(render_data.ubo_data),
 	)
 
 	gl.BindVertexArray(render_data.vao)
