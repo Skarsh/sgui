@@ -25,6 +25,7 @@ Data :: struct {
 // --- Style Palette ---
 WINDOW_BG :: base.Color{28, 30, 35, 255}
 PANEL_BG :: base.Color{40, 42, 48, 255}
+ROW_BG :: base.Color{50, 48, 55, 255}
 ITEM_BG :: base.Color{55, 58, 64, 255}
 ITEM_HOVER_BG :: base.Color{70, 73, 80, 255}
 TEXT_COLOR :: base.Color{220, 220, 220, 255}
@@ -142,6 +143,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						row_layout_dir := ui.Layout_Direction.Left_To_Right
 						row_align_y := ui.Alignment_Y.Center
 						row_child_gap: f32 = 10
+
+						ui.push_background_fill(
+							ctx,
+							base.Fill(ROW_BG),
+						); defer ui.pop_background_fill(ctx)
+
 						if ui.begin_container(
 							ctx,
 							fmt.tprintf("task_row_%d", i),
@@ -209,7 +216,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ui.end_container(ctx)
 				}
 
-				ui.spacer(ctx)
+				spacer_bg_fill := base.Fill(base.Color{0, 0, 0, 0})
+				ui.spacer(ctx, opts = ui.Config_Options{background_fill = &spacer_bg_fill})
 
 				// --- Add Task Panel ---
 				add_task_panel_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
