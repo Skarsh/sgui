@@ -302,13 +302,13 @@ opengl_render_end :: proc(
 
 	clear(&render_data.scissor_stack)
 
-	// TODO(Thomas): Should come from an arena or something instead.
 	batch := Batch {
-		make([dynamic]Vertex, 0, len(command_queue) * 4),
-		make([dynamic]u32, 0, len(command_queue) * 6),
+		make([dynamic]Vertex, 0, len(command_queue) * 4, context.temp_allocator),
+		make([dynamic]u32, 0, len(command_queue) * 6, context.temp_allocator),
 		0,
 		0,
 	}
+	defer free_all(context.temp_allocator)
 
 	shader_use_program(render_data.shader)
 
@@ -374,8 +374,6 @@ opengl_render_end :: proc(
 			rect := val.rect
 
 			render_data.ubo_data[batch.quad_idx] = Quad_Param {
-				// TODO(Thomas): Eventually everything will be a gradient in the new shader too
-				// so this needs to be updated.
 				// Rect Fill
 				color_start         = color_start,
 				color_end           = color_end,
@@ -448,8 +446,6 @@ opengl_render_end :: proc(
 				width := (q.x1 - q.x0)
 				height := (q.y1 - q.y0)
 				render_data.ubo_data[batch.quad_idx] = Quad_Param {
-					// TODO(Thomas): Eventually everything will be a gradient in the new shader too
-					// so this needs to be updated.
 					color_start  = color_start,
 					color_end    = color_end,
 					gradient_dir = gradient_dir,
@@ -624,10 +620,6 @@ opengl_render_end :: proc(
 	}
 
 	flush_render(render_data, batch)
-
-	// TODO(Thomas): Free an arena or something instead
-	delete(batch.vertices)
-	delete(batch.indices)
 }
 
 flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
