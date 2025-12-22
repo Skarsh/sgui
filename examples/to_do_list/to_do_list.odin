@@ -22,16 +22,45 @@ Data :: struct {
 	new_task_buf_len: int,
 }
 
-// --- Style Palette ---
-WINDOW_BG :: base.Color{28, 30, 35, 255}
-PANEL_BG :: base.Color{40, 42, 48, 255}
-ROW_BG :: base.Color{50, 48, 55, 255}
-ITEM_BG :: base.Color{55, 58, 64, 255}
-ITEM_HOVER_BG :: base.Color{70, 73, 80, 255}
-TEXT_COLOR :: base.Color{220, 220, 220, 255}
-COMPLETED_TEXT_COLOR :: base.Color{140, 140, 140, 255}
-DELETE_BUTTON_COLOR :: base.Color{217, 74, 74, 255}
-ADD_BUTTON_COLOR :: base.Color{74, 137, 217, 255}
+// --- Style Palette: "Modern Dark" ---
+//WINDOW_BG :: base.Color{24, 24, 27, 255}
+//PANEL_BG :: base.Color{39, 39, 42, 255}
+//ROW_BG :: base.Color{63, 63, 70, 255}
+//ITEM_BG :: base.Color{82, 82, 91, 255}
+//ITEM_HOVER_BG :: base.Color{113, 113, 122, 255}
+//TEXT_COLOR :: base.Color{244, 244, 245, 255}
+//COMPLETED_TEXT_COLOR :: base.Color{113, 113, 122, 255}
+//DELETE_BUTTON_COLOR :: base.Color{225, 29, 72, 255}
+//ADD_BUTTON_COLOR :: base.Color{79, 70, 229, 255}
+//CHECKBOX_EMPTY_BG :: base.Color{45, 45, 48, 255}
+//CHECKBOX_DONE_BG :: base.Color{34, 197, 94, 255}
+
+// --- Style Palette: "Nordic Frost" ---
+//WINDOW_BG :: base.Color{46, 52, 64, 255}
+//PANEL_BG :: base.Color{59, 66, 82, 255}
+//ROW_BG :: base.Color{67, 76, 94, 255}
+//ITEM_BG :: base.Color{76, 86, 106, 255}
+//ITEM_HOVER_BG :: base.Color{129, 161, 193, 255}
+//TEXT_COLOR :: base.Color{236, 239, 244, 255}
+//COMPLETED_TEXT_COLOR :: base.Color{148, 156, 172, 255}
+//DELETE_BUTTON_COLOR :: base.Color{191, 97, 106, 255}
+//ADD_BUTTON_COLOR :: base.Color{136, 192, 208, 255}
+//CHECKBOX_EMPTY_BG :: base.Color{55, 62, 75, 255}
+//CHECKBOX_DONE_BG :: base.Color{163, 190, 140, 255}
+
+// --- Style Palette: "Warm Retro" ---
+WINDOW_BG :: base.Color{40, 40, 40, 255}
+PANEL_BG :: base.Color{60, 56, 54, 255}
+ROW_BG :: base.Color{80, 73, 69, 255}
+ITEM_BG :: base.Color{102, 92, 84, 255}
+ITEM_HOVER_BG :: base.Color{124, 111, 100, 255}
+TEXT_COLOR :: base.Color{235, 219, 178, 255}
+COMPLETED_TEXT_COLOR :: base.Color{146, 131, 116, 255}
+DELETE_BUTTON_COLOR :: base.Color{204, 36, 29, 255}
+ADD_BUTTON_COLOR :: base.Color{152, 151, 26, 255}
+CHECKBOX_EMPTY_BG :: base.Color{56, 50, 48, 255}
+CHECKBOX_DONE_BG :: base.Color{184, 187, 38, 255}
+
 
 add_new_task :: proc(data: ^Data) {
 	if data.new_task_buf_len == 0 {
@@ -106,6 +135,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				// --- Title ---
 				title_text_align_x := ui.Alignment_X.Center
 				title_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow, max_value = 50}}
+				title_bg_fill := base.Fill(base.Color{0, 0, 0, 0})
 				ui.text(
 					ctx,
 					"title",
@@ -115,6 +145,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							sizing = {&title_sizing.x, &title_sizing.y},
 							text_alignment_x = &title_text_align_x,
 						},
+						background_fill = &title_bg_fill,
 					},
 				)
 
@@ -147,6 +178,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						row_layout_dir := ui.Layout_Direction.Left_To_Right
 						row_align_y := ui.Alignment_Y.Center
 						row_child_gap: f32 = 10
+						row_padding := ui.Padding{5, 5, 5, 5}
 
 						ui.push_background_fill(
 							ctx,
@@ -162,11 +194,19 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									layout_direction = &row_layout_dir,
 									alignment_y = &row_align_y,
 									child_gap = &row_child_gap,
+									padding = &row_padding,
 								},
 							},
 						) {
 
 							// --- Checkbox Button ---
+							current_checkbox_color := CHECKBOX_EMPTY_BG
+							if task.completed {
+								current_checkbox_color = CHECKBOX_DONE_BG
+							}
+
+							checkbox_bg_fill := base.Fill(current_checkbox_color)
+
 							ui.checkbox(
 								ctx,
 								fmt.tprintf("tasks_checkbox_%d", i),
@@ -176,6 +216,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									base.Fill(base.Color{255, 255, 255, 255}),
 									2.0,
 								},
+								ui.Config_Options{background_fill = &checkbox_bg_fill},
 							)
 
 							// --- Spacer ---
@@ -185,6 +226,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_y := ui.Alignment_Y.Center
 							text_alignment_y := ui.Alignment_Y.Center
 							task_id := fmt.tprintf("task_text_%d", i)
+
+							task_text_color := TEXT_COLOR
+							if task.completed {
+								task_text_color = COMPLETED_TEXT_COLOR
+							}
+
+							task_text_fill := base.Fill(task_text_color)
+
 							ui.text(
 								ctx,
 								task_id,
@@ -194,6 +243,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 										alignment_y = &alignment_y,
 										text_alignment_y = &text_alignment_y,
 									},
+									text_fill = &task_text_fill,
 								},
 							)
 
@@ -201,13 +251,17 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							ui.spacer(ctx)
 
 							// --- Delete Button ---
+							delete_corner_radius: f32 = 3.0
 							delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
 							delete_button_id := fmt.tprintf("task_delete_button_%d", i)
 							delete_comm := ui.button(
 								ctx,
 								delete_button_id,
 								"Delete",
-								ui.Config_Options{background_fill = &delete_bg_fill},
+								ui.Config_Options {
+									layout = {corner_radius = &delete_corner_radius},
+									background_fill = &delete_bg_fill,
+								},
 							)
 							if delete_comm.clicked {
 								ordered_remove(&data.tasks, i)
