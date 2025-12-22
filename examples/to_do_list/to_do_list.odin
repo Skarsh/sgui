@@ -154,7 +154,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
 				task_list_child_gap: f32 = 8
 				task_list_padding: ui.Padding = {10, 10, 10, 10}
-				task_clip: ui.Clip_Config = {
+				task_list_caps := ui.Capability_Flags{.Scrollable}
+				task_list_clip: ui.Clip_Config = {
 					clip_axes = {true, true},
 				}
 				if ui.begin_container(
@@ -167,7 +168,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							child_gap = &task_list_child_gap,
 							padding = &task_list_padding,
 						},
-						clip = &task_clip,
+						clip = &task_list_clip,
+						capability_flags = &task_list_caps,
 					},
 				) {
 

@@ -151,6 +151,7 @@ Capability :: enum {
 	Hot_Animation,
 	Clickable,
 	Focusable,
+	Scrollable,
 }
 
 Capability_Flags :: bit_set[Capability]
@@ -376,6 +377,12 @@ process_interactions :: proc(ctx: ^Context) {
 		   .Focusable not_in ctx.active_element.config.capability_flags {
 			ctx.active_element = nil
 		}
+	}
+
+	// CONTINUE HERE:
+	// TODO(Thomas): Check whether mouse is over a scrollable element.
+	// This will be different than usual, because the scrollable element doesn't have to be on top.
+	if math.abs(ctx.input.scroll_delta.y) > 0 {
 	}
 
 	for element in ctx.interactive_elements {

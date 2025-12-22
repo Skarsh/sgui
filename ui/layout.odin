@@ -100,6 +100,7 @@ UI_Element :: struct {
 	min_size:       base.Vec2,
 	max_size:       base.Vec2,
 	size:           base.Vec2,
+	scroll_offset:  base.Vec2,
 	config:         Element_Config,
 	children:       [dynamic]^UI_Element,
 	fill:           base.Fill,
