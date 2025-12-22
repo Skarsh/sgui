@@ -2,7 +2,13 @@
 
 ## Active
 * To-Do List
-    * Need checkbox helper with checkmarking
+    * Scrollability
+        * Make the `to_do_list` example be overflowable
+            - When it comes to rendering, the clipping part for this is done.
+                But there's no mechanism now, that figures out whether its overflowing or not in terms of content size.
+        * Simple steps to take now:
+            - Make the interaction with an element that is scrollable update some `scroll_offset`.
+            - Transform the clip rect base on this scroll offset, so we can see the overflown content by scrolling.
 
 ## Bugs
 
