@@ -8,6 +8,12 @@
                 But there's no mechanism now, that figures out whether its overflowing or not in terms of content size.
         * Simple steps to take now:
             - Make the interaction with an element that is scrollable update some `scroll_offset`.
+                ** Need to do some refactoring for the interaction part here. The whole `process_interactions` procedure
+                    is really messy, and time for a cleanup. I think a big improvement would be to split out the
+                    intersection part from the interaction part. The intersection should probably just produce some list
+                    with `UI_Element` that the mouse / cursor intersects with. Then the interaction code can iterate 
+                    over that list and do whatever should. This makes it possible to write the intersection in a way
+                    so that we can write tests for it rather easily too.
             - Transform the clip rect base on this scroll offset, so we can see the overflown content by scrolling.
 
 ## Bugs
