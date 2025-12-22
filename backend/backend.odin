@@ -150,6 +150,8 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 				btn = .Middle
 			}
 			ui.handle_mouse_up(ctx, event.motion.x, event.motion.y, btn)
+		case .MOUSEWHEEL:
+			ui.handle_scroll(ctx, event.wheel.x, event.wheel.y)
 		case .KEYUP:
 			key := sdl_key_to_ui_key(event.key.keysym.sym)
 			ui.handle_key_up(ctx, key)

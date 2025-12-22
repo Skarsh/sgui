@@ -257,4 +257,5 @@ clear_input :: proc(ctx: ^Context) {
 	ctx.input.key_pressed_bits = {}
 	ctx.input.mouse_pressed_bits = {}
 	ctx.input.mouse_released_bits = {}
+	ctx.input.scroll_delta = {}
 }
