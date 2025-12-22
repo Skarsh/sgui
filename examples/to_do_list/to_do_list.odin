@@ -119,10 +119,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// --- Task List ---
-				task_list_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+				task_list_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 600}}
 				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
 				task_list_child_gap: f32 = 8
 				task_list_padding: ui.Padding = {10, 10, 10, 10}
+				task_clip: ui.Clip_Config = {
+					clip_axes = {true, true},
+				}
 				if ui.begin_container(
 					ctx,
 					"task_list",
@@ -133,6 +136,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							child_gap = &task_list_child_gap,
 							padding = &task_list_padding,
 						},
+						clip = &task_clip,
 					},
 				) {
 
