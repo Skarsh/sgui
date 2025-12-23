@@ -990,6 +990,34 @@ make_element :: proc(
 	return element, true
 }
 
+@(private)
+get_alignment_factor_x :: #force_inline proc(align: Alignment_X) -> f32 {
+	factor: f32 = 0
+	switch align {
+	case .Left:
+		factor = 0.0
+	case .Center:
+		factor = 0.5
+	case .Right:
+		factor = 1.0
+	}
+	return factor
+}
+
+@(private)
+get_alignment_factor_y :: #force_inline proc(align: Alignment_Y) -> f32 {
+	factor: f32 = 0
+	switch align {
+	case .Top:
+		factor = 0.0
+	case .Center:
+		factor = 0.5
+	case .Bottom:
+		factor = 1.0
+	}
+	return factor
+}
+
 calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	if parent == nil {
 		return
@@ -1022,37 +1050,22 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 				total_children_width
 
 			// Calculate starting X position based on alignment
-			start_x := content_start_x
-			switch parent.config.layout.alignment_x {
-			case .Left:
-				start_x = content_start_x
-			case .Center:
-				start_x = content_start_x + (remaining_size_x / 2)
-			case .Right:
-				start_x = content_start_x + remaining_size_x
-			}
+			factor_x := get_alignment_factor_x(parent.config.layout.alignment_x)
+			start_x := content_start_x + (remaining_size_x * factor_x)
 
-			current_x := start_x
 			for i in 0 ..< len(parent.children) {
 				child := parent.children[i]
-				child.position.x = current_x
+				child.position.x = start_x
 
 				// Y position alignment, in horizontal layout
 				// each child can have different alignment offset on the y axis
 				remaining_size_y := parent.size.y - padding.top - padding.bottom - child.size.y
-
-				switch parent.config.layout.alignment_y {
-				case .Top:
-					child.position.y = content_start_y
-				case .Center:
-					child.position.y = content_start_y + (remaining_size_y / 2)
-				case .Bottom:
-					child.position.y = content_start_y + remaining_size_y
-				}
+				factor_y := get_alignment_factor_y(parent.config.layout.alignment_y)
+				child.position.y = content_start_y + (remaining_size_y * factor_y)
 
 				// Move to next child position
 				if i < len(parent.children) - 1 {
-					current_x += child.size.x + parent.config.layout.child_gap
+					start_x += child.size.x + parent.config.layout.child_gap
 				}
 			}
 
@@ -1074,37 +1087,22 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 				total_children_height
 
 			// Calculate starting Y position based on alignment
-			start_y := content_start_y
-			switch parent.config.layout.alignment_y {
-			case .Top:
-				start_y = content_start_y
-			case .Center:
-				start_y = content_start_y + (remaining_size_y / 2)
-			case .Bottom:
-				start_y = content_start_y + remaining_size_y
-			}
+			factor_y := get_alignment_factor_y(parent.config.layout.alignment_y)
+			start_y := content_start_y + (remaining_size_y * factor_y)
 
-			current_y := start_y
 			for i in 0 ..< len(parent.children) {
 				child := parent.children[i]
-				child.position.y = current_y
+				child.position.y = start_y
 
 				// X position alignment, in vertical layout
 				// each child can have different alignment offset on the x axis
 				remaining_size_x := parent.size.x - padding.left - padding.right - child.size.x
-
-				switch parent.config.layout.alignment_x {
-				case .Left:
-					child.position.x = content_start_x
-				case .Center:
-					child.position.x = content_start_x + (remaining_size_x / 2)
-				case .Right:
-					child.position.x = content_start_x + remaining_size_x
-				}
+				factor_x := get_alignment_factor_x(parent.config.layout.alignment_x)
+				child.position.x = content_start_x + (remaining_size_x * factor_x)
 
 				// Move to next child position
 				if i < len(parent.children) - 1 {
-					current_y += child.size.y + parent.config.layout.child_gap
+					start_y += child.size.y + parent.config.layout.child_gap
 				}
 			}
 		}
