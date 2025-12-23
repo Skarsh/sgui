@@ -150,7 +150,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// --- Task List ---
-				task_list_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 600}}
+				task_list_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 300}}
 				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
 				task_list_child_gap: f32 = 8
 				task_list_padding: ui.Padding = {10, 10, 10, 10}
@@ -391,7 +391,9 @@ main :: proc() {
 	tasks := make([dynamic]Task, arena_allocator)
 	append(&tasks, Task{text = "Learn Odin", completed = true})
 	append(&tasks, Task{text = "Build a UI library", completed = true})
-	append(&tasks, Task{text = "Create a to-do app", completed = false})
+	append(&tasks, Task{text = "Create a to-do app", completed = true})
+	append(&tasks, Task{text = "Make it scrollable", completed = false})
+	append(&tasks, Task{text = "Style it well", completed = false})
 
 	my_data := Data {
 		allocator        = arena_allocator,

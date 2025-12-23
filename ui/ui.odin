@@ -357,7 +357,6 @@ process_interactions :: proc(ctx: ^Context) {
 
 	intersecting_elements := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
-	defer delete(intersecting_elements)
 	find_intersections(ctx, ctx.input.mouse_pos, &intersecting_elements, context.temp_allocator)
 
 	#reverse for elem in intersecting_elements {
@@ -386,10 +385,15 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 	}
 
-	// CONTINUE HERE:
-	// TODO(Thomas): Check whether mouse is over a scrollable element.
-	// This will be different than usual, because the scrollable element doesn't have to be on top.
+	// TODO(Thomas): Combine this iteratiion with the one for the .Clickable?
+	// TODO(Thomas): Horizontal scrolling (X-direction)?
 	if math.abs(ctx.input.scroll_delta.y) > 0 {
+		#reverse for elem in intersecting_elements {
+			if .Scrollable in elem.config.capability_flags {
+				elem.scroll_offset.y += f32(ctx.input.scroll_delta.y)
+				break
+			}
+		}
 	}
 
 	for element in ctx.interactive_elements {
