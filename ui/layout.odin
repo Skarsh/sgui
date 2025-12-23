@@ -88,6 +88,11 @@ Clip_Config :: struct {
 	clip_axes: [2]bool,
 }
 
+Scroll_Region :: struct {
+	offset:       base.Vec2,
+	content_size: base.Vec2,
+}
+
 // TODO(Thomas): Redundant data between the Element_Config and fields in this struct
 // e.g. sizes, etc.
 UI_Element :: struct {
@@ -97,7 +102,7 @@ UI_Element :: struct {
 	min_size:       base.Vec2,
 	max_size:       base.Vec2,
 	size:           base.Vec2,
-	scroll_offset:  base.Vec2,
+	scroll_region:  Scroll_Region,
 	config:         Element_Config,
 	children:       [dynamic]^UI_Element,
 	fill:           base.Fill,
