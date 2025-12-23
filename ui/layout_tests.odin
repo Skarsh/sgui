@@ -2926,3 +2926,133 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
 }
+
+@(test)
+test_relative_layout_anchoring :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		root_size:   base.Vec2,
+		parent_size: base.Vec2,
+		child_size:  base.Vec2,
+	}
+
+	test_data := Test_Data {
+		root_size   = {500, 500},
+		parent_size = {200, 200},
+		child_size  = {50, 50},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		layout_mode := Layout_Mode.Relative
+
+		parent_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.parent_size.x},
+			{kind = .Fixed, value = data.parent_size.y},
+		}
+
+		if begin_container(
+			ctx,
+			"relative_parent",
+			Config_Options {
+				layout = {
+					sizing = {&parent_sizing.x, &parent_sizing.y},
+					layout_mode = &layout_mode,
+				},
+			},
+		) {
+
+
+			anchor_child :: proc(
+				ctx: ^Context,
+				id: string,
+				child_sizing: [2]Sizing,
+				alignment_x: Alignment_X,
+				alignment_y: Alignment_Y,
+			) {
+
+				child_sizing := child_sizing
+
+				child_alignment_x := alignment_x
+				child_alignment_y := alignment_y
+
+				container(
+					ctx,
+					id,
+					Config_Options {
+						layout = {
+							sizing = {&child_sizing.x, &child_sizing.y},
+							alignment_x = &child_alignment_x,
+							alignment_y = &child_alignment_y,
+						},
+					},
+				)
+			}
+
+			child_sizing := [2]Sizing {
+				{kind = .Fixed, value = data.child_size.x},
+				{kind = .Fixed, value = data.child_size.y},
+			}
+
+			// Top-Left
+			anchor_child(ctx, "child_tl", child_sizing, Alignment_X.Left, Alignment_Y.Top)
+			// Top-Right
+			anchor_child(ctx, "child_tr", child_sizing, Alignment_X.Right, Alignment_Y.Top)
+			// Bottom-Right
+			anchor_child(ctx, "child_br", child_sizing, Alignment_X.Right, Alignment_Y.Bottom)
+			// Bottom-Left
+			anchor_child(ctx, "child_bl", child_sizing, Alignment_X.Left, Alignment_Y.Bottom)
+
+			end_container(ctx)
+		}
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		parent_pos := base.Vec2{0, 0}
+
+		// Top-Left
+		tl_pos := parent_pos
+
+		// Top-Right
+		tr_pos := parent_pos
+		tr_pos.x += data.parent_size.x
+
+		// Bottom-Right
+		br_pos := parent_pos + data.parent_size
+
+		// Bottom-Left
+		bl_pos := parent_pos
+		bl_pos.y += data.parent_size.y
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = {0, 0},
+			size     = data.root_size,
+			children = []Expected_Element {
+				{
+					id = "relative_parent",
+					pos = parent_pos,
+					size = data.parent_size,
+					children = []Expected_Element {
+						{id = "child_tl", pos = tl_pos, size = data.child_size},
+						{id = "child_tr", pos = tr_pos, size = data.child_size},
+						{id = "child_br", pos = br_pos, size = data.child_size},
+						{id = "child_bl", pos = bl_pos, size = data.child_size},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree)
+	}
+
+	// --- 4. Run the Test ---
+	run_ui_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+}
