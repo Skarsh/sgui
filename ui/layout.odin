@@ -1120,30 +1120,17 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 			// Child's position is based on its own alignment settings, relative to the parent's content area.
 			// It is not influenced by its siblings.
 			// Calculate the anchor point on the parent based on the CHILD's alignment settings.
-			anchor_x: f32
-			switch child.config.layout.alignment_x {
-			case .Left:
-				anchor_x = content_start_x
-			case .Center:
-				anchor_x = content_start_x + content_width / 2
-			case .Right:
-				anchor_x = content_start_x + content_width
-			}
+			factor_x := get_alignment_factor_x(child.config.layout.alignment_x)
+			anchor_x := content_start_x + (content_width * factor_x)
 
-			anchor_y: f32
-			switch child.config.layout.alignment_y {
-			case .Top:
-				anchor_y = content_start_y
-			case .Center:
-				anchor_y = content_start_y + content_height / 2
-			case .Bottom:
-				anchor_y = content_start_y + content_height
-			}
+			factor_y := get_alignment_factor_y(child.config.layout.alignment_y)
+			anchor_y := content_start_y + (content_height * factor_y)
 
 			// Apply the anchor position and the child's specific relative offset.
 			child.position.x = anchor_x + child.config.layout.relative_position.x
 			child.position.y = anchor_y + child.config.layout.relative_position.y
-		}}
+		}
+	}
 
 	// Recursively calculate positions for all children's children
 	for child in parent.children {
