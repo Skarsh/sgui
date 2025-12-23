@@ -306,12 +306,18 @@ end :: proc(ctx: ^Context) {
 	ctx.frame_idx += 1
 }
 
-bfs :: proc(ctx: ^Context, top_element: ^^UI_Element, highest_z_index: ^i32) {
-
+// Traverses the element hierarchy in BFS order and appends on the elements
+// that intersects with the given position.
+find_intersections :: proc(
+	ctx: ^Context,
+	pos: base.Vector2i32,
+	elements: ^[dynamic]^UI_Element,
+	allocator: mem.Allocator,
+) {
 	q := queue.Queue(^UI_Element){}
-	queue.init(&q, allocator = context.temp_allocator)
-	visited := make(map[string]bool, context.temp_allocator)
-	defer free_all(context.temp_allocator)
+	queue.init(&q, allocator = allocator)
+	visited := make(map[string]bool, allocator)
+
 	visited[ctx.root_element.id_string] = true
 	ok, alloc_err := queue.push_back(&q, ctx.root_element)
 	if alloc_err != .None {
@@ -325,13 +331,8 @@ bfs :: proc(ctx: ^Context, top_element: ^^UI_Element, highest_z_index: ^i32) {
 
 		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
 
-		if base.point_in_rect(ctx.input.mouse_pos, rect) {
-			if .Clickable in v.config.capability_flags {
-				if v.z_index > highest_z_index^ {
-					highest_z_index^ = v.z_index
-					top_element^ = v
-				}
-			}
+		if base.point_in_rect(pos, rect) {
+			append(elements, v)
 		}
 
 		for child in v.children {
@@ -353,12 +354,18 @@ bfs :: proc(ctx: ^Context, top_element: ^^UI_Element, highest_z_index: ^i32) {
 
 process_interactions :: proc(ctx: ^Context) {
 	top_element: ^UI_Element
-	highest_z_index: i32 = -1
 
-	// BFS traversal, we're traversing the layout hierarchy instead
-	// of iterating over the element_cache because in this way we
-	// know we'll always just have fresh and existing UI_Elements.
-	bfs(ctx, &top_element, &highest_z_index)
+	intersecting_elements := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	defer delete(intersecting_elements)
+	find_intersections(ctx, ctx.input.mouse_pos, &intersecting_elements, context.temp_allocator)
+
+	#reverse for elem in intersecting_elements {
+		if .Clickable in elem.config.capability_flags {
+			top_element = elem
+			break
+		}
+	}
 
 	// Clearing the active element when clicking elsewhere
 	if is_mouse_pressed(ctx^, .Left) {
