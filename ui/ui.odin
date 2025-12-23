@@ -878,7 +878,7 @@ slider :: proc(
 		}
 		thumb_align_x := Alignment_X.Left
 		thumb_align_y := Alignment_Y.Center
-		thumb_rel_pos := base.Vec2{thumb_relative_pos_x, 0}
+		thumb_rel_pos := base.Vec2{thumb_relative_pos_x, -thumb_height / 2}
 		thumb_bg_fill := base.Fill(thumb_color)
 		thumb_border_fill := thumb_border_fill
 		thumb_border_thickness := thumb_border_thickness
@@ -1002,7 +1002,7 @@ text_input :: proc(
 
 				caret_align_x := Alignment_X.Left
 				caret_align_y := Alignment_Y.Center
-				caret_rel_pos := base.Vec2{caret_x_offset, 0}
+				caret_rel_pos := base.Vec2{caret_x_offset, -caret_height / 2}
 				caret_bg_fill := base.Fill(default_color_style[.Text])
 				caret_caps := Capability_Flags{.Background}
 				caret_id := fmt.tprintf("%s_caret", id)

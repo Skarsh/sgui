@@ -1125,9 +1125,9 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 			case .Left:
 				anchor_x = content_start_x
 			case .Center:
-				anchor_x = content_start_x + content_width / 2 - child.size.x / 2
+				anchor_x = content_start_x + content_width / 2
 			case .Right:
-				anchor_x = content_start_x + content_width - child.size.x
+				anchor_x = content_start_x + content_width
 			}
 
 			anchor_y: f32
@@ -1135,9 +1135,9 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 			case .Top:
 				anchor_y = content_start_y
 			case .Center:
-				anchor_y = content_start_y + content_height / 2 - child.size.y / 2
+				anchor_y = content_start_y + content_height / 2
 			case .Bottom:
-				anchor_y = content_start_y + content_height - child.size.y
+				anchor_y = content_start_y + content_height
 			}
 
 			// Apply the anchor position and the child's specific relative offset.
