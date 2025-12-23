@@ -61,7 +61,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -202,7 +202,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(
+	run_ui_test(
 		t,
 		build_ui_proc,
 		verify_proc,
@@ -347,7 +347,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(
+	run_ui_test(
 		t,
 		build_ui_proc,
 		verify_proc,
@@ -484,7 +484,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_context)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_context)
 }
 
 
@@ -619,7 +619,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -745,7 +745,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -877,7 +877,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -1055,7 +1055,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -1234,7 +1234,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -1314,7 +1314,7 @@ test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testi
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 
 }
 
@@ -1455,7 +1455,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -1594,7 +1594,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -1753,7 +1753,7 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 // TODO(Thomas): Add other tests where we overflow the max sizing within and outside
@@ -1828,7 +1828,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -1886,7 +1886,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -1949,7 +1949,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -2020,7 +2020,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -2076,7 +2076,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 
@@ -2283,7 +2283,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		}
 
 		// --- 4. Run the Test ---
-		run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+		run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 	}
 }
 
@@ -2405,7 +2405,7 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -2526,7 +2526,7 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -2663,7 +2663,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(t, build_ui_proc, verify_proc, &test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
 
 @(test)
@@ -2791,7 +2791,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 		layout_direction      = .Left_To_Right,
 	}
 
-	run_layout_test(t, build_ui_proc, verify_proc, &ltr_test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &ltr_test_data)
 
 	// Top_To_Bottom test
 	ttb_test_data := Test_Data {
@@ -2803,7 +2803,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 		layout_direction      = .Top_To_Bottom,
 	}
 
-	run_layout_test(t, build_ui_proc, verify_proc, &ttb_test_data)
+	run_ui_test(t, build_ui_proc, verify_proc, &ttb_test_data)
 }
 
 @(test)
@@ -2918,7 +2918,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 	}
 
 	// --- 4. Run the Test ---
-	run_layout_test(
+	run_ui_test(
 		t,
 		build_ui_proc,
 		verify_proc,

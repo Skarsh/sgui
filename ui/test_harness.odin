@@ -78,7 +78,7 @@ Expected_Element :: struct {
 
 DEFAULT_TESTING_WINDOW_SIZE :: [2]i32{480, 360}
 
-run_layout_test :: proc(
+run_ui_test :: proc(
 	t: ^testing.T,
 	build_ui: proc(ctx: ^Context, data: ^$T),
 	verify: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^T),
