@@ -350,25 +350,6 @@ expect_tokens :: proc(t: ^testing.T, tokens: []Text_Token, expected_tokens: []Te
 	}
 }
 
-MOCK_CHAR_WIDTH :: 10
-MOCK_LINE_HEIGHT :: 10
-
-mock_measure_text_proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text_Metrics {
-	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
-	line_height: f32 = MOCK_LINE_HEIGHT
-
-	return Text_Metrics{width = width, line_height = line_height}
-}
-
-mock_measure_glyph_proc :: proc(
-	codepoint: rune,
-	font_id: u16,
-	user_data: rawptr,
-) -> Glyph_Metrics {
-	width: f32 = MOCK_CHAR_WIDTH
-	left_bearing: f32 = MOCK_CHAR_WIDTH
-	return Glyph_Metrics{width = width, left_bearing = left_bearing}
-}
 
 // ------------ TESTS -------------
 
