@@ -3228,3 +3228,148 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
 }
+
+@(test)
+test_relative_layout_padding_influence :: proc(t: ^testing.T) {
+
+	// --- 1. Define the Test-Specific Context Data ---
+	Test_Data :: struct {
+		root_size:   base.Vec2,
+		parent_size: base.Vec2,
+		padding:     Padding,
+		child_size:  base.Vec2,
+	}
+
+	test_data := Test_Data {
+		root_size = {500, 500},
+		parent_size = {100, 100},
+		padding = {left = 10, right = 20, top = 5, bottom = 15},
+		child_size = {20, 20},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		layout_mode := Layout_Mode.Relative
+
+		parent_sizing := [2]Sizing {
+			{kind = .Fixed, value = data.parent_size.x},
+			{kind = .Fixed, value = data.parent_size.y},
+		}
+
+		if begin_container(
+			ctx,
+			"relative_parent",
+			Config_Options {
+				layout = {
+					sizing = {&parent_sizing.x, &parent_sizing.y},
+					layout_mode = &layout_mode,
+					padding = &data.padding,
+				},
+			},
+		) {
+
+			anchor_child :: proc(
+				ctx: ^Context,
+				id: string,
+				sizing: [2]Sizing,
+				align_x: Alignment_X,
+				align_y: Alignment_Y,
+			) {
+				sizing := sizing
+				align_x := align_x
+				align_y := align_y
+
+				container(
+					ctx,
+					id,
+					Config_Options {
+						layout = {
+							sizing = {&sizing.x, &sizing.y},
+							alignment_x = &align_x,
+							alignment_y = &align_y,
+						},
+					},
+				)
+			}
+
+			child_sizing := [2]Sizing {
+				{kind = .Fixed, value = data.child_size.x},
+				{kind = .Fixed, value = data.child_size.y},
+			}
+
+			// Top-Left
+			anchor_child(ctx, "child_tl", child_sizing, .Left, .Top)
+
+			// Top-Right
+			anchor_child(ctx, "child_tr", child_sizing, .Right, .Top)
+
+			// Bottom-Right
+			anchor_child(ctx, "child_br", child_sizing, .Right, .Bottom)
+
+			// Bottom-Left
+			anchor_child(ctx, "child_bl", child_sizing, .Left, .Bottom)
+
+			end_container(ctx)
+		}
+
+	}
+
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+
+		// Content box size
+		content_width := data.parent_size.x - data.padding.left - data.padding.right
+		content_height := data.parent_size.y - data.padding.top - data.padding.bottom
+
+		parent_pos := base.Vec2{0, 0}
+
+		// Top-Left: Anchored to padding start
+		child_pos_tl := parent_pos + base.Vec2{data.padding.left, data.padding.top}
+
+
+		// Top-Right
+		child_pos_tr := parent_pos + base.Vec2{data.padding.left + content_width, data.padding.top}
+
+		// Bottom-Right
+		child_pos_br :=
+			parent_pos +
+			base.Vec2{data.padding.left, data.padding.top} +
+			base.Vec2{content_width, content_height}
+
+		// Bottom-Left
+		child_pos_bl :=
+			parent_pos + base.Vec2{data.padding.left, data.padding.top + content_height}
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = {0, 0},
+			size     = data.root_size,
+			children = []Expected_Element {
+				{
+					id = "relative_parent",
+					pos = parent_pos,
+					size = data.parent_size,
+					children = []Expected_Element {
+						{id = "child_tl", pos = child_pos_tl, size = data.child_size},
+						{id = "child_tr", pos = child_pos_tr, size = data.child_size},
+						{id = "child_br", pos = child_pos_br, size = data.child_size},
+						{id = "child_bl", pos = child_pos_bl, size = data.child_size},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree)
+
+	}
+
+	// --- 4. Run the Test ---
+	run_ui_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+}
