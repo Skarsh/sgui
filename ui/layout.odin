@@ -280,7 +280,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
 	size: f32 = 0
 
-	primary_axis := is_primary_axis(element^, axis)
+	primary_axis := is_main_axis(element^, axis)
 	if primary_axis {
 		child_sum_size: f32 = 0
 		for child in element.children {
@@ -620,13 +620,29 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 	return remaining_size
 }
 
-is_primary_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
+is_main_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 
-	is_primary_axis :=
+	is_main_axis :=
 		(axis == .X && element.config.layout.layout_direction == .Left_To_Right) ||
 		(axis == .Y && element.config.layout.layout_direction == .Top_To_Bottom)
 
-	return is_primary_axis
+	return is_main_axis
+}
+
+get_main_axis :: #force_inline proc(layout_direction: Layout_Direction) -> Axis2 {
+	if layout_direction == .Left_To_Right {
+		return .X
+	} else {
+		return .Y
+	}
+}
+
+get_cross_axis :: #force_inline proc(layout_direction: Layout_Direction) -> Axis2 {
+	if layout_direction == .Left_To_Right {
+		return .Y
+	} else {
+		return .X
+	}
 }
 
 size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
@@ -634,7 +650,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		return
 	}
 
-	if element.config.layout.sizing[axis].kind == .Fit && !is_primary_axis(element^, axis) {
+	if element.config.layout.sizing[axis].kind == .Fit && !is_main_axis(element^, axis) {
 		content_size_on_axis := calc_remaining_size(element^, axis)
 		for child in element.children {
 			child_sizing_kind := child.config.layout.sizing[axis].kind
@@ -668,7 +684,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	// simple, and shouldn't be a problem to go back if we want to use something like a
 	// virtual static arena ourselves to ensure the dynamic array stays in place.
 	resizables := small_array.Small_Array(1024, ^UI_Element){}
-	primary_axis := is_primary_axis(element^, axis)
+	primary_axis := is_main_axis(element^, axis)
 
 	if primary_axis {
 
@@ -1034,87 +1050,62 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	}
 
 	if parent.config.layout.layout_mode == .Flow {
-		// Flow Layout_Mode
 
-		parent_child_gap := calc_child_gap(parent^)
+		dir := parent.config.layout.layout_direction
+		padding := parent.config.layout.padding
 
-		// Calculate content area bounds
-		content_start_x := parent.position.x + parent.config.layout.padding.left
-		content_start_y := parent.position.y + parent.config.layout.padding.top
+		main_axis := get_main_axis(dir)
+		cross_axis := get_cross_axis(dir)
 
-		layout_direction := parent.config.layout.layout_direction
-		if layout_direction == .Left_To_Right {
-			// Calculate total width used by all children
-			total_children_width: f32 = 0
-			for child in parent.children {
-				total_children_width += child.size.x
-			}
+		padding_start_main := main_axis == .X ? padding.left : padding.top
+		padding_end_main := main_axis == .X ? padding.right : padding.bottom
 
-			// Calculate remaining space after children and gaps
-			padding := parent.config.layout.padding
-			remaining_size_x :=
-				parent.size.x -
-				padding.left -
-				padding.right -
-				parent_child_gap -
-				total_children_width
+		padding_start_cross := cross_axis == .X ? padding.left : padding.top
+		padding_end_cross := cross_axis == .X ? padding.right : padding.bottom
 
-			// Calculate starting X position based on alignment
-			factor_x := get_alignment_factor_x(parent.config.layout.alignment_x)
-			start_x := content_start_x + (remaining_size_x * factor_x)
+		content_start_main := parent.position[main_axis] + padding_start_main
+		content_start_cross := parent.position[cross_axis] + padding_start_cross
 
-			for i in 0 ..< len(parent.children) {
-				child := parent.children[i]
-				child.position.x = start_x
+		content_size_main := parent.size[main_axis] - padding_start_main - padding_end_main
+		content_size_cross := parent.size[cross_axis] - padding_start_cross - padding_end_cross
 
-				// Y position alignment, in horizontal layout
-				// each child can have different alignment offset on the y axis
-				remaining_size_y := parent.size.y - padding.top - padding.bottom - child.size.y
-				factor_y := get_alignment_factor_y(parent.config.layout.alignment_y)
-				child.position.y = content_start_y + (remaining_size_y * factor_y)
+		total_children_main_size: f32
+		for child in parent.children {
+			total_children_main_size += child.size[main_axis]
+		}
 
-				// Move to next child position
-				if i < len(parent.children) - 1 {
-					start_x += child.size.x + parent.config.layout.child_gap
-				}
-			}
+		gap := calc_child_gap(parent^)
 
+		// Calculate Main axis start position
+		main_align_factor: f32
+		if main_axis == .X {
+			main_align_factor = get_alignment_factor_x(parent.config.layout.alignment_x)
 		} else {
+			main_align_factor = get_alignment_factor_y(parent.config.layout.alignment_y)
+		}
 
-			// Calculate total height used by all children
-			total_children_height: f32 = 0
-			for child in parent.children {
-				total_children_height += child.size.y
+		remaining_space_main := content_size_main - total_children_main_size - gap
+		current_pos_main := content_start_main + (remaining_space_main * main_align_factor)
+
+		// Place children
+		for child in parent.children {
+			// Set Main axis
+			child.position[main_axis] = current_pos_main
+
+			// Set Cross axis alignment
+			cross_align_factor: f32
+			if cross_axis == .X {
+				cross_align_factor = get_alignment_factor_x(parent.config.layout.alignment_x)
+			} else {
+				cross_align_factor = get_alignment_factor_y(parent.config.layout.alignment_y)
 			}
 
-			// Calculate remaining space after children and gaps
-			padding := parent.config.layout.padding
-			remaining_size_y :=
-				parent.size.y -
-				padding.top -
-				padding.bottom -
-				parent_child_gap -
-				total_children_height
+			remaining_space_cross := content_size_cross - child.size[cross_axis]
+			child.position[cross_axis] =
+				content_start_cross + (remaining_space_cross * cross_align_factor)
 
-			// Calculate starting Y position based on alignment
-			factor_y := get_alignment_factor_y(parent.config.layout.alignment_y)
-			start_y := content_start_y + (remaining_size_y * factor_y)
-
-			for i in 0 ..< len(parent.children) {
-				child := parent.children[i]
-				child.position.y = start_y
-
-				// X position alignment, in vertical layout
-				// each child can have different alignment offset on the x axis
-				remaining_size_x := parent.size.x - padding.left - padding.right - child.size.x
-				factor_x := get_alignment_factor_x(parent.config.layout.alignment_x)
-				child.position.x = content_start_x + (remaining_size_x * factor_x)
-
-				// Move to next child position
-				if i < len(parent.children) - 1 {
-					start_y += child.size.y + parent.config.layout.child_gap
-				}
-			}
+			// Advance Main axis
+			current_pos_main += child.size[main_axis] + parent.config.layout.child_gap
 		}
 	} else {
 		// Relative Layout_Mode
@@ -1137,7 +1128,6 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 			child.position =
 				content_pos + (content_size * factor) + child.config.layout.relative_position
 		}
-
 	}
 
 	// Recursively calculate positions for all children's children
