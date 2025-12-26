@@ -1018,6 +1018,16 @@ get_alignment_factor_y :: #force_inline proc(align: Alignment_Y) -> f32 {
 	return factor
 }
 
+@(private)
+get_alignment_factors :: #force_inline proc(
+	align_x: Alignment_X,
+	align_y: Alignment_Y,
+) -> base.Vec2 {
+	factor_x := get_alignment_factor_x(align_x)
+	factor_y := get_alignment_factor_y(align_y)
+	return base.Vec2{factor_x, factor_y}
+}
+
 calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	if parent == nil {
 		return
@@ -1109,27 +1119,25 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	} else {
 		// Relative Layout_Mode
 
-		// Calculate content area bounds of the parent
 		padding := parent.config.layout.padding
-		content_start_x := parent.position.x + padding.left
-		content_start_y := parent.position.y + padding.top
-		content_width := parent.size.x - padding.left - padding.right
-		content_height := parent.size.y - padding.top - padding.bottom
+
+		content_pos := base.Vec2{parent.position.x + padding.left, parent.position.y + padding.top}
+
+		content_size := base.Vec2 {
+			parent.size.x - padding.left - padding.right,
+			parent.size.y - padding.top - padding.bottom,
+		}
 
 		for child in parent.children {
-			// Child's position is based on its own alignment settings, relative to the parent's content area.
-			// It is not influenced by its siblings.
-			// Calculate the anchor point on the parent based on the CHILD's alignment settings.
-			factor_x := get_alignment_factor_x(child.config.layout.alignment_x)
-			anchor_x := content_start_x + (content_width * factor_x)
+			factor := get_alignment_factors(
+				child.config.layout.alignment_x,
+				child.config.layout.alignment_y,
+			)
 
-			factor_y := get_alignment_factor_y(child.config.layout.alignment_y)
-			anchor_y := content_start_y + (content_height * factor_y)
-
-			// Apply the anchor position and the child's specific relative offset.
-			child.position.x = anchor_x + child.config.layout.relative_position.x
-			child.position.y = anchor_y + child.config.layout.relative_position.y
+			child.position =
+				content_pos + (content_size * factor) + child.config.layout.relative_position
 		}
+
 	}
 
 	// Recursively calculate positions for all children's children
