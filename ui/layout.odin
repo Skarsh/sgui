@@ -274,44 +274,29 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	}
 }
 
-// Size of the element is capped at it's max size.
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
-	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
-	size: f32 = 0
+	padding_sum := axis == .X ? (padding.left + padding.right) : (padding.top + padding.bottom)
 
-	primary_axis := is_main_axis(element^, axis)
-	if primary_axis {
-		child_sum_size: f32 = 0
+	content_size: f32
+
+	if is_main_axis(element^, axis) {
+		// Main Axis: Accumulate size of all children plus gaps
 		for child in element.children {
-			child_sum_size += child.size[axis]
+			content_size += child.size[axis]
 		}
-		child_gap := calc_child_gap(element^)
-		if size + child_sum_size + child_gap <= element.max_size[axis] {
-			size += child_sum_size + child_gap
-		} else {
-			size = element.max_size[axis]
-		}
+		content_size += calc_child_gap(element^)
 	} else {
+		// Cross Axis: The size is determined by the largest child
 		for child in element.children {
-			max_value := max(size, child.size[axis])
-			if max_value <= element.max_size[axis] {
-				size = max_value
-			} else {
-				size = element.max_size[axis]
-			}
+			content_size = max(content_size, child.size[axis])
 		}
 	}
 
-	total_size := size + padding_sum
+	// Add padding
+	total_size := content_size + padding_sum
 
-	if total_size <= element.min_size[axis] {
-		return element.min_size[axis]
-	} else if total_size <= element.max_size[axis] {
-		return total_size
-	} else {
-		return element.max_size[axis]
-	}
+	return math.clamp(total_size, element.min_size[axis], element.max_size[axis])
 }
 
 close_element :: proc(ctx: ^Context) {
