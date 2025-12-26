@@ -392,7 +392,7 @@ process_interactions :: proc(ctx: ^Context) {
 	if math.abs(ctx.input.scroll_delta.y) > 0 {
 		#reverse for elem in intersecting_elements {
 			if .Scrollable in elem.config.capability_flags {
-				elem.scroll_region.offset.y += f32(ctx.input.scroll_delta.y) * SCROLL_SPEED
+				elem.scroll_region.offset.y -= f32(ctx.input.scroll_delta.y) * SCROLL_SPEED
 				break
 			}
 		}
