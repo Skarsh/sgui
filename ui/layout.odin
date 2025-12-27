@@ -1034,9 +1034,6 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 		return
 	}
 
-	// Reset content size for the new frame calculation
-	parent.scroll_region.content_size = {0, 0}
-
 	if parent.config.layout.layout_mode == .Flow {
 
 		dir := parent.config.layout.layout_direction
@@ -1077,8 +1074,8 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 
 		// Place children
 		for child in parent.children {
-
-			natural_main := current_pos_main
+			// Set Main axis
+			child.position[main_axis] = current_pos_main
 
 			// Set Cross axis alignment
 			cross_align_factor: f32
@@ -1089,24 +1086,8 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 			}
 
 			remaining_space_cross := content_size_cross - child.size[cross_axis]
-
-			natural_cross := content_start_cross + (remaining_space_cross * cross_align_factor)
-
-			extent_main := (natural_main - content_start_main) + child.size[main_axis]
-			extent_cross := (natural_cross - content_start_cross) + child.size[cross_axis]
-
-			parent.scroll_region.content_size[main_axis] = max(
-				parent.scroll_region.content_size[main_axis],
-				extent_main,
-			)
-
-			parent.scroll_region.content_size[cross_axis] = max(
-				parent.scroll_region.content_size[cross_axis],
-				extent_cross,
-			)
-
-			child.position[main_axis] = natural_main - parent.scroll_region.offset[main_axis]
-			child.position[cross_axis] = natural_cross - parent.scroll_region.offset[cross_axis]
+			child.position[cross_axis] =
+				content_start_cross + (remaining_space_cross * cross_align_factor)
 
 			// Advance Main axis
 			current_pos_main += child.size[main_axis] + parent.config.layout.child_gap
@@ -1129,21 +1110,8 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 				child.config.layout.alignment_y,
 			)
 
-			natural_pos :=
+			child.position =
 				content_pos + (content_size * factor) + child.config.layout.relative_position
-
-			extent := (natural_pos - content_pos) + child.size
-
-			parent.scroll_region.content_size.x = max(
-				parent.scroll_region.content_size.x,
-				extent.x,
-			)
-			parent.scroll_region.content_size.y = max(
-				parent.scroll_region.content_size.y,
-				extent.y,
-			)
-
-			child.position = natural_pos - parent.scroll_region.offset
 		}
 	}
 
@@ -1152,7 +1120,6 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 		calculate_positions_and_alignment(child)
 	}
 }
-
 // Helper to verify element size
 compare_element_size :: proc(
 	element: UI_Element,
