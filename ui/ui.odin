@@ -389,10 +389,11 @@ process_interactions :: proc(ctx: ^Context) {
 	SCROLL_SPEED: f32 : 30.0
 	// TODO(Thomas): Combine this iteratiion with the one for the .Clickable?
 	// TODO(Thomas): Horizontal scrolling (X-direction)?
-	if math.abs(ctx.input.scroll_delta.y) > 0 {
-		#reverse for elem in intersecting_elements {
+	#reverse for elem in intersecting_elements {
+		if math.abs(ctx.input.scroll_delta.y) > 0 {
 			if .Scrollable in elem.config.capability_flags {
-				elem.scroll_region.offset.y -= f32(ctx.input.scroll_delta.y) * SCROLL_SPEED
+				offset_delta := f32(ctx.input.scroll_delta.y) * SCROLL_SPEED
+				elem.scroll_region.offset.y -= offset_delta
 				break
 			}
 		}

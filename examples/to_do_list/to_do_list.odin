@@ -394,6 +394,8 @@ main :: proc() {
 	append(&tasks, Task{text = "Create a to-do app", completed = true})
 	append(&tasks, Task{text = "Make it scrollable", completed = false})
 	append(&tasks, Task{text = "Style it well", completed = false})
+	append(&tasks, Task{text = "Task to make it overflow", completed = false})
+	append(&tasks, Task{text = "Another task to make it overflow", completed = false})
 
 	my_data := Data {
 		allocator        = arena_allocator,
