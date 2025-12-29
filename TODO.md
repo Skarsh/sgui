@@ -2,9 +2,6 @@
 
 ## Active
 * To-Do List
-    - Scrolling for the to-do list
-* Add more tests for the Relative layout mode. Specifically using offsets etc.
-
 ## Bugs
 
 ## Backlog
