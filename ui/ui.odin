@@ -810,6 +810,7 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	return element.last_comm
 }
 
+
 // TODO(Thomas): Make it possible to style the thumb. Maybe by taking in a thumb Config_Options?
 slider :: proc(
 	ctx: ^Context,
@@ -817,18 +818,21 @@ slider :: proc(
 	value: ^f32,
 	min: f32,
 	max: f32,
+	axis: Axis2 = .X,
 	thumb_color: base.Fill = base.Color{255, 200, 200, 255},
 	thumb_border_thickness: f32 = 0,
 	thumb_border_fill: base.Fill = base.Color{240, 240, 240, 255},
 	opts: Config_Options = {},
 ) -> Comm {
-	sizing_x := Sizing {
-		kind = .Grow,
+
+	sizing: [2]Sizing
+
+	if axis == .X {
+		sizing = {{kind = .Grow}, {kind = .Fixed, value = 20}}
+	} else {
+		sizing = {{kind = .Fixed, value = 20}, {kind = .Grow}}
 	}
-	sizing_y := Sizing {
-		kind  = .Fixed,
-		value = 20,
-	}
+
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 	layout_mode: Layout_Mode = .Relative
@@ -836,7 +840,7 @@ slider :: proc(
 
 	default_opts := Config_Options {
 		layout = {
-			sizing = {&sizing_x, &sizing_y},
+			sizing = {&sizing.x, &sizing.y},
 			layout_mode = &layout_mode,
 			corner_radius = &corner_radius,
 		},
@@ -845,48 +849,63 @@ slider :: proc(
 	}
 
 	element, open_ok := open_element(ctx, id, opts, default_opts)
-	if open_ok {
 
-		// Thumb propertis
+	if open_ok {
 		thumb_width: f32 = 20
 		thumb_height: f32 = 20
 
 		padding := element.config.layout.padding
-		content_width := element.size.x - padding.left - padding.right
+		pad_start, pad_end := get_padding_for_axis(padding, axis)
+
+		track_len := element.size[axis] - pad_start - pad_end
+		thumb_len := axis == .X ? thumb_width : thumb_height
 
 		range := max - min
 
-		// Handle mouse dragging to update the slider's value
-		if element.last_comm.held && content_width > 0 {
-			mouse_relative_x := f32(ctx.input.mouse_pos.x) - (element.position.x + padding.left)
-			new_ratio := math.clamp(mouse_relative_x / content_width, 0, 1)
+		// Handle input
+		if element.last_comm.held && track_len > 0 {
+			mouse_val := axis == .X ? f32(ctx.input.mouse_pos.x) : f32(ctx.input.mouse_pos.y)
+			element_pos := axis == .X ? element.position.x : element.position.y
+
+			mouse_relative := mouse_val - (element_pos + pad_start)
+
+			new_ratio := math.clamp(mouse_relative / track_len, 0, 1)
 			value^ = min + (new_ratio * range)
 		}
 
-		// Calculate the ratio based on the current value
 		ratio: f32 = 0
 		if range != 0 {
 			ratio = (value^ - min) / range
 		}
 
-		// Calculate positions, keeping thumb inside bounds
-		// The total distance the thumb's left edge can travel
-		thumb_travel_width := content_width - thumb_width
-		thumb_relative_pos_x := ratio * thumb_travel_width
+		thumb_travel := track_len - thumb_len
+		thumb_offset := ratio * thumb_travel
 
-		// Thumb
+		thumb_align_x: Alignment_X
+		thumb_align_y: Alignment_Y
+		thumb_rel_pos: base.Vec2
+
+		if axis == .X {
+			thumb_align_x = .Left
+			thumb_align_y = .Center
+			thumb_rel_pos = base.Vec2{thumb_offset, -thumb_height / 2}
+		} else {
+			thumb_align_x = .Center
+			thumb_align_y = .Top
+			thumb_rel_pos = base.Vec2{-thumb_width / 2, thumb_offset}
+		}
+
+		// Thumb configuration
 		thumb_sizing := [2]Sizing {
 			{kind = .Fixed, value = thumb_width},
 			{kind = .Fixed, value = thumb_height},
 		}
-		thumb_align_x := Alignment_X.Left
-		thumb_align_y := Alignment_Y.Center
-		thumb_rel_pos := base.Vec2{thumb_relative_pos_x, -thumb_height / 2}
+
 		thumb_bg_fill := base.Fill(thumb_color)
 		thumb_border_fill := thumb_border_fill
 		thumb_border_thickness := thumb_border_thickness
 		thumb_caps := Capability_Flags{.Background}
-		thumb_radius: f32 = thumb_width / 2
+		thumb_radius: f32 = thumb_len / 2
 		thumb_id := fmt.tprintf("%v_thumb", id)
 
 		container(
@@ -906,10 +925,9 @@ slider :: proc(
 				capability_flags = &thumb_caps,
 			},
 		)
-
 		close_element(ctx)
-	}
 
+	}
 	append(&ctx.interactive_elements, element)
 	return element.last_comm
 }
