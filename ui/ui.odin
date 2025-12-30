@@ -875,7 +875,7 @@ slider :: proc(
 
 		ratio: f32 = 0
 		if range != 0 {
-			ratio = (value^ - min) / range
+			ratio = math.clamp((value^ - min) / range, 0, 1)
 		}
 
 		thumb_travel := track_len - thumb_len
