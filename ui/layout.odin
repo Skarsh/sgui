@@ -1005,7 +1005,6 @@ get_alignment_factor_x :: #force_inline proc(align: Alignment_X) -> f32 {
 	return factor
 }
 
-@(private)
 get_alignment_factor_y :: #force_inline proc(align: Alignment_Y) -> f32 {
 	factor: f32 = 0
 	switch align {
@@ -1019,7 +1018,6 @@ get_alignment_factor_y :: #force_inline proc(align: Alignment_Y) -> f32 {
 	return factor
 }
 
-@(private)
 get_alignment_factors :: #force_inline proc(
 	align_x: Alignment_X,
 	align_y: Alignment_Y,
@@ -1029,129 +1027,136 @@ get_alignment_factors :: #force_inline proc(
 	return base.Vec2{factor_x, factor_y}
 }
 
-// TODO(Thomas): Cleanup and simplify. I don't like having to do the .Scrollable capability flag check if we
-// don't really have to.
+get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
+	if axis == .X {
+		return padding.left, padding.right
+	}
+	return padding.top, padding.bottom
+}
+
+layout_children_flow :: proc(parent: ^UI_Element) {
+	padding := parent.config.layout.padding
+	dir := parent.config.layout.layout_direction
+
+	// Setup Axes
+	main_axis := get_main_axis(dir)
+	cross_axis := get_cross_axis(dir)
+
+	// Resolve padding for axes
+	pad_main_start, pad_main_end := get_padding_for_axis(padding, main_axis)
+	pad_cross_start, pad_cross_end := get_padding_for_axis(padding, cross_axis)
+
+	// Calculate available content space
+	content_size_main := parent.size[main_axis] - (pad_main_start + pad_main_end)
+	content_size_cross := parent.size[cross_axis] - (pad_cross_start + pad_cross_end)
+
+	start_pos_main := parent.position[main_axis] + pad_main_start
+	start_pos_cross := parent.position[cross_axis] + pad_cross_start
+
+	// Measure children
+	total_children_main: f32 = 0
+	max_children_cross: f32 = 0
+
+	for child in parent.children {
+		total_children_main += child.size[main_axis]
+		max_children_cross = max(max_children_cross, child.size[cross_axis])
+	}
+
+	// Apply child gap
+	gap_size := calc_child_gap(parent^)
+	total_children_main += gap_size
+
+	// Update Scroll region and clamp offsets
+	// We always calculate bounds and clamp. If not scrollable, offset remain 0.
+	parent.scroll_region.content_size[main_axis] = total_children_main
+	parent.scroll_region.content_size[cross_axis] = max_children_cross
+
+	max_offset_main := max(0.0, total_children_main - content_size_main)
+	max_offset_cross := max(0.0, max_children_cross - content_size_cross)
+
+	parent.scroll_region.offset[main_axis] = clamp(
+		parent.scroll_region.offset[main_axis],
+		0,
+		max_offset_main,
+	)
+	parent.scroll_region.offset[cross_axis] = clamp(
+		parent.scroll_region.offset[cross_axis],
+		0,
+		max_offset_cross,
+	)
+
+	// Determine starting position
+	align_factors := get_alignment_factors(
+		parent.config.layout.alignment_x,
+		parent.config.layout.alignment_y,
+	)
+
+	remaining_space_main := content_size_main - total_children_main
+
+	main_pos := start_pos_main + (remaining_space_main * align_factors[main_axis])
+
+	// Adjust for scroll
+	main_pos -= parent.scroll_region.offset[main_axis]
+
+	// Position children
+	for child in parent.children {
+		// Main axis
+		child.position[main_axis] = main_pos
+		main_pos += child.size[main_axis] + parent.config.layout.child_gap
+
+		// Cross axis
+		remaining_space_cross := content_size_cross - child.size[cross_axis]
+
+		child.position[cross_axis] =
+			start_pos_cross +
+			(remaining_space_cross * align_factors[cross_axis]) -
+			parent.scroll_region.offset[cross_axis]
+	}
+}
+
+layout_children_relative :: proc(parent: ^UI_Element) {
+	// TODO(Thomas): Scrolling - I assume it makes sense here?
+	padding := parent.config.layout.padding
+
+	// Content box start and size
+	content_pos := base.Vec2{parent.position.x + padding.left, parent.position.y + padding.top}
+	content_size := base.Vec2 {
+		parent.size.x - padding.left - padding.right,
+		parent.size.y - padding.top - padding.bottom,
+	}
+
+	for child in parent.children {
+		factors := get_alignment_factors(
+			child.config.layout.alignment_x,
+			child.config.layout.alignment_y,
+		)
+
+		child.position =
+			content_pos + (content_size * factors) + child.config.layout.relative_position
+	}
+}
+
 calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 	if parent == nil {
 		return
 	}
 
+	// Reset scroll content size for this frame
 	parent.scroll_region.content_size = {}
 
-	if parent.config.layout.layout_mode == .Flow {
-
-		dir := parent.config.layout.layout_direction
-		padding := parent.config.layout.padding
-
-		main_axis := get_main_axis(dir)
-		cross_axis := get_cross_axis(dir)
-
-		padding_start_main := main_axis == .X ? padding.left : padding.top
-		padding_end_main := main_axis == .X ? padding.right : padding.bottom
-
-		padding_start_cross := cross_axis == .X ? padding.left : padding.top
-		padding_end_cross := cross_axis == .X ? padding.right : padding.bottom
-
-		content_start_main := parent.position[main_axis] + padding_start_main
-		content_start_cross := parent.position[cross_axis] + padding_start_cross
-
-		content_size_main := parent.size[main_axis] - padding_start_main - padding_end_main
-		content_size_cross := parent.size[cross_axis] - padding_start_cross - padding_end_cross
-
-		total_children_main_size: f32
-		max_children_cross_size: f32
-		for child in parent.children {
-			total_children_main_size += child.size[main_axis]
-			max_children_cross_size = max(max_children_cross_size, child.size[cross_axis])
-		}
-
-		gap := calc_child_gap(parent^)
-
-		parent.scroll_region.content_size[main_axis] = total_children_main_size + gap
-		parent.scroll_region.content_size[cross_axis] = max_children_cross_size
-
-		// Calculate Main axis start position
-		main_align_factor: f32
-		if main_axis == .X {
-			main_align_factor = get_alignment_factor_x(parent.config.layout.alignment_x)
-		} else {
-			main_align_factor = get_alignment_factor_y(parent.config.layout.alignment_y)
-		}
-
-		remaining_space_main := content_size_main - total_children_main_size - gap
-		current_pos_main := content_start_main + (remaining_space_main * main_align_factor)
-
-		// NOTE(Thomas): Clamping the scroll offsets. It is important that this happens before
-		// the scroll offsets are used to calculate the positions.
-		max_offset_main: f32
-		max_offset_cross: f32
-		if .Scrollable in parent.config.capability_flags {
-			max_offset_main = parent.scroll_region.content_size[main_axis] - content_size_main
-			parent.scroll_region.offset[main_axis] = clamp(
-				parent.scroll_region.offset[main_axis],
-				0,
-				max_offset_main,
-			)
-
-			max_offset_cross = parent.scroll_region.content_size[cross_axis] - content_size_cross
-			parent.scroll_region.offset[cross_axis] = clamp(
-				parent.scroll_region.offset[cross_axis],
-				0,
-				max_offset_cross,
-			)
-		}
-
-		// Place the children
-		for child in parent.children {
-
-			// Main Axis
-			child.position[main_axis] = current_pos_main - parent.scroll_region.offset[main_axis]
-			current_pos_main += child.size[main_axis] + parent.config.layout.child_gap
-
-			// Cross Axis
-			cross_align_factor: f32
-			if cross_axis == .X {
-				cross_align_factor = get_alignment_factor_x(parent.config.layout.alignment_x)
-			} else {
-				cross_align_factor = get_alignment_factor_y(parent.config.layout.alignment_y)
-			}
-
-			remaining_space_cross := content_size_cross - child.size[cross_axis]
-			child.position[cross_axis] =
-				content_start_cross +
-				(remaining_space_cross * cross_align_factor) -
-				parent.scroll_region.offset[cross_axis]
-		}
-
-	} else {
-		// Relative Layout_Mode
-		// TODO(Thomas): Scrolling - I assume it makes sense here?
-
-		padding := parent.config.layout.padding
-
-		content_pos := base.Vec2{parent.position.x + padding.left, parent.position.y + padding.top}
-
-		content_size := base.Vec2 {
-			parent.size.x - padding.left - padding.right,
-			parent.size.y - padding.top - padding.bottom,
-		}
-
-		for child in parent.children {
-			factor := get_alignment_factors(
-				child.config.layout.alignment_x,
-				child.config.layout.alignment_y,
-			)
-
-			child.position =
-				content_pos + (content_size * factor) + child.config.layout.relative_position
-		}
+	switch parent.config.layout.layout_mode {
+	case .Flow:
+		layout_children_flow(parent)
+	case .Relative:
+		layout_children_relative(parent)
 	}
 
-	// Recursively calculate positions for all children's children
+	// Recursive step
 	for child in parent.children {
 		calculate_positions_and_alignment(child)
 	}
 }
+
 
 // Helper to verify element size
 compare_element_size :: proc(
