@@ -90,6 +90,7 @@ Clip_Config :: struct {
 
 Scroll_Region :: struct {
 	offset:       base.Vec2,
+	max_offset:   base.Vec2,
 	content_size: base.Vec2,
 }
 
@@ -1073,6 +1074,9 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 
 	max_offset_main := max(0.0, total_children_main - content_size_main)
 	max_offset_cross := max(0.0, max_children_cross - content_size_cross)
+
+	parent.scroll_region.max_offset[main_axis] = max_offset_main
+	parent.scroll_region.max_offset[cross_axis] = max_offset_cross
 
 	parent.scroll_region.offset[main_axis] = clamp(
 		parent.scroll_region.offset[main_axis],
