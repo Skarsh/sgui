@@ -89,9 +89,10 @@ Clip_Config :: struct {
 }
 
 Scroll_Region :: struct {
-	offset:       base.Vec2,
-	max_offset:   base.Vec2,
-	content_size: base.Vec2,
+	offset:        base.Vec2,
+	target_offset: base.Vec2,
+	max_offset:    base.Vec2,
+	content_size:  base.Vec2,
 }
 
 // TODO(Thomas): Redundant data between the Element_Config and fields in this struct
@@ -1140,10 +1141,12 @@ layout_children_relative :: proc(parent: ^UI_Element) {
 	}
 }
 
-calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
+calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 	if parent == nil {
 		return
 	}
+
+	base.animate_vec2(&parent.scroll_region.offset, &parent.scroll_region.target_offset, dt, 20.0)
 
 	// Reset scroll content size for this frame
 	parent.scroll_region.content_size = {}
@@ -1157,7 +1160,7 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element) {
 
 	// Recursive step
 	for child in parent.children {
-		calculate_positions_and_alignment(child)
+		calculate_positions_and_alignment(child, dt)
 	}
 }
 

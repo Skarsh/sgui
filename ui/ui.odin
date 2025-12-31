@@ -295,7 +295,7 @@ end :: proc(ctx: ^Context) {
 	// Reolve dependent heights
 	resolve_dependent_sizes_for_axis(ctx.root_element, .Y)
 
-	calculate_positions_and_alignment(ctx.root_element)
+	calculate_positions_and_alignment(ctx.root_element, ctx.dt)
 
 	process_interactions(ctx)
 
@@ -393,7 +393,18 @@ process_interactions :: proc(ctx: ^Context) {
 		if math.abs(ctx.input.scroll_delta.y) > 0 {
 			if .Scrollable in elem.config.capability_flags {
 				offset_delta := f32(ctx.input.scroll_delta.y) * SCROLL_SPEED
-				elem.scroll_region.offset.y -= offset_delta
+
+				elem.scroll_region.target_offset.y -= offset_delta
+
+				// NOTE(Thomas) Clamp immediately. This is necessary for input responsiveness.
+				// Imagine the case where input goes to -1000, of not clamped to 0,
+				// then scrolling in the positive direction will feel sluggish.
+				elem.scroll_region.target_offset.y = math.clamp(
+					elem.scroll_region.target_offset.y,
+					0,
+					elem.scroll_region.max_offset.y,
+				)
+
 				break
 			}
 		}

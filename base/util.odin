@@ -51,6 +51,27 @@ lerp_color :: proc(a, b: Color, t: f32) -> Color {
 	return color
 }
 
+animate_vec2 :: proc(current: ^Vec2, target: ^Vec2, dt: f32, stiffness: f32) {
+	if approx_equal_vec2(current^, target^, 0.001) {
+		return
+	}
+
+	// Calculate smoothing factor
+	t := 1.0 - math.pow(2.0, -stiffness * dt)
+
+	apply_axis :: proc(c: ^f32, t: ^f32, factor: f32) {
+		if math.abs(t^ - c^) < 0.1 {
+			// Snap
+			c^ = t^
+		} else {
+			c^ = math.lerp(c^, t^, factor)
+		}
+	}
+
+	apply_axis(&current.x, &target.x, t)
+	apply_axis(&current.y, &target.y, t)
+}
+
 @(require_results)
 approx_equal :: proc(a: f32, b: f32, epsilon: f32) -> bool {
 	return math.abs(a - b) <= epsilon
