@@ -2,7 +2,11 @@
 
 ## Active
 * To-Do List
+
 ## Bugs
+* Border render order not correct.
+    - In the `to_do_list` example, if one adds a border to the `task_list`, the tasks will render above the
+        border on the task list. Which looks and is incorrect of course.
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
