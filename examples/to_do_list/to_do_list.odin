@@ -158,6 +158,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				task_list_clip: ui.Clip_Config = {
 					clip_axes = {true, true},
 				}
+				task_list_border_thickness: f32 = 2
+				task_list_border_fill := base.Fill(base.Color{255, 255, 255, 255})
 				if ui.begin_container(
 					ctx,
 					"task_list",
@@ -167,9 +169,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							layout_direction = &task_list_layout_dir,
 							child_gap = &task_list_child_gap,
 							padding = &task_list_padding,
+							border_thickness = &task_list_border_thickness,
 						},
 						clip = &task_list_clip,
 						capability_flags = &task_list_caps,
+						border_fill = &task_list_border_fill,
 					},
 				) {
 
