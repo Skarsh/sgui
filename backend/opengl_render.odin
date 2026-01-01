@@ -133,8 +133,8 @@ OpenGL_Render_Data :: struct {
 	vao:           u32,
 	vbo:           u32,
 	ebo:           u32,
-	ubo:           u32,
-	ubo_data:      []Quad_Param,
+	ssbo:          u32,
+	ssbo_data:     []Quad_Param,
 	shader:        Shader,
 	font_atlas:    Font_Atlas,
 	font_texture:  OpenGL_Texture,
@@ -143,7 +143,7 @@ OpenGL_Render_Data :: struct {
 	scissor_stack: [dynamic]base.Rect,
 }
 
-MAX_QUADS :: 100
+MAX_QUADS :: 10_000
 MAX_VERTICES :: MAX_QUADS * 4
 MAX_INDICES :: MAX_QUADS * 6
 
@@ -159,14 +159,14 @@ init_opengl :: proc(
 ) -> bool {
 	sdl.GL_SetAttribute(.CONTEXT_PROFILE_MASK, i32(sdl.GLprofile.CORE))
 	sdl.GL_SetAttribute(.CONTEXT_MAJOR_VERSION, 4)
-	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, 2)
+	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, 3)
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
 	// TODO(Thomas): Hardcoding VSync here, should be coming from options struct eventually
 	sdl.GL_SetSwapInterval(1)
 
-	gl.load_up_to(4, 2, sdl.gl_set_proc_address)
+	gl.load_up_to(4, 3, sdl.gl_set_proc_address)
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -203,21 +203,21 @@ init_opengl :: proc(
 
 	set_and_enable_vertex_attributes(Vertex)
 
-	// UBO
-	ubo_data := make([]Quad_Param, MAX_QUADS, allocator)
+	// SSBO
+	ssbo_data := make([]Quad_Param, MAX_QUADS, allocator)
 
-	ubo: u32
-	gl.GenBuffers(1, &ubo)
+	ssbo: u32
+	gl.GenBuffers(1, &ssbo)
 
-	gl.BindBuffer(gl.UNIFORM_BUFFER, ubo)
+	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, ssbo)
 	gl.BufferData(
-		gl.UNIFORM_BUFFER,
+		gl.SHADER_STORAGE_BUFFER,
 		size_of(Quad_Param) * MAX_QUADS,
-		raw_data(ubo_data),
-		gl.STATIC_DRAW,
+		raw_data(ssbo_data),
+		gl.DYNAMIC_DRAW,
 	)
-	gl.BindBuffer(gl.UNIFORM_BUFFER, 0)
-	gl.BindBufferBase(gl.UNIFORM_BUFFER, 0, ubo)
+	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, 0)
+	gl.BindBufferBase(gl.SHADER_STORAGE_BUFFER, 0, ssbo)
 
 	gl.BindVertexArray(0)
 
@@ -241,8 +241,8 @@ init_opengl :: proc(
 	data.vao = vao
 	data.vbo = vbo
 	data.ebo = ebo
-	data.ubo = ubo
-	data.ubo_data = ubo_data
+	data.ssbo = ssbo
+	data.ssbo_data = ssbo_data
 	data.shader = shader
 	data.proj = ortho
 	data.font_atlas = font_atlas
@@ -278,7 +278,7 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteVertexArrays(1, &render_data.vao)
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
-	gl.DeleteBuffers(1, &render_data.ubo)
+	gl.DeleteBuffers(1, &render_data.ssbo)
 	gl.DeleteTextures(1, &render_data.font_texture.id)
 	gl.DeleteProgram(render_data.shader.id)
 }
@@ -388,7 +388,7 @@ opengl_render_end :: proc(
 
 			rect := val.rect
 
-			render_data.ubo_data[batch.quad_idx] = Quad_Param {
+			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 				// Rect Fill
 				color_start         = color_start,
 				color_end           = color_end,
@@ -467,7 +467,7 @@ opengl_render_end :: proc(
 				// Set Quad_Param in ubo data
 				width := (q.x1 - q.x0)
 				height := (q.y1 - q.y0)
-				render_data.ubo_data[batch.quad_idx] = Quad_Param {
+				render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 					color_start  = color_start,
 					color_end    = color_end,
 					gradient_dir = gradient_dir,
@@ -536,7 +536,7 @@ opengl_render_end :: proc(
 			w := val.w
 			h := val.h
 
-			render_data.ubo_data[batch.quad_idx] = Quad_Param {
+			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 				color_start  = {1, 1, 1, 1},
 				color_end    = {1, 1, 1, 1},
 				gradient_dir = {0, 0},
@@ -582,7 +582,7 @@ opengl_render_end :: proc(
 			rect := val.rect
 			kind := val.data.kind
 
-			render_data.ubo_data[batch.quad_idx] = Quad_Param {
+			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 				color_start  = color_start,
 				color_end    = color_end,
 				gradient_dir = gradient_dir,
@@ -617,12 +617,12 @@ opengl_render_end :: proc(
 flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
 	if batch.quad_idx == 0 do return
 
-	gl.BindBuffer(gl.UNIFORM_BUFFER, render_data.ubo)
+	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, render_data.ssbo)
 	gl.BufferSubData(
-		gl.UNIFORM_BUFFER,
+		gl.SHADER_STORAGE_BUFFER,
 		0,
 		int(batch.quad_idx) * size_of(Quad_Param),
-		raw_data(render_data.ubo_data),
+		raw_data(render_data.ssbo_data),
 	)
 
 	gl.BindVertexArray(render_data.vao)

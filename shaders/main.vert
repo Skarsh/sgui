@@ -1,4 +1,4 @@
-#version 420 core
+#version 430 core
 
 layout (location = 0) in vec3 a_position;
 
@@ -51,8 +51,8 @@ struct QuadParams {
     float radius;
 };
 
-layout (std140, binding = 0) uniform QuadBlock {
-    QuadParams instanceQuads[100];
+layout (std430, binding = 0) readonly buffer QuadBlock {
+    QuadParams instanceQuads[];
 };
 
 void main() {
