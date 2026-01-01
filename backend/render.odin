@@ -8,12 +8,10 @@ import sdl "vendor:sdl2"
 import ui "../ui"
 
 Renderer_Type :: enum {
-	SDL,
 	OpenGL,
 }
 
 Render_Data :: union {
-	SDL_Render_Data,
 	OpenGL_Render_Data,
 }
 
@@ -41,8 +39,6 @@ init_render_ctx :: proc(
 
 	ok := false
 	switch renderer_type {
-	case .SDL:
-		ok = sdl_init_render(&ctx.render_data, win, stb_font_ctx, font_size, allocator)
 	case .OpenGL:
 		ok = init_opengl(&ctx.render_data, win, width, height, stb_font_ctx, font_size, allocator)
 	}
@@ -58,8 +54,6 @@ init_render_ctx :: proc(
 
 deinit_render_ctx :: proc(ctx: ^Render_Context) {
 	switch ctx.renderer_type {
-	case .SDL:
-		sdl_deinit_render(&ctx.render_data.(SDL_Render_Data))
 	case .OpenGL:
 		deinit_opengl(&ctx.render_data.(OpenGL_Render_Data))
 	}
@@ -68,8 +62,6 @@ deinit_render_ctx :: proc(ctx: ^Render_Context) {
 init_resources :: proc(ctx: ^Render_Context) -> bool {
 	ok := false
 	switch ctx.renderer_type {
-	case .SDL:
-		ok = sdl_init_resources(&ctx.render_data.(SDL_Render_Data))
 	case .OpenGL:
 		ok = opengl_init_resources(&ctx.render_data.(OpenGL_Render_Data))
 	}
@@ -78,7 +70,6 @@ init_resources :: proc(ctx: ^Render_Context) -> bool {
 
 render_resize :: proc(render_ctx: ^Render_Context, width, height: i32) {
 	switch render_ctx.renderer_type {
-	case .SDL:
 	case .OpenGL:
 		opengl_resize(&render_ctx.render_data.(OpenGL_Render_Data), width, height)
 
@@ -87,8 +78,6 @@ render_resize :: proc(render_ctx: ^Render_Context, width, height: i32) {
 
 render_begin :: proc(render_ctx: ^Render_Context) {
 	switch render_ctx.renderer_type {
-	case .SDL:
-		sdl_render_begin(&render_ctx.render_data.(SDL_Render_Data))
 	case .OpenGL:
 		opengl_render_begin(&render_ctx.render_data.(OpenGL_Render_Data))
 	}
@@ -99,8 +88,6 @@ render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Command) {
 	win := render_ctx.window.handle
 	switch render_ctx.renderer_type {
 
-	case .SDL:
-		sdl_render_end(&render_ctx.render_data.(SDL_Render_Data), command_queue)
 	case .OpenGL:
 		opengl_render_end(win, &render_ctx.render_data.(OpenGL_Render_Data), command_queue)
 	}
