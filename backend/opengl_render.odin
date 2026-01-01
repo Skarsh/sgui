@@ -3,9 +3,10 @@ package backend
 import "base:runtime"
 import "core:fmt"
 import "core:log"
-import "core:math"
 import "core:math/linalg"
 import "core:reflect"
+import "core:slice"
+
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
@@ -73,6 +74,15 @@ set_and_enable_vertex_attributes :: proc($T: typeid) {
 	}
 }
 
+compare_draw_commands :: proc(cmd_1, cmd_2: ui.Draw_Command) -> bool {
+	if cmd_1.z_index != cmd_2.z_index {
+		return cmd_1.z_index < cmd_2.z_index
+	}
+
+	// Stable sort based on insertion order
+	return cmd_1.cmd_idx < cmd_2.cmd_idx
+}
+
 Vertex :: struct {
 	pos: base.Vec3,
 }
@@ -91,6 +101,7 @@ Quad_Param :: struct {
 	border_gradient_dir: base.Vec2,
 	// Padding to match OpenGL std140 16 byte alignment
 	_padding_2:          base.Vec2,
+	clip_rect:           base.Vec4,
 
 	// Others
 	quad_pos:            base.Vec2,
@@ -132,7 +143,7 @@ OpenGL_Render_Data :: struct {
 	scissor_stack: [dynamic]base.Rect,
 }
 
-MAX_QUADS :: 10_000
+MAX_QUADS :: 100
 MAX_VERTICES :: MAX_QUADS * 4
 MAX_INDICES :: MAX_QUADS * 6
 
@@ -159,7 +170,7 @@ init_opengl :: proc(
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-	gl.Enable(gl.SCISSOR_TEST)
+	gl.Disable(gl.SCISSOR_TEST)
 
 	shader, shader_ok := create_shader(Shader_Config{"shaders/main.vert", "shaders/main.frag"})
 	if !shader_ok {
@@ -293,12 +304,14 @@ opengl_render_begin :: proc(render_data: ^OpenGL_Render_Data) {
 opengl_render_end :: proc(
 	window: ^sdl.Window,
 	render_data: ^OpenGL_Render_Data,
-	command_queue: []ui.Command,
+	command_queue: []ui.Draw_Command,
 ) {
 
 	if len(command_queue) == 0 {
 		return
 	}
+
+	slice.sort_by(command_queue[:], compare_draw_commands)
 
 	clear(&render_data.scissor_stack)
 
@@ -325,9 +338,11 @@ opengl_render_end :: proc(
 	// Reset the texture store each frame because the
 	// ids can have changed between the frames.
 	reset_texture_store(&render_data.texture_store)
+	reset_batch(&batch)
 
 	for command in command_queue {
-		#partial switch val in command {
+		cmd := command.command
+		#partial switch val in cmd {
 		case ui.Command_Rect:
 			radius := val.radius
 			border_thickness := val.border_thickness
@@ -382,6 +397,13 @@ opengl_render_end :: proc(
 				border_color_start  = border_color_start,
 				border_color_end    = border_color_end,
 				border_gradient_dir = border_gradient_dir,
+				// Clip Rect
+				clip_rect           = {
+					f32(command.clip_rect.x),
+					f32(command.clip_rect.y),
+					f32(command.clip_rect.w),
+					f32(command.clip_rect.h),
+				},
 				// Others
 				quad_pos            = {
 					f32(rect.x) + f32(rect.w) / 2,
@@ -449,6 +471,12 @@ opengl_render_end :: proc(
 					color_start  = color_start,
 					color_end    = color_end,
 					gradient_dir = gradient_dir,
+					clip_rect    = {
+						f32(command.clip_rect.x),
+						f32(command.clip_rect.y),
+						f32(command.clip_rect.w),
+						f32(command.clip_rect.h),
+					},
 					quad_pos     = {q.x0 + width / 2, q.y0 + height / 2},
 					quad_size    = {width, height},
 					uv_offset    = {q.s0, q.t0},
@@ -498,14 +526,26 @@ opengl_render_end :: proc(
 				render_data.texture_store.slot += 1
 			}
 
+			if batch.quad_idx >= MAX_QUADS {
+				flush_render(render_data, batch)
+				reset_batch(&batch)
+			}
+
 			x := val.x
 			y := val.y
 			w := val.w
 			h := val.h
+
 			render_data.ubo_data[batch.quad_idx] = Quad_Param {
 				color_start  = {1, 1, 1, 1},
 				color_end    = {1, 1, 1, 1},
 				gradient_dir = {0, 0},
+				clip_rect    = {
+					f32(command.clip_rect.x),
+					f32(command.clip_rect.y),
+					f32(command.clip_rect.w),
+					f32(command.clip_rect.h),
+				},
 				quad_pos     = {x + w / 2, y + h / 2},
 				quad_size    = {w, h},
 				uv_offset    = {0, 0},
@@ -534,6 +574,11 @@ opengl_render_end :: proc(
 				gradient_dir = fill.direction
 			}
 
+			if batch.quad_idx >= MAX_QUADS {
+				flush_render(render_data, batch)
+				reset_batch(&batch)
+			}
+
 			rect := val.rect
 			kind := val.data.kind
 
@@ -541,6 +586,12 @@ opengl_render_end :: proc(
 				color_start  = color_start,
 				color_end    = color_end,
 				gradient_dir = gradient_dir,
+				clip_rect    = {
+					f32(command.clip_rect.x),
+					f32(command.clip_rect.y),
+					f32(command.clip_rect.w),
+					f32(command.clip_rect.h),
+				},
 				quad_pos     = {f32(rect.x) + f32(rect.w) / 2, f32(rect.y) + f32(rect.h) / 2},
 				quad_size    = {f32(rect.w), f32(rect.h)},
 				uv_offset    = {-1, -1},
@@ -551,72 +602,12 @@ opengl_render_end :: proc(
 			}
 
 			batch.quad_idx += 1
+		}
 
-		case ui.Command_Push_Scissor:
-			// NOTE(Thomas): We'll now flush every time we get a scissor command.
-			// If a lot of different ui elements has clipping enabled, then this
-			// will cause batching to be inefficient. There is probably a way of
-			// optimizing this, but we'll wait until we at least encounter a case
-			// were this somewhat is an issue.
+		// Flush if full
+		if batch.quad_idx >= MAX_QUADS {
 			flush_render(render_data, batch)
 			reset_batch(&batch)
-
-			// NOTE(Thomas): Need to find the intersection of the current scissor rect
-			// and the new scissor because the intersection could be more constrained.
-			// e.g. the child container is being pushed out to the side due to resizing
-			// then the child container scissor will no longer be contained by the parent
-			// container and it will overflow. Doing the intersection between those two
-			// scissor rects will ensure that the smallest / most constrained scissor rect
-			// between those two are being used.
-			new_rect := val.rect
-
-			if len(render_data.scissor_stack) > 0 {
-				current_scissor := render_data.scissor_stack[len(render_data.scissor_stack) - 1]
-				new_rect = base.intersect_rects(new_rect, current_scissor)
-			}
-
-			append(&render_data.scissor_stack, new_rect)
-
-			rect := new_rect
-
-			// NOTE(Thomas): gl.Scissor works in OpenGL coordinate system
-			// having (0, 0) in the lower left corner, so we have to transform.
-			scissor_y := math.clamp(
-				render_data.window_size.y - (rect.y + rect.h),
-				0,
-				render_data.window_size.y,
-			)
-			gl.Scissor(
-				rect.x,
-				scissor_y,
-				math.clamp(rect.w, 0, render_data.window_size.x),
-				math.clamp(rect.h, 0, render_data.window_size.y),
-			)
-		case ui.Command_Pop_Scissor:
-			flush_render(render_data, batch)
-			reset_batch(&batch)
-
-			if len(render_data.scissor_stack) > 0 {
-				pop(&render_data.scissor_stack)
-			}
-
-			if len(render_data.scissor_stack) == 0 {
-				gl.Scissor(0, 0, render_data.window_size.x, render_data.window_size.y)
-			} else {
-				rect := render_data.scissor_stack[len(render_data.scissor_stack) - 1]
-				scissor_y := math.clamp(
-					render_data.window_size.y - (rect.y + rect.h),
-					0,
-					render_data.window_size.y,
-				)
-				gl.Scissor(
-					rect.x,
-					scissor_y,
-					math.clamp(rect.w, 0, render_data.window_size.x),
-					math.clamp(rect.h, 0, render_data.window_size.y),
-				)
-			}
-
 		}
 	}
 

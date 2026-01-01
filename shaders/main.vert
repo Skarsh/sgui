@@ -12,6 +12,9 @@ out vec4 v_border_color_start;
 out vec4 v_border_color_end;
 out vec2 v_border_gradient_dir;
 
+// Clip Rect
+out vec4 v_clip_rect;
+
 out vec2 v_quad_half_size;
 out vec2 v_local_pos;
 out vec2 v_tex_coords;
@@ -34,6 +37,9 @@ struct QuadParams {
     vec4 border_color_end;
     vec2 border_gradient_dir;
     vec2 _padding_2;
+
+    // Clip Rect
+    vec4 clip_rect;
 
     vec2  quad_pos;
     vec2  quad_size;
@@ -79,6 +85,9 @@ void main() {
     v_color_start = quad.color_start;
     v_color_end = quad.color_end;
     v_gradient_dir = quad.gradient_dir;
+
+    // Clip Rect
+    v_clip_rect = quad.clip_rect;
 
     // Border Fill
     v_border_color_start = quad.border_color_start;

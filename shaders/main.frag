@@ -10,6 +10,9 @@ in vec4 v_border_color_start;
 in vec4 v_border_color_end;
 in vec2 v_border_gradient_dir;
 
+// Clip Rect
+in vec4 v_clip_rect;
+
 in vec2 v_quad_half_size;
 in vec2 v_local_pos;
 in vec2 v_tex_coords;
@@ -72,7 +75,24 @@ vec4 calcGradientColor(vec4 color_start, vec4 color_end, vec2 dir, vec2 half_siz
     return mix(color_start, color_end, clamp(t, 0.0, 1.0));
 }
 
+// Checks if the current pixel is outside the clipping rectangle (x, y, w, h)
+void apply_clip(vec4 rect) {
+    // Correctly flip Y to match UI coordinates (Top-Left 0,0)
+    vec2 pos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
+
+    // rect.z = width, rect.w = h
+    // min = rect.xy
+    // max = rect.xy + rect.zw
+    if (any(lessThan(pos, rect.xy)) || any(greaterThan(pos, rect.xy + rect.zw))) {
+        discard;
+    }
+}
+
 void main() {
+
+    // Clip
+    apply_clip(v_clip_rect);
+
     // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
         if (v_border_thickness <= 0.0 ) {

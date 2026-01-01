@@ -29,13 +29,43 @@ Shape_Kind :: enum u8 {
 	Checkmark = 1,
 }
 
+Render_State :: struct {
+	current_clip_rect: base.Rect,
+	command_counter:   u64,
+	current_z_index:   i32,
+}
+
+reset_render_state :: proc(render_state: ^Render_State, window_size: base.Vector2i32) {
+	render_state.command_counter = 0
+	render_state.current_z_index = 0
+	render_state.current_clip_rect = base.Rect{0, 0, window_size.x, window_size.y}
+}
+
+@(private)
+push_draw_command :: proc(ctx: ^Context, command: Command, z_offset: i32) {
+	ctx.render_state.command_counter += 1
+
+	draw_cmd := Draw_Command {
+		z_index   = ctx.render_state.current_z_index + z_offset,
+		cmd_idx   = ctx.render_state.command_counter,
+		clip_rect = ctx.render_state.current_clip_rect,
+		command   = command,
+	}
+	append(&ctx.command_queue, draw_cmd)
+}
+
+Draw_Command :: struct {
+	command:   Command,
+	clip_rect: base.Rect,
+	cmd_idx:   u64,
+	z_index:   i32,
+}
+
 Command :: union {
 	Command_Rect,
 	Command_Text,
 	Command_Image,
 	Command_Shape,
-	Command_Push_Scissor,
-	Command_Pop_Scissor,
 }
 
 Command_Rect :: struct {
@@ -123,7 +153,8 @@ Context :: struct {
 	corner_radius_stack:     Stack(f32, STYLE_STACK_SIZE),
 	border_thickness_stack:  Stack(f32, STYLE_STACK_SIZE),
 	border_fill_stack:       Stack(base.Fill, STYLE_STACK_SIZE),
-	command_queue:           [dynamic]Command,
+	command_queue:           [dynamic]Draw_Command,
+	render_state:            Render_State,
 	current_parent:          ^UI_Element,
 	root_element:            ^UI_Element,
 	input:                   Input,
@@ -204,7 +235,7 @@ init :: proc(
 	ctx.font_id = font_id
 	ctx.font_size = font_size
 
-	ctx.command_queue = make([dynamic]Command, draw_cmd_allocator)
+	ctx.command_queue = make([dynamic]Draw_Command, draw_cmd_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.text_input_states = make(map[UI_Key]UI_Element_Text_Input_State, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
@@ -226,6 +257,8 @@ begin :: proc(ctx: ^Context) -> bool {
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
 	free_all(ctx.draw_cmd_allocator)
+
+	reset_render_state(&ctx.render_state, ctx.window_size)
 
 	background_fill := base.Fill(base.Color{128, 128, 128, 255})
 	sizing_x := Sizing {
@@ -506,26 +539,36 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		return
 	}
 
-	clipping_this_element := element.config.clip.clip_axes.x || element.config.clip.clip_axes.y
-	if clipping_this_element {
-		scissor_rect := base.Rect {
+	// NOTE(Thomas): Store the previous clip to restore it after processing this element
+	// and its children
+	prev_clip_rect := ctx.render_state.current_clip_rect
+
+	clip_config := element.config.clip
+	should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
+
+	if should_clip {
+		new_constraint := base.Rect {
 			x = i32(element.position.x),
 			y = i32(element.position.y),
 			w = i32(element.size.x),
 			h = i32(element.size.y),
 		}
 
-		if !element.config.clip.clip_axes.x {
-			scissor_rect.x = 0
-			scissor_rect.w = ctx.window_size.x
+		//NOTE(Thomas): If X clipping is disabled, we ignore the elements's width constraint
+		// and use the the parent's width constraint instead.
+		if !clip_config.clip_axes.x {
+			new_constraint.x = prev_clip_rect.x
+			new_constraint.w = prev_clip_rect.w
 		}
 
-		if !element.config.clip.clip_axes.y {
-			scissor_rect.y = 0
-			scissor_rect.h = ctx.window_size.y
+		//NOTE(Thomas): If Y clipping is disabled, we ignore the elements's height constraint
+		// and use the the parent's height constraint instead.
+		if !clip_config.clip_axes.y {
+			new_constraint.y = prev_clip_rect.y
+			new_constraint.h = prev_clip_rect.h
 		}
 
-		append(&ctx.command_queue, Command_Push_Scissor{rect = scissor_rect})
+		ctx.render_state.current_clip_rect = base.intersect_rects(prev_clip_rect, new_constraint)
 	}
 
 	cap_flags := element.config.capability_flags
@@ -600,8 +643,11 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			},
 			final_bg_fill,
 			element.config.layout.corner_radius,
-			element.config.layout.border_thickness,
-			element.config.border_fill,
+			// We don't draw border when drawing the background
+			border_thickness = 0,
+			border_fill = base.Fill(base.Color{0, 0, 0, 0}),
+			// Base layer
+			z_offset = 0,
 		)
 	}
 
@@ -613,19 +659,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			element.size.x,
 			element.size.y,
 			element.config.content.image_data,
-		)
-	}
-
-	if .Shape in cap_flags {
-		draw_shape(
-			ctx,
-			base.Rect {
-				i32(element.position.x),
-				i32(element.position.y),
-				i32(element.size.x),
-				i32(element.size.y),
-			},
-			element.config.content.shape_data,
+			// Base layer
+			z_offset = 0,
 		)
 	}
 
@@ -669,20 +704,50 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				start_x = content_area_x + (content_area_w - line.width)
 			}
 
-			draw_text(ctx, start_x, current_y, line.text, element.config.text_fill)
+			draw_text(ctx, start_x, current_y, line.text, element.config.text_fill, z_offset = 0)
 			current_y += line.height
 		}
 	}
 
+	if .Shape in cap_flags {
+		draw_shape(
+			ctx,
+			base.Rect {
+				i32(element.position.x),
+				i32(element.position.y),
+				i32(element.size.x),
+				i32(element.size.y),
+			},
+			element.config.content.shape_data,
+			z_offset = 0,
+		)
+	}
+
+	epsilon: f32 = 0.001
+	if .Background in cap_flags && element.config.layout.border_thickness > (0 + epsilon) {
+		draw_rect(
+			ctx,
+			base.Rect {
+				i32(element.position.x),
+				i32(element.position.y),
+				i32(element.size.x),
+				i32(element.size.y),
+			},
+			// Transparent fill since this is just border
+			base.Fill(base.Color{0, 0, 0, 0}),
+			element.config.layout.corner_radius,
+			element.config.layout.border_thickness,
+			element.config.border_fill,
+			// Borders sit above the content
+			z_offset = 1,
+		)
+	}
 
 	for child in element.children {
 		draw_element(ctx, child)
 	}
 
-	if clipping_this_element {
-		append(&ctx.command_queue, Command_Pop_Scissor{})
-	}
-
+	ctx.render_state.current_clip_rect = prev_clip_rect
 }
 
 draw_all_elements :: proc(ctx: ^Context) {
@@ -696,20 +761,25 @@ draw_rect :: proc(
 	radius: f32,
 	border_thickness: f32,
 	border_fill: base.Fill,
+	z_offset: i32 = 0,
 ) {
-	append(&ctx.command_queue, Command_Rect{rect, fill, border_fill, radius, border_thickness})
+	cmd := Command_Rect{rect, fill, border_fill, radius, border_thickness}
+	push_draw_command(ctx, cmd, z_offset)
 }
 
-draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Fill) {
-	append(&ctx.command_queue, Command_Text{x, y, str, color})
+draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Fill, z_offset: i32 = 0) {
+	cmd := Command_Text{x, y, str, color}
+	push_draw_command(ctx, cmd, z_offset)
 }
 
-draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr) {
-	append(&ctx.command_queue, Command_Image{x, y, w, h, data})
+draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr, z_offset: i32 = 0) {
+	cmd := Command_Image{x, y, w, h, data}
+	push_draw_command(ctx, cmd, z_offset)
 }
 
-draw_shape :: proc(ctx: ^Context, rect: base.Rect, data: Shape_Data) {
-	append(&ctx.command_queue, Command_Shape{rect, data})
+draw_shape :: proc(ctx: ^Context, rect: base.Rect, data: Shape_Data, z_offset: i32 = 0) {
+	cmd := Command_Shape{rect, data}
+	push_draw_command(ctx, cmd, z_offset)
 }
 
 

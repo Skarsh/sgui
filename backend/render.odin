@@ -84,7 +84,7 @@ render_begin :: proc(render_ctx: ^Render_Context) {
 }
 
 // TODO(Thomas): The command_stack could just be a member of render_ctx instead??
-render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Command) {
+render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Draw_Command) {
 	win := render_ctx.window.handle
 	switch render_ctx.renderer_type {
 
