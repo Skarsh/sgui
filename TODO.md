@@ -4,9 +4,6 @@
 * To-Do List
 
 ## Bugs
-* Border render order not correct.
-    - In the `to_do_list` example, if one adds a border to the `task_list`, the tasks will render above the
-        border on the task list. Which looks and is incorrect of course.
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
@@ -22,7 +19,6 @@
 * Simpler text helper procedure, important to think about life time there, it probably
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator
     that lives on the App that gets reset for every frame. We don't wanna clone strings.
-* Scrolling feature - does this require a strictness value and its own "violations" pass?
 * Remove SDL renderer, it crashes now and will never be something that we will realistically use.
 * Embossing (gradient) effects
 * Prune "dead" ui elements (they're still cached in the map)
