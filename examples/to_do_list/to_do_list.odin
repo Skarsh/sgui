@@ -149,136 +149,184 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				)
 
-				// --- Task List ---
-				task_list_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 300}}
-				task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
-				task_list_child_gap: f32 = 8
-				task_list_padding: ui.Padding = {10, 10, 10, 10}
-				task_list_caps := ui.Capability_Flags{.Scrollable}
-				task_list_clip: ui.Clip_Config = {
-					clip_axes = {true, true},
-				}
-				task_list_border_thickness: f32 = 2
-				task_list_border_fill := base.Fill(base.Color{255, 255, 255, 255})
+				// -- Task List Wrapper
+				list_wrapper_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 350}}
+				list_wrapper_dir := ui.Layout_Direction.Left_To_Right
+				list_wrapper_gap: f32 = 5
+				list_wrapper_border_thickness: f32 = 2
+				list_wrapper_border_fill := base.Fill(base.Color{255, 255, 255, 255})
 				if ui.begin_container(
 					ctx,
-					"task_list",
+					"task_list_wrapper",
 					ui.Config_Options {
 						layout = {
-							sizing = {&task_list_sizing.x, &task_list_sizing.y},
-							layout_direction = &task_list_layout_dir,
-							child_gap = &task_list_child_gap,
-							padding = &task_list_padding,
-							border_thickness = &task_list_border_thickness,
+							sizing = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
+							layout_direction = &list_wrapper_dir,
+							child_gap = &list_wrapper_gap,
+							border_thickness = &list_wrapper_border_thickness,
 						},
-						clip = &task_list_clip,
-						capability_flags = &task_list_caps,
-						border_fill = &task_list_border_fill,
+						border_fill = &list_wrapper_border_fill,
 					},
 				) {
 
-					for &task, i in data.tasks {
-
-						// --- Task Row ---
-						row_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
-						row_layout_dir := ui.Layout_Direction.Left_To_Right
-						row_align_y := ui.Alignment_Y.Center
-						row_child_gap: f32 = 10
-						row_padding := ui.Padding{5, 5, 5, 5}
-
-						ui.push_background_fill(
-							ctx,
-							base.Fill(ROW_BG),
-						); defer ui.pop_background_fill(ctx)
-
-						if ui.begin_container(
-							ctx,
-							fmt.tprintf("task_row_%d", i),
-							ui.Config_Options {
-								layout = {
-									sizing = {&row_sizing.x, &row_sizing.y},
-									layout_direction = &row_layout_dir,
-									alignment_y = &row_align_y,
-									child_gap = &row_child_gap,
-									padding = &row_padding,
-								},
+					// --- Task List ---
+					task_list_id := "task_list"
+					task_list_sizing := [2]ui.Sizing {
+						{kind = .Grow},
+						{kind = .Fit, max_value = 300},
+					}
+					task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
+					task_list_child_gap: f32 = 8
+					task_list_padding: ui.Padding = {10, 10, 10, 10}
+					task_list_caps := ui.Capability_Flags{.Scrollable}
+					task_list_clip: ui.Clip_Config = {
+						clip_axes = {true, true},
+					}
+					if ui.begin_container(
+						ctx,
+						task_list_id,
+						ui.Config_Options {
+							layout = {
+								sizing = {&task_list_sizing.x, &task_list_sizing.y},
+								layout_direction = &task_list_layout_dir,
+								child_gap = &task_list_child_gap,
+								padding = &task_list_padding,
 							},
-						) {
+							clip = &task_list_clip,
+							capability_flags = &task_list_caps,
+						},
+					) {
 
-							// --- Checkbox Button ---
-							current_checkbox_color := CHECKBOX_EMPTY_BG
-							if task.completed {
-								current_checkbox_color = CHECKBOX_DONE_BG
-							}
+						for &task, i in data.tasks {
 
-							checkbox_bg_fill := base.Fill(current_checkbox_color)
+							// --- Task Row ---
+							row_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+							row_layout_dir := ui.Layout_Direction.Left_To_Right
+							row_align_y := ui.Alignment_Y.Center
+							row_child_gap: f32 = 10
+							row_padding := ui.Padding{5, 5, 5, 5}
 
-							ui.checkbox(
+							ui.push_background_fill(
 								ctx,
-								fmt.tprintf("tasks_checkbox_%d", i),
-								&task.completed,
-								ui.Shape_Data {
-									ui.Shape_Kind.Checkmark,
-									base.Fill(base.Color{255, 255, 255, 255}),
-									2.0,
-								},
-								ui.Config_Options{background_fill = &checkbox_bg_fill},
-							)
+								base.Fill(ROW_BG),
+							); defer ui.pop_background_fill(ctx)
 
-							// --- Spacer ---
-							ui.spacer(ctx)
-
-							// --- Task Text ---
-							alignment_y := ui.Alignment_Y.Center
-							text_alignment_y := ui.Alignment_Y.Center
-							task_id := fmt.tprintf("task_text_%d", i)
-
-							task_text_color := TEXT_COLOR
-							if task.completed {
-								task_text_color = COMPLETED_TEXT_COLOR
-							}
-
-							task_text_fill := base.Fill(task_text_color)
-
-							ui.text(
+							if ui.begin_container(
 								ctx,
-								task_id,
-								task.text,
+								fmt.tprintf("task_row_%d", i),
 								ui.Config_Options {
 									layout = {
-										alignment_y = &alignment_y,
-										text_alignment_y = &text_alignment_y,
+										sizing = {&row_sizing.x, &row_sizing.y},
+										layout_direction = &row_layout_dir,
+										alignment_y = &row_align_y,
+										child_gap = &row_child_gap,
+										padding = &row_padding,
 									},
-									text_fill = &task_text_fill,
 								},
-							)
+							) {
 
-							// --- Spacer ---
-							ui.spacer(ctx)
+								// --- Checkbox Button ---
+								current_checkbox_color := CHECKBOX_EMPTY_BG
+								if task.completed {
+									current_checkbox_color = CHECKBOX_DONE_BG
+								}
 
-							// --- Delete Button ---
-							delete_corner_radius: f32 = 3.0
-							delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
-							delete_button_id := fmt.tprintf("task_delete_button_%d", i)
-							delete_comm := ui.button(
-								ctx,
-								delete_button_id,
-								"Delete",
-								ui.Config_Options {
-									layout = {corner_radius = &delete_corner_radius},
-									background_fill = &delete_bg_fill,
-								},
-							)
-							if delete_comm.clicked {
-								ordered_remove(&data.tasks, i)
+								checkbox_bg_fill := base.Fill(current_checkbox_color)
+
+								ui.checkbox(
+									ctx,
+									fmt.tprintf("tasks_checkbox_%d", i),
+									&task.completed,
+									ui.Shape_Data {
+										ui.Shape_Kind.Checkmark,
+										base.Fill(base.Color{255, 255, 255, 255}),
+										2.0,
+									},
+									ui.Config_Options{background_fill = &checkbox_bg_fill},
+								)
+
+								// --- Spacer ---
+								ui.spacer(ctx)
+
+								// --- Task Text ---
+								alignment_y := ui.Alignment_Y.Center
+								text_alignment_y := ui.Alignment_Y.Center
+								task_id := fmt.tprintf("task_text_%d", i)
+
+								task_text_color := TEXT_COLOR
+								if task.completed {
+									task_text_color = COMPLETED_TEXT_COLOR
+								}
+
+								task_text_fill := base.Fill(task_text_color)
+
+								ui.text(
+									ctx,
+									task_id,
+									task.text,
+									ui.Config_Options {
+										layout = {
+											alignment_y = &alignment_y,
+											text_alignment_y = &text_alignment_y,
+										},
+										text_fill = &task_text_fill,
+									},
+								)
+
+								// --- Spacer ---
+								ui.spacer(ctx)
+
+								// --- Delete Button ---
+								delete_corner_radius: f32 = 3.0
+								delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
+								delete_button_id := fmt.tprintf("task_delete_button_%d", i)
+								delete_comm := ui.button(
+									ctx,
+									delete_button_id,
+									"Delete",
+									ui.Config_Options {
+										layout = {corner_radius = &delete_corner_radius},
+										background_fill = &delete_bg_fill,
+									},
+								)
+								if delete_comm.clicked {
+									ordered_remove(&data.tasks, i)
+								}
+
+								ui.end_container(ctx)
 							}
-
-							ui.end_container(ctx)
 						}
+
+						ui.end_container(ctx)
 					}
+
+					scrollbar_width: f32 = 12
+					scrollbar_sizing := [2]ui.Sizing {
+						{kind = .Fixed, value = scrollbar_width},
+						{kind = .Grow},
+					}
+					scrollbar_radius: f32 = 6.0
+
+					// Transparent track
+					scrollbar_bg := base.Fill(base.Color{0, 0, 0, 0})
+
+					ui.scrollbar(
+						ctx,
+						"task_list_scrollbar",
+						task_list_id,
+						.Y,
+						ui.Config_Options {
+							layout = {
+								sizing = {&scrollbar_sizing.x, &scrollbar_sizing.y},
+								corner_radius = &scrollbar_radius,
+							},
+							background_fill = &scrollbar_bg,
+						},
+					)
 
 					ui.end_container(ctx)
 				}
+
 
 				spacer_bg_fill := base.Fill(base.Color{0, 0, 0, 0})
 				ui.spacer(ctx, opts = ui.Config_Options{background_fill = &spacer_bg_fill})
@@ -400,6 +448,10 @@ main :: proc() {
 	append(&tasks, Task{text = "Style it well", completed = false})
 	append(&tasks, Task{text = "Task to make it overflow", completed = false})
 	append(&tasks, Task{text = "Another task to make it overflow", completed = false})
+	append(
+		&tasks,
+		Task{text = "One more task to test how this affects the scrollbar", completed = false},
+	)
 
 	my_data := Data {
 		allocator        = arena_allocator,

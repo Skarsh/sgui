@@ -80,7 +80,7 @@ make_slider_row :: proc(
 			},
 		)
 
-		comm = ui.slider(ctx, fmt.tprintf("%s_slider", id_suffix), value, 0, 1, .X, color, 2)
+		comm = ui.slider(ctx, fmt.tprintf("%s_slider", id_suffix), value, 0, 1, .X, 20, color, 2)
 
 		// TODO(Thomas): This has to be made using a string builder instead
 		value_str := fmt.tprintf("%x", u8(value^ * 255))

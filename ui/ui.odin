@@ -900,6 +900,7 @@ slider :: proc(
 	min: f32,
 	max: f32,
 	axis: Axis2 = .X,
+	thumb_size: base.Vec2 = {20, 20},
 	thumb_color: base.Fill = base.Color{255, 200, 200, 255},
 	thumb_border_thickness: f32 = 0,
 	thumb_border_fill: base.Fill = base.Color{240, 240, 240, 255},
@@ -909,9 +910,9 @@ slider :: proc(
 	sizing: [2]Sizing
 
 	if axis == .X {
-		sizing = {{kind = .Grow}, {kind = .Fixed, value = 20}}
+		sizing = {{kind = .Grow}, {kind = .Fixed, value = thumb_size.y}}
 	} else {
-		sizing = {{kind = .Fixed, value = 20}, {kind = .Grow}}
+		sizing = {{kind = .Fixed, value = thumb_size.x}, {kind = .Grow}}
 	}
 
 	background_fill := base.Fill(base.Color{24, 24, 24, 255})
@@ -932,14 +933,11 @@ slider :: proc(
 	element, open_ok := open_element(ctx, id, opts, default_opts)
 
 	if open_ok {
-		thumb_width: f32 = 20
-		thumb_height: f32 = 20
-
 		padding := element.config.layout.padding
 		pad_start, pad_end := get_padding_for_axis(padding, axis)
 
 		track_len := element.size[axis] - pad_start - pad_end
-		thumb_len := axis == .X ? thumb_width : thumb_height
+		thumb_len := axis == .X ? thumb_size.x : thumb_size.y
 
 		range := max - min
 
@@ -969,24 +967,24 @@ slider :: proc(
 		if axis == .X {
 			thumb_align_x = .Left
 			thumb_align_y = .Center
-			thumb_rel_pos = base.Vec2{thumb_offset, -thumb_height / 2}
+			thumb_rel_pos = base.Vec2{thumb_offset, -thumb_size.y / 2}
 		} else {
 			thumb_align_x = .Center
 			thumb_align_y = .Top
-			thumb_rel_pos = base.Vec2{-thumb_width / 2, thumb_offset}
+			thumb_rel_pos = base.Vec2{-thumb_size.x / 2, thumb_offset}
 		}
 
 		// Thumb configuration
 		thumb_sizing := [2]Sizing {
-			{kind = .Fixed, value = thumb_width},
-			{kind = .Fixed, value = thumb_height},
+			{kind = .Fixed, value = thumb_size.x},
+			{kind = .Fixed, value = thumb_size.y},
 		}
 
 		thumb_bg_fill := base.Fill(thumb_color)
 		thumb_border_fill := thumb_border_fill
 		thumb_border_thickness := thumb_border_thickness
 		thumb_caps := Capability_Flags{.Background}
-		thumb_radius: f32 = thumb_len / 2
+		thumb_radius: f32 = math.min(thumb_size.x, thumb_size.y) / 2
 		thumb_id := fmt.tprintf("%v_thumb", id)
 
 		container(
@@ -1011,6 +1009,72 @@ slider :: proc(
 	}
 	append(&ctx.interactive_elements, element)
 	return element.last_comm
+}
+
+// TODO(Thomas): Styling etc together with the slider needs to make sense.
+scrollbar :: proc(
+	ctx: ^Context,
+	id: string,
+	target_id: string,
+	axis: Axis2 = .Y,
+	opts: Config_Options = {},
+) {
+	target := find_element_by_id(ctx, target_id)
+	if target == nil {
+		return
+	}
+
+	epsilon: f32 = 0.001
+
+	// Auto hide check
+	if target.scroll_region.max_offset[axis] <= (1.0 + epsilon) {
+		return
+	}
+
+	// Calculate thumb size
+	viewport_len := target.size[axis]
+	content_len := target.scroll_region.content_size[axis]
+
+	if content_len <= (0 + epsilon) {
+		return
+	}
+
+	view_ratio := viewport_len / content_len
+
+	calculated_thumb_size := max(20.0, viewport_len * view_ratio)
+
+	// Configure slider
+	val := &target.scroll_region.offset[axis]
+
+	// Safety clamp
+	val^ = clamp(val^, 0, target.scroll_region.max_offset[axis])
+
+	bg_fill := base.Fill(base.Color{0, 0, 0, 0})
+	sb_opts := opts
+	if sb_opts.background_fill == nil {
+		sb_opts.background_fill = &bg_fill
+	}
+
+	thumb_col := base.Fill(base.Color{80, 80, 80, 255})
+	comm := slider(
+		ctx,
+		id,
+		val,
+		0,
+		target.scroll_region.max_offset[axis],
+		axis,
+		{20, calculated_thumb_size},
+		thumb_col,
+		0,
+		base.Color{0, 0, 0, 0},
+		sb_opts,
+	)
+
+	// Sync the target_offset if the user is interacting with the scrollbar.
+	// This prevents the layout animation from pulling the view back to the old position.
+	if comm.held || comm.clicked {
+		target.scroll_region.target_offset[axis] = val^
+	}
 }
 
 text_input :: proc(
