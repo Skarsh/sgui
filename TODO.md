@@ -4,6 +4,11 @@
 * To-Do List
 
 ## Bugs
+* Border layout / placement seems wrong when children are added?
+    - This seems to be the case for the `to_do_list` example at least.
+    - Reproduce the bug in a reduction example
+    - Add test that catches the bug
+    - Resolve the bug
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
