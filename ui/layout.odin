@@ -863,6 +863,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 	}
 }
 
+
 make_element :: proc(
 	ctx: ^Context,
 	id: string,
@@ -872,37 +873,38 @@ make_element :: proc(
 	bool,
 ) {
 
-	set_element_size :: proc(element: ^UI_Element, config: Element_Config) {
-		element.size.x = config.layout.sizing.x.value
-		element.size.y = config.layout.sizing.y.value
+	update_element_configuration :: proc(element: ^UI_Element, config: Element_Config, idx: u64) {
+		element.last_frame_idx = idx
+		element.config = config
+		element.fill = config.background_fill
 
 		min_x := config.layout.sizing.x.min_value
 		min_y := config.layout.sizing.y.min_value
 
-		element.min_size.x = min_x > 0 ? min_x : 0
-		element.min_size.y = min_y > 0 ? min_y : 0
+		element.min_size.x = max(min_x, 0)
+		element.min_size.y = max(min_y, 0)
 
-		// NOTE(Thomas): A max value of 0 doesn't make sense, so we assume that
-		// the user wants it to just fit whatever, so we set it to f32 max value
-		if base.approx_equal(config.layout.sizing.x.max_value, 0, 0.001) {
-			element.max_size.x = math.F32_MAX
-		} else {
-			element.max_size.x = config.layout.sizing.x.max_value
+		element.max_size.x =
+			base.approx_equal(config.layout.sizing.x.max_value, 0, 0.001) ? math.F32_MAX : config.layout.sizing.x.max_value
+
+		element.max_size.y =
+			base.approx_equal(config.layout.sizing.y.max_value, 0, 0.001) ? math.F32_MAX : config.layout.sizing.y.max_value
+
+		if config.layout.sizing.x.kind == .Fixed {
+			element.size.x = config.layout.sizing.x.value
 		}
 
-		if base.approx_equal(config.layout.sizing.y.max_value, 0, 0.001) {
-			element.max_size.y = math.F32_MAX
-		} else {
-			element.max_size.y = config.layout.sizing.y.max_value
+		if config.layout.sizing.y.kind == .Fixed {
+			element.size.y = config.layout.sizing.y.value
 		}
 	}
 
-	key := ui_key_hash(id)
 
-	// TODO(Thomas): This is almost completely duplicate from the cached variant.
-	// Should be able to do something common here or move out into procedure.
+	key := ui_key_hash(id)
+	element: ^UI_Element
+
 	if key == ui_key_null() {
-		element: ^UI_Element
+		// Non-cached / Temporary Element
 		err: mem.Allocator_Error
 		element, err = new(UI_Element, ctx.frame_allocator)
 		assert(err == .None)
@@ -910,6 +912,7 @@ make_element :: proc(
 			log.error("failed to allocate UI_Element")
 			return nil, false
 		}
+
 
 		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
 		// The alternative is to put the responsibility of ensuring the lifetime of the string
@@ -922,73 +925,47 @@ make_element :: proc(
 			log.error("failed to allocate memory for cloning id string")
 			return nil, false
 		}
+
+
 		element.children = make([dynamic]^UI_Element, ctx.frame_allocator)
 
-		set_element_size(element, element_config)
+	} else {
+		// Cached Element
+		found := false
+		element, found = ctx.element_cache[key]
 
-		element.parent = ctx.current_parent
-		clear_dynamic_array(&element.children)
-		if element.parent != nil {
-			append(&element.parent.children, element)
+		if !found {
+			err: mem.Allocator_Error
+			element, err = new(UI_Element, ctx.persistent_allocator)
+			assert(err == .None)
+			if err != .None {
+				log.error("failed to allocate UI_Element")
+				return nil, false
+			}
+
+			// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
+			// The alternative is to put the responsibility of ensuring the lifetime of the string
+			// is valid over onto the user?? The id string is really unly used to calculuate the hash
+			// so keeping it alive in the element is mostly for debugging purposes.
+			str_clone_err: mem.Allocator_Error
+			element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
+			assert(str_clone_err == .None)
+			if str_clone_err != .None {
+				log.error("failed to allocate memory for cloning id string")
+				return nil, false
+			}
+			element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
+			ctx.element_cache[key] = element
 		}
-
-		// TODO(Thomas): Prune which of these fields actually has to be set every frame
-		// or which can be cached.
-		// We need to set this fields every frame
-		// TODO(Thomas): Every field that is set from the config here is essentially
-		// redundant. We should probably just set the config and then use that for further
-		// calculations?
-		element.last_frame_idx = ctx.frame_idx
-		element.fill = element_config.background_fill
-		element.config = element_config
-
-		return element, true
 	}
 
-	element, found := ctx.element_cache[key]
-
-	if !found {
-		err: mem.Allocator_Error
-		element, err = new(UI_Element, ctx.persistent_allocator)
-		assert(err == .None)
-		if err != .None {
-			log.error("failed to allocate UI_Element")
-			return nil, false
-		}
-
-		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
-		// The alternative is to put the responsibility of ensuring the lifetime of the string
-		// is valid over onto the user?? The id string is really unly used to calculuate the hash
-		// so keeping it alive in the element is mostly for debugging purposes.
-		str_clone_err: mem.Allocator_Error
-		element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
-		assert(str_clone_err == .None)
-		if str_clone_err != .None {
-			log.error("failed to allocate memory for cloning id string")
-			return nil, false
-		}
-		element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
-
-		set_element_size(element, element_config)
-
-		ctx.element_cache[key] = element
-	}
+	update_element_configuration(element, element_config, ctx.frame_idx)
 
 	element.parent = ctx.current_parent
 	clear_dynamic_array(&element.children)
 	if element.parent != nil {
 		append(&element.parent.children, element)
 	}
-
-	// TODO(Thomas): Prune which of these fields actually has to be set every frame
-	// or which can be cached.
-	// We need to set this fields every frame
-	// TODO(Thomas): Every field that is set from the config here is essentially
-	// redundant. We should probably just set the config and then use that for further
-	// calculations?
-	element.last_frame_idx = ctx.frame_idx
-	element.fill = element_config.background_fill
-	element.config = element_config
 
 	return element, true
 }
