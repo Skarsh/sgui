@@ -32,6 +32,9 @@
     and recursions.
 * Adding new styles is a bit tedious and error prone.
 * Hotreloading - both ui layout / styling and shaders
+* Tests should probably use the outputted Command queue instad of using `find_element_by_id` to get hold of the 
+    element and assert on that. The Command output from a ui pass would test the library more completely,
+    and be more robust to internal changes.
 
 * Property testing
     When the API has somewhat stabilized we should add property testing, e.g. generate Layout scenarios and assert properties
