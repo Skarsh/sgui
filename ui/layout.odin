@@ -567,27 +567,25 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
-// TODO(Thomas): The check whether parent sizing kind != .Fixed might not
-// be entirely correct. Maybe this will be changed when we start looking into
-// overflowing for scrolling etc.
 update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
 
-	if axis == .X &&
-	   parent.config.layout.layout_direction == .Left_To_Right &&
-	   parent.config.layout.sizing[axis].kind != .Fixed {
-		parent.size.x += element.size.x
-		parent.min_size.x += element.min_size.x
-		parent.size.y = max(element.size.y, parent.size.y)
-		parent.min_size.y = max(element.min_size.y, parent.min_size.y)
+	if parent == nil {
+		return
+	}
 
-	} else if axis == .Y &&
-	   parent.config.layout.layout_direction == .Top_To_Bottom &&
-	   parent.config.layout.sizing[axis].kind != .Fixed {
-		parent.size.x = max(element.size.x, parent.size.x)
-		parent.min_size.x = max(element.min_size.x, parent.min_size.x)
-		parent.size.y += element.size.y
-		parent.min_size.y += element.min_size.y
+	if parent.config.layout.sizing[axis].kind == .Fixed {
+		return
+	}
+
+	if is_main_axis(parent^, axis) {
+		// Accumulate sum
+		parent.size[axis] += element.size[axis]
+		parent.min_size[axis] += element.min_size[axis]
+	} else {
+		// Expand to largest child
+		parent.size[axis] = max(element.size[axis], parent.size[axis])
+		parent.min_size[axis] = max(element.min_size[axis], parent.min_size[axis])
 	}
 }
 
