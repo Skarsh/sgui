@@ -459,18 +459,7 @@ open_element :: proc(
 	return element, true
 }
 
-begin_container :: proc {
-	begin_container_no_config,
-	begin_container_with_config,
-}
-
-begin_container_no_config :: proc(ctx: ^Context, id: string) -> bool {
-	_, open_ok := open_element(ctx, id)
-	assert(open_ok)
-	return open_ok
-}
-
-begin_container_with_config :: proc(ctx: ^Context, id: string, opts: Config_Options) -> bool {
+begin_container :: proc(ctx: ^Context, id: string, opts: Config_Options = {}) -> bool {
 	_, open_ok := open_element(ctx, id, opts)
 	assert(open_ok)
 	return open_ok
@@ -481,75 +470,61 @@ end_container :: proc(ctx: ^Context) {
 }
 
 container :: proc {
+	container_basic,
+	container_styled,
 	container_data,
-	container_data_no_config,
-	container_empty,
-	container_empty_no_config,
+	container_data_styled,
 }
 
-container_empty_no_config :: proc(
-	ctx: ^Context,
-	id: string,
-	empty_body_proc: proc(ctx: ^Context) = nil,
-) {
-	_, open_ok := open_element(ctx, id)
-	assert(open_ok)
-	if open_ok {
-		defer close_element(ctx)
-		if empty_body_proc != nil {
-			empty_body_proc(ctx)
-		}
-	}
-}
-
-container_empty :: proc(
-	ctx: ^Context,
-	id: string,
-	opts: Config_Options = Config_Options{},
-	empty_body_proc: proc(ctx: ^Context) = nil,
-) {
-	_, open_ok := open_element(ctx, id, opts)
-	assert(open_ok)
-	if open_ok {
-		defer close_element(ctx)
-		if empty_body_proc != nil {
-			empty_body_proc(ctx)
-		}
-	}
-}
-
-
-container_data_no_config :: proc(
-	ctx: ^Context,
-	id: string,
-	data: ^$T,
-	body: proc(ctx: ^Context, data: ^T) = nil,
-) {
-	_, open_ok := open_element(ctx, id)
-	assert(open_ok)
-	if open_ok {
-		defer close_element(ctx)
+container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = nil) {
+	if begin_container(ctx, id) {
 		if body != nil {
-			body(ctx, data)
+			body(ctx)
 		}
+		end_container(ctx)
 	}
 }
 
+container_styled :: proc(
+	ctx: ^Context,
+	id: string,
+	opts: Config_Options,
+	body: proc(ctx: ^Context) = nil,
+) {
+	if begin_container(ctx, id, opts) {
+		if body != nil {
+			body(ctx)
+		}
+		end_container(ctx)
+	}
+}
 
 container_data :: proc(
 	ctx: ^Context,
 	id: string,
-	opts: Config_Options = Config_Options{},
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 ) {
-	_, open_ok := open_element(ctx, id, opts)
-	assert(open_ok)
-	if open_ok {
-		defer close_element(ctx)
+	if begin_container(ctx, id) {
 		if body != nil {
 			body(ctx, data)
 		}
+		end_container(ctx)
+	}
+}
+
+container_data_styled :: proc(
+	ctx: ^Context,
+	id: string,
+	opts: Config_Options,
+	data: ^$T,
+	body: proc(ctx: ^Context, data: ^T) = nil,
+) {
+	if begin_container(ctx, id, opts) {
+		if body != nil {
+			body(ctx, data)
+		}
+		end_container(ctx)
 	}
 }
 
