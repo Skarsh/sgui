@@ -971,39 +971,17 @@ make_element :: proc(
 }
 
 @(private)
-get_alignment_factor_x :: #force_inline proc(align: Alignment_X) -> f32 {
-	factor: f32 = 0
-	switch align {
-	case .Left:
-		factor = 0.0
-	case .Center:
-		factor = 0.5
-	case .Right:
-		factor = 1.0
-	}
-	return factor
-}
-
-get_alignment_factor_y :: #force_inline proc(align: Alignment_Y) -> f32 {
-	factor: f32 = 0
-	switch align {
-	case .Top:
-		factor = 0.0
-	case .Center:
-		factor = 0.5
-	case .Bottom:
-		factor = 1.0
-	}
-	return factor
+get_alignment_factor :: #force_inline proc(align: $E) -> f32 {
+	// NOTE(Thomas): This works because Alignment_X and Alignment_Y are both
+	// representing the positions (Start, Center, End) which have the values 0, 1, 2
+	return f32(align) * 0.5
 }
 
 get_alignment_factors :: #force_inline proc(
 	align_x: Alignment_X,
 	align_y: Alignment_Y,
 ) -> base.Vec2 {
-	factor_x := get_alignment_factor_x(align_x)
-	factor_y := get_alignment_factor_y(align_y)
-	return base.Vec2{factor_x, factor_y}
+	return {get_alignment_factor(align_x), get_alignment_factor(align_y)}
 }
 
 get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
