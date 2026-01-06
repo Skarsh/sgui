@@ -174,6 +174,7 @@ element_equip_text :: proc(
 	mode: Text_Sizing_Mode = .Grow,
 	text_fill: base.Fill = base.Color{255, 255, 255, 255},
 ) {
+
 	element.config.capability_flags |= {.Text}
 
 	if element.config.text_fill == nil {
@@ -197,69 +198,41 @@ element_equip_text :: proc(
 	defer free_all(context.temp_allocator)
 
 	text_padding := element.config.layout.text_padding
-	content_width := largest_line_width + text_padding.left + text_padding.right
-	content_height := text_height + text_padding.top + text_padding.bottom
+	content_size := base.Vec2 {
+		largest_line_width + text_padding.left + text_padding.right,
+		text_height + text_padding.top + text_padding.bottom,
+	}
 
-	target_width: f32
-	target_height: f32
+	sizing_kind_x := Size_Kind.Grow
+	target_size := content_size
 
-	min_width := element.min_size.x
-	max_width := element.max_size.x
-
-	sizing_kind_x: Size_Kind
-
-	switch mode {
-
-	case .Fixed:
-		// The element must be exactly the size of the text.
-		// We override min and max to ensure no resizing happens.
-		target_width = content_width
-		min_width = content_width
-		max_width = content_width
+	if mode == .Fixed {
+		// Override element oncstraints to match exactly
+		element.min_size.x = content_size.x
+		element.max_size.x = content_size.x
 		sizing_kind_x = .Fixed
-	case .Grow:
-		// The preferred size is the text size, but we clamp
-		// it to the element's existing limits and allow it to grow.
-		if content_width < min_width {
-			target_width = min_width
-		} else if content_width > max_width {
-			target_width = max_width
-		} else {
-			target_width = content_width
-		}
-		sizing_kind_x = .Grow
-	case .None:
-		// Unreachable due to early return, but good for completeness
-		return
-	}
-
-
-	min_height := element.min_size.y
-	max_height := element.max_size.y
-
-	if content_height < min_height {
-		target_height = min_height
-	} else if content_height > max_height {
-		target_height = max_height
 	} else {
-		target_height = content_height
+		// Clamp content size to element's existing constraints
+		target_size.x = math.clamp(content_size.x, element.min_size.x, element.max_size.x)
 	}
 
-	element.size.x = target_width
-	element.size.y = target_height
+	// Height is always treated as .Grow
+	target_size.y = math.clamp(content_size.y, element.min_size.y, element.max_size.y)
+
+	element.size = target_size
 
 	element.config.layout.sizing.x = {
 		kind      = sizing_kind_x,
-		min_value = min_width,
-		value     = target_width,
-		max_value = max_width,
+		min_value = element.min_size.x,
+		value     = target_size.x,
+		max_value = element.max_size.x,
 	}
 
 	element.config.layout.sizing.y = {
 		kind      = .Grow,
-		min_value = min_height,
-		value     = target_height,
-		max_value = max_height,
+		min_value = element.min_size.y,
+		value     = target_size.y,
+		max_value = element.max_size.y,
 	}
 }
 
