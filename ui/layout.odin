@@ -248,7 +248,9 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	}
 }
 
-// TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
+
+// TODO(Thomas): This can be simplified further by combining into a Vec2, but not sure if that
+// helps much since the layout algorithm needs to update per axis anyway.
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
 	padding_sum := get_padding_sum_for_axis(padding, axis)
@@ -270,8 +272,10 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 
 	// Add padding
 	total_size := content_size + padding_sum
-
-	return math.clamp(total_size, element.min_size[axis], element.max_size[axis])
+	// Clamp
+	// TODO(Thomas): Add test that catches if this clamp doesn't happen.
+	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
+	return total_size
 }
 
 close_element :: proc(ctx: ^Context) {
@@ -561,6 +565,22 @@ is_main_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 		(axis == .Y && element.config.layout.layout_direction == .Top_To_Bottom)
 
 	return is_main_axis
+}
+
+get_main_and_cross_axis :: proc(
+	layout_direction: Layout_Direction,
+) -> (
+	main_axis: Axis2,
+	cross_axis: Axis2,
+) {
+	if layout_direction == .Left_To_Right {
+		main_axis = .X
+		cross_axis = .Y
+	} else {
+		main_axis = .Y
+		cross_axis = .X
+	}
+	return main_axis, cross_axis
 }
 
 get_main_axis :: #force_inline proc(layout_direction: Layout_Direction) -> Axis2 {
@@ -914,6 +934,10 @@ get_alignment_factors :: #force_inline proc(
 	align_y: Alignment_Y,
 ) -> base.Vec2 {
 	return {get_alignment_factor(align_x), get_alignment_factor(align_y)}
+}
+
+get_axis_padding :: proc(padding: Padding) -> base.Vec2 {
+	return base.Vec2{padding.left + padding.right, padding.top + padding.bottom}
 }
 
 get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {

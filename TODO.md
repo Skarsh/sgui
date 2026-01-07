@@ -9,6 +9,7 @@
     - Reproduce the bug in a reduction example
     - Add test that catches the bug
     - Resolve the bug
+* Add test that catches missing clamp at the end of `calculate_element_size_for_axis`.
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
