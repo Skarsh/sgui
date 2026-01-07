@@ -1,6 +1,5 @@
 package ui
 
-import "core:container/small_array"
 import "core:log"
 import "core:math"
 import "core:mem"
@@ -609,14 +608,8 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	if element.config.layout.layout_mode != .Flow {
 		return
 	}
-	// NOTE(Thomas): The reason I went for using a Small_Array here instead
-	// of just a normal [dynamic]^UI_Element array is because dynamic arrays
-	// can have issues with arena allocators if growing, which would be the case
-	// if using contex.temp_allocator. So I decided to just go for Small_Array until
-	// I have figured more on how I want to do this. swapping out for Small_Array was very
-	// simple, and shouldn't be a problem to go back if we want to use something like a
-	// virtual static arena ourselves to ensure the dynamic array stays in place.
-	resizables := small_array.Small_Array(1024, ^UI_Element){}
+	resizables := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
 	primary_axis := is_main_axis(element^, axis)
 
 	if primary_axis {
@@ -648,7 +641,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 			if sizing_kind == .Grow {
 				if (delta_size > 0 && child.size[axis] < child.max_size[axis]) ||
 				   (delta_size < 0 && child.size[axis] > child.min_size[axis]) {
-					small_array.push(&resizables, child)
+					append(&resizables, child)
 				}
 			}
 		}
@@ -656,7 +649,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 		// TODO(Thomas): Pretty sure this can be simplified
 		// Distribution pass
 		resize_iter := 0
-		for !base.approx_equal(delta_size, 0, EPSILON) && len(small_array.slice(&resizables)) > 0 {
+		for !base.approx_equal(delta_size, 0, EPSILON) && len(resizables) > 0 {
 			assert(resize_iter < RESIZE_ITER_MAX)
 			resize_iter += 1
 
@@ -664,10 +657,10 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 
 			size_to_distribute := delta_size
 			if is_growing {
-				smallest := small_array.get(resizables, 0).size[axis]
+				smallest := resizables[0].size[axis]
 				second_smallest := math.INF_F32
 
-				for child in small_array.slice(&resizables) {
+				for child in resizables {
 					child_size := child.size[axis]
 					if child_size < smallest {
 						second_smallest = smallest
@@ -678,14 +671,11 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 					}
 				}
 
-				size_to_distribute = min(
-					size_to_distribute,
-					delta_size / f32(len(small_array.slice(&resizables))),
-				)
+				size_to_distribute = min(size_to_distribute, delta_size / f32(len(resizables)))
 
 				// NOTE(Thomas): We iterate in reverse order to ensure that the idx
 				// after one removal will be valid.
-				#reverse for child, idx in small_array.slice(&resizables) {
+				#reverse for child, idx in resizables {
 					prev_size := child.size[axis]
 					next_size := child.size[axis]
 					child_max_size := child.max_size[axis]
@@ -695,16 +685,16 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 						if next_size >= child_max_size {
 							next_size = child_max_size
 							child.size[axis] = next_size
-							small_array.unordered_remove(&resizables, idx)
+							unordered_remove(&resizables, idx)
 						}
 						delta_size -= (next_size - prev_size)
 					}
 				}
 			} else {
-				largest := small_array.get(resizables, 0).size[axis]
+				largest := resizables[0].size[axis]
 				second_largest := math.NEG_INF_F32
 
-				for child in small_array.slice(&resizables) {
+				for child in resizables {
 					child_size := child.size[axis]
 					if child_size > largest {
 						second_largest = largest
@@ -715,12 +705,9 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 					}
 				}
 
-				size_to_distribute = max(
-					size_to_distribute,
-					delta_size / f32(len(small_array.slice(&resizables))),
-				)
+				size_to_distribute = max(size_to_distribute, delta_size / f32(len(resizables)))
 
-				#reverse for child, idx in small_array.slice(&resizables) {
+				#reverse for child, idx in resizables {
 					prev_size := child.size[axis]
 					next_size := child.size[axis]
 					child_min_size := child.min_size[axis]
@@ -731,7 +718,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 						if next_size <= child_min_size {
 							next_size = child_min_size
 							child.size[axis] = next_size
-							small_array.unordered_remove(&resizables, idx)
+							unordered_remove(&resizables, idx)
 						}
 						delta_size -= (next_size - prev_size)
 					}
