@@ -248,9 +248,10 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	}
 }
 
+// TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
-	padding_sum := axis == .X ? (padding.left + padding.right) : (padding.top + padding.bottom)
+	padding_sum := get_padding_sum_for_axis(padding, axis)
 
 	content_size: f32
 
@@ -544,9 +545,10 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
+// TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
 calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
-	padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
+	padding_sum := get_padding_sum_for_axis(padding, axis)
 
 	remaining_size := element.size[axis] - padding_sum
 	return remaining_size
@@ -617,7 +619,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 		// Constraints pass
 		used_space: f32 = 0
 		padding := element.config.layout.padding
-		padding_sum := axis == .X ? padding.left + padding.right : padding.top + padding.bottom
+		padding_sum := get_padding_sum_for_axis(padding, axis)
 		used_space += padding_sum
 		for child in element.children {
 			size_kind := child.config.layout.sizing[axis].kind
@@ -749,16 +751,13 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 @(private)
 resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) {
 	parent_padding := parent.config.layout.padding
-	parent_content_width := parent.size.x - parent_padding.left - parent_padding.right
-	parent_content_height := parent.size.y - parent_padding.top - parent_padding.bottom
-
-	parent_content_size := axis == .X ? parent_content_width : parent_content_height
+	parent_content_available_size := get_available_size(parent.size, parent_padding)
 
 	for child in parent.children {
 		sizing_info := child.config.layout.sizing[axis]
 		if sizing_info.kind == .Percentage_Of_Parent {
 			percentage := clamp(sizing_info.value, 0.0, 1.0)
-			child.size[axis] = parent_content_size * percentage
+			child.size[axis] = parent_content_available_size[axis] * percentage
 		}
 	}
 }
@@ -781,8 +780,8 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		text_padding := element.config.layout.text_padding
 		text := element.config.content.text_data.text
 
-		available_width := element.size.x - text_padding.left - text_padding.right
-		_, h, lines := measure_text_content(ctx, text, available_width, allocator)
+		available_size := get_available_size(element.size, text_padding)
+		_, h, lines := measure_text_content(ctx, text, available_size.x, allocator)
 
 		element.config.content.text_data.lines = lines[:]
 		if element.config.layout.sizing.y.kind == .Grow {
@@ -924,6 +923,17 @@ get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 	return padding.top, padding.bottom
 }
 
+get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
+	if axis == .X {
+		return padding.left + padding.right
+	}
+	return padding.top + padding.bottom
+}
+
+get_available_size :: proc(size: base.Vec2, padding: Padding) -> base.Vec2 {
+	return {size.x - padding.left - padding.right, size.y - padding.top - padding.bottom}
+}
+
 layout_children_flow :: proc(parent: ^UI_Element) {
 	padding := parent.config.layout.padding
 	dir := parent.config.layout.layout_direction
@@ -933,12 +943,11 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 	cross_axis := get_cross_axis(dir)
 
 	// Resolve padding for axes
-	pad_main_start, pad_main_end := get_padding_for_axis(padding, main_axis)
-	pad_cross_start, pad_cross_end := get_padding_for_axis(padding, cross_axis)
+	pad_main_start, _ := get_padding_for_axis(padding, main_axis)
+	pad_cross_start, _ := get_padding_for_axis(padding, cross_axis)
 
 	// Calculate available content space
-	content_size_main := parent.size[main_axis] - (pad_main_start + pad_main_end)
-	content_size_cross := parent.size[cross_axis] - (pad_cross_start + pad_cross_end)
+	available_size := get_available_size(parent.size, padding)
 
 	start_pos_main := parent.position[main_axis] + pad_main_start
 	start_pos_cross := parent.position[cross_axis] + pad_cross_start
@@ -961,8 +970,9 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 	parent.scroll_region.content_size[main_axis] = total_children_main
 	parent.scroll_region.content_size[cross_axis] = max_children_cross
 
-	max_offset_main := max(0.0, total_children_main - content_size_main)
-	max_offset_cross := max(0.0, max_children_cross - content_size_cross)
+	max_offset_main := max(0.0, total_children_main - available_size[main_axis])
+
+	max_offset_cross := max(0.0, max_children_cross - available_size[cross_axis])
 
 	parent.scroll_region.max_offset[main_axis] = max_offset_main
 	parent.scroll_region.max_offset[cross_axis] = max_offset_cross
@@ -984,7 +994,7 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 		parent.config.layout.alignment_y,
 	)
 
-	remaining_space_main := content_size_main - total_children_main
+	remaining_space_main := available_size[main_axis] - total_children_main
 
 	main_pos := start_pos_main + (remaining_space_main * align_factors[main_axis])
 
@@ -998,7 +1008,7 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 		main_pos += child.size[main_axis] + parent.config.layout.child_gap
 
 		// Cross axis
-		remaining_space_cross := content_size_cross - child.size[cross_axis]
+		remaining_space_cross := available_size[cross_axis] - child.size[cross_axis]
 
 		child.position[cross_axis] =
 			start_pos_cross +
@@ -1013,10 +1023,7 @@ layout_children_relative :: proc(parent: ^UI_Element) {
 
 	// Content box start and size
 	content_pos := base.Vec2{parent.position.x + padding.left, parent.position.y + padding.top}
-	content_size := base.Vec2 {
-		parent.size.x - padding.left - padding.right,
-		parent.size.y - padding.top - padding.bottom,
-	}
+	available_content_size := get_available_size(parent.size, padding)
 
 	for child in parent.children {
 		factors := get_alignment_factors(
@@ -1025,7 +1032,9 @@ layout_children_relative :: proc(parent: ^UI_Element) {
 		)
 
 		child.position =
-			content_pos + (content_size * factors) + child.config.layout.relative_position
+			content_pos +
+			(available_content_size * factors) +
+			child.config.layout.relative_position
 	}
 }
 
