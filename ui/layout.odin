@@ -583,22 +583,6 @@ get_main_and_cross_axis :: proc(
 	return main_axis, cross_axis
 }
 
-get_main_axis :: #force_inline proc(layout_direction: Layout_Direction) -> Axis2 {
-	if layout_direction == .Left_To_Right {
-		return .X
-	} else {
-		return .Y
-	}
-}
-
-get_cross_axis :: #force_inline proc(layout_direction: Layout_Direction) -> Axis2 {
-	if layout_direction == .Left_To_Right {
-		return .Y
-	} else {
-		return .X
-	}
-}
-
 size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	if element == nil {
 		return
@@ -632,9 +616,9 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 	resizables := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
-	primary_axis := is_main_axis(element^, axis)
+	main_axis := is_main_axis(element^, axis)
 
-	if primary_axis {
+	if main_axis {
 
 		// Constraints pass
 		used_space: f32 = 0
@@ -750,7 +734,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 
 	} else {
 		remaining_size := calc_remaining_size(element^, axis)
-		// Non-primary axis
+		// Cross axis
 		for child in element.children {
 			// In then non-primary axis case, the child should just grow
 			// or shrink to match the size of the parent in that direction.
@@ -963,8 +947,7 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 	dir := parent.config.layout.layout_direction
 
 	// Setup Axes
-	main_axis := get_main_axis(dir)
-	cross_axis := get_cross_axis(dir)
+	main_axis, cross_axis := get_main_and_cross_axis(dir)
 
 	// Resolve padding for axes
 	pad_main_start, _ := get_padding_for_axis(padding, main_axis)
