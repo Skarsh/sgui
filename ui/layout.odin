@@ -607,6 +607,121 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
+calculate_size_to_distribute :: proc(
+	is_growing: bool,
+	resizables: []^UI_Element,
+	axis: Axis2,
+) -> (
+	dist: f32,
+	target: f32,
+) {
+	if len(resizables) == 0 {
+		return 0, 0
+	}
+
+	sign: f32 = is_growing ? 1 : -1
+
+	first: f32 = resizables[0].size[axis] * sign
+	second: f32 = math.INF_F32
+
+	for child in resizables {
+		val := child.size[axis] * sign
+		// NOTE(Thomas): We're skipping children that has the same size as first, this is important to make sure
+		// to ensure that first and second doesn't become equal, causing all sorts of nastyness later.
+		if val < first {
+			second = first
+			first = val
+		} else if val > first {
+			second = min(second, val)
+		}
+	}
+
+	// Share needs to have the sign that matches whether it's growing or not.
+	// When it's not growing, i.e. shrinking, the share needs to be negative.
+	dist = (second - first) * sign
+	target = first * sign
+	return
+}
+
+
+// Combined grow and shrink size procedure
+resolve_grow_sizes_for_children_2 :: proc(element: ^UI_Element, axis: Axis2) {
+	if element.config.layout.layout_mode != .Flow {
+		return
+	}
+	resizables := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	main_axis := is_main_axis(element^, axis)
+
+	if main_axis {
+
+		// Constraints pass
+		used_space: f32 = 0
+		padding := element.config.layout.padding
+		padding_sum := get_padding_sum_for_axis(padding, axis)
+		used_space += padding_sum
+		for child in element.children {
+			size_kind := child.config.layout.sizing[axis].kind
+			if size_kind == .Grow {
+				child.size[axis] = clamp(
+					child.size[axis],
+					child.min_size[axis],
+					child.max_size[axis],
+				)
+			}
+			used_space += child.size[axis]
+		}
+		child_gap := calc_child_gap(element^)
+		used_space += child_gap
+
+		// Calculate delta and filter resizables
+		delta_size := element.size[axis] - used_space
+
+		for child in element.children {
+			sizing_kind := child.config.layout.sizing[axis].kind
+			if sizing_kind == .Grow {
+				if (delta_size > 0 && child.size[axis] < child.max_size[axis]) ||
+				   (delta_size < 0 && child.size[axis] > child.min_size[axis]) {
+					append(&resizables, child)
+				}
+			}
+		}
+
+		// Distribution pass
+		resize_iter := 0
+		for !base.approx_equal(delta_size, 0, EPSILON) && len(resizables) > 0 {
+			assert(resize_iter < RESIZE_ITER_MAX)
+			resize_iter += 1
+
+			is_growing := delta_size > 0
+
+			dist, target := calculate_size_to_distribute(is_growing, resizables[:], axis)
+
+			share := max(abs(dist), abs(delta_size) / f32(len(resizables)))
+
+		}
+
+	} else {
+		remaining_size := calc_remaining_size(element^, axis)
+		// Cross axis
+		for child in element.children {
+			// In then non-primary axis case, the child should just grow
+			// or shrink to match the size of the parent in that direction.
+			size_kind := child.config.layout.sizing[axis].kind
+			if size_kind == .Grow {
+				// This works because if remaining_size is positive, we're growing
+				// and we'll add size to the child.
+				// If remaining_size is negative, we need to shrink the child
+				// so we'll be adding a negative number to the size, effectively shrinking it.
+				new_size := child.size[axis] + (remaining_size - child.size[axis])
+				// Restricting the child size to be within it's min and max size
+				child.size[axis] = clamp(new_size, child.min_size[axis], child.max_size[axis])
+			}
+		}
+	}
+}
+
+
 @(private)
 RESIZE_ITER_MAX :: 32
 // Combined grow and shrink size procedure
