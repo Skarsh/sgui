@@ -645,7 +645,9 @@ calculate_size_to_distribute :: proc(
 
 
 // Combined grow and shrink size procedure
-resolve_grow_sizes_for_children_2 :: proc(element: ^UI_Element, axis: Axis2) {
+@(private)
+RESIZE_ITER_MAX :: 32
+resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	if element.config.layout.layout_mode != .Flow {
 		return
 	}
@@ -697,151 +699,27 @@ resolve_grow_sizes_for_children_2 :: proc(element: ^UI_Element, axis: Axis2) {
 
 			dist, target := calculate_size_to_distribute(is_growing, resizables[:], axis)
 
-			share := max(abs(dist), abs(delta_size) / f32(len(resizables)))
-
-		}
-
-	} else {
-		remaining_size := calc_remaining_size(element^, axis)
-		// Cross axis
-		for child in element.children {
-			// In then non-primary axis case, the child should just grow
-			// or shrink to match the size of the parent in that direction.
-			size_kind := child.config.layout.sizing[axis].kind
-			if size_kind == .Grow {
-				// This works because if remaining_size is positive, we're growing
-				// and we'll add size to the child.
-				// If remaining_size is negative, we need to shrink the child
-				// so we'll be adding a negative number to the size, effectively shrinking it.
-				new_size := child.size[axis] + (remaining_size - child.size[axis])
-				// Restricting the child size to be within it's min and max size
-				child.size[axis] = clamp(new_size, child.min_size[axis], child.max_size[axis])
+			share := delta_size / f32(len(resizables))
+			step_amount := dist
+			if abs(share) < abs(dist) {
+				step_amount = share
 			}
-		}
-	}
-}
 
-
-@(private)
-RESIZE_ITER_MAX :: 32
-// Combined grow and shrink size procedure
-resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
-	if element.config.layout.layout_mode != .Flow {
-		return
-	}
-	resizables := make([dynamic]^UI_Element, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	main_axis := is_main_axis(element^, axis)
-
-	if main_axis {
-
-		// Constraints pass
-		used_space: f32 = 0
-		padding := element.config.layout.padding
-		padding_sum := get_padding_sum_for_axis(padding, axis)
-		used_space += padding_sum
-		for child in element.children {
-			size_kind := child.config.layout.sizing[axis].kind
-			if size_kind == .Grow {
-				child.size[axis] = clamp(
-					child.size[axis],
-					child.min_size[axis],
-					child.max_size[axis],
-				)
-			}
-			used_space += child.size[axis]
-		}
-		child_gap := calc_child_gap(element^)
-		used_space += child_gap
-
-		// Calculate delta and filter resizables
-		delta_size := element.size[axis] - used_space
-
-		for child in element.children {
-			sizing_kind := child.config.layout.sizing[axis].kind
-			if sizing_kind == .Grow {
-				if (delta_size > 0 && child.size[axis] < child.max_size[axis]) ||
-				   (delta_size < 0 && child.size[axis] > child.min_size[axis]) {
-					append(&resizables, child)
-				}
-			}
-		}
-
-		// TODO(Thomas): Pretty sure this can be simplified
-		// Distribution pass
-		resize_iter := 0
-		for !base.approx_equal(delta_size, 0, EPSILON) && len(resizables) > 0 {
-			assert(resize_iter < RESIZE_ITER_MAX)
-			resize_iter += 1
-
-			is_growing := delta_size > 0
-
-			size_to_distribute := delta_size
-			if is_growing {
-				smallest := resizables[0].size[axis]
-				second_smallest := math.INF_F32
-
-				for child in resizables {
-					child_size := child.size[axis]
-					if child_size < smallest {
-						second_smallest = smallest
-						smallest = child_size
-					} else if child_size > smallest {
-						second_smallest = min(second_smallest, child_size)
-						size_to_distribute = second_smallest - smallest
-					}
-				}
-
-				size_to_distribute = min(size_to_distribute, delta_size / f32(len(resizables)))
-
-				// NOTE(Thomas): We iterate in reverse order to ensure that the idx
-				// after one removal will be valid.
-				#reverse for child, idx in resizables {
+			#reverse for child, idx in resizables {
+				// Only process children close to the target value
+				if base.approx_equal(child.size[axis], target, EPSILON) {
 					prev_size := child.size[axis]
-					next_size := child.size[axis]
-					child_max_size := child.max_size[axis]
-					if base.approx_equal(next_size, smallest, EPSILON) {
-						next_size += size_to_distribute
-						child.size[axis] = next_size
-						if next_size >= child_max_size {
-							next_size = child_max_size
-							child.size[axis] = next_size
-							unordered_remove(&resizables, idx)
-						}
-						delta_size -= (next_size - prev_size)
-					}
-				}
-			} else {
-				largest := resizables[0].size[axis]
-				second_largest := math.NEG_INF_F32
+					potential_size := prev_size + step_amount
 
-				for child in resizables {
-					child_size := child.size[axis]
-					if child_size > largest {
-						second_largest = largest
-						largest = child_size
-					} else if child_size < largest {
-						second_largest = max(second_largest, child_size)
-						size_to_distribute = second_largest - largest
-					}
-				}
+					next_size := clamp(potential_size, child.min_size[axis], child.max_size[axis])
 
-				size_to_distribute = max(size_to_distribute, delta_size / f32(len(resizables)))
+					child.size[axis] = next_size
+					delta_size -= (next_size - prev_size)
 
-				#reverse for child, idx in resizables {
-					prev_size := child.size[axis]
-					next_size := child.size[axis]
-					child_min_size := child.min_size[axis]
-					if base.approx_equal(next_size, largest, EPSILON) {
-						next_size += size_to_distribute
-						child.size[axis] = next_size
-
-						if next_size <= child_min_size {
-							next_size = child_min_size
-							child.size[axis] = next_size
-							unordered_remove(&resizables, idx)
-						}
-						delta_size -= (next_size - prev_size)
+					// If the size was clamped (didn't reach potential), we hit a limit.
+					// Remove this child from the pool so we don't try to resize it again
+					if !base.approx_equal(next_size, potential_size, EPSILON) {
+						unordered_remove(&resizables, idx)
 					}
 				}
 			}
