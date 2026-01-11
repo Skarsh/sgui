@@ -1,4 +1,4 @@
-#version 420 core
+#version 430 core
 
 // Rect fiill
 in vec4 v_color_start;

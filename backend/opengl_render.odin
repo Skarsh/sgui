@@ -87,67 +87,31 @@ Vertex :: struct {
 	pos: base.Vec3,
 }
 
-
-//Quad_Param :: struct {
-//	// Rect fill
-//	color_start:         base.Vec4,
-//	color_end:           base.Vec4,
-//	gradient_dir:        base.Vec2,
-//	// Padding to match OpenGL std140 16 byte alignment
-//	//_padding_1:          base.Vec2,
-//
-//	// Border fill
-//	border_color_start:  base.Vec4,
-//	border_color_end:    base.Vec4,
-//	border_gradient_dir: base.Vec2,
-//	// Padding to match OpenGL std140 16 byte alignment
-//	//_padding_2:          base.Vec2,
-//	clip_rect:           base.Vec4,
-//
-//	// Others
-//	quad_pos:            base.Vec2,
-//	quad_size:           base.Vec2,
-//	uv_offset:           base.Vec2,
-//	uv_size:             base.Vec2,
-//	tex_slot:            i32,
-//	shape_kind:          i32,
-//	radius:              f32,
-//	_padding_1:          f32,
-//	// Changed from f32 to Vec4.
-//	// Mapping: x=top, y=right, z=bottom, w=left
-//	border:              base.Vec4,
-//	//_padding_3:          f32, // Padding to align struct size
-//}
-
-Quad_Param :: struct {
+Quad_Param :: struct #align (16) {
 	// Rect fill
-	color_start:         base.Vec4, // Offset: 0
-	color_end:           base.Vec4, // Offset: 16
-	gradient_dir:        base.Vec2, // Offset: 32
-	_padding_1:          base.Vec2, // Offset: 40 -> 48
+	color_start:         base.Vec4,
+	color_end:           base.Vec4,
+	gradient_dir:        base.Vec2,
+	_padding_1:          base.Vec2,
 
 	// Border fill
-	border_color_start:  base.Vec4, // Offset: 48
-	border_color_end:    base.Vec4, // Offset: 64
-	border_gradient_dir: base.Vec2, // Offset: 80
-	_padding_2:          base.Vec2, // Offset: 88 -> 96
-	clip_rect:           base.Vec4, // Offset: 96 -> 112
+	border_color_start:  base.Vec4,
+	border_color_end:    base.Vec4,
+	border_gradient_dir: base.Vec2,
+	_padding_2:          base.Vec2,
+	clip_rect:           base.Vec4,
 
 	// Others
-	quad_pos:            base.Vec2, // Offset: 112
-	quad_size:           base.Vec2, // Offset: 120
-	uv_offset:           base.Vec2, // Offset: 128
-	uv_size:             base.Vec2, // Offset: 136
-	tex_slot:            i32, // Offset: 144
-	shape_kind:          i32, // Offset: 148
-
-	// PADDING: Align 'border' (vec4) to 16-byte boundary (160)
-	_padding_3:          [2]i32, // Offset: 152 -> 160
-	border:              base.Vec4, // Offset: 160 -> 176
-	radius:              f32, // Offset: 176
-
-	// PADDING: Align total struct size to 16-byte multiple for array stride (192)
-	_padding_4:          [3]f32, // Offset: 180 -> 192
+	quad_pos:            base.Vec2,
+	quad_size:           base.Vec2,
+	uv_offset:           base.Vec2,
+	uv_size:             base.Vec2,
+	tex_slot:            i32,
+	shape_kind:          i32,
+	radius:              f32,
+	_paddign_3:          f32,
+	// Mapping: x=top, y=right, z=bottom, w=left
+	border:              base.Vec4,
 }
 
 Batch :: struct {
