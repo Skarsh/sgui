@@ -18,7 +18,8 @@ in vec2 v_local_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
 flat in int v_shape_kind;
-in float v_border_thickness;
+//in float v_border_thickness;
+in vec4 v_border;
 in float v_radius;
 
 out vec4 o_color;
@@ -95,7 +96,9 @@ void main() {
 
     // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
-        if (v_border_thickness <= 0.0 ) {
+        float border_sum = v_border.x + v_border.y + v_border.z + v_border.w;
+        //if (v_border_thickness <= 0.0 ) {
+        if (border_sum <= 0.001 ) {
             // No border, use a simpler path
             float d = sdfRect(v_local_pos, v_quad_half_size, v_radius);
             float alpha = sdfAlpha(d);
@@ -111,6 +114,7 @@ void main() {
             o_color = vec4(inner_color.rgb, inner_color.a * alpha);
 
         } else {
+            float v_border_thickness = 1.0;
             float d_border = sdfRect(v_local_pos, v_quad_half_size, v_radius);
             float d_inner = sdfRect(v_local_pos, v_quad_half_size - v_border_thickness, max(0.0, v_radius - v_border_thickness));
 

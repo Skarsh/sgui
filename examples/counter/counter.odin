@@ -26,7 +26,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			base.Fill(base.Color{55, 55, 55, 255}),
 		); defer ui.pop_background_fill(ctx)
 
-		ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
+		//ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
+		ui.push_border(ctx, {5, 5, 5, 5}); defer ui.pop_border(ctx)
 		ui.push_corner_radius(ctx, 5); defer ui.pop_corner_radius(ctx)
 		ui.push_border_fill(
 			ctx,
@@ -96,7 +97,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ctx,
 					base.Fill(base.Color{95, 95, 95, 255}),
 				); defer ui.pop_background_fill(ctx)
-				ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
+				//ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
+				ui.push_border(ctx, {2, 2, 2, 2}); defer ui.pop_border(ctx)
 
 				if ui.button(ctx, "counter_minus_button", "-").clicked {
 					data.counter -= 1

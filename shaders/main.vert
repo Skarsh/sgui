@@ -20,10 +20,37 @@ out vec2 v_local_pos;
 out vec2 v_tex_coords;
 flat out int v_tex_slot;
 flat out int v_shape_kind;
-out float v_border_thickness;
+//out float v_border_thickness;
+out vec4 v_border;
 out float v_radius;
 
 uniform mat4 transform;
+
+//struct QuadParams {
+//    // Rect fill
+//    vec4 color_start;
+//    vec4 color_end;
+//    vec2 gradient_dir;
+//    vec2 _padding_1;
+//
+//    // Border fill
+//    vec4 border_color_start;
+//    vec4 border_color_end;
+//    vec2 border_gradient_dir;
+//    vec2 _padding_2;
+//
+//    // Clip Rect
+//    vec4 clip_rect;
+//
+//    vec2  quad_pos;
+//    vec2  quad_size;
+//    vec2  uv_offset;
+//    vec2  uv_size;
+//    int   tex_slot;
+//    int   shape_kind;
+//    float border_thickness;
+//    float radius;
+//};
 
 struct QuadParams {
     // Rect fill
@@ -45,10 +72,20 @@ struct QuadParams {
     vec2  quad_size;
     vec2  uv_offset;
     vec2  uv_size;
+    
     int   tex_slot;
     int   shape_kind;
-    float border_thickness;
+    
+    // Explicit padding to align 'border' (vec4) to 16 bytes.
+    // tex_slot (4) + shape_kind (4) = 8 bytes. We need 8 more.
+    int   _padding_3[2]; 
+    
+    vec4  border; // Offset 160
+    
     float radius;
+    // Explicit padding to align total struct size to 16 bytes (192 bytes total).
+    // radius (4). We need 12 more.
+    float _padding_4[3];
 };
 
 layout (std430, binding = 0) readonly buffer QuadBlock {
@@ -96,6 +133,7 @@ void main() {
 
     v_tex_slot = quad.tex_slot;
     v_shape_kind = quad.shape_kind;
-    v_border_thickness = quad.border_thickness;
+    //v_border_thickness = quad.border_thickness;
+    v_border = quad.border;
     v_radius = quad.radius;
 }

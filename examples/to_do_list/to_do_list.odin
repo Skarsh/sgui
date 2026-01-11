@@ -153,17 +153,19 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				list_wrapper_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 350}}
 				list_wrapper_dir := ui.Layout_Direction.Left_To_Right
 				list_wrapper_gap: f32 = 5
-				list_wrapper_border_thickness: f32 = 2
-				list_wrapper_border_fill := base.Fill(base.Color{255, 255, 255, 255})
+				//list_wrapper_border_thickness: f32 = 2
+				list_wrapper_border := ui.Border{5, 7, 8, 10}
+				list_wrapper_border_fill := base.Fill(base.Color{100, 69, 69, 255})
 				if ui.begin_container(
 					ctx,
 					"task_list_wrapper",
 					ui.Config_Options {
 						layout = {
-							sizing = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
+							sizing           = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
 							layout_direction = &list_wrapper_dir,
-							child_gap = &list_wrapper_gap,
-							border_thickness = &list_wrapper_border_thickness,
+							child_gap        = &list_wrapper_gap,
+							//border_thickness = &list_wrapper_border_thickness,
+							border           = &list_wrapper_border,
 						},
 						border_fill = &list_wrapper_border_fill,
 					},

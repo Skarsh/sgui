@@ -80,7 +80,17 @@ make_slider_row :: proc(
 			},
 		)
 
-		comm = ui.slider(ctx, fmt.tprintf("%s_slider", id_suffix), value, 0, 1, .X, 20, color, 2)
+		comm = ui.slider(
+			ctx,
+			fmt.tprintf("%s_slider", id_suffix),
+			value,
+			0,
+			1,
+			.X,
+			20,
+			color,
+			{2, 2, 2, 2},
+		)
 
 		// TODO(Thomas): This has to be made using a string builder instead
 		value_str := fmt.tprintf("%x", u8(value^ * 255))
@@ -179,7 +189,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 				color_viewer_radius := color_viewer_size / 2
 				color_viewer_align_x := ui.Alignment_X.Center
-				border_thickness: f32 = 4
+				//border_thickness: f32 = 4
+				border := ui.Border{4, 4, 4, 4}
 				border_color := base.Color {
 					u8(data.r * 200),
 					u8(data.g * 200),
@@ -193,10 +204,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					"color_viewer",
 					ui.Config_Options {
 						layout = {
-							sizing = {&color_viewer_sizing.x, &color_viewer_sizing.y},
+							sizing        = {&color_viewer_sizing.x, &color_viewer_sizing.y},
 							corner_radius = &color_viewer_radius,
-							alignment_x = &color_viewer_align_x,
-							border_thickness = &border_thickness,
+							alignment_x   = &color_viewer_align_x,
+							border        = &border,
+							//border_thickness = &border_thickness,
 						},
 						background_fill = &color_viewer_bg_fill,
 						border_fill = &border_fill,

@@ -544,7 +544,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ui.push_sizing_y(ctx, {kind = .Fit}); defer ui.pop_sizing_y(ctx)
 
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-	ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
+	//ui.push_border_thickness(ctx, 5); defer ui.pop_border_thickness(ctx)
 	ui.push_corner_radius(ctx, 10); defer ui.pop_corner_radius(ctx)
 
 	ui.push_border_fill(
@@ -587,7 +587,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				ui.push_corner_radius(ctx, 10); defer ui.pop_corner_radius(ctx)
 				ui.push_clip_config(ctx, {{true, true}}); defer ui.pop_clip_config(ctx)
 
-				ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
+				//ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
 
 					ui.push_background_fill(

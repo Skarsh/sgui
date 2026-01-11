@@ -69,11 +69,12 @@ Command :: union {
 }
 
 Command_Rect :: struct {
-	rect:             base.Rect,
-	fill:             base.Fill,
-	border_fill:      base.Fill,
-	radius:           f32,
-	border_thickness: f32,
+	rect:        base.Rect,
+	fill:        base.Fill,
+	border_fill: base.Fill,
+	border:      Border,
+	radius:      f32,
+	//border_thickness: f32,
 }
 
 Command_Text :: struct {
@@ -151,7 +152,8 @@ Context :: struct {
 	text_alignment_x_stack:  Stack(Alignment_X, STYLE_STACK_SIZE),
 	text_alignment_y_stack:  Stack(Alignment_Y, STYLE_STACK_SIZE),
 	corner_radius_stack:     Stack(f32, STYLE_STACK_SIZE),
-	border_thickness_stack:  Stack(f32, STYLE_STACK_SIZE),
+	//border_thickness_stack:  Stack(f32, STYLE_STACK_SIZE),
+	border_stack:            Stack(Border, STYLE_STACK_SIZE),
 	border_fill_stack:       Stack(base.Fill, STYLE_STACK_SIZE),
 	command_queue:           [dynamic]Draw_Command,
 	render_state:            Render_State,
@@ -644,7 +646,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			final_bg_fill,
 			element.config.layout.corner_radius,
 			// We don't draw border when drawing the background
-			border_thickness = 0,
+			//border_thickness = 0,
+			border = Border{},
 			border_fill = base.Fill(base.Color{0, 0, 0, 0}),
 			// Base layer
 			z_offset = 0,
@@ -724,7 +727,10 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	epsilon: f32 = 0.001
-	if .Background in cap_flags && element.config.layout.border_thickness > (0 + epsilon) {
+	border := element.config.layout.border
+	border_sum := border.left + border.right + border.top + border.bottom
+	//if .Background in cap_flags && element.config.layout.border_thickness > (0 + epsilon) {
+	if .Background in cap_flags && border_sum > (0 + epsilon) {
 		draw_rect(
 			ctx,
 			base.Rect {
@@ -736,7 +742,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			// Transparent fill since this is just border
 			base.Fill(base.Color{0, 0, 0, 0}),
 			element.config.layout.corner_radius,
-			element.config.layout.border_thickness,
+			//element.config.layout.border_thickness,
+			element.config.layout.border,
 			element.config.border_fill,
 			// Borders sit above the content
 			z_offset = 1,
@@ -759,11 +766,13 @@ draw_rect :: proc(
 	rect: base.Rect,
 	fill: base.Fill,
 	radius: f32,
-	border_thickness: f32,
+	//border_thickness: f32,
+	border: Border,
 	border_fill: base.Fill,
 	z_offset: i32 = 0,
 ) {
-	cmd := Command_Rect{rect, fill, border_fill, radius, border_thickness}
+	//cmd := Command_Rect{rect, fill, border_fill, radius, border_thickness}
+	cmd := Command_Rect{rect, fill, border_fill, border, radius}
 	push_draw_command(ctx, cmd, z_offset)
 }
 
@@ -902,7 +911,8 @@ slider :: proc(
 	axis: Axis2 = .X,
 	thumb_size: base.Vec2 = {20, 20},
 	thumb_color: base.Fill = base.Color{255, 200, 200, 255},
-	thumb_border_thickness: f32 = 0,
+	//thumb_border_thickness: f32 = 0,
+	thumb_border: Border = {},
 	thumb_border_fill: base.Fill = base.Color{240, 240, 240, 255},
 	opts: Config_Options = {},
 ) -> Comm {
@@ -982,7 +992,8 @@ slider :: proc(
 
 		thumb_bg_fill := base.Fill(thumb_color)
 		thumb_border_fill := thumb_border_fill
-		thumb_border_thickness := thumb_border_thickness
+		//thumb_border_thickness := thumb_border_thickness
+		thumb_border := thumb_border
 		thumb_caps := Capability_Flags{.Background}
 		thumb_radius: f32 = math.min(thumb_size.x, thumb_size.y) / 2
 		thumb_id := fmt.tprintf("%v_thumb", id)
@@ -992,12 +1003,13 @@ slider :: proc(
 			thumb_id,
 			Config_Options {
 				layout = {
-					sizing = {&thumb_sizing.x, &thumb_sizing.y},
-					alignment_x = &thumb_align_x,
-					alignment_y = &thumb_align_y,
+					sizing            = {&thumb_sizing.x, &thumb_sizing.y},
+					alignment_x       = &thumb_align_x,
+					alignment_y       = &thumb_align_y,
 					relative_position = &thumb_rel_pos,
-					corner_radius = &thumb_radius,
-					border_thickness = &thumb_border_thickness,
+					corner_radius     = &thumb_radius,
+					//border_thickness = &thumb_border_thickness,
+					border            = &thumb_border,
 				},
 				background_fill = &thumb_bg_fill,
 				border_fill = &thumb_border_fill,
@@ -1065,7 +1077,7 @@ scrollbar :: proc(
 		axis,
 		{20, calculated_thumb_size},
 		thumb_col,
-		0,
+		{},
 		base.Color{0, 0, 0, 0},
 		sb_opts,
 	)
@@ -1379,12 +1391,20 @@ pop_corner_radius :: proc(ctx: ^Context) -> (f32, bool) {
 	return pop(&ctx.corner_radius_stack)
 }
 
-push_border_thickness :: proc(ctx: ^Context, thickness: f32) -> bool {
-	return push(&ctx.border_thickness_stack, thickness)
+//push_border_thickness :: proc(ctx: ^Context, thickness: f32) -> bool {
+//	return push(&ctx.border_thickness_stack, thickness)
+//}
+//
+//pop_border_thickness :: proc(ctx: ^Context) -> (f32, bool) {
+//	return pop(&ctx.border_thickness_stack)
+//}
+
+push_border :: proc(ctx: ^Context, border: Border) -> bool {
+	return push(&ctx.border_stack, border)
 }
 
-pop_border_thickness :: proc(ctx: ^Context) -> (f32, bool) {
-	return pop(&ctx.border_thickness_stack)
+pop_border :: proc(ctx: ^Context) -> (Border, bool) {
+	return pop(&ctx.border_stack)
 }
 
 push_border_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {

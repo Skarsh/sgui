@@ -43,12 +43,16 @@ Size_Kind :: enum {
 	Percentage_Of_Parent,
 }
 
-Padding :: struct {
+Box :: struct {
 	left:   f32,
 	right:  f32,
 	top:    f32,
 	bottom: f32,
 }
+
+Padding :: distinct Box
+
+Border :: distinct Box
 
 Text_Data :: struct {
 	text:  string,
@@ -80,7 +84,8 @@ Layout_Config :: struct {
 	text_alignment_x:  Alignment_X,
 	text_alignment_y:  Alignment_Y,
 	corner_radius:     f32,
-	border_thickness:  f32,
+	//border_thickness:  f32,
+	border:            Border,
 }
 
 Clip_Config :: struct {
@@ -144,7 +149,8 @@ Layout_Options :: struct {
 	text_alignment_x:  ^Alignment_X,
 	text_alignment_y:  ^Alignment_Y,
 	corner_radius:     ^f32,
-	border_thickness:  ^f32,
+	//border_thickness:  ^f32,
+	border:            ^Border,
 }
 
 Config_Options :: struct {
@@ -375,10 +381,16 @@ open_element :: proc(
 		resolve_default(default_opts.layout.corner_radius),
 	)
 
-	final_config.layout.border_thickness = resolve_value(
-		opts.layout.border_thickness,
-		&ctx.border_thickness_stack,
-		resolve_default(default_opts.layout.border_thickness),
+	//final_config.layout.border_thickness = resolve_value(
+	//	opts.layout.border_thickness,
+	//	&ctx.border_thickness_stack,
+	//	resolve_default(default_opts.layout.border_thickness),
+	//)
+
+	final_config.layout.border = resolve_value(
+		opts.layout.border,
+		&ctx.border_stack,
+		resolve_default(default_opts.layout.border),
 	)
 
 	final_config.background_fill = resolve_value(
@@ -748,7 +760,8 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 @(private)
 resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) {
 	parent_padding := parent.config.layout.padding
-	parent_content_available_size := get_available_size(parent.size, parent_padding)
+	parent_border := parent.config.layout.border
+	parent_content_available_size := get_available_size(parent.size, parent_padding, parent_border)
 
 	for child in parent.children {
 		sizing_info := child.config.layout.sizing[axis]
@@ -774,10 +787,14 @@ resolve_dependent_sizes_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 	if .Text in element.config.capability_flags {
+		border := element.config.layout.border
 		text_padding := element.config.layout.text_padding
 		text := element.config.content.text_data.text
 
-		available_size := get_available_size(element.size, text_padding)
+		// TODO(Thomas): Using text_padding here like this doesn't seem entirely right,
+		// seems like a bug waiting to happen. I'm not sure whether `get_available_size`
+		// should calculate with or without text padding though...
+		available_size := get_available_size(element.size, text_padding, border)
 		_, h, lines := measure_text_content(ctx, text, available_size.x, allocator)
 
 		element.config.content.text_data.lines = lines[:]
@@ -924,6 +941,8 @@ get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 	return padding.top, padding.bottom
 }
 
+// TODO(Thomas): This calculation is identical for Border too, so should be able
+// to unify.
 get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
 	if axis == .X {
 		return padding.left + padding.right
@@ -931,12 +950,24 @@ get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
 	return padding.top + padding.bottom
 }
 
-get_available_size :: proc(size: base.Vec2, padding: Padding) -> base.Vec2 {
-	return {size.x - padding.left - padding.right, size.y - padding.top - padding.bottom}
+get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
+	if axis == .X {
+		return border.left + border.right
+	}
+	return border.top + border.bottom
+
+}
+
+get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) -> base.Vec2 {
+	return {
+		size.x - padding.left - padding.right - border.left - border.right,
+		size.y - padding.top - padding.bottom - border.top - border.bottom,
+	}
 }
 
 layout_children_flow :: proc(parent: ^UI_Element) {
 	padding := parent.config.layout.padding
+	border := parent.config.layout.border
 	dir := parent.config.layout.layout_direction
 
 	// Setup Axes
@@ -947,7 +978,7 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 	pad_cross_start, _ := get_padding_for_axis(padding, cross_axis)
 
 	// Calculate available content space
-	available_size := get_available_size(parent.size, padding)
+	available_size := get_available_size(parent.size, padding, border)
 
 	start_pos_main := parent.position[main_axis] + pad_main_start
 	start_pos_cross := parent.position[cross_axis] + pad_cross_start
@@ -1020,10 +1051,11 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 layout_children_relative :: proc(parent: ^UI_Element) {
 	// TODO(Thomas): Scrolling - I assume it makes sense here?
 	padding := parent.config.layout.padding
+	border := parent.config.layout.border
 
 	// Content box start and size
 	content_pos := base.Vec2{parent.position.x + padding.left, parent.position.y + padding.top}
-	available_content_size := get_available_size(parent.size, padding)
+	available_content_size := get_available_size(parent.size, padding, border)
 
 	for child in parent.children {
 		factors := get_alignment_factors(
