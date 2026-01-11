@@ -1,6 +1,9 @@
 # TODOs
 
 ## Active
+* Replace the `sdfRect` function with one that takes in a vec4 for the corners instead of a single radius.
+    We probably want to keep the possiblity to specify a single radius for a rect on the API level, but that should
+    then just be converted to the necessary rendering data and use the more powerful vec4 corner radius sdf function instead.
 * To-Do List
 
 ## Bugs
