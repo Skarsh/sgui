@@ -950,21 +950,20 @@ get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 	return padding.top, padding.bottom
 }
 
-// TODO(Thomas): This calculation is identical for Border too, so should be able
-// to unify.
-get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
+// Generic helper for summing box values (padding, border, margin) for a given axis
+get_box_sum_for_axis :: proc(box: Box, axis: Axis2) -> f32 {
 	if axis == .X {
-		return padding.left + padding.right
+		return box.left + box.right
 	}
-	return padding.top + padding.bottom
+	return box.top + box.bottom
+}
+
+get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
+	return get_box_sum_for_axis(Box(padding), axis)
 }
 
 get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
-	if axis == .X {
-		return border.left + border.right
-	}
-	return border.top + border.bottom
-
+	return get_box_sum_for_axis(Box(border), axis)
 }
 
 get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
@@ -982,10 +981,7 @@ get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 }
 
 get_margin_sum_for_axis :: proc(margin: Margin, axis: Axis2) -> f32 {
-	if axis == .X {
-		return margin.left + margin.right
-	}
-	return margin.top + margin.bottom
+	return get_box_sum_for_axis(Box(margin), axis)
 }
 
 get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) -> base.Vec2 {
