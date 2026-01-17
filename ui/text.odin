@@ -200,12 +200,9 @@ flush_line :: proc(
 
 	line_height: f32
 	if base.approx_equal(line_width, 0, 0.001) {
-		// This is a empty line, made from two consecutive newlines
-		// TODO(Thomas): Just using "A" as the height of the empty line
-		// here. Is there a better approach? At least we don't have to
-		// calculate this every time, this could be cached for the font_id
-		// and font size.
-		line_height = measure_string_line_height(ctx, "A", ctx.font_id)
+		// This is an empty line, made from two consecutive newlines
+		// Use empty string to get the font's line height directly from metrics
+		line_height = measure_string_line_height(ctx, "", ctx.font_id)
 	} else {
 		line_height = measure_string_line_height(ctx, line_text, ctx.font_id)
 	}
