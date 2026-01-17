@@ -112,8 +112,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				{kind = .Percentage_Of_Parent, value = 1.0},
 				{kind = .Percentage_Of_Parent, value = 1.0},
 			}
-			panel_padding := ui.Padding{25, 25, 25, 25}
-			panel_radius: f32 = 10
+			panel_padding := ui.Padding{top = 25, right = 25, bottom = 25, left = 25}
+			panel_border_radius := base.Vec4{10, 10, 10, 10}
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 15
 			panel_bg := base.Fill(PANEL_BG)
@@ -127,7 +127,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						layout_direction = &panel_layout_dir,
 						padding = &panel_padding,
 						child_gap = &panel_child_gap,
-						corner_radius = &panel_radius,
+						border_radius = &panel_border_radius,
 					},
 					background_fill = &panel_bg,
 				},
@@ -153,8 +153,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				list_wrapper_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 350}}
 				list_wrapper_dir := ui.Layout_Direction.Left_To_Right
 				list_wrapper_gap: f32 = 5
-				//list_wrapper_border_thickness: f32 = 2
-				list_wrapper_border := ui.Border{5, 7, 8, 10}
+				list_wrapper_border := ui.Border{top = 8, right = 7, bottom = 10, left = 5}
 				list_wrapper_border_fill := base.Fill(base.Color{100, 69, 69, 255})
 				if ui.begin_container(
 					ctx,
@@ -164,7 +163,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							sizing           = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
 							layout_direction = &list_wrapper_dir,
 							child_gap        = &list_wrapper_gap,
-							//border_thickness = &list_wrapper_border_thickness,
 							border           = &list_wrapper_border,
 						},
 						border_fill = &list_wrapper_border_fill,
@@ -206,7 +204,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							row_layout_dir := ui.Layout_Direction.Left_To_Right
 							row_align_y := ui.Alignment_Y.Center
 							row_child_gap: f32 = 10
-							row_padding := ui.Padding{5, 5, 5, 5}
+							row_padding := ui.Padding{top = 5, right = 5, bottom = 5, left = 5}
 
 							ui.push_background_fill(
 								ctx,
@@ -279,7 +277,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 								ui.spacer(ctx)
 
 								// --- Delete Button ---
-								delete_corner_radius: f32 = 3.0
+								delete_border_radius := base.Vec4{3.0, 3.0, 3.0, 3.0}
 								delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
 								delete_button_id := fmt.tprintf("task_delete_button_%d", i)
 								delete_comm := ui.button(
@@ -287,7 +285,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									delete_button_id,
 									"Delete",
 									ui.Config_Options {
-										layout = {corner_radius = &delete_corner_radius},
+										layout = {border_radius = &delete_border_radius},
 										background_fill = &delete_bg_fill,
 									},
 								)
@@ -307,7 +305,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						{kind = .Fixed, value = scrollbar_width},
 						{kind = .Grow},
 					}
-					scrollbar_radius: f32 = 6.0
+					scrollbar_border_radius := base.Vec4{6.0, 6.0, 6.0, 6.0}
 
 					// Transparent track
 					scrollbar_bg := base.Fill(base.Color{0, 0, 0, 0})
@@ -320,7 +318,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						ui.Config_Options {
 							layout = {
 								sizing = {&scrollbar_sizing.x, &scrollbar_sizing.y},
-								corner_radius = &scrollbar_radius,
+								border_radius = &scrollbar_border_radius,
 							},
 							background_fill = &scrollbar_bg,
 						},

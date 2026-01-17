@@ -147,8 +147,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			panel_align_x := ui.Alignment_X.Center
 			panel_align_y := ui.Alignment_Y.Center
-			panel_padding := ui.Padding{15, 15, 15, 15}
-			panel_radius: f32 = 10
+			panel_padding := ui.Padding{top = 15, right = 15, bottom = 15, left = 15}
+			panel_border_radius := base.Vec4{10, 10, 10, 10}
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 10
 			panel_bg := base.Fill(PANEL_BG)
@@ -164,7 +164,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						layout_direction = &panel_layout_dir,
 						padding = &panel_padding,
 						child_gap = &panel_child_gap,
-						corner_radius = &panel_radius,
+						border_radius = &panel_border_radius,
 					},
 					background_fill = &panel_bg,
 					capability_flags = &panel_caps,
@@ -187,10 +187,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				)
 
-				color_viewer_radius := color_viewer_size / 2
+				color_viewer_radius_val := color_viewer_size / 2
+				color_viewer_border_radius := base.Vec4{color_viewer_radius_val, color_viewer_radius_val, color_viewer_radius_val, color_viewer_radius_val}
 				color_viewer_align_x := ui.Alignment_X.Center
-				//border_thickness: f32 = 4
-				border := ui.Border{4, 4, 4, 4}
+				border := ui.Border{top = 4, right = 4, bottom = 4, left = 4}
 				border_color := base.Color {
 					u8(data.r * 200),
 					u8(data.g * 200),
@@ -205,10 +205,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ui.Config_Options {
 						layout = {
 							sizing        = {&color_viewer_sizing.x, &color_viewer_sizing.y},
-							corner_radius = &color_viewer_radius,
+							border_radius = &color_viewer_border_radius,
 							alignment_x   = &color_viewer_align_x,
 							border        = &border,
-							//border_thickness = &border_thickness,
 						},
 						background_fill = &color_viewer_bg_fill,
 						border_fill = &border_fill,
@@ -251,7 +250,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					bottom = 5,
 				}
 				hex_child_gap: f32 = 10
-				hex_radius: f32 = 5
+				hex_border_radius := base.Vec4{5, 5, 5, 5}
 				hex_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
 				hex_bg := base.Fill(ITEM_BG)
 
@@ -264,7 +263,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							layout_direction = &hex_layout_dir,
 							alignment_y = &hex_align_y,
 							padding = &hex_padding,
-							corner_radius = &hex_radius,
+							border_radius = &hex_border_radius,
 							child_gap = &hex_child_gap,
 						},
 						background_fill = &hex_bg,

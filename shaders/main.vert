@@ -20,9 +20,8 @@ out vec2 v_local_pos;
 out vec2 v_tex_coords;
 flat out int v_tex_slot;
 flat out int v_shape_kind;
-//out float v_border_thickness;
 out vec4 v_border;
-out float v_radius;
+out vec4 v_border_radius;
 
 uniform mat4 transform;
 
@@ -49,9 +48,9 @@ struct QuadParams {
     vec2  uv_size;
     int   tex_slot;
     int   shape_kind;
-    float radius;
-    float _padding_3;
+    vec2  _padding_3;
     vec4  border;
+    vec4  border_radius;
 };
 
 layout (std430, binding = 0) readonly buffer QuadBlock {
@@ -99,7 +98,6 @@ void main() {
 
     v_tex_slot = quad.tex_slot;
     v_shape_kind = quad.shape_kind;
-    //v_border_thickness = quad.border_thickness;
     v_border = quad.border;
-    v_radius = quad.radius;
+    v_border_radius = quad.border_radius;
 }

@@ -44,10 +44,10 @@ Size_Kind :: enum {
 }
 
 Box :: struct {
-	left:   f32,
-	right:  f32,
 	top:    f32,
+	right:  f32,
 	bottom: f32,
+	left:   f32,
 }
 
 Padding :: distinct Box
@@ -83,8 +83,8 @@ Layout_Config :: struct {
 	text_padding:      Padding,
 	text_alignment_x:  Alignment_X,
 	text_alignment_y:  Alignment_Y,
-	corner_radius:     f32,
-	//border_thickness:  f32,
+	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
+	border_radius:     base.Vec4,
 	border:            Border,
 }
 
@@ -148,8 +148,7 @@ Layout_Options :: struct {
 	text_padding:      ^Padding,
 	text_alignment_x:  ^Alignment_X,
 	text_alignment_y:  ^Alignment_Y,
-	corner_radius:     ^f32,
-	//border_thickness:  ^f32,
+	border_radius:     ^base.Vec4,
 	border:            ^Border,
 }
 
@@ -375,17 +374,11 @@ open_element :: proc(
 		resolve_default(default_opts.layout.text_alignment_y),
 	)
 
-	final_config.layout.corner_radius = resolve_value(
-		opts.layout.corner_radius,
-		&ctx.corner_radius_stack,
-		resolve_default(default_opts.layout.corner_radius),
+	final_config.layout.border_radius = resolve_value(
+		opts.layout.border_radius,
+		&ctx.border_radius_stack,
+		resolve_default(default_opts.layout.border_radius),
 	)
-
-	//final_config.layout.border_thickness = resolve_value(
-	//	opts.layout.border_thickness,
-	//	&ctx.border_thickness_stack,
-	//	resolve_default(default_opts.layout.border_thickness),
-	//)
 
 	final_config.layout.border = resolve_value(
 		opts.layout.border,

@@ -2787,7 +2787,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 		main_container_height = 100,
 		panel_container_pct_x = 1.0,
 		panel_container_pct_y = 1.0,
-		fit_element_padding   = Padding{20, 20, 20, 20},
+		fit_element_padding   = Padding{top = 20, right = 20, bottom = 20, left = 20},
 		layout_direction      = .Left_To_Right,
 	}
 
@@ -2799,7 +2799,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 		main_container_height = 100,
 		panel_container_pct_x = 1.0,
 		panel_container_pct_y = 1.0,
-		fit_element_padding   = Padding{20, 20, 20, 20},
+		fit_element_padding   = Padding{top = 20, right = 20, bottom = 20, left = 20},
 		layout_direction      = .Top_To_Bottom,
 	}
 

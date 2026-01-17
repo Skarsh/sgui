@@ -108,10 +108,11 @@ Quad_Param :: struct #align (16) {
 	uv_size:             base.Vec2,
 	tex_slot:            i32,
 	shape_kind:          i32,
-	radius:              f32,
-	_paddign_3:          f32,
+	_padding_3:          base.Vec2,
 	// Mapping: x=top, y=right, z=bottom, w=left
 	border:              base.Vec4,
+	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
+	border_radius:       base.Vec4,
 }
 
 Batch :: struct {
@@ -344,8 +345,7 @@ opengl_render_end :: proc(
 		cmd := command.command
 		#partial switch val in cmd {
 		case ui.Command_Rect:
-			radius := val.radius
-			//border_thickness := val.border_thickness
+			border_radius := val.border_radius
 			border := val.border
 			border_vec := base.Vec4{border.top, border.right, border.bottom, border.left}
 			color_start, color_end: base.Vec4
@@ -359,6 +359,7 @@ opengl_render_end :: proc(
 				color := base.color_to_vec4(fill)
 				color_start = color
 				color_end = color
+				gradient_dir = {0, 0}
 
 			case base.Gradient:
 				cs := fill.color_start
@@ -416,9 +417,8 @@ opengl_render_end :: proc(
 				uv_size             = {0, 0},
 				tex_slot            = 0,
 				shape_kind          = -1,
-				//border_thickness    = border_thickness,
 				border              = border_vec,
-				radius              = radius,
+				border_radius       = border_radius,
 			}
 			batch.quad_idx += 1
 		case ui.Command_Text:
@@ -436,6 +436,7 @@ opengl_render_end :: proc(
 				color := base.color_to_vec4(fill)
 				color_start = color
 				color_end = color
+				gradient_dir = {0, 0}
 			case base.Gradient:
 				panic("TODO: Impelement")
 			}

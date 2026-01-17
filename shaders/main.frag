@@ -18,9 +18,8 @@ in vec2 v_local_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
 flat in int v_shape_kind;
-//in float v_border_thickness;
 in vec4 v_border;
-in float v_radius;
+in vec4 v_border_radius;
 
 out vec4 o_color;
 
@@ -52,17 +51,30 @@ float sdfAlpha(float d) {
     return smoothstep(width, -width, d);
 }
 
-// Signed Distance Function for a rounded rectangle.
+// Signed Distance Function for a rounded rectangle with variable corner radii.
 // pos: The current fragment's position relative to the center.
 // halfSize: Half the width and height of the rectangle.
-// r: The corner radius.
+// radii: Corner radii (x=top-left, y=top-right, z=bottom-right, w=bottom-left)
 // Returns a negative value inside the rectangle, positive outside, and 0 on the edge.
-float sdfRect(vec2 pos, vec2 halfSize, float r) {
+float sdfRectVariableRadius(vec2 pos, vec2 halfSize, vec4 radii) {
+    // Determine which corner's radius to use based on the quadrant
+    // quadrant: (+x, +y) = top-right, (-x, +y) = top-left,
+    //           (+x, -y) = bottom-right, (-x, -y) = bottom-left
+    float r = (pos.x > 0.0)
+        ? (pos.y > 0.0 ? radii.y : radii.z)  // right side: top-right or bottom-right
+        : (pos.y > 0.0 ? radii.x : radii.w); // left side: top-left or bottom-left
+
     vec2 d = abs(pos) - (halfSize - r);
     return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
 }
 
 vec4 calcGradientColor(vec4 color_start, vec4 color_end, vec2 dir, vec2 half_size, vec2 pos) {
+    // Handle solid colors (zero-length direction vector)
+    float dir_length = length(dir);
+    if (dir_length < 0.001) {
+        return color_start;
+    }
+
     vec2 u = normalize(dir);
 
     float proj = dot(pos, u);
@@ -97,10 +109,9 @@ void main() {
     // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
         float border_sum = v_border.x + v_border.y + v_border.z + v_border.w;
-        //if (v_border_thickness <= 0.0 ) {
         if (border_sum <= 0.001 ) {
             // No border, use a simpler path
-            float d = sdfRect(v_local_pos, v_quad_half_size, v_radius);
+            float d = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
             float alpha = sdfAlpha(d);
 
             vec4 inner_color = calcGradientColor(
@@ -114,9 +125,34 @@ void main() {
             o_color = vec4(inner_color.rgb, inner_color.a * alpha);
 
         } else {
-            float v_border_thickness = 1.0;
-            float d_border = sdfRect(v_local_pos, v_quad_half_size, v_radius);
-            float d_inner = sdfRect(v_local_pos, v_quad_half_size - v_border_thickness, max(0.0, v_radius - v_border_thickness));
+            // Calculate the offset and size reduction for the inner rect
+            // to account for variable border widths
+            // v_border mapping: x=top, y=right, z=bottom, w=left
+            // border_offset maps to (x_offset, y_offset) in screen space
+            // border_reduction maps to (width_reduction, height_reduction)
+            vec2 border_offset = vec2(
+                (v_border.w - v_border.y) * 0.5,  // X: (left - right) / 2
+                (v_border.x - v_border.z) * 0.5   // Y: (top - bottom) / 2
+            );
+
+            vec2 border_reduction = vec2(
+                (v_border.y + v_border.w) * 0.5,  // X: (right + left) / 2
+                (v_border.x + v_border.z) * 0.5   // Y: (top + bottom) / 2
+            );
+
+            vec2 inner_half_size = v_quad_half_size - border_reduction;
+
+            // Reduce inner corner radii by the border width at each corner
+            // For each corner, use the average of the two adjacent border sides
+            vec4 inner_border_radius = vec4(
+                max(0.0, v_border_radius.x - (v_border.x + v_border.w) * 0.5), // TL: avg(top, left)
+                max(0.0, v_border_radius.y - (v_border.x + v_border.y) * 0.5), // TR: avg(top, right)
+                max(0.0, v_border_radius.z - (v_border.z + v_border.y) * 0.5), // BR: avg(bottom, right)
+                max(0.0, v_border_radius.w - (v_border.z + v_border.w) * 0.5)  // BL: avg(bottom, left)
+            );
+
+            float d_border = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
+            float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, inner_border_radius);
 
             float alpha_border = sdfAlpha(d_border);
             float alpha_inner = sdfAlpha(d_inner);
@@ -133,8 +169,8 @@ void main() {
                 v_color_start,
                 v_color_end,
                 v_gradient_dir,
-                v_quad_half_size - v_border_thickness,
-                v_local_pos
+                inner_half_size,
+                v_local_pos - border_offset
             );
 
             vec4 final_material = mix(border_color, inner_color, alpha_inner);
