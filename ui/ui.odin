@@ -142,6 +142,7 @@ Context :: struct {
 	background_fill_stack:   Stack(base.Fill, STYLE_STACK_SIZE),
 	text_fill_stack:         Stack(base.Fill, STYLE_STACK_SIZE),
 	padding_stack:           Stack(Padding, STYLE_STACK_SIZE),
+	margin_stack:            Stack(Margin, STYLE_STACK_SIZE),
 	child_gap_stack:         Stack(f32, STYLE_STACK_SIZE),
 	layout_mode_stack:       Stack(Layout_Mode, STYLE_STACK_SIZE),
 	layout_direction_stack:  Stack(Layout_Direction, STYLE_STACK_SIZE),
@@ -1297,6 +1298,14 @@ push_padding :: proc(ctx: ^Context, padding: Padding) -> bool {
 
 pop_padding :: proc(ctx: ^Context) -> (Padding, bool) {
 	return pop(&ctx.padding_stack)
+}
+
+push_margin :: proc(ctx: ^Context, margin: Margin) -> bool {
+	return push(&ctx.margin_stack, margin)
+}
+
+pop_margin :: proc(ctx: ^Context) -> (Margin, bool) {
+	return pop(&ctx.margin_stack)
 }
 
 push_child_gap :: proc(ctx: ^Context, child_gap: f32) -> bool {

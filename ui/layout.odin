@@ -54,6 +54,8 @@ Padding :: distinct Box
 
 Border :: distinct Box
 
+Margin :: distinct Box
+
 Text_Data :: struct {
 	text:  string,
 	lines: []Text_Line,
@@ -74,6 +76,7 @@ Element_Content :: struct {
 Layout_Config :: struct {
 	sizing:            [2]Sizing,
 	padding:           Padding,
+	margin:            Margin,
 	child_gap:         f32,
 	layout_mode:       Layout_Mode,
 	layout_direction:  Layout_Direction,
@@ -139,6 +142,7 @@ Element_Config :: struct {
 Layout_Options :: struct {
 	sizing:            [2]^Sizing,
 	padding:           ^Padding,
+	margin:            ^Margin,
 	child_gap:         ^f32,
 	layout_mode:       ^Layout_Mode,
 	layout_direction:  ^Layout_Direction,
@@ -318,6 +322,12 @@ open_element :: proc(
 		opts.layout.padding,
 		&ctx.padding_stack,
 		resolve_default(default_opts.layout.padding),
+	)
+
+	final_config.layout.margin = resolve_value(
+		opts.layout.margin,
+		&ctx.margin_stack,
+		resolve_default(default_opts.layout.margin),
 	)
 
 	final_config.layout.child_gap = resolve_value(
@@ -951,6 +961,20 @@ get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
 
 }
 
+get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
+	if axis == .X {
+		return margin.left, margin.right
+	}
+	return margin.top, margin.bottom
+}
+
+get_margin_sum_for_axis :: proc(margin: Margin, axis: Axis2) -> f32 {
+	if axis == .X {
+		return margin.left + margin.right
+	}
+	return margin.top + margin.bottom
+}
+
 get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) -> base.Vec2 {
 	return {
 		size.x - padding.left - padding.right - border.left - border.right,
@@ -976,13 +1000,17 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 	start_pos_main := parent.position[main_axis] + pad_main_start
 	start_pos_cross := parent.position[cross_axis] + pad_cross_start
 
-	// Measure children
+	// Measure children (including margins)
 	total_children_main: f32 = 0
 	max_children_cross: f32 = 0
 
 	for child in parent.children {
-		total_children_main += child.size[main_axis]
-		max_children_cross = max(max_children_cross, child.size[cross_axis])
+		child_margin := child.config.layout.margin
+		margin_main := get_margin_sum_for_axis(child_margin, main_axis)
+		margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
+
+		total_children_main += child.size[main_axis] + margin_main
+		max_children_cross = max(max_children_cross, child.size[cross_axis] + margin_cross)
 	}
 
 	// Apply child gap
@@ -1027,15 +1055,20 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 
 	// Position children
 	for child in parent.children {
-		// Main axis
-		child.position[main_axis] = main_pos
-		main_pos += child.size[main_axis] + parent.config.layout.child_gap
+		child_margin := child.config.layout.margin
+		margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
+		margin_cross_start, margin_cross_end := get_margin_for_axis(child_margin, cross_axis)
 
-		// Cross axis
-		remaining_space_cross := available_size[cross_axis] - child.size[cross_axis]
+		// Main axis (apply start margin)
+		child.position[main_axis] = main_pos + margin_main_start
+		main_pos += child.size[main_axis] + margin_main_start + margin_main_end + parent.config.layout.child_gap
+
+		// Cross axis (apply start margin)
+		remaining_space_cross := available_size[cross_axis] - child.size[cross_axis] - margin_cross_start - margin_cross_end
 
 		child.position[cross_axis] =
 			start_pos_cross +
+			margin_cross_start +
 			(remaining_space_cross * align_factors[cross_axis]) -
 			parent.scroll_region.offset[cross_axis]
 	}
@@ -1051,13 +1084,17 @@ layout_children_relative :: proc(parent: ^UI_Element) {
 	available_content_size := get_available_size(parent.size, padding, border)
 
 	for child in parent.children {
+		child_margin := child.config.layout.margin
+
 		factors := get_alignment_factors(
 			child.config.layout.alignment_x,
 			child.config.layout.alignment_y,
 		)
 
+		// Apply margin to position
 		child.position =
 			content_pos +
+			base.Vec2{child_margin.left, child_margin.top} +
 			(available_content_size * factors) +
 			child.config.layout.relative_position
 	}
