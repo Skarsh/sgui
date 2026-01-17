@@ -262,7 +262,9 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 // helps much since the layout algorithm needs to update per axis anyway.
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
+	border := element.config.layout.border
 	padding_sum := get_padding_sum_for_axis(padding, axis)
+	border_sum := get_border_sum_for_axis(border, axis)
 
 	content_size: f32
 
@@ -279,8 +281,8 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 		}
 	}
 
-	// Add padding
-	total_size := content_size + padding_sum
+	// Add padding and borders
+	total_size := content_size + padding_sum + border_sum
 	// Clamp
 	// TODO(Thomas): Add test that catches if this clamp doesn't happen.
 	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
@@ -567,9 +569,11 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 // TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
 calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
+	border := element.config.layout.border
 	padding_sum := get_padding_sum_for_axis(padding, axis)
+	border_sum := get_border_sum_for_axis(border, axis)
 
-	remaining_size := element.size[axis] - padding_sum
+	remaining_size := element.size[axis] - padding_sum - border_sum
 	return remaining_size
 }
 
@@ -675,8 +679,11 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 		// Constraints pass
 		used_space: f32 = 0
 		padding := element.config.layout.padding
+		border := element.config.layout.border
 		padding_sum := get_padding_sum_for_axis(padding, axis)
+		border_sum := get_border_sum_for_axis(border, axis)
 		used_space += padding_sum
+		used_space += border_sum
 		for child in element.children {
 			size_kind := child.config.layout.sizing[axis].kind
 			if size_kind == .Grow {
@@ -961,6 +968,13 @@ get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
 
 }
 
+get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
+	if axis == .X {
+		return border.left, border.right
+	}
+	return border.top, border.bottom
+}
+
 get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return margin.left, margin.right
@@ -994,11 +1008,15 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 	pad_main_start, _ := get_padding_for_axis(padding, main_axis)
 	pad_cross_start, _ := get_padding_for_axis(padding, cross_axis)
 
+	// Resolve border for axes
+	border_main_start, _ := get_border_for_axis(border, main_axis)
+	border_cross_start, _ := get_border_for_axis(border, cross_axis)
+
 	// Calculate available content space
 	available_size := get_available_size(parent.size, padding, border)
 
-	start_pos_main := parent.position[main_axis] + pad_main_start
-	start_pos_cross := parent.position[cross_axis] + pad_cross_start
+	start_pos_main := parent.position[main_axis] + pad_main_start + border_main_start
+	start_pos_cross := parent.position[cross_axis] + pad_cross_start + border_cross_start
 
 	// Measure children (including margins)
 	total_children_main: f32 = 0
@@ -1061,10 +1079,18 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 
 		// Main axis (apply start margin)
 		child.position[main_axis] = main_pos + margin_main_start
-		main_pos += child.size[main_axis] + margin_main_start + margin_main_end + parent.config.layout.child_gap
+		main_pos +=
+			child.size[main_axis] +
+			margin_main_start +
+			margin_main_end +
+			parent.config.layout.child_gap
 
 		// Cross axis (apply start margin)
-		remaining_space_cross := available_size[cross_axis] - child.size[cross_axis] - margin_cross_start - margin_cross_end
+		remaining_space_cross :=
+			available_size[cross_axis] -
+			child.size[cross_axis] -
+			margin_cross_start -
+			margin_cross_end
 
 		child.position[cross_axis] =
 			start_pos_cross +

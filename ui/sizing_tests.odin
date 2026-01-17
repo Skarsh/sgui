@@ -10,10 +10,12 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
 		panel_padding: Padding,
+		panel_border:  Border,
 	}
 
 	test_data := Test_Data {
 		panel_padding = Padding{left = 10, top = 20, right = 15, bottom = 25},
+		panel_border = Border{left = 2, top = 2, right = 2, bottom = 2},
 	}
 
 	// --- 2. Define the UI Building Logic ---
@@ -32,6 +34,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 					sizing = {&sizing, &sizing},
 					layout_direction = &layout_direction,
 					padding = padding,
+					border = &data.panel_border,
 					child_gap = &child_gap,
 				},
 			},
@@ -46,8 +49,14 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 			f32(DEFAULT_TESTING_WINDOW_SIZE.y),
 		}
 		size := base.Vec2 {
-			data.panel_padding.left + data.panel_padding.right,
-			data.panel_padding.top + data.panel_padding.bottom,
+			data.panel_padding.left +
+			data.panel_padding.right +
+			data.panel_border.left +
+			data.panel_border.right,
+			data.panel_padding.top +
+			data.panel_padding.bottom +
+			data.panel_border.top +
+			data.panel_border.bottom,
 		}
 		pos := base.Vec2{0, 0}
 
@@ -65,7 +74,6 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
@@ -74,17 +82,20 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 		panel_layout_direction: Layout_Direction,
 		panel_sizing:           [2]Sizing,
 		panel_padding:          Padding,
+		panel_border:           Border,
 		panel_child_gap:        f32,
 		container_1_size:       base.Vec2,
 		container_2_size:       base.Vec2,
 		container_3_size:       base.Vec2,
 		largest_container_y:    f32,
 	}
+
 	test_data := Test_Data {
 		root_size = {500, 500},
 		panel_layout_direction = .Left_To_Right,
 		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 5, top = 5, right = 5, bottom = 5},
 		panel_child_gap = 10,
 		container_1_size = base.Vec2{100, 100},
 		container_2_size = base.Vec2{50, 150},
@@ -102,6 +113,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 					sizing = {&data.panel_sizing.x, &data.panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -156,17 +168,28 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 		root_size := data.root_size
 
 		panel_pos := base.Vec2{0, 0}
-		panel_size := base.Vec2 {
+		panel_size_x :=
 			data.panel_padding.left +
 			data.panel_padding.right +
+			data.panel_border.left +
+			data.panel_border.right +
 			data.panel_child_gap * 2 +
 			data.container_1_size.x +
 			data.container_2_size.x +
-			data.container_3_size.x,
-			data.largest_container_y + data.panel_padding.top + data.panel_padding.bottom,
-		}
+			data.container_3_size.x
 
-		c1_pos_x := data.panel_padding.left
+		panel_size_y :=
+			data.largest_container_y +
+			data.panel_padding.top +
+			data.panel_padding.bottom +
+			data.panel_border.top +
+			data.panel_border.bottom
+
+		panel_size := base.Vec2{panel_size_x, panel_size_y}
+
+		child_start_y := data.panel_padding.top + data.panel_border.top
+
+		c1_pos_x := data.panel_padding.left + data.panel_border.left
 		c2_pos_x := c1_pos_x + data.container_1_size.x + data.panel_child_gap
 		c3_pos_x := c2_pos_x + data.container_2_size.x + data.panel_child_gap
 
@@ -182,17 +205,17 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 					children = []Expected_Element {
 						{
 							id = "container_1",
-							pos = {c1_pos_x, data.panel_padding.top},
+							pos = {c1_pos_x, child_start_y},
 							size = data.container_1_size,
 						},
 						{
 							id = "container_2",
-							pos = {c2_pos_x, data.panel_padding.top},
+							pos = {c2_pos_x, child_start_y},
 							size = data.container_2_size,
 						},
 						{
 							id = "container_3",
-							pos = {c3_pos_x, data.panel_padding.top},
+							pos = {c3_pos_x, child_start_y},
 							size = data.container_3_size,
 						},
 					},
@@ -214,7 +237,6 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
@@ -223,6 +245,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 		panel_layout_direction: Layout_Direction,
 		panel_sizing:           [2]Sizing,
 		panel_padding:          Padding,
+		panel_border:           Border,
 		panel_child_gap:        f32,
 		container_1_size:       base.Vec2,
 		container_2_size:       base.Vec2,
@@ -234,6 +257,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 		panel_layout_direction = .Top_To_Bottom,
 		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 5, top = 5, right = 5, bottom = 5},
 		panel_child_gap = 10,
 		container_1_size = {100, 100},
 		container_2_size = {50, 150},
@@ -251,6 +275,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 					sizing = {&data.panel_sizing.x, &data.panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -301,18 +326,30 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
-		panel_size := base.Vec2 {
-			data.largest_container_x + data.panel_padding.left + data.panel_padding.right,
+		panel_size_x :=
+			data.largest_container_x +
+			data.panel_padding.left +
+			data.panel_padding.right +
+			data.panel_border.left +
+			data.panel_border.right
+
+		panel_size_y :=
 			data.panel_padding.top +
 			data.panel_padding.bottom +
+			data.panel_border.top +
+			data.panel_border.bottom +
 			data.panel_child_gap * 2 +
 			data.container_1_size.y +
 			data.container_2_size.y +
-			data.container_3_size.y,
-		}
+			data.container_3_size.y
+
+		panel_size := base.Vec2{panel_size_x, panel_size_y}
 
 		panel_pos := base.Vec2{0, 0}
-		c1_pos_y := data.panel_padding.top
+
+		child_start_x := data.panel_padding.left + data.panel_border.left
+
+		c1_pos_y := data.panel_padding.top + data.panel_border.top
 		c2_pos_y := c1_pos_y + data.container_1_size.y + data.panel_child_gap
 		c3_pos_y := c2_pos_y + data.container_2_size.y + data.panel_child_gap
 
@@ -328,17 +365,17 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 					children = []Expected_Element {
 						{
 							id = "container_1",
-							pos = {data.panel_padding.left, c1_pos_y},
+							pos = {child_start_x, c1_pos_y},
 							size = data.container_1_size,
 						},
 						{
 							id = "container_2",
-							pos = {data.panel_padding.left, c2_pos_y},
+							pos = {child_start_x, c2_pos_y},
 							size = data.container_2_size,
 						},
 						{
 							id = "container_3",
-							pos = {data.panel_padding.left, c3_pos_y},
+							pos = {child_start_x, c3_pos_y},
 							size = data.container_3_size,
 						},
 					},
@@ -366,6 +403,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	Test_Grow_Sizing_Ltr_Context :: struct {
 		panel_layout_direction: Layout_Direction,
 		panel_padding:          Padding,
+		panel_border:           Border,
 		panel_child_gap:        f32,
 		panel_size:             base.Vec2,
 		container_1_size:       base.Vec2,
@@ -375,6 +413,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	test_context := Test_Grow_Sizing_Ltr_Context {
 		panel_layout_direction = .Left_To_Right,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 3, top = 3, right = 3, bottom = 3},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
 		container_1_size = {100, 100},
@@ -395,6 +434,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -443,14 +483,24 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 		root: ^UI_Element,
 		data: ^Test_Grow_Sizing_Ltr_Context,
 	) {
-		inner_panel_w := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
-		inner_panel_h := data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+		inner_panel_w :=
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right
+		inner_panel_h :=
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom
 
 		total_fixed_w := data.container_1_size.x + data.container_3_size.x
 		total_gap_w := data.panel_child_gap * 2
 		container_2_w := inner_panel_w - total_fixed_w - total_gap_w
 
-		c1_pos_x := data.panel_padding.left
+		c1_pos_x := data.panel_padding.left + data.panel_border.left
 		c2_pos_x := c1_pos_x + data.container_1_size.x + data.panel_child_gap
 		c3_pos_x := c2_pos_x + container_2_w + data.panel_child_gap
 
@@ -464,17 +514,17 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 					children = []Expected_Element {
 						{
 							id = "container_1",
-							pos = {c1_pos_x, data.panel_padding.top},
+							pos = {c1_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = data.container_1_size,
 						},
 						{
 							id = "container_2",
-							pos = {c2_pos_x, data.panel_padding.top},
+							pos = {c2_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = {container_2_w, inner_panel_h},
 						},
 						{
 							id = "container_3",
-							pos = {c3_pos_x, data.panel_padding.top},
+							pos = {c3_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = data.container_3_size,
 						},
 					},
@@ -491,7 +541,6 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 
@@ -499,6 +548,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_layout_direction:       Layout_Direction,
 		panel_padding:                Padding,
+		panel_border:                 Border,
 		panel_child_gap:              f32,
 		panel_size:                   base.Vec2,
 		container_1_max_value:        f32,
@@ -510,6 +560,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		panel_layout_direction = .Left_To_Right,
 		panel_padding = Padding{left = 11, top = 12, right = 13, bottom = 14},
+		panel_border = Border{left = 4, top = 4, right = 4, bottom = 4},
 		panel_child_gap = 10,
 		panel_size = base.Vec2{600, 400},
 		container_1_max_value = 150,
@@ -532,6 +583,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -579,15 +631,23 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		container_1_size := base.Vec2 {
 			data.container_1_max_value,
-			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom,
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom,
 		}
 
 		container_2_size := base.Vec2 {
 			data.container_2_max_value,
-			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom,
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom,
 		}
 
-		c1_pos_x := data.panel_padding.left
+		c1_pos_x := data.panel_padding.left + data.panel_border.left
 		c2_pos_x := c1_pos_x + container_1_size.x + data.panel_child_gap
 		c3_pos_x := c2_pos_x + container_2_size.x + data.panel_child_gap
 
@@ -601,17 +661,17 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 					children = []Expected_Element {
 						{
 							id = "container_1",
-							pos = {c1_pos_x, data.panel_padding.top},
+							pos = {c1_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = container_1_size,
 						},
 						{
 							id = "container_2",
-							pos = {c2_pos_x, data.panel_padding.top},
+							pos = {c2_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = container_2_size,
 						},
 						{
 							id = "container_3",
-							pos = {c3_pos_x, data.panel_padding.top},
+							pos = {c3_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = data.container_3_size,
 						},
 					},
@@ -627,7 +687,6 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_grow_sizing_ttb :: proc(t: ^testing.T) {
 
@@ -635,6 +694,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_layout_direction: Layout_Direction,
 		panel_padding:          Padding,
+		panel_border:           Border,
 		panel_child_gap:        f32,
 		panel_size:             base.Vec2,
 		container_1_size:       base.Vec2,
@@ -644,6 +704,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		panel_layout_direction = .Top_To_Bottom,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 1, top = 2, right = 3, bottom = 4},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
 		container_1_size = {100, 100},
@@ -664,6 +725,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -707,14 +769,25 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 
-		inner_panel_w := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
-		inner_panel_h := data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+		inner_panel_w :=
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right
+
+		inner_panel_h :=
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom
 
 		total_fixed_h := data.container_1_size.y + data.container_3_size.y
 		total_gap_h := data.panel_child_gap * 2
 		container_2_h := inner_panel_h - total_fixed_h - total_gap_h
 
-		c1_pos_y := data.panel_padding.top
+		c1_pos_y := data.panel_padding.top + data.panel_border.top
 		c2_pos_y := c1_pos_y + data.container_1_size.y + data.panel_child_gap
 		c3_pos_y := c2_pos_y + container_2_h + data.panel_child_gap
 
@@ -728,17 +801,17 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 					children = []Expected_Element {
 						{
 							id = "container_1",
-							pos = {data.panel_padding.left, c1_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c1_pos_y},
 							size = data.container_1_size,
 						},
 						{
 							id = "container_2",
-							pos = {data.panel_padding.left, c2_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c2_pos_y},
 							size = {inner_panel_w, container_2_h},
 						},
 						{
 							id = "container_3",
-							pos = {data.panel_padding.left, c3_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c3_pos_y},
 							size = data.container_3_size,
 						},
 					},
@@ -760,6 +833,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_layout_direction:       Layout_Direction,
 		panel_padding:                Padding,
+		panel_border:                 Border,
 		panel_child_gap:              f32,
 		panel_size:                   base.Vec2,
 		container_1_max_value:        f32,
@@ -771,6 +845,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		panel_layout_direction = .Top_To_Bottom,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 2, top = 3, right = 2, bottom = 3},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
 		container_1_max_value = 100,
@@ -792,6 +867,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -838,16 +914,24 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 		container_1_size := base.Vec2 {
-			data.panel_size.x - data.panel_padding.left - data.panel_padding.right,
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right,
 			data.container_1_max_value,
 		}
 
 		container_2_size := base.Vec2 {
-			data.panel_size.x - data.panel_padding.left - data.panel_padding.right,
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right,
 			data.container_2_max_value,
 		}
 
-		c1_pos_y := data.panel_padding.top
+		c1_pos_y := data.panel_padding.top + data.panel_border.top
 		c2_pos_y := c1_pos_y + container_1_size.y + data.panel_child_gap
 		c3_pos_y := c2_pos_y + container_2_size.y + data.panel_child_gap
 
@@ -861,17 +945,17 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 					children = []Expected_Element {
 						{
 							id = "container_1",
-							pos = {data.panel_padding.left, c1_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c1_pos_y},
 							size = container_1_size,
 						},
 						{
 							id = "container_2",
-							pos = {data.panel_padding.left, c2_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c2_pos_y},
 							size = container_2_size,
 						},
 						{
 							id = "container_3",
-							pos = {data.panel_padding.left, c3_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c3_pos_y},
 							size = data.container_3_size,
 						},
 					},
@@ -894,6 +978,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_layout_direction:  Layout_Direction,
 		panel_padding:           Padding,
+		panel_border:            Border,
 		panel_child_gap:         f32,
 		panel_size:              base.Vec2,
 		container_1_max_value_x: f32,
@@ -905,6 +990,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		panel_layout_direction = .Left_To_Right,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 6, top = 6, right = 6, bottom = 6},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
 		container_1_max_value_x = 100,
@@ -927,6 +1013,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -980,7 +1067,12 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 
 		// --- Primary Axis Calculation (X-axis) ---
 		num_children := 3
-		panel_inner_width := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		panel_inner_width :=
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right
 		total_gap_width := f32(num_children - 1) * data.panel_child_gap
 		available_primary_space := panel_inner_width - total_gap_width
 		initial_share_x := available_primary_space / f32(num_children)
@@ -1028,7 +1120,11 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 
 		// --- Cross Axis Calculation (Y-axis) ---
 		panel_inner_height :=
-			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom
 		c1_final_y := min(panel_inner_height, data.container_1_max_value_y)
 		c2_final_y := min(panel_inner_height, data.container_2_max_value_y)
 		c3_final_y := panel_inner_height
@@ -1038,9 +1134,18 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 		c2_size := base.Vec2{c2_final_x, c2_final_y}
 		c3_size := base.Vec2{c3_final_x, c3_final_y}
 
-		c1_pos := base.Vec2{data.panel_padding.left, data.panel_padding.top}
-		c2_pos := base.Vec2{c1_pos.x + c1_size.x + data.panel_child_gap, data.panel_padding.top}
-		c3_pos := base.Vec2{c2_pos.x + c2_size.x + data.panel_child_gap, data.panel_padding.top}
+		c1_pos := base.Vec2 {
+			data.panel_padding.left + data.panel_border.left,
+			data.panel_padding.top + data.panel_border.top,
+		}
+		c2_pos := base.Vec2 {
+			c1_pos.x + c1_size.x + data.panel_child_gap,
+			data.panel_padding.top + data.panel_border.top,
+		}
+		c3_pos := base.Vec2 {
+			c2_pos.x + c2_size.x + data.panel_child_gap,
+			data.panel_padding.top + data.panel_border.top,
+		}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -1066,7 +1171,6 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 
@@ -1074,6 +1178,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 	Test_Data :: struct {
 		panel_layout_direction:  Layout_Direction,
 		panel_padding:           Padding,
+		panel_border:            Border,
 		panel_child_gap:         f32,
 		panel_size:              base.Vec2,
 		container_1_max_value_x: f32,
@@ -1085,6 +1190,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		panel_layout_direction = .Top_To_Bottom,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 7, top = 8, right = 9, bottom = 10},
 		panel_child_gap = 10,
 		panel_size = {600, 400},
 		container_1_max_value_x = 100,
@@ -1107,6 +1213,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -1161,7 +1268,11 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 		// --- Primary Axis Calculation (Y-axis) ---
 		num_children := 3
 		panel_inner_height :=
-			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom
 		total_gap_height := f32(num_children - 1) * data.panel_child_gap
 		available_primary_space := panel_inner_height - total_gap_height
 		initial_share_y := available_primary_space / f32(num_children)
@@ -1208,7 +1319,12 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 		}
 
 		// --- Cross Axis Calculation (X-axis) ---
-		panel_inner_width := data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+		panel_inner_width :=
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right
 		c1_final_x := min(panel_inner_width, data.container_1_max_value_x)
 		c2_final_x := min(panel_inner_width, data.container_2_max_value_x)
 		c3_final_x := panel_inner_width
@@ -1218,9 +1334,18 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 		c2_size := base.Vec2{c2_final_x, c2_final_y}
 		c3_size := base.Vec2{c3_final_x, c3_final_y}
 
-		c1_pos := base.Vec2{data.panel_padding.left, data.panel_padding.top}
-		c2_pos := base.Vec2{data.panel_padding.left, c1_pos.y + c1_size.y + data.panel_child_gap}
-		c3_pos := base.Vec2{data.panel_padding.left, c2_pos.y + c2_size.y + data.panel_child_gap}
+		c1_pos := base.Vec2 {
+			data.panel_padding.left + data.panel_border.left,
+			data.panel_padding.top + data.panel_border.top,
+		}
+		c2_pos := base.Vec2 {
+			data.panel_padding.left + data.panel_border.left,
+			c1_pos.y + c1_size.y + data.panel_child_gap,
+		}
+		c3_pos := base.Vec2 {
+			data.panel_padding.left + data.panel_border.left,
+			c2_pos.y + c2_size.y + data.panel_child_gap,
+		}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -1334,6 +1459,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	Test_Data :: struct {
 		panel_layout_direction: Layout_Direction,
 		panel_padding:          Padding,
+		panel_border:           Border,
 		panel_child_gap:        f32,
 		panel_size:             base.Vec2,
 		text_1_min_width:       f32,
@@ -1344,6 +1470,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 	test_data := Test_Data {
 		panel_layout_direction = .Left_To_Right,
 		panel_padding = {left = 10, top = 10, right = 10, bottom = 10},
+		panel_border = Border{left = 3, top = 4, right = 5, bottom = 6},
 		panel_child_gap = 10,
 		panel_size = {300, 100},
 		text_1_min_width = 10,
@@ -1365,6 +1492,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -1422,13 +1550,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			data.panel_size.x -
 			data.panel_padding.left -
 			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right -
 			2 * data.panel_child_gap
 
 		expected_child_width := available_width / 3
 		expected_child_height :=
-			data.panel_size.y - data.panel_padding.top - data.panel_padding.bottom
+			data.panel_size.y -
+			data.panel_padding.top -
+			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom
 
-		c1_pos_x := data.panel_padding.left
+		c1_pos_x := data.panel_padding.left + data.panel_border.left
 		c2_pos_x := c1_pos_x + expected_child_width + data.panel_child_gap
 		c3_pos_x := c2_pos_x + expected_child_width + data.panel_child_gap
 
@@ -1443,17 +1577,17 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					children = []Expected_Element {
 						{
 							id = "text_1",
-							pos = {c1_pos_x, data.panel_padding.top},
+							pos = {c1_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = {expected_child_width, expected_child_height},
 						},
 						{
 							id = "grow_box",
-							pos = {c2_pos_x, data.panel_padding.top},
+							pos = {c2_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = {expected_child_width, expected_child_height},
 						},
 						{
 							id = "text_2",
-							pos = {c3_pos_x, data.panel_padding.top},
+							pos = {c3_pos_x, data.panel_padding.top + data.panel_border.top},
 							size = {expected_child_width, expected_child_height},
 						},
 					},
@@ -1469,13 +1603,13 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 }
 
 
-
 @(test)
 test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
 		panel_layout_direction: Layout_Direction,
 		panel_padding:          Padding,
+		panel_border:           Border,
 		panel_child_gap:        f32,
 		panel_size:             base.Vec2,
 		text_1_min_height:      f32,
@@ -1486,6 +1620,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 	test_data := Test_Data {
 		panel_layout_direction = .Top_To_Bottom,
 		panel_padding = {left = 10, top = 11, right = 12, bottom = 13},
+		panel_border = Border{left = 2, top = 2, right = 2, bottom = 2},
 		panel_child_gap = 10,
 		panel_size = {100, 100},
 		text_1_min_height = 10,
@@ -1507,6 +1642,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					sizing = {&panel_sizing.x, &panel_sizing.y},
 					layout_direction = &data.panel_layout_direction,
 					padding = &data.panel_padding,
+					border = &data.panel_border,
 					child_gap = &data.panel_child_gap,
 				},
 			},
@@ -1563,13 +1699,19 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			data.panel_size.y -
 			data.panel_padding.top -
 			data.panel_padding.bottom -
+			data.panel_border.top -
+			data.panel_border.bottom -
 			2 * data.panel_child_gap
 
 		expected_child_width :=
-			data.panel_size.x - data.panel_padding.left - data.panel_padding.right
+			data.panel_size.x -
+			data.panel_padding.left -
+			data.panel_padding.right -
+			data.panel_border.left -
+			data.panel_border.right
 		expected_child_height := available_height / 3
 
-		c1_pos_y := data.panel_padding.top
+		c1_pos_y := data.panel_padding.top + data.panel_border.top
 		c2_pos_y := c1_pos_y + expected_child_height + data.panel_child_gap
 		c3_pos_y := c2_pos_y + expected_child_height + data.panel_child_gap
 
@@ -1583,17 +1725,17 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					children = []Expected_Element {
 						{
 							id = "text_1",
-							pos = {data.panel_padding.left, c1_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c1_pos_y},
 							size = {expected_child_width, expected_child_height},
 						},
 						{
 							id = "grow_box",
-							pos = {data.panel_padding.left, c2_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c2_pos_y},
 							size = {expected_child_width, expected_child_height},
 						},
 						{
 							id = "text_2",
-							pos = {data.panel_padding.left, c3_pos_y},
+							pos = {data.panel_padding.left + data.panel_border.left, c3_pos_y},
 							size = {expected_child_width, expected_child_height},
 						},
 					},
@@ -1616,6 +1758,8 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 		parent_width:     f32,
 		parent_height:    f32,
 		parent_pos:       base.Vec2,
+		parent_padding:   Padding,
+		parent_border:    Border,
 		child_gap:        f32,
 		child_1_pct_x:    f32,
 		child_1_pct_y:    f32,
@@ -1627,15 +1771,18 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	test_data := Test_Data {
-		parent_width     = 100,
-		parent_height    = 100,
-		parent_pos       = {0, 0},
-		child_1_pct_x    = 0.5,
-		child_1_pct_y    = 0.5,
-		child_2_pct_x    = 0.5,
-		child_2_pct_y    = 0.5,
-		child_3_pct_x    = 0,
-		child_3_pct_y    = 0,
+		parent_width = 100,
+		parent_height = 100,
+		parent_pos = {0, 0},
+		parent_padding = Padding{left = 0, top = 0, right = 0, bottom = 0},
+		parent_border = Border{left = 2, top = 2, right = 2, bottom = 2},
+		child_gap = 0,
+		child_1_pct_x = 0.5,
+		child_1_pct_y = 0.5,
+		child_2_pct_x = 0.5,
+		child_2_pct_y = 0.5,
+		child_3_pct_x = 0,
+		child_3_pct_y = 0,
 		layout_direction = .Left_To_Right,
 	}
 
@@ -1653,6 +1800,8 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 				layout = {
 					sizing = {&parent_sizing.x, &parent_sizing.y},
 					layout_direction = &data.layout_direction,
+					padding = &data.parent_padding,
+					border = &data.parent_border,
 				},
 			},
 			data,
@@ -1684,18 +1833,33 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
-		// No padding so its the same as the parent pos
-		child_1_pos := base.Vec2{data.parent_pos.x, data.parent_pos.y}
+		inner_width :=
+			data.parent_width -
+			data.parent_padding.left -
+			data.parent_padding.right -
+			data.parent_border.left -
+			data.parent_border.right
+		inner_height :=
+			data.parent_height -
+			data.parent_padding.top -
+			data.parent_padding.bottom -
+			data.parent_border.top -
+			data.parent_border.bottom
+
+		child_1_pos := base.Vec2 {
+			data.parent_pos.x + data.parent_padding.left + data.parent_border.left,
+			data.parent_pos.y + data.parent_padding.top + data.parent_border.top,
+		}
 		child_1_size := base.Vec2 {
-			data.parent_width * data.child_1_pct_x,
-			data.parent_height * data.child_1_pct_y,
+			inner_width * data.child_1_pct_x,
+			inner_height * data.child_1_pct_y,
 		}
 
 		child_2_pos := base.Vec2{child_1_pos.x + child_1_size.x, child_1_pos.y}
 
 		child_2_size := base.Vec2 {
-			data.parent_width * data.child_2_pct_x,
-			data.parent_height * data.child_2_pct_y,
+			inner_width * data.child_2_pct_x,
+			inner_height * data.child_2_pct_y,
 		}
 
 		expected_layout_tree := Expected_Element {
@@ -1738,6 +1902,8 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 		parent_width:     f32,
 		parent_height:    f32,
 		parent_pos:       base.Vec2,
+		parent_padding:   Padding,
+		parent_border:    Border,
 		child_gap:        f32,
 		child_1_pct_x:    f32,
 		child_1_pct_y:    f32,
@@ -1749,15 +1915,18 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	test_data := Test_Data {
-		parent_width     = 100,
-		parent_height    = 100,
-		parent_pos       = {0, 0},
-		child_1_pct_x    = 0.5,
-		child_1_pct_y    = 0.5,
-		child_2_pct_x    = 0.5,
-		child_2_pct_y    = 0.5,
-		child_3_pct_x    = 0,
-		child_3_pct_y    = 0,
+		parent_width = 100,
+		parent_height = 100,
+		parent_pos = {0, 0},
+		parent_padding = Padding{left = 0, top = 0, right = 0, bottom = 0},
+		parent_border = Border{left = 3, top = 3, right = 3, bottom = 3},
+		child_gap = 0,
+		child_1_pct_x = 0.5,
+		child_1_pct_y = 0.5,
+		child_2_pct_x = 0.5,
+		child_2_pct_y = 0.5,
+		child_3_pct_x = 0,
+		child_3_pct_y = 0,
 		layout_direction = .Top_To_Bottom,
 	}
 
@@ -1775,6 +1944,8 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 				layout = {
 					sizing = {&parent_sizing.x, &parent_sizing.y},
 					layout_direction = &data.layout_direction,
+					padding = &data.parent_padding,
+					border = &data.parent_border,
 				},
 			},
 			data,
@@ -1806,18 +1977,33 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 
 	// --- 3. Define the Verification Logic ---
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
-		// No padding so its the same as the parent pos
-		child_1_pos := base.Vec2{data.parent_pos.x, data.parent_pos.y}
+		inner_width :=
+			data.parent_width -
+			data.parent_padding.left -
+			data.parent_padding.right -
+			data.parent_border.left -
+			data.parent_border.right
+		inner_height :=
+			data.parent_height -
+			data.parent_padding.top -
+			data.parent_padding.bottom -
+			data.parent_border.top -
+			data.parent_border.bottom
+
+		child_1_pos := base.Vec2 {
+			data.parent_pos.x + data.parent_padding.left + data.parent_border.left,
+			data.parent_pos.y + data.parent_padding.top + data.parent_border.top,
+		}
 		child_1_size := base.Vec2 {
-			data.parent_width * data.child_1_pct_x,
-			data.parent_height * data.child_1_pct_y,
+			inner_width * data.child_1_pct_x,
+			inner_height * data.child_1_pct_y,
 		}
 
 		child_2_pos := base.Vec2{child_1_pos.x, child_1_pos.y + child_1_size.y}
 
 		child_2_size := base.Vec2 {
-			data.parent_width * data.child_2_pct_x,
-			data.parent_height * data.child_2_pct_y,
+			inner_width * data.child_2_pct_x,
+			inner_height * data.child_2_pct_y,
 		}
 
 		expected_layout_tree := Expected_Element {
@@ -1859,17 +2045,21 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 	Test_Data :: struct {
 		main_container_width:     f32,
 		main_container_height:    f32,
+		main_container_padding:   Padding,
+		main_container_border:    Border,
 		grouping_container_pct_x: f32,
 		grouping_container_pct_y: f32,
 		layout_direction:         Layout_Direction,
 	}
 
 	test_data := Test_Data {
-		main_container_width     = 100,
-		main_container_height    = 100,
+		main_container_width = 100,
+		main_container_height = 100,
+		main_container_padding = Padding{left = 0, top = 0, right = 0, bottom = 0},
+		main_container_border = Border{left = 1, top = 1, right = 1, bottom = 1},
 		grouping_container_pct_x = 1.0,
 		grouping_container_pct_y = 1.0,
-		layout_direction         = .Left_To_Right,
+		layout_direction = .Left_To_Right,
 	}
 
 	// --- 2. Define the UI Building Logic ---
@@ -1883,7 +2073,11 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 			ctx,
 			"main_container",
 			Config_Options {
-				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+				layout = {
+					sizing = {&main_container_sizing.x, &main_container_sizing.y},
+					padding = &data.main_container_padding,
+					border = &data.main_container_border,
+				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
@@ -1937,19 +2131,44 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 		main_container_pos := base.Vec2{0, 0}
 		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
 
-		// Same pos as main container since no padding etc
-		grouping_container_pos := main_container_pos
+		main_inner_width :=
+			data.main_container_width -
+			data.main_container_padding.left -
+			data.main_container_padding.right -
+			data.main_container_border.left -
+			data.main_container_border.right
+		main_inner_height :=
+			data.main_container_height -
+			data.main_container_padding.top -
+			data.main_container_padding.bottom -
+			data.main_container_border.top -
+			data.main_container_border.bottom
+
+		grouping_container_pos := base.Vec2 {
+			main_container_pos.x +
+			data.main_container_padding.left +
+			data.main_container_border.left,
+			main_container_pos.y +
+			data.main_container_padding.top +
+			data.main_container_border.top,
+		}
 		grouping_container_size := base.Vec2 {
-			main_container_size.x * data.grouping_container_pct_x,
-			main_container_size.y * data.grouping_container_pct_y,
+			main_inner_width * data.grouping_container_pct_x,
+			main_inner_height * data.grouping_container_pct_y,
 		}
 
 		// Same pos as grouping container since no padding etc
 		first_child_pos := grouping_container_pos
-		first_child_size := base.Vec2{50, 100}
+		// first_child has min_value = 50, grouping_container_size.x = 98
+		// So each would get 49, but first_child needs minimum 50
+		first_child_width := max(grouping_container_size.x / 2, 50)
+		first_child_size := base.Vec2{first_child_width, grouping_container_size.y}
 
 		second_child_pos := base.Vec2{first_child_pos.x + first_child_size.x, first_child_pos.y}
-		second_child_size := base.Vec2{50, 100}
+		second_child_size := base.Vec2 {
+			grouping_container_size.x - first_child_width,
+			grouping_container_size.y,
+		}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -1996,12 +2215,14 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
-		main_container_width:  f32,
-		main_container_height: f32,
-		panel_container_pct_x: f32,
-		panel_container_pct_y: f32,
-		fit_element_padding:   Padding,
-		layout_direction:      Layout_Direction,
+		main_container_width:   f32,
+		main_container_height:  f32,
+		main_container_padding: Padding,
+		main_container_border:  Border,
+		panel_container_pct_x:  f32,
+		panel_container_pct_y:  f32,
+		fit_element_padding:    Padding,
+		layout_direction:       Layout_Direction,
 	}
 
 
@@ -2017,7 +2238,11 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 			ctx,
 			"main_container",
 			Config_Options {
-				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
+				layout = {
+					sizing = {&main_container_sizing.x, &main_container_sizing.y},
+					padding = &data.main_container_padding,
+					border = &data.main_container_border,
+				},
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
@@ -2061,11 +2286,30 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 		main_container_pos := base.Vec2{0, 0}
 		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
 
-		// Same pos as main container since no padding etc
-		panel_container_pos := main_container_pos
+		main_inner_width :=
+			data.main_container_width -
+			data.main_container_padding.left -
+			data.main_container_padding.right -
+			data.main_container_border.left -
+			data.main_container_border.right
+		main_inner_height :=
+			data.main_container_height -
+			data.main_container_padding.top -
+			data.main_container_padding.bottom -
+			data.main_container_border.top -
+			data.main_container_border.bottom
+
+		panel_container_pos := base.Vec2 {
+			main_container_pos.x +
+			data.main_container_padding.left +
+			data.main_container_border.left,
+			main_container_pos.y +
+			data.main_container_padding.top +
+			data.main_container_border.top,
+		}
 		panel_container_size := base.Vec2 {
-			main_container_size.x * data.panel_container_pct_y,
-			main_container_size.y * data.panel_container_pct_y,
+			main_inner_width * data.panel_container_pct_y,
+			main_inner_height * data.panel_container_pct_y,
 		}
 
 		// Same pos as panel_container,
@@ -2110,6 +2354,8 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 	ltr_test_data := Test_Data {
 		main_container_width = 100,
 		main_container_height = 100,
+		main_container_padding = Padding{left = 0, top = 0, right = 0, bottom = 0},
+		main_container_border = Border{left = 2, top = 2, right = 2, bottom = 2},
 		panel_container_pct_x = 1.0,
 		panel_container_pct_y = 1.0,
 		fit_element_padding = Padding{top = 20, right = 20, bottom = 20, left = 20},
@@ -2122,6 +2368,8 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 	ttb_test_data := Test_Data {
 		main_container_width = 100,
 		main_container_height = 100,
+		main_container_padding = Padding{left = 0, top = 0, right = 0, bottom = 0},
+		main_container_border = Border{left = 2, top = 2, right = 2, bottom = 2},
 		panel_container_pct_x = 1.0,
 		panel_container_pct_y = 1.0,
 		fit_element_padding = Padding{top = 20, right = 20, bottom = 20, left = 20},
@@ -2139,17 +2387,21 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 	Test_Data :: struct {
 		root_size:              base.Vec2,
 		panel_layout_direction: Layout_Direction,
+		main_container_padding: Padding,
+		main_container_border:  Border,
 		main_container_size_y:  f32,
 		container_1_pct:        f32,
 		container_2_size:       base.Vec2,
 	}
 
 	test_data := Test_Data {
-		root_size              = {500, 500},
+		root_size = {500, 500},
 		panel_layout_direction = .Left_To_Right,
-		main_container_size_y  = 20,
-		container_1_pct        = 0.1,
-		container_2_size       = {20, 20},
+		main_container_padding = Padding{left = 0, top = 0, right = 0, bottom = 0},
+		main_container_border = Border{left = 1, top = 1, right = 1, bottom = 1},
+		main_container_size_y = 20,
+		container_1_pct = 0.1,
+		container_2_size = {20, 20},
 	}
 
 	// --- 2. Define the UI Building Logic ---
@@ -2163,7 +2415,13 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		if begin_container(
 			ctx,
 			"main_container",
-			{layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}}},
+			{
+				layout = {
+					sizing = {&main_container_sizing.x, &main_container_sizing.y},
+					padding = &data.main_container_padding,
+					border = &data.main_container_border,
+				},
+			},
 		) {
 
 			container_1_sizing := [2]Sizing {
@@ -2208,19 +2466,36 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		main_container_pos := root_pos
 		main_container_size := base.Vec2{root_size.x, data.main_container_size_y}
 
-		container_1_pos := main_container_pos
-		container_1_size := base.Vec2 {
-			main_container_size.x * data.container_1_pct,
-			main_container_size.y,
+		main_inner_width :=
+			main_container_size.x -
+			data.main_container_padding.left -
+			data.main_container_padding.right -
+			data.main_container_border.left -
+			data.main_container_border.right
+		main_inner_height :=
+			main_container_size.y -
+			data.main_container_padding.top -
+			data.main_container_padding.bottom -
+			data.main_container_border.top -
+			data.main_container_border.bottom
+
+		container_1_pos := base.Vec2 {
+			main_container_pos.x +
+			data.main_container_padding.left +
+			data.main_container_border.left,
+			main_container_pos.y +
+			data.main_container_padding.top +
+			data.main_container_border.top,
 		}
+		container_1_size := base.Vec2{main_inner_width * data.container_1_pct, main_inner_height}
 
 		container_2_pos := base.Vec2{container_1_pos.x + container_1_size.x, container_1_pos.y}
-		container_2_size := data.container_2_size
+		container_2_size := base.Vec2{data.container_2_size.x, main_inner_height}
 
 		container_3_pos := base.Vec2{container_2_pos.x + container_2_size.x, container_2_pos.y}
 		container_3_size := base.Vec2 {
-			main_container_size.x - container_2_size.x - container_1_size.x,
-			main_container_size.y,
+			main_inner_width - container_2_size.x - container_1_size.x,
+			main_inner_height,
 		}
 
 		expected_layout_tree := Expected_Element {
@@ -2252,5 +2527,3 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
 }
-
-

@@ -165,6 +165,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					left   = 5,
 				}
 				list_wrapper_border_fill := base.Fill(base.Color{100, 69, 69, 255})
+				list_wrapper_bg := base.Fill(base.Color{50, 50, 55, 255})
+				list_wrapper_padding := ui.Padding{5, 5, 5, 5}
 				if ui.begin_container(
 					ctx,
 					"task_list_wrapper",
@@ -174,7 +176,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							layout_direction = &list_wrapper_dir,
 							child_gap = &list_wrapper_gap,
 							border = &list_wrapper_border,
+							padding = &list_wrapper_padding,
 						},
+						background_fill = &list_wrapper_bg,
 						border_fill = &list_wrapper_border_fill,
 					},
 				) {

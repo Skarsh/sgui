@@ -934,9 +934,11 @@ slider :: proc(
 
 	if open_ok {
 		padding := element.config.layout.padding
+		border := element.config.layout.border
 		pad_start, pad_end := get_padding_for_axis(padding, axis)
+		border_start, border_end := get_border_for_axis(border, axis)
 
-		track_len := element.size[axis] - pad_start - pad_end
+		track_len := element.size[axis] - pad_start - pad_end - border_start - border_end
 		thumb_len := axis == .X ? thumb_size.x : thumb_size.y
 
 		range := max - min
@@ -985,7 +987,12 @@ slider :: proc(
 		thumb_border := thumb_border
 		thumb_caps := Capability_Flags{.Background}
 		thumb_radius_val := math.min(thumb_size.x, thumb_size.y) / 2
-		thumb_border_radius := base.Vec4{thumb_radius_val, thumb_radius_val, thumb_radius_val, thumb_radius_val}
+		thumb_border_radius := base.Vec4 {
+			thumb_radius_val,
+			thumb_radius_val,
+			thumb_radius_val,
+			thumb_radius_val,
+		}
 		thumb_id := fmt.tprintf("%v_thumb", id)
 
 		container(
@@ -993,12 +1000,12 @@ slider :: proc(
 			thumb_id,
 			Config_Options {
 				layout = {
-					sizing            = {&thumb_sizing.x, &thumb_sizing.y},
-					alignment_x       = &thumb_align_x,
-					alignment_y       = &thumb_align_y,
+					sizing = {&thumb_sizing.x, &thumb_sizing.y},
+					alignment_x = &thumb_align_x,
+					alignment_y = &thumb_align_y,
 					relative_position = &thumb_rel_pos,
-					border_radius     = &thumb_border_radius,
-					border            = &thumb_border,
+					border_radius = &thumb_border_radius,
+					border = &thumb_border,
 				},
 				background_fill = &thumb_bg_fill,
 				border_fill = &thumb_border_fill,
