@@ -219,7 +219,12 @@ build_bug_repro :: proc(app_state: ^App_State) {
 
 	build_rows :: proc(ctx: ^ui.Context, texts: []string) {
 		b := false
-		row_padding := ui.Padding{top = 10, right = 10, bottom = 10, left = 10}
+		row_padding := ui.Padding {
+			top    = 10,
+			right  = 10,
+			bottom = 10,
+			left   = 10,
+		}
 		row_child_gap: f32 = 5
 		bg_fill: base.Fill
 		for text, i in texts {
@@ -464,7 +469,12 @@ build_grow_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 	sizing := [2]ui.Sizing{ui.Sizing{kind = .Fixed, value = 400}, ui.Sizing{kind = .Fit}}
-	padding := ui.Padding{top = 10, right = 10, bottom = 10, left = 10}
+	padding := ui.Padding {
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+		left   = 10,
+	}
 	child_gap: f32 = 10
 	background_fill := base.Fill(base.Color{255, 255, 255, 255})
 
@@ -563,7 +573,12 @@ build_styled_ui :: proc(app_state: ^App_State) {
 		proc(ctx: ^ui.Context) {
 
 			title_text_fill := base.Fill(base.Color{230, 230, 230, 255})
-			title_text_padding := ui.Padding{top = 5, right = 5, bottom = 5, left = 5}
+			title_text_padding := ui.Padding {
+				top    = 5,
+				right  = 5,
+				bottom = 5,
+				left   = 5,
+			}
 			ui.text(
 				ctx,
 				"title",
@@ -617,7 +632,12 @@ build_styled_ui :: proc(app_state: ^App_State) {
 			}
 
 			footer_text_fill := base.Fill(base.Color{255, 150, 150, 255})
-			footer_text_padding := ui.Padding{top = 5, right = 5, bottom = 5, left = 5}
+			footer_text_padding := ui.Padding {
+				top    = 5,
+				right  = 5,
+				bottom = 5,
+				left   = 5,
+			}
 			ui.text(
 				ctx,
 				"footer_text",
@@ -641,7 +661,10 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 		value = 1.0,
 	}
 
-	ui.push_padding(ctx, ui.Padding{top = 10, right = 10, bottom = 10, left = 10}); defer ui.pop_padding(ctx)
+	ui.push_padding(
+		ctx,
+		ui.Padding{top = 10, right = 10, bottom = 10, left = 10},
+	); defer ui.pop_padding(ctx)
 	ui.push_child_gap(ctx, 10); defer ui.pop_child_gap(ctx)
 	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
 
@@ -693,7 +716,12 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 	sizing := ui.Sizing {
 		kind = .Fit,
 	}
-	padding := ui.Padding{top = 10, right = 10, bottom = 10, left = 10}
+	padding := ui.Padding {
+		top    = 10,
+		right  = 10,
+		bottom = 10,
+		left   = 10,
+	}
 	child_gap: f32 = 10
 	layout_direction := ui.Layout_Direction.Left_To_Right
 	background_fill := base.Fill(base.Color{0, 0, 255, 255})
@@ -743,7 +771,12 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 	parent_sizing_y := ui.Sizing {
 		kind = .Fit,
 	}
-	parent_padding := ui.Padding{top = 16, right = 16, bottom = 16, left = 16}
+	parent_padding := ui.Padding {
+		top    = 16,
+		right  = 16,
+		bottom = 16,
+		left   = 16,
+	}
 	parent_dir := ui.Layout_Direction.Top_To_Bottom
 	parent_align_x := ui.Alignment_X.Center
 	parent_gap: f32 = 16
@@ -772,7 +805,12 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 				kind      = .Fit,
 				min_value = 80,
 			}
-			grow_padding := ui.Padding{top = 16, right = 32, bottom = 16, left = 32}
+			grow_padding := ui.Padding {
+				top    = 16,
+				right  = 32,
+				bottom = 16,
+				left   = 32,
+			}
 			grow_gap: f32 = 32
 			grow_align_x := ui.Alignment_X.Left
 			grow_align_y := ui.Alignment_Y.Center
@@ -845,7 +883,12 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 		kind  = .Percentage_Of_Parent,
 		value = 1.0,
 	}
-	parent_padding := ui.Padding{top = 16, right = 16, bottom = 16, left = 16}
+	parent_padding := ui.Padding {
+		top    = 16,
+		right  = 16,
+		bottom = 16,
+		left   = 16,
+	}
 	parent_dir := ui.Layout_Direction.Top_To_Bottom
 	parent_align_x := ui.Alignment_X.Center
 	parent_gap: f32 = 16
@@ -876,7 +919,12 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 				kind      = .Fit,
 				min_value = 80,
 			}
-			item_padding := ui.Padding{top = 16, right = 32, bottom = 16, left = 32}
+			item_padding := ui.Padding {
+				top    = 16,
+				right  = 32,
+				bottom = 16,
+				left   = 32,
+			}
 			item_gap: f32 = 32
 			item_align_x := ui.Alignment_X.Left
 			item_align_y := ui.Alignment_Y.Center
