@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test & Build (${{ matrix.os }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: Linux
+            runner: ubuntu-latest
+            install-deps: |
+              sudo apt-get update
+              sudo apt-get install -y libsdl2-dev libsdl2-image-dev
+            exe-ext: ''
+
+          - os: macOS
+            runner: macos-latest
+            install-deps: brew install sdl2 sdl2_image
+            exe-ext: ''
+
+          - os: Windows
+            runner: windows-latest
+            install-deps: |
+              vcpkg install sdl2:x64-windows sdl2-image:x64-windows
+              vcpkg integrate install
+            exe-ext: '.exe'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Checkout LFS objects
+        run: git lfs pull
+
+      - name: Install SDL2 dependencies
+        run: ${{ matrix.install-deps }}
+
+      - name: Setup Odin
+        uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: latest
+
+      - name: Verify Odin installation
+        run: odin version
+
+      - name: Run UI tests
+        run: odin test ui -vet -strict-style -vet-tabs -warnings-as-errors
+
+      - name: Run Base tests
+        run: odin test base -vet -strict-style -vet-tabs -warnings-as-errors
+
+      - name: Build main application
+        run: odin build . -out:build/sgui${{ matrix.exe-ext }} -vet -strict-style -vet-tabs -warnings-as-errors -debug
+
+      - name: Build all examples
+        shell: bash
+        run: |
+          for example in examples/*/; do
+            if [ -d "$example" ]; then
+              name=$(basename "$example")
+              echo "Building example: $name"
+              odin build "$example" -out:build/"$name"${{ matrix.exe-ext }} -vet -strict-style -vet-tabs -warnings-as-errors -debug
+            fi
+          done
