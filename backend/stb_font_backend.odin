@@ -5,6 +5,7 @@ import "core:os"
 
 import stbtt "vendor:stb/truetype"
 
+import base "../base"
 import ui "../ui"
 
 Font_Info :: stbtt.fontinfo
@@ -49,9 +50,20 @@ stb_measure_text :: proc(text: string, font_id: u16, user_data: rawptr) -> ui.Te
 	line_gap := font_metrics.line_gap
 	line_height := f32(ascent - descent + line_gap)
 
+	// Measure space width once for tab character handling
+	space_advance, space_bearing: i32
+	stbtt.GetCodepointHMetrics(ctx.font_info, ' ', &space_advance, &space_bearing)
+	space_width := f32(space_advance) * scale
+
 	advance_width, left_side_bearing: i32
 	width: f32
 	for r in text {
+		// Handle tab character with proper width
+		if r == '\t' {
+			width += base.calculate_tab_width(space_width)
+			continue
+		}
+
 		stbtt.GetCodepointHMetrics(ctx.font_info, r, &advance_width, &left_side_bearing)
 		width += f32(advance_width) * scale
 	}

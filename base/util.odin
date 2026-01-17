@@ -82,6 +82,33 @@ approx_equal_vec2 :: proc(a: Vec2, b: Vec2, epsilon: f32) -> bool {
 	return approx_equal(a.x, b.x, epsilon) && approx_equal(a.y, b.y, epsilon)
 }
 
+// Default tab width in number of spaces
+TAB_WIDTH :: 4
+
+// Calculate the visual width of a tab character based on space width
+// tab_width: number of spaces a tab should occupy (defaults to TAB_WIDTH)
+@(require_results)
+calculate_tab_width :: proc(space_width: f32, tab_width: f32 = TAB_WIDTH) -> f32 {
+	return space_width * tab_width
+}
+
+@(test)
+test_calculate_tab_width_default :: proc(t: ^testing.T) {
+	space_width: f32 = 10.0
+	expected: f32 = space_width * TAB_WIDTH
+	result := calculate_tab_width(space_width)
+	testing.expect_value(t, result, expected)
+}
+
+@(test)
+test_calculate_tab_width_custom :: proc(t: ^testing.T) {
+	space_width: f32 = 10.0
+	custom_tab_width: f32 = 8.0
+	expected: f32 = space_width * custom_tab_width
+	result := calculate_tab_width(space_width, custom_tab_width)
+	testing.expect_value(t, result, expected)
+}
+
 @(test)
 test_approx_equal_0_and_0 :: proc(t: ^testing.T) {
 	a: f32 = 0

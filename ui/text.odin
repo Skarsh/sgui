@@ -72,10 +72,29 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 
 			length := rune_pos - start_pos
 
-			// TODO(Thomas): What to do with '\t' when it comes to measuring string width here?
 			token_str, ok := strings.substring(text, start_pos, rune_pos)
 			assert(ok)
-			width := measure_string_width(ctx, token_str, font_id)
+
+			// Handle tabs specially: calculate their width based on space width
+			width: f32 = 0
+			if strings.contains_rune(token_str, '\t') {
+				// Measure the width of a single space for tab calculations
+				space_width := measure_string_width(ctx, " ", font_id)
+
+				// Calculate width by replacing each tab with base.TAB_WIDTH spaces
+				for r in token_str {
+					if r == '\t' {
+						width += base.calculate_tab_width(space_width)
+					} else {
+						// Measure individual space/whitespace character
+						char_str := utf8.runes_to_string([]rune{r}, context.temp_allocator)
+						width += measure_string_width(ctx, char_str, font_id)
+					}
+				}
+			} else {
+				// No tabs, measure the whole string normally
+				width = measure_string_width(ctx, token_str, font_id)
+			}
 
 			_, alloc_err := append(
 				tokens,

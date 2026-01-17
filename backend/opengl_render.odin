@@ -441,8 +441,34 @@ opengl_render_end :: proc(
 				panic("TODO: Impelement")
 			}
 
+			// Measure space width once for tab character handling
+			space_glyph, space_found := get_glyph(&render_data.font_atlas, ' ')
+			space_width: f32 = 0
+			if space_found {
+				space_q: stbtt.aligned_quad
+				space_x := f32(0)
+				space_y := f32(0)
+				stbtt.GetPackedQuad(
+					&render_data.font_atlas.packed_chars[0],
+					render_data.font_atlas.atlas_width,
+					render_data.font_atlas.atlas_height,
+					space_glyph.pc_idx,
+					&space_x,
+					&space_y,
+					&space_q,
+					true,
+				)
+				space_width = space_x
+			}
+
 			for r in val.str {
 				if r == '\n' {
+					continue
+				}
+
+				// Handle tab character by advancing cursor without rendering
+				if r == '\t' {
+					start_x += base.calculate_tab_width(space_width)
 					continue
 				}
 

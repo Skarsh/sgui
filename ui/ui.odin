@@ -528,6 +528,8 @@ process_interactions :: proc(ctx: ^Context) {
 						translation = textedit.Translation.Right
 					}
 					textedit.move_to(&state.state, translation)
+				} else if is_key_pressed(ctx^, .Tab) {
+					textedit.input_text(&state.state, "\t")
 				}
 			}
 		}
