@@ -283,8 +283,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 
 	// Add padding and borders
 	total_size := content_size + padding_sum + border_sum
-	// Clamp
-	// TODO(Thomas): Add test that catches if this clamp doesn't happen.
+	// Clamp to min/max size constraints
 	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
 	return total_size
 }

@@ -2527,3 +2527,194 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
 }
+
+
+@(test)
+test_fit_sizing_respects_max_size_constraint :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Data ---
+	Test_Data :: struct {
+		root_size:        base.Vec2,
+		container_sizing: [2]Sizing,
+		child_size:       base.Vec2,
+	}
+
+	test_data := Test_Data {
+		root_size        = {500, 500},
+		// Container with .Fit sizing but max_size of 100x100
+		// Child will be 300x300, so container should be clamped to 100x100
+		container_sizing = {
+			Sizing{kind = .Fit, max_value = 100},
+			Sizing{kind = .Fit, max_value = 100},
+		},
+		child_size       = {300, 300},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		layout_direction := Layout_Direction.Left_To_Right
+
+		begin_container(
+			ctx,
+			"fit_container",
+			Config_Options {
+				layout = {
+					sizing = {&data.container_sizing.x, &data.container_sizing.y},
+					layout_direction = &layout_direction,
+				},
+			},
+		)
+		{
+			// Add a child that is 300x300, which exceeds the parent's max of 100x100
+			child_sizing_x := Sizing {
+				kind  = .Fixed,
+				value = data.child_size.x,
+			}
+			child_sizing_y := Sizing {
+				kind  = .Fixed,
+				value = data.child_size.y,
+			}
+
+			container(
+				ctx,
+				"large_child",
+				Config_Options{layout = {sizing = {&child_sizing_x, &child_sizing_y}}},
+			)
+		}
+		end_container(ctx)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := data.root_size
+
+		// The container should be clamped to max_size (100x100), NOT the child size (300x300)
+		container_pos := base.Vec2{0, 0}
+		container_size := base.Vec2{100, 100}
+
+		child_pos := base.Vec2{0, 0}
+		child_size := data.child_size
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
+			children = []Expected_Element {
+				{
+					id = "fit_container",
+					pos = container_pos,
+					size = container_size,
+					children = []Expected_Element {
+						{id = "large_child", pos = child_pos, size = child_size},
+					},
+				},
+			},
+		}
+		expect_layout(t, ctx, root, expected_layout_tree)
+	}
+
+	// --- 4. Run the Test ---
+	run_ui_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+}
+
+
+@(test)
+test_fit_sizing_respects_min_size_constraint :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Data ---
+	Test_Data :: struct {
+		root_size:        base.Vec2,
+		container_sizing: [2]Sizing,
+		child_size:       base.Vec2,
+	}
+
+	test_data := Test_Data {
+		root_size        = {500, 500},
+		// Container with .Fit sizing but min_size of 200x200
+		// Child will be 50x50, so container should be clamped to 200x200
+		container_sizing = {
+			Sizing{kind = .Fit, min_value = 200},
+			Sizing{kind = .Fit, min_value = 200},
+		},
+		child_size       = {50, 50},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		layout_direction := Layout_Direction.Left_To_Right
+
+		begin_container(
+			ctx,
+			"fit_container",
+			Config_Options {
+				layout = {
+					sizing = {&data.container_sizing.x, &data.container_sizing.y},
+					layout_direction = &layout_direction,
+				},
+			},
+		)
+		{
+			// Add a small child (50x50), which is less than the parent's min of 200x200
+			child_sizing_x := Sizing {
+				kind  = .Fixed,
+				value = data.child_size.x,
+			}
+			child_sizing_y := Sizing {
+				kind  = .Fixed,
+				value = data.child_size.y,
+			}
+
+			container(
+				ctx,
+				"small_child",
+				Config_Options{layout = {sizing = {&child_sizing_x, &child_sizing_y}}},
+			)
+		}
+		end_container(ctx)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := data.root_size
+
+		// The container should be clamped to min_size (200x200), NOT the child size (50x50)
+		container_pos := base.Vec2{0, 0}
+		container_size := base.Vec2{200, 200}
+
+		// The child keeps its fixed size of 50x50
+		child_pos := base.Vec2{0, 0}
+		child_size := data.child_size
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
+			children = []Expected_Element {
+				{
+					id = "fit_container",
+					pos = container_pos,
+					size = container_size,
+					children = []Expected_Element {
+						{id = "small_child", pos = child_pos, size = child_size},
+					},
+				},
+			},
+		}
+		expect_layout(t, ctx, root, expected_layout_tree)
+	}
+
+	// --- 4. Run the Test ---
+	run_ui_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+}
