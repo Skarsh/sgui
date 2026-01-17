@@ -1,5 +1,7 @@
 # sgui
 
+[![CI](https://github.com/Skarsh/sgui/actions/workflows/ci.yml/badge.svg)](https://github.com/Skarsh/sgui/actions/workflows/ci.yml)
+
 Immediate mode UI library written in Odin, with a flex-box style layout algorithm inspired by Clay.
 The library is in a very early state.
 
