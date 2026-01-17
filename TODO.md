@@ -1,18 +1,8 @@
 # TODOs
 
 ## Active
-* Replace the `sdfRect` function with one that takes in a vec4 for the corners instead of a single radius.
-    We probably want to keep the possiblity to specify a single radius for a rect on the API level, but that should
-    then just be converted to the necessary rendering data and use the more powerful vec4 corner radius sdf function instead.
-* To-Do List
 
 ## Bugs
-* Border layout / placement seems wrong when children are added?
-    - This seems to be the case for the `to_do_list` example at least.
-    - Reproduce the bug in a reduction example
-    - Add test that catches the bug
-    - Resolve the bug
-* Add test that catches missing clamp at the end of `calculate_element_size_for_axis`.
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
