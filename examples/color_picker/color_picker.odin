@@ -147,7 +147,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			panel_align_x := ui.Alignment_X.Center
 			panel_align_y := ui.Alignment_Y.Center
-			panel_padding := ui.Padding{top = 15, right = 15, bottom = 15, left = 15}
+			panel_padding := ui.Padding {
+				top    = 15,
+				right  = 15,
+				bottom = 15,
+				left   = 15,
+			}
 			panel_border_radius := base.Vec4{10, 10, 10, 10}
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 10
@@ -188,9 +193,19 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				color_viewer_radius_val := color_viewer_size / 2
-				color_viewer_border_radius := base.Vec4{color_viewer_radius_val, color_viewer_radius_val, color_viewer_radius_val, color_viewer_radius_val}
+				color_viewer_border_radius := base.Vec4 {
+					color_viewer_radius_val,
+					color_viewer_radius_val,
+					color_viewer_radius_val,
+					color_viewer_radius_val,
+				}
 				color_viewer_align_x := ui.Alignment_X.Center
-				border := ui.Border{top = 4, right = 4, bottom = 4, left = 4}
+				border := ui.Border {
+					top    = 4,
+					right  = 4,
+					bottom = 4,
+					left   = 4,
+				}
 				border_color := base.Color {
 					u8(data.r * 200),
 					u8(data.g * 200),
@@ -204,10 +219,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					"color_viewer",
 					ui.Config_Options {
 						layout = {
-							sizing        = {&color_viewer_sizing.x, &color_viewer_sizing.y},
+							sizing = {&color_viewer_sizing.x, &color_viewer_sizing.y},
 							border_radius = &color_viewer_border_radius,
-							alignment_x   = &color_viewer_align_x,
-							border        = &border,
+							alignment_x = &color_viewer_align_x,
+							border = &border,
 						},
 						background_fill = &color_viewer_bg_fill,
 						border_fill = &border_fill,

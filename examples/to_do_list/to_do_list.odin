@@ -112,7 +112,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				{kind = .Percentage_Of_Parent, value = 1.0},
 				{kind = .Percentage_Of_Parent, value = 1.0},
 			}
-			panel_padding := ui.Padding{top = 25, right = 25, bottom = 25, left = 25}
+			panel_padding := ui.Padding {
+				top    = 25,
+				right  = 25,
+				bottom = 25,
+				left   = 25,
+			}
 			panel_border_radius := base.Vec4{10, 10, 10, 10}
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 15
@@ -153,17 +158,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				list_wrapper_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 350}}
 				list_wrapper_dir := ui.Layout_Direction.Left_To_Right
 				list_wrapper_gap: f32 = 5
-				list_wrapper_border := ui.Border{top = 8, right = 7, bottom = 10, left = 5}
+				list_wrapper_border := ui.Border {
+					top    = 8,
+					right  = 7,
+					bottom = 10,
+					left   = 5,
+				}
 				list_wrapper_border_fill := base.Fill(base.Color{100, 69, 69, 255})
 				if ui.begin_container(
 					ctx,
 					"task_list_wrapper",
 					ui.Config_Options {
 						layout = {
-							sizing           = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
+							sizing = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
 							layout_direction = &list_wrapper_dir,
-							child_gap        = &list_wrapper_gap,
-							border           = &list_wrapper_border,
+							child_gap = &list_wrapper_gap,
+							border = &list_wrapper_border,
 						},
 						border_fill = &list_wrapper_border_fill,
 					},
@@ -204,7 +214,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							row_layout_dir := ui.Layout_Direction.Left_To_Right
 							row_align_y := ui.Alignment_Y.Center
 							row_child_gap: f32 = 10
-							row_padding := ui.Padding{top = 5, right = 5, bottom = 5, left = 5}
+							row_padding := ui.Padding {
+								top    = 5,
+								right  = 5,
+								bottom = 5,
+								left   = 5,
+							}
 
 							ui.push_background_fill(
 								ctx,
