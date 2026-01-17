@@ -57,6 +57,15 @@ jobs:
       - name: Verify Odin installation
         run: odin version
 
+      - name: Build Odin vendor libraries
+        shell: bash
+        run: |
+          cd $(odin root)
+          make -C vendor/stb/src
+
+      - name: Create build directory
+        run: mkdir -p build
+
       - name: Run UI tests
         run: odin test ui -vet -strict-style -vet-tabs -warnings-as-errors
 
