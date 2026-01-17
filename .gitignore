@@ -17,3 +17,12 @@ odinfmt.json
 
 # Build
 build/
+
+# Binaries (executables without extension)
+# This ignores compiled binaries in examples/ and root
+examples/*/*
+!examples/*/*.odin
+!examples/*/data/
+
+# Main binary
+sgui

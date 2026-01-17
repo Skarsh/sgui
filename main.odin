@@ -10,6 +10,7 @@ import sdl "vendor:sdl2"
 
 import "backend"
 import "base"
+import "diagnostics"
 import "ui"
 
 // This example uses SDL2, but the immediate mode ui library should be
@@ -19,31 +20,8 @@ WINDOW_WIDTH :: 1920
 WINDOW_HEIGHT :: 1080
 
 main :: proc() {
-	// TODO(Thomas): Not having to inline this trakcing allocator stuff would be great.
-	// I tried to move this into a struct once before, but that had some issues for some reason.
-	track: mem.Tracking_Allocator
-	mem.tracking_allocator_init(&track, context.allocator)
-	context.allocator = mem.tracking_allocator(&track)
-
-	defer {
-		if len(track.allocation_map) > 0 {
-			fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
-			for _, entry in track.allocation_map {
-				fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
-			}
-		}
-		if len(track.bad_free_array) > 0 {
-			fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
-			for entry in track.bad_free_array {
-				fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
-			}
-		}
-		mem.tracking_allocator_destroy(&track)
-	}
-
-	logger := log.create_console_logger(log.Level.Info)
-	context.logger = logger
-	defer log.destroy_console_logger(logger)
+	diag := diagnostics.init()
+	defer diagnostics.deinit(&diag)
 
 	window, window_ok := backend.init_and_create_window("ImGUI", WINDOW_WIDTH, WINDOW_HEIGHT)
 	assert(window_ok)

@@ -1,11 +1,10 @@
 package main
 
-import "core:fmt"
 import "core:log"
-import "core:mem"
 
 import "../../app"
 import "../../base"
+import "../../diagnostics"
 import "../../ui"
 
 Data :: struct {}
@@ -13,9 +12,15 @@ Data :: struct {}
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
 		// Set global background
-		ui.push_capability_flags(ctx, ui.Capability_Flags{.Background}); defer ui.pop_capability_flags(ctx)
+		ui.push_capability_flags(
+			ctx,
+			ui.Capability_Flags{.Background},
+		); defer ui.pop_capability_flags(ctx)
 
-		ui.push_background_fill(ctx, base.Fill(base.Color{30, 30, 30, 255}));defer ui.pop_background_fill(ctx)
+		ui.push_background_fill(
+			ctx,
+			base.Fill(base.Color{30, 30, 30, 255}),
+		); defer ui.pop_background_fill(ctx)
 
 		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
 
@@ -26,7 +31,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			{kind = .Percentage_Of_Parent, value = 1.0},
 			{kind = .Percentage_Of_Parent, value = 1.0},
 		}
-		main_padding := ui.Padding{top = 20, right = 20, bottom = 20, left = 20}
+		main_padding := ui.Padding {
+			top    = 20,
+			right  = 20,
+			bottom = 20,
+			left   = 20,
+		}
 		main_layout_dir := ui.Layout_Direction.Top_To_Bottom
 		main_child_gap: f32 = 20
 
@@ -45,7 +55,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			// Title
 			title_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow, max_value = 50}}
-			title_padding := ui.Padding{top = 10, right = 10, bottom = 10, left = 10}
+			title_padding := ui.Padding {
+				top    = 10,
+				right  = 10,
+				bottom = 10,
+				left   = 10,
+			}
 			title_bg := base.Fill(base.Color{60, 60, 80, 255})
 
 			ui.text(
@@ -62,11 +77,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			)
 
 			// Container for boxes
-			boxes_sizing := [2]ui.Sizing {
-				{kind = .Grow},
-				{kind = .Fixed, value = 150},
+			boxes_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fixed, value = 150}}
+			boxes_padding := ui.Padding {
+				top    = 20,
+				right  = 20,
+				bottom = 20,
+				left   = 20,
 			}
-			boxes_padding := ui.Padding{top = 20, right = 20, bottom = 20, left = 20}
 			boxes_child_gap: f32 = 0 // No gap, we'll use margins instead
 			boxes_bg := base.Fill(base.Color{50, 50, 50, 255})
 			boxes_layout_dir := ui.Layout_Direction.Left_To_Right
@@ -85,11 +102,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				},
 			) {
 				// Box 1 - Small margin (10px all sides)
-				box1_sizing := [2]ui.Sizing {
-					{kind = .Fixed, value = 100},
-					{kind = .Grow},
+				box1_sizing := [2]ui.Sizing{{kind = .Fixed, value = 100}, {kind = .Grow}}
+				box1_margin := ui.Margin {
+					top    = 10,
+					right  = 10,
+					bottom = 10,
+					left   = 10,
 				}
-				box1_margin := ui.Margin{top = 10, right = 10, bottom = 10, left = 10}
 				box1_bg := base.Fill(base.Color{200, 100, 100, 255})
 
 				ui.container(
@@ -105,11 +124,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// Box 2 - Medium margin (40px all sides)
-				box2_sizing := [2]ui.Sizing {
-					{kind = .Fixed, value = 100},
-					{kind = .Grow},
+				box2_sizing := [2]ui.Sizing{{kind = .Fixed, value = 100}, {kind = .Grow}}
+				box2_margin := ui.Margin {
+					top    = 40,
+					right  = 40,
+					bottom = 40,
+					left   = 40,
 				}
-				box2_margin := ui.Margin{top = 40, right = 40, bottom = 40, left = 40}
 				box2_bg := base.Fill(base.Color{100, 200, 100, 255})
 
 				ui.container(
@@ -125,11 +146,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// Box 3 - Asymmetric margin
-				box3_sizing := [2]ui.Sizing {
-					{kind = .Fixed, value = 100},
-					{kind = .Grow},
+				box3_sizing := [2]ui.Sizing{{kind = .Fixed, value = 100}, {kind = .Grow}}
+				box3_margin := ui.Margin {
+					top    = 5,
+					right  = 20,
+					bottom = 30,
+					left   = 80,
 				}
-				box3_margin := ui.Margin{top = 5, right = 20, bottom = 30, left = 80}
 				box3_bg := base.Fill(base.Color{100, 100, 200, 255})
 
 				ui.container(
@@ -160,30 +183,9 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
 
 main :: proc() {
 	when ODIN_DEBUG {
-		track: mem.Tracking_Allocator
-		mem.tracking_allocator_init(&track, context.allocator)
-		context.allocator = mem.tracking_allocator(&track)
-
-		defer {
-			if len(track.allocation_map) > 0 {
-				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
-				for _, entry in track.allocation_map {
-					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
-				}
-			}
-			if len(track.bad_free_array) > 0 {
-				fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
-				for entry in track.bad_free_array {
-					fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
-				}
-			}
-			mem.tracking_allocator_destroy(&track)
-		}
+		diag := diagnostics.init()
+		defer diagnostics.deinit(&diag)
 	}
-
-	logger := log.create_console_logger(log.Level.Info)
-	context.logger = logger
-	defer log.destroy_console_logger(logger)
 
 	config := app.App_Config {
 		title     = "Margins Demo",

@@ -1,12 +1,11 @@
 package main
 
-import "core:fmt"
 import "core:log"
-import "core:mem"
 import "core:strings"
 
 import "../../app"
 import "../../base"
+import "../../diagnostics"
 import "../../ui"
 
 Data :: struct {
@@ -51,7 +50,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			},
 		) {
 
-			counter_container_padding := ui.Padding{top = 10, right = 10, bottom = 10, left = 10}
+			counter_container_padding := ui.Padding {
+				top    = 10,
+				right  = 10,
+				bottom = 10,
+				left   = 10,
+			}
 			counter_container_child_gap: f32 = 10
 			counter_container_sizing := [2]ui.Sizing {
 				{kind = .Fixed, value = 200},
@@ -121,29 +125,8 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
 }
 
 main :: proc() {
-	track: mem.Tracking_Allocator
-	mem.tracking_allocator_init(&track, context.allocator)
-	context.allocator = mem.tracking_allocator(&track)
-
-	defer {
-		if len(track.allocation_map) > 0 {
-			fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
-			for _, entry in track.allocation_map {
-				fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
-			}
-		}
-		if len(track.bad_free_array) > 0 {
-			fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
-			for entry in track.bad_free_array {
-				fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
-			}
-		}
-		mem.tracking_allocator_destroy(&track)
-	}
-
-	logger := log.create_console_logger(log.Level.Info)
-	context.logger = logger
-	defer log.destroy_console_logger(logger)
+	diag := diagnostics.init()
+	defer diagnostics.deinit(&diag)
 
 	config := app.App_Config {
 		title     = "Counter App",
