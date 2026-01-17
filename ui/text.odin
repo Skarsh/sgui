@@ -82,12 +82,12 @@ tokenize_text :: proc(ctx: ^Context, text: string, font_id: u16, tokens: ^[dynam
 				space_width := measure_string_width(ctx, " ", font_id)
 
 				// Calculate width by replacing each tab with base.TAB_WIDTH spaces
-				for r in token_str {
-					if r == '\t' {
+				for new_r in token_str {
+					if new_r == '\t' {
 						width += base.calculate_tab_width(space_width)
 					} else {
 						// Measure individual space/whitespace character
-						char_str := utf8.runes_to_string([]rune{r}, context.temp_allocator)
+						char_str := utf8.runes_to_string([]rune{new_r}, context.temp_allocator)
 						width += measure_string_width(ctx, char_str, font_id)
 					}
 				}
