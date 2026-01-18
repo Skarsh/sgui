@@ -47,7 +47,12 @@ float sdSegment(vec2 p, vec2 a, vec2 b) {
 // d: The signed distance from the edge
 // Returns alpha (1.0 for inside and 0.0 for outside, smooth transition on the edge).
 float sdfAlpha(float d) {
-    float width = fwidth(d);
+    // Use length of gradient for stable AA at corners where gradient direction changes
+    vec2 grad = vec2(dFdx(d), dFdy(d));
+    float width = length(grad);
+    // Ensure minimum AA width of 0.5 pixels to avoid jagged edges
+    width = max(width, 0.5);
+
     return smoothstep(width, -width, d);
 }
 
