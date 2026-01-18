@@ -36,8 +36,8 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 		layout_dir := Layout_Direction.Left_To_Right
 		padding := &data.parent_padding
@@ -56,8 +56,8 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 
 		// Child 1
 		child_1_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_1_size.x},
-			{kind = .Fixed, value = data.child_1_size.y},
+			sizing_fixed(data.child_1_size.x),
+			sizing_fixed(data.child_1_size.y),
 		}
 		margin_1 := &data.child_1_margin
 		container(
@@ -70,8 +70,8 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 
 		// Child 2
 		child_2_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_2_size.x},
-			{kind = .Fixed, value = data.child_2_size.y},
+			sizing_fixed(data.child_2_size.x),
+			sizing_fixed(data.child_2_size.y),
 		}
 		margin_2 := &data.child_2_margin
 		container(
@@ -84,8 +84,8 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 
 		// Child 3
 		child_3_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_3_size.x},
-			{kind = .Fixed, value = data.child_3_size.y},
+			sizing_fixed(data.child_3_size.x),
+			sizing_fixed(data.child_3_size.y),
 		}
 		margin_3 := &data.child_3_margin
 		container(
@@ -157,7 +157,6 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 	// Test that margins create space between siblings in Top-To-Bottom layout
@@ -184,8 +183,8 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 		layout_dir := Layout_Direction.Top_To_Bottom
 		padding := &data.parent_padding
@@ -204,8 +203,8 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 
 		// Child 1
 		child_1_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_1_size.x},
-			{kind = .Fixed, value = data.child_1_size.y},
+			sizing_fixed(data.child_1_size.x),
+			sizing_fixed(data.child_1_size.y),
 		}
 		margin_1 := &data.child_1_margin
 		container(
@@ -218,8 +217,8 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 
 		// Child 2
 		child_2_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_2_size.x},
-			{kind = .Fixed, value = data.child_2_size.y},
+			sizing_fixed(data.child_2_size.x),
+			sizing_fixed(data.child_2_size.y),
 		}
 		margin_2 := &data.child_2_margin
 		container(
@@ -280,7 +279,6 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 	// Test that a parent's margin does NOT reduce the available size for its children
@@ -303,7 +301,7 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		grandparent_sizing := [2]Sizing{{kind = .Fixed, value = 600}, {kind = .Fixed, value = 500}}
+		grandparent_sizing := [2]Sizing{sizing_fixed(600), sizing_fixed(500)}
 
 		begin_container(
 			ctx,
@@ -312,8 +310,8 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 		)
 
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 		padding := &data.parent_padding
 		margin := &data.parent_margin
@@ -330,10 +328,7 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 			},
 		)
 
-		child_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_size.x},
-			{kind = .Fixed, value = data.child_size.y},
-		}
+		child_sizing := [2]Sizing{sizing_fixed(data.child_size.x), sizing_fixed(data.child_size.y)}
 		container(
 			ctx,
 			"child",
@@ -431,8 +426,8 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 		layout_dir := Layout_Direction.Left_To_Right
 
@@ -448,8 +443,8 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 		)
 
 		child_1_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_1_size.x},
-			{kind = .Fixed, value = data.child_1_size.y},
+			sizing_fixed(data.child_1_size.x),
+			sizing_fixed(data.child_1_size.y),
 		}
 		margin_1 := &data.child_1_margin
 		container(
@@ -461,8 +456,8 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 		)
 
 		child_2_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.child_2_size.x},
-			{kind = .Fixed, value = data.child_2_size.y},
+			sizing_fixed(data.child_2_size.x),
+			sizing_fixed(data.child_2_size.y),
 		}
 		margin_2 := &data.child_2_margin
 		container(
@@ -517,4 +512,3 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
-

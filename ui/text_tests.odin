@@ -19,16 +19,16 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 
 	test_data := Test_Data {
 		main_layout_direction = .Top_To_Bottom,
-		main_padding          = {10, 10, 10, 10},
+		main_padding          = padding_all(10),
 		main_child_gap        = 5,
 		row_layout_direction  = .Left_To_Right,
-		row_padding           = {5, 5, 5, 5},
+		row_padding           = padding_all(5),
 		row_child_gap         = 2,
 	}
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		main_sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
+		main_sizing := [2]Sizing{sizing_fit(), sizing_fit()}
 		if begin_container(
 			ctx,
 			"main",
@@ -186,7 +186,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
+		sizing := [2]Sizing{sizing_fit(), sizing_fit()}
 		container(
 			ctx,
 			"text_fit_wrapper",
@@ -200,12 +200,12 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 					Config_Options {
 						layout = {
 							sizing = {
-								&{
+								&Sizing {
 									kind = .Grow,
 									min_value = data.text_min_width,
 									max_value = data.text_max_width,
 								},
-								&{kind = .Grow},
+								&Sizing{kind = .Grow},
 							},
 						},
 					},
@@ -260,7 +260,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
+		sizing := [2]Sizing{sizing_fit(), sizing_fit()}
 		container(
 			ctx,
 			"text_fit_wrapper",
@@ -311,15 +311,15 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	}
 
 	test_data := Test_Data {
-		container_id = "container",
-		container_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
-		text_id = "text",
-		text = "Button 1",
+		container_id      = "container",
+		container_padding = padding_all(10),
+		text_id           = "text",
+		text              = "Button 1",
 	}
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		sizing := [2]Sizing{{kind = .Fixed, value = 60}, {kind = .Fit}}
+		sizing := [2]Sizing{sizing_fixed(60), sizing_fit()}
 		container(
 			ctx,
 			data.container_id,
@@ -385,7 +385,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 
-		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
+		sizing := [2]Sizing{sizing_fit(), sizing_fit()}
 		container(
 			ctx,
 			"text_fit_wrapper",
@@ -399,8 +399,8 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 					Config_Options {
 						layout = {
 							sizing = {
-								&{kind = .Grow, min_value = data.text_min_width},
-								&{kind = .Grow, min_value = data.text_min_height},
+								&Sizing{kind = .Grow, min_value = data.text_min_width},
+								&Sizing{kind = .Grow, min_value = data.text_min_height},
 							},
 						},
 					},
@@ -436,7 +436,6 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_iterated_texts_layout :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
@@ -450,7 +449,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		sizing := [2]Sizing{{kind = .Fit}, {kind = .Fit}}
+		sizing := [2]Sizing{sizing_fit(), sizing_fit()}
 		container(
 			ctx,
 			"parent",
@@ -491,6 +490,3 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
-
-
-

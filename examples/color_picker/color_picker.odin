@@ -50,7 +50,7 @@ make_slider_row :: proc(
 	row_layout_dir := ui.Layout_Direction.Left_To_Right
 	row_align_y := ui.Alignment_Y.Center
 	row_chlid_gap: f32 = 10
-	row_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+	row_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
 	comm: ui.Comm
 
 	if ui.begin_container(
@@ -68,7 +68,7 @@ make_slider_row :: proc(
 
 		// TODO(Thomas): @Perf string font size caching
 		label_string_width := ui.measure_string_width(ctx, label, ctx.font_id)
-		label_sizing := [2]ui.Sizing{{kind = .Grow, max_value = label_string_width}, {kind = .Fit}}
+		label_sizing := [2]ui.Sizing{ui.sizing_grow(max = label_string_width), ui.sizing_fit()}
 		text_fill := base.fill(color)
 		ui.text(
 			ctx,
@@ -89,7 +89,7 @@ make_slider_row :: proc(
 			.X,
 			20,
 			base.fill(color),
-			{2, 2, 2, 2},
+			ui.border_all(2),
 		)
 
 		// TODO(Thomas): This has to be made using a string builder instead
@@ -97,7 +97,7 @@ make_slider_row :: proc(
 		strings.write_string(sb, value_str)
 		// TODO(Thomas): @Perf string font size caching
 		value_string_width := ui.measure_string_width(ctx, value_str, ctx.font_id)
-		value_sizing := [2]ui.Sizing{{kind = .Grow, max_value = value_string_width}, {kind = .Fit}}
+		value_sizing := [2]ui.Sizing{ui.sizing_grow(max = value_string_width), ui.sizing_fit()}
 		value_align_x := ui.Alignment_X.Right
 		ui.text(
 			ctx,
@@ -124,10 +124,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
 		// --- Main Panel (centered) ---
-		main_panel_sizing := [2]ui.Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
+		main_panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
 		main_panel_align_x := ui.Alignment_X.Center
 		main_panel_align_y := ui.Alignment_Y.Center
 		main_panel_caps := ui.Capability_Flags{.Background}
@@ -147,13 +144,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			panel_align_x := ui.Alignment_X.Center
 			panel_align_y := ui.Alignment_Y.Center
-			panel_padding := ui.Padding {
-				top    = 15,
-				right  = 15,
-				bottom = 15,
-				left   = 15,
-			}
-			panel_border_radius := base.Vec4{10, 10, 10, 10}
+			panel_padding := ui.padding_all(15)
+			panel_border_radius := ui.border_radius_all(10)
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 10
 			panel_bg := base.fill(PANEL_BG)
@@ -179,8 +171,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				// --- Color Viewer ---
 				color_viewer_size: f32 = 300
 				color_viewer_sizing := [2]ui.Sizing {
-					{kind = .Fixed, value = color_viewer_size},
-					{kind = .Fixed, value = color_viewer_size},
+					ui.sizing_fixed(color_viewer_size),
+					ui.sizing_fixed(color_viewer_size),
 				}
 
 				color_viewer_bg_fill := base.fill_color(
@@ -191,19 +183,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				color_viewer_radius_val := color_viewer_size / 2
-				color_viewer_border_radius := base.Vec4 {
-					color_viewer_radius_val,
-					color_viewer_radius_val,
-					color_viewer_radius_val,
-					color_viewer_radius_val,
-				}
+				color_viewer_border_radius := ui.border_radius_all(color_viewer_radius_val)
 				color_viewer_align_x := ui.Alignment_X.Center
-				border := ui.Border {
-					top    = 4,
-					right  = 4,
-					bottom = 4,
-					left   = 4,
-				}
+				border := ui.border_all(4)
 				border_color := base.Color {
 					u8(data.r * 200),
 					u8(data.g * 200),
@@ -256,15 +238,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				hex_comm: ui.Comm
 				hex_layout_dir := ui.Layout_Direction.Left_To_Right
 				hex_align_y := ui.Alignment_Y.Center
-				hex_padding := ui.Padding {
-					left   = 10,
-					right  = 10,
-					top    = 5,
-					bottom = 5,
-				}
+				hex_padding := ui.padding_xy(5, 10)
 				hex_child_gap: f32 = 10
-				hex_border_radius := base.Vec4{5, 5, 5, 5}
-				hex_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+				hex_border_radius := ui.border_radius_all(5)
+				hex_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
 				hex_bg := base.fill(ITEM_BG)
 
 				if ui.begin_container(
@@ -292,8 +269,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						ctx.font_id,
 					)
 					hex_label_sizing := [2]ui.Sizing {
-						{kind = .Grow, max_value = hex_label_string_width},
-						{kind = .Fit},
+						ui.sizing_grow(max = hex_label_string_width),
+						ui.sizing_fit(),
 					}
 					ui.text(
 						ctx,

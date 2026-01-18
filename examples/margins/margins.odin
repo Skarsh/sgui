@@ -27,16 +27,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
 
 		// Main container
-		main_sizing := [2]ui.Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
-		main_padding := ui.Padding {
-			top    = 20,
-			right  = 20,
-			bottom = 20,
-			left   = 20,
-		}
+		main_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
+		main_padding := ui.padding_all(20)
 		main_layout_dir := ui.Layout_Direction.Top_To_Bottom
 		main_child_gap: f32 = 20
 
@@ -54,13 +46,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		) {
 
 			// Title
-			title_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow, max_value = 50}}
-			title_padding := ui.Padding {
-				top    = 10,
-				right  = 10,
-				bottom = 10,
-				left   = 10,
-			}
+			title_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_grow(max = 50)}
+			title_padding := ui.padding_all(10)
 			title_bg := base.fill_color(60, 60, 80)
 
 			ui.text(
@@ -77,13 +64,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			)
 
 			// Container for boxes
-			boxes_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fixed, value = 150}}
-			boxes_padding := ui.Padding {
-				top    = 20,
-				right  = 20,
-				bottom = 20,
-				left   = 20,
-			}
+			boxes_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fixed(150)}
+			boxes_padding := ui.padding_all(20)
 			boxes_child_gap: f32 = 0 // No gap, we'll use margins instead
 			boxes_bg := base.fill_color(50, 50, 50)
 			boxes_layout_dir := ui.Layout_Direction.Left_To_Right
@@ -102,13 +84,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				},
 			) {
 				// Box 1 - Small margin (10px all sides)
-				box1_sizing := [2]ui.Sizing{{kind = .Fixed, value = 100}, {kind = .Grow}}
-				box1_margin := ui.Margin {
-					top    = 10,
-					right  = 10,
-					bottom = 10,
-					left   = 10,
-				}
+				box1_sizing := [2]ui.Sizing{ui.sizing_fixed(100), ui.sizing_grow()}
+				box1_margin := ui.margin_all(10)
 				box1_bg := base.fill_color(200, 100, 100)
 
 				ui.container(
@@ -124,13 +101,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// Box 2 - Medium margin (40px all sides)
-				box2_sizing := [2]ui.Sizing{{kind = .Fixed, value = 100}, {kind = .Grow}}
-				box2_margin := ui.Margin {
-					top    = 40,
-					right  = 40,
-					bottom = 40,
-					left   = 40,
-				}
+				box2_sizing := [2]ui.Sizing{ui.sizing_fixed(100), ui.sizing_grow()}
+				box2_margin := ui.margin_all(40)
 				box2_bg := base.fill_color(100, 200, 100)
 
 				ui.container(
@@ -146,7 +118,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// Box 3 - Asymmetric margin
-				box3_sizing := [2]ui.Sizing{{kind = .Fixed, value = 100}, {kind = .Grow}}
+				box3_sizing := [2]ui.Sizing{ui.sizing_fixed(100), ui.sizing_grow()}
 				box3_margin := ui.Margin {
 					top    = 5,
 					right  = 20,

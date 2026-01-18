@@ -93,7 +93,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		root_size = {500, 500},
 		panel_layout_direction = .Left_To_Right,
-		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
+		panel_sizing = {sizing_fit(), sizing_fit()},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 		panel_border = Border{left = 5, top = 5, right = 5, bottom = 5},
 		panel_child_gap = 10,
@@ -121,18 +121,18 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 			proc(ctx: ^Context, data: ^Test_Data) {
 
 				container_1_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_1_size.x},
-					{kind = .Fixed, value = data.container_1_size.y},
+					sizing_fixed(data.container_1_size.x),
+					sizing_fixed(data.container_1_size.y),
 				}
 
 				container_2_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_2_size.x},
-					{kind = .Fixed, value = data.container_2_size.y},
+					sizing_fixed(data.container_2_size.x),
+					sizing_fixed(data.container_2_size.y),
 				}
 
 				container_3_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_3_size.x},
-					{kind = .Fixed, value = data.container_3_size.y},
+					sizing_fixed(data.container_3_size.x),
+					sizing_fixed(data.container_3_size.y),
 				}
 
 				container(
@@ -255,7 +255,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	test_data := Test_Data {
 		root_size = {500, 500},
 		panel_layout_direction = .Top_To_Bottom,
-		panel_sizing = {Sizing{kind = .Fit}, Sizing{kind = .Fit}},
+		panel_sizing = {sizing_fit(), sizing_fit()},
 		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
 		panel_border = Border{left = 5, top = 5, right = 5, bottom = 5},
 		panel_child_gap = 10,
@@ -282,16 +282,16 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				container_1_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_1_size.x},
-					{kind = .Fixed, value = data.container_1_size.y},
+					sizing_fixed(data.container_1_size.x),
+					sizing_fixed(data.container_1_size.y),
 				}
 				container_2_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_2_size.x},
-					{kind = .Fixed, value = data.container_2_size.y},
+					sizing_fixed(data.container_2_size.x),
+					sizing_fixed(data.container_2_size.y),
 				}
 				container_3_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_3_size.x},
-					{kind = .Fixed, value = data.container_3_size.y},
+					sizing_fixed(data.container_3_size.x),
+					sizing_fixed(data.container_3_size.y),
 				}
 
 				container(
@@ -422,10 +422,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Grow_Sizing_Ltr_Context) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -441,13 +438,13 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 			data,
 			proc(ctx: ^Context, data: ^Test_Grow_Sizing_Ltr_Context) {
 				container_1_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_1_size.x},
-					{kind = .Fixed, value = data.container_1_size.y},
+					sizing_fixed(data.container_1_size.x),
+					sizing_fixed(data.container_1_size.y),
 				}
-				container_2_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+				container_2_sizing := [2]Sizing{sizing_grow(), sizing_grow()}
 				container_3_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_3_size.x},
-					{kind = .Fixed, value = data.container_3_size.y},
+					sizing_fixed(data.container_3_size.x),
+					sizing_fixed(data.container_3_size.y),
 				}
 				container(
 					ctx,
@@ -571,10 +568,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -590,16 +584,16 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				container_1_sizing := [2]Sizing {
-					{kind = .Grow, max_value = data.container_1_max_value},
-					{kind = .Grow},
+					sizing_grow(max = data.container_1_max_value),
+					sizing_grow(),
 				}
 				container_2_sizing := [2]Sizing {
-					{kind = .Grow, max_value = data.container_2_max_value},
-					{kind = .Grow},
+					sizing_grow(max = data.container_2_max_value),
+					sizing_grow(),
 				}
 				container_3_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_3_size.x},
-					{kind = .Fixed, value = data.container_3_size.y},
+					sizing_fixed(data.container_3_size.x),
+					sizing_fixed(data.container_3_size.y),
 				}
 
 				container(
@@ -713,10 +707,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -732,13 +723,13 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				container_1_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_1_size.x},
-					{kind = .Fixed, value = data.container_1_size.y},
+					sizing_fixed(data.container_1_size.x),
+					sizing_fixed(data.container_1_size.y),
 				}
-				container_2_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+				container_2_sizing := [2]Sizing{sizing_grow(), sizing_grow()}
 				container_3_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_3_size.x},
-					{kind = .Fixed, value = data.container_3_size.y},
+					sizing_fixed(data.container_3_size.x),
+					sizing_fixed(data.container_3_size.y),
 				}
 
 				container(
@@ -855,10 +846,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -874,16 +862,16 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				container_1_sizing := [2]Sizing {
-					{kind = .Grow},
-					{kind = .Grow, max_value = data.container_1_max_value},
+					sizing_grow(),
+					sizing_grow(max = data.container_1_max_value),
 				}
 				container_2_sizing := [2]Sizing {
-					{kind = .Grow},
-					{kind = .Grow, max_value = data.container_2_max_value},
+					sizing_grow(),
+					sizing_grow(max = data.container_2_max_value),
 				}
 				container_3_sizing := [2]Sizing {
-					{kind = .Fixed, value = data.container_3_size.x},
-					{kind = .Fixed, value = data.container_3_size.y},
+					sizing_fixed(data.container_3_size.x),
+					sizing_fixed(data.container_3_size.y),
 				}
 
 				container(
@@ -1001,10 +989,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -1021,18 +1006,18 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 			proc(ctx: ^Context, data: ^Test_Data) {
 
 				container_1_sizing := [2]Sizing {
-					{kind = .Grow, max_value = data.container_1_max_value_x},
-					{kind = .Grow, max_value = data.container_1_max_value_y},
+					sizing_grow(max = data.container_1_max_value_x),
+					sizing_grow(max = data.container_1_max_value_y),
 				}
 
 				container_2_sizing := [2]Sizing {
-					{kind = .Grow},
-					{kind = .Grow, max_value = data.container_2_max_value_y},
+					sizing_grow(),
+					sizing_grow(max = data.container_2_max_value_y),
 				}
 
 				container_3_sizing := [2]Sizing {
-					{kind = .Grow, max_value = data.container_3_max_value_x},
-					{kind = .Grow},
+					sizing_grow(max = data.container_3_max_value_x),
+					sizing_grow(),
 				}
 
 				container(
@@ -1201,10 +1186,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -1221,18 +1203,18 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 			proc(ctx: ^Context, data: ^Test_Data) {
 
 				container_1_sizing := [2]Sizing {
-					{kind = .Grow, max_value = data.container_1_max_value_x},
-					{kind = .Grow, max_value = data.container_1_max_value_y},
+					sizing_grow(max = data.container_1_max_value_x),
+					sizing_grow(max = data.container_1_max_value_y),
 				}
 
 				container_2_sizing := [2]Sizing {
-					{kind = .Grow, max_value = data.container_2_max_value_x},
-					{kind = .Grow},
+					sizing_grow(max = data.container_2_max_value_x),
+					sizing_grow(),
 				}
 
 				container_3_sizing := [2]Sizing {
-					{kind = .Grow},
-					{kind = .Grow, max_value = data.container_3_max_value_y},
+					sizing_grow(),
+					sizing_grow(max = data.container_3_max_value_y),
 				}
 
 				container(
@@ -1398,14 +1380,14 @@ test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testi
 			Config_Options{layout = {sizing = {&parent_sizing.x, &parent_sizing.y}}},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
-				child_1_sizing := [2]Sizing{{kind = .Grow, min_value = 50}, {kind = .Grow}}
+				child_1_sizing := [2]Sizing{sizing_grow(min = 50), sizing_grow()}
 				container(
 					ctx,
 					"child_1",
 					Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
 				)
 
-				child_2_sizing := [2]Sizing{{kind = .Grow, value = 70}, {kind = .Grow}}
+				child_2_sizing := [2]Sizing{{kind = .Grow, value = 70}, sizing_grow()}
 
 				container(
 					ctx,
@@ -1480,10 +1462,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -1506,16 +1485,16 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					Config_Options {
 						layout = {
 							sizing = {
-								&{kind = .Grow, min_value = data.text_1_min_width},
-								&{kind = .Grow},
+								&Sizing{kind = .Grow, min_value = data.text_1_min_width},
+								&Sizing{kind = .Grow},
 							},
 						},
 					},
 				)
 
 				grow_box_sizing := [2]Sizing {
-					{kind = .Grow, min_value = data.grow_box_min_width},
-					{kind = .Grow},
+					sizing_grow(min = data.grow_box_min_width),
+					sizing_grow(),
 				}
 
 				container(
@@ -1531,8 +1510,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					Config_Options {
 						layout = {
 							sizing = {
-								&{kind = .Grow, min_value = data.text_2_min_width},
-								&{kind = .Grow},
+								&Sizing{kind = .Grow, min_value = data.text_2_min_width},
+								&Sizing{kind = .Grow},
 							},
 						},
 					},
@@ -1630,10 +1609,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		panel_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.panel_size.x},
-			{kind = .Fixed, value = data.panel_size.y},
-		}
+		panel_sizing := [2]Sizing{sizing_fixed(data.panel_size.x), sizing_fixed(data.panel_size.y)}
 		container(
 			ctx,
 			"panel",
@@ -1655,16 +1631,16 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					Config_Options {
 						layout = {
 							sizing = {
-								&{kind = .Grow},
-								&{kind = .Grow, min_value = data.text_1_min_height},
+								&Sizing{kind = .Grow},
+								&Sizing{kind = .Grow, min_value = data.text_1_min_height},
 							},
 						},
 					},
 				)
 
 				grow_box_sizing := [2]Sizing {
-					{kind = .Grow},
-					{kind = .Grow, min_value = data.grow_box_min_height},
+					sizing_grow(),
+					sizing_grow(min = data.grow_box_min_height),
 				}
 
 				container(
@@ -1680,8 +1656,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					Config_Options {
 						layout = {
 							sizing = {
-								&{kind = .Grow},
-								&{kind = .Grow, min_value = data.text_1_min_height},
+								&Sizing{kind = .Grow},
+								&Sizing{kind = .Grow, min_value = data.text_1_min_height},
 							},
 						},
 					},
@@ -2095,10 +2071,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 					},
 					data,
 					proc(ctx: ^Context, data: ^Test_Data) {
-						first_child_sizing := [2]Sizing {
-							{kind = .Grow, min_value = 50},
-							{kind = .Grow},
-						}
+						first_child_sizing := [2]Sizing{sizing_grow(min = 50), sizing_grow()}
 						container(
 							ctx,
 							"first_child",
@@ -2107,10 +2080,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 							},
 						)
 
-						second_child_sizing := [2]Sizing {
-							{kind = .Grow, value = 70},
-							{kind = .Grow},
-						}
+						second_child_sizing := [2]Sizing{{kind = .Grow, value = 70}, sizing_grow()}
 						container(
 							ctx,
 							"second_child",
@@ -2408,7 +2378,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 
 		main_container_sizing := [2]Sizing {
-			{kind = .Grow},
+			sizing_grow(),
 			{kind = .Fixed, value = data.main_container_size_y},
 		}
 
@@ -2426,7 +2396,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 
 			container_1_sizing := [2]Sizing {
 				{kind = .Percentage_Of_Parent, value = data.container_1_pct},
-				{kind = .Grow},
+				sizing_grow(),
 			}
 
 			container(
@@ -2436,10 +2406,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 			)
 
 
-			container_2_sizing := [2]Sizing {
-				{kind = .Fixed, value = data.container_2_size.x},
-				{kind = .Grow},
-			}
+			container_2_sizing := [2]Sizing{sizing_fixed(data.container_2_size.x), sizing_grow()}
 
 			container(
 				ctx,
@@ -2447,7 +2414,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 				Config_Options{layout = {sizing = {&container_2_sizing.x, &container_2_sizing.y}}},
 			)
 
-			container_3_sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+			container_3_sizing := [2]Sizing{sizing_grow(), sizing_grow()}
 			container(
 				ctx,
 				"container_3",

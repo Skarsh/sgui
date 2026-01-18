@@ -89,10 +89,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
 		// --- Main Panel (centered) ---
-		main_panel_sizing := [2]ui.Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
+		main_panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
 		main_panel_align_x := ui.Alignment_X.Center
 		main_panel_align_y := ui.Alignment_Y.Center
 
@@ -109,17 +106,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		) {
 
 			// --- Inner content panel ---
-			panel_sizing := [2]ui.Sizing {
-				{kind = .Percentage_Of_Parent, value = 1.0},
-				{kind = .Percentage_Of_Parent, value = 1.0},
-			}
-			panel_padding := ui.Padding {
-				top    = 25,
-				right  = 25,
-				bottom = 25,
-				left   = 25,
-			}
-			panel_border_radius := base.Vec4{10, 10, 10, 10}
+			panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
+			panel_padding := ui.padding_all(25)
+			panel_border_radius := ui.border_radius_all(10)
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 15
 			panel_bg := base.fill(PANEL_BG)
@@ -140,7 +129,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			) {
 				// --- Title ---
 				title_text_align_x := ui.Alignment_X.Center
-				title_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow, max_value = 50}}
+				title_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_grow(max = 50)}
 				title_bg_fill := base.fill_color(0, 0, 0, 0)
 				ui.text(
 					ctx,
@@ -156,7 +145,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// -- Task List Wrapper
-				list_wrapper_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit, max_value = 350}}
+				list_wrapper_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit(max = 350)}
 				list_wrapper_dir := ui.Layout_Direction.Left_To_Right
 				list_wrapper_gap: f32 = 5
 				list_wrapper_border := ui.Border {
@@ -167,7 +156,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				}
 				list_wrapper_border_fill := base.fill_color(100, 69, 69)
 				list_wrapper_bg := base.fill_color(50, 50, 55)
-				list_wrapper_padding := ui.Padding{5, 5, 5, 5}
+				list_wrapper_padding := ui.padding_all(5)
 				if ui.begin_container(
 					ctx,
 					"task_list_wrapper",
@@ -186,13 +175,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 					// --- Task List ---
 					task_list_id := "task_list"
-					task_list_sizing := [2]ui.Sizing {
-						{kind = .Grow},
-						{kind = .Fit, max_value = 300},
-					}
+					task_list_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit(max = 300)}
 					task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
 					task_list_child_gap: f32 = 8
-					task_list_padding: ui.Padding = {10, 10, 10, 10}
+					task_list_padding := ui.padding_all(10)
 					task_list_caps := ui.Capability_Flags{.Scrollable}
 					task_list_clip: ui.Clip_Config = {
 						clip_axes = {true, true},
@@ -215,16 +201,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						for &task, i in data.tasks {
 
 							// --- Task Row ---
-							row_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+							row_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
 							row_layout_dir := ui.Layout_Direction.Left_To_Right
 							row_align_y := ui.Alignment_Y.Center
 							row_child_gap: f32 = 10
-							row_padding := ui.Padding {
-								top    = 5,
-								right  = 5,
-								bottom = 5,
-								left   = 5,
-							}
+							row_padding := ui.padding_all(5)
 
 							ui.push_background_fill(
 								ctx,
@@ -297,7 +278,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 								ui.spacer(ctx)
 
 								// --- Delete Button ---
-								delete_border_radius := base.Vec4{3.0, 3.0, 3.0, 3.0}
+								delete_border_radius := ui.border_radius_all(3.0)
 								delete_bg_fill := base.fill(DELETE_BUTTON_COLOR)
 								delete_button_id := fmt.tprintf("task_delete_button_%d", i)
 								delete_comm := ui.button(
@@ -322,10 +303,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 					scrollbar_width: f32 = 12
 					scrollbar_sizing := [2]ui.Sizing {
-						{kind = .Fixed, value = scrollbar_width},
-						{kind = .Grow},
+						ui.sizing_fixed(scrollbar_width),
+						ui.sizing_grow(),
 					}
-					scrollbar_border_radius := base.Vec4{6.0, 6.0, 6.0, 6.0}
+					scrollbar_border_radius := ui.border_radius_all(6.0)
 
 					// Transparent track
 					scrollbar_bg := base.fill_color(0, 0, 0, 0)
@@ -352,7 +333,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				ui.spacer(ctx, opts = ui.Config_Options{background_fill = &spacer_bg_fill})
 
 				// --- Add Task Panel ---
-				add_task_panel_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Fit}}
+				add_task_panel_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
 				add_task_layout_direction := ui.Layout_Direction.Left_To_Right
 				add_task_child_gap: f32 = 10
 				input_comm, add_button_comm: ui.Comm

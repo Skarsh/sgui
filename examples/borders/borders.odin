@@ -13,12 +13,9 @@ Test_Data :: struct {}
 build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 	if ui.begin(ctx) {
 		// Main container
-		main_sizing := [2]ui.Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
+		main_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
 		main_layout_dir := ui.Layout_Direction.Top_To_Bottom
-		main_padding := ui.Padding{50, 50, 50, 50}
+		main_padding := ui.padding_all(50)
 		main_child_gap: f32 = 30
 		main_bg := base.fill_color(30, 30, 30)
 
@@ -37,17 +34,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 		) {
 
 			// Test 1: Uniform border, uniform corner radii
-			test1_sizing := [2]ui.Sizing {
-				{kind = .Fixed, value = 300},
-				{kind = .Fixed, value = 100},
-			}
-			test1_border := ui.Border {
-				left   = 5,
-				right  = 5,
-				top    = 5,
-				bottom = 5,
-			}
-			test1_border_radius := base.Vec4{10, 10, 10, 10}
+			test1_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
+			test1_border := ui.border_all(5)
+			test1_border_radius := ui.border_radius_all(10)
 			test1_border_fill := base.fill_color(255, 100, 100)
 			test1_bg := base.fill_color(100, 100, 255)
 			test1_caps := ui.Capability_Flags{.Background}
@@ -69,10 +58,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 
 			// Test 2: Variable border widths, uniform corner radii
 			// Using asymmetry to make the shift very obvious
-			test2_sizing := [2]ui.Sizing {
-				{kind = .Fixed, value = 300},
-				{kind = .Fixed, value = 100},
-			}
+			test2_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
 
 			// Thick right border
 			test2_border := ui.Border {
@@ -81,7 +67,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 				top    = 5,
 				bottom = 5,
 			}
-			test2_border_radius := base.Vec4{15, 15, 15, 15}
+			test2_border_radius := ui.border_radius_all(15)
 			test2_border_fill := base.fill_color(100, 255, 100)
 			test2_bg := base.fill_color(255, 200, 100)
 			test2_caps := ui.Capability_Flags{.Background}
@@ -102,17 +88,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 			)
 
 			// Test 3: Thick left border (should shift content RIGHT)
-			test3_sizing := [2]ui.Sizing {
-				{kind = .Fixed, value = 300},
-				{kind = .Fixed, value = 100},
-			}
+			test3_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
 			test3_border := ui.Border {
 				left   = 50,
 				right  = 5,
 				top    = 5,
 				bottom = 5,
 			}
-			test3_border_radius := base.Vec4{15, 15, 15, 15}
+			test3_border_radius := ui.border_radius_all(15)
 			test3_border_fill := base.fill_color(255, 255, 100)
 			test3_bg := base.fill_color(100, 255, 255)
 			test3_caps := ui.Capability_Flags{.Background}
@@ -133,10 +116,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 			)
 
 			// Test 4: Variable border widths AND variable corner radii
-			test4_sizing := [2]ui.Sizing {
-				{kind = .Fixed, value = 300},
-				{kind = .Fixed, value = 100},
-			}
+			test4_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
 			test4_border := ui.Border {
 				left   = 8,
 				right  = 3,

@@ -823,7 +823,7 @@ resolve_default :: proc(user_value: ^$T) -> T {
 }
 
 spacer :: proc(ctx: ^Context, id: string = "", opts := Config_Options{}) {
-	sizing := [2]Sizing{{kind = .Grow}, {kind = .Grow}}
+	sizing := [2]Sizing{sizing_grow(), sizing_grow()}
 	default_opts := Config_Options {
 		layout = {sizing = {&sizing.x, &sizing.y}},
 	}
@@ -922,15 +922,15 @@ slider :: proc(
 	sizing: [2]Sizing
 
 	if axis == .X {
-		sizing = {{kind = .Grow}, {kind = .Fixed, value = thumb_size.y}}
+		sizing = {sizing_grow(), sizing_fixed(thumb_size.y)}
 	} else {
-		sizing = {{kind = .Fixed, value = thumb_size.x}, {kind = .Grow}}
+		sizing = {sizing_fixed(thumb_size.x), sizing_grow()}
 	}
 
 	background_fill := base.fill_color(24, 24, 24)
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 	layout_mode: Layout_Mode = .Relative
-	border_radius := base.Vec4{2, 2, 2, 2}
+	border_radius := border_radius_all(2)
 
 	default_opts := Config_Options {
 		layout = {
@@ -989,10 +989,7 @@ slider :: proc(
 		}
 
 		// Thumb configuration
-		thumb_sizing := [2]Sizing {
-			{kind = .Fixed, value = thumb_size.x},
-			{kind = .Fixed, value = thumb_size.y},
-		}
+		thumb_sizing := [2]Sizing{sizing_fixed(thumb_size.x), sizing_fixed(thumb_size.y)}
 
 		// Apply defaults for Fill parameters
 		thumb_bg_fill :=
@@ -1108,7 +1105,7 @@ text_input :: proc(
 	opts: Config_Options = {},
 ) -> Comm {
 	// TODO(Thomas): Figure out how to do the sizing properly.
-	sizing := [2]Sizing{{kind = .Grow}, {kind = .Fixed, value = 48}}
+	sizing := [2]Sizing{sizing_grow(), sizing_fixed(48)}
 
 	background_fill := base.fill_color(255, 128, 128)
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
@@ -1184,10 +1181,7 @@ text_input :: proc(
 
 				// TODO(Thomas): Caret should be stylable
 				CARET_WIDTH :: 2.0
-				caret_sizing := [2]Sizing {
-					{kind = .Fixed, value = CARET_WIDTH},
-					{kind = .Fixed, value = caret_height},
-				}
+				caret_sizing := [2]Sizing{sizing_fixed(CARET_WIDTH), sizing_fixed(caret_height)}
 
 				caret_align_x := Alignment_X.Left
 				caret_align_y := Alignment_Y.Center
@@ -1233,10 +1227,7 @@ checkbox :: proc(
 	opts: Config_Options = {},
 ) -> Comm {
 	// TODO(Thomas): Don't hardcode min- and max_value like this.
-	sizing := [2]Sizing {
-		{kind = .Grow, min_value = 36, max_value = 36},
-		{kind = .Grow, min_value = 36, max_value = 36},
-	}
+	sizing := [2]Sizing{sizing_grow(min = 36, max = 36), sizing_grow(min = 36, max = 36)}
 	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 
 	default_opts := Config_Options {

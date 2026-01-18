@@ -154,8 +154,8 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		// --- 2. Define the UI Building Logic ---
 		build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 			parent_sizing := [2]Sizing {
-				{kind = .Fixed, value = data.parent_width},
-				{kind = .Fixed, value = data.parent_height},
+				sizing_fixed(data.parent_width),
+				sizing_fixed(data.parent_height),
 			}
 			container(
 				ctx,
@@ -170,8 +170,8 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 				data,
 				proc(ctx: ^Context, data: ^Test_Data) {
 					container_sizing := [2]Sizing {
-						{kind = .Fixed, value = data.container_width},
-						{kind = .Fixed, value = data.container_height},
+						sizing_fixed(data.container_width),
+						sizing_fixed(data.container_height),
 					}
 					container(
 						ctx,
@@ -233,8 +233,8 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 		layout_mode := Layout_Mode.Relative
 
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 
 		if begin_container(
@@ -276,8 +276,8 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 			}
 
 			child_sizing := [2]Sizing {
-				{kind = .Fixed, value = data.child_size.x},
-				{kind = .Fixed, value = data.child_size.y},
+				sizing_fixed(data.child_size.x),
+				sizing_fixed(data.child_size.y),
 			}
 
 			// Top-Left
@@ -344,7 +344,6 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 }
 
 
-
 @(test)
 test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
@@ -373,8 +372,8 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 		layout_mode := Layout_Mode.Relative
 
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 
 		if begin_container(
@@ -389,8 +388,8 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 		) {
 
 			child_sizing := [2]Sizing {
-				{kind = .Fixed, value = data.child_size.x},
-				{kind = .Fixed, value = data.child_size.y},
+				sizing_fixed(data.child_size.x),
+				sizing_fixed(data.child_size.y),
 			}
 
 			offset_child :: proc(
@@ -540,8 +539,8 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 		layout_mode := Layout_Mode.Relative
 
 		parent_sizing := [2]Sizing {
-			{kind = .Fixed, value = data.parent_size.x},
-			{kind = .Fixed, value = data.parent_size.y},
+			sizing_fixed(data.parent_size.x),
+			sizing_fixed(data.parent_size.y),
 		}
 
 		if begin_container(
@@ -581,8 +580,8 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 			}
 
 			child_sizing := [2]Sizing {
-				{kind = .Fixed, value = data.child_size.x},
-				{kind = .Fixed, value = data.child_size.y},
+				sizing_fixed(data.child_size.x),
+				sizing_fixed(data.child_size.y),
 			}
 
 			// Top-Left
@@ -664,5 +663,3 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 // =============================================================================
 // MARGIN TESTS
 // =============================================================================
-
-

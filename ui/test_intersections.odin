@@ -130,7 +130,7 @@ test_intersections_deep_hierarchy :: proc(t: ^testing.T) {
 	}
 
 	data := Test_Data {
-		pad = {20, 20, 20, 20},
+		pad = padding_all(20),
 	}
 	run_ui_test(t, build_proc, verify_proc, &data)
 }

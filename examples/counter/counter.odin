@@ -25,8 +25,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			base.fill_color(55, 55, 55),
 		); defer ui.pop_background_fill(ctx)
 
-		ui.push_border(ctx, {5, 5, 5, 5}); defer ui.pop_border(ctx)
-		ui.push_border_radius(ctx, {5, 5, 5, 5}); defer ui.pop_border_radius(ctx)
+		ui.push_border(ctx, ui.border_all(5)); defer ui.pop_border(ctx)
+		ui.push_border_radius(ctx, ui.border_radius_all(5)); defer ui.pop_border_radius(ctx)
 		ui.push_border_fill(ctx, base.fill_color(24, 36, 55)); defer ui.pop_border_fill(ctx)
 
 		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
@@ -34,10 +34,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
 		ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
 
-		main_container_sizing := [2]ui.Sizing {
-			{kind = .Percentage_Of_Parent, value = 1.0},
-			{kind = .Percentage_Of_Parent, value = 1.0},
-		}
+		main_container_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
 
 		if ui.begin_container(
 			ctx,
@@ -47,17 +44,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			},
 		) {
 
-			counter_container_padding := ui.Padding {
-				top    = 10,
-				right  = 10,
-				bottom = 10,
-				left   = 10,
-			}
+			counter_container_padding := ui.padding_all(10)
 			counter_container_child_gap: f32 = 10
-			counter_container_sizing := [2]ui.Sizing {
-				{kind = .Fixed, value = 200},
-				{kind = .Fixed, value = 70},
-			}
+			counter_container_sizing := [2]ui.Sizing{ui.sizing_fixed(200), ui.sizing_fixed(70)}
 
 			if ui.begin_container(
 				ctx,
@@ -94,7 +83,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ctx,
 					base.fill_color(95, 95, 95),
 				); defer ui.pop_background_fill(ctx)
-				ui.push_border(ctx, {2, 2, 2, 2}); defer ui.pop_border(ctx)
+				ui.push_border(ctx, ui.border_all(2)); defer ui.pop_border(ctx)
 
 				if ui.button(ctx, "counter_minus_button", "-").clicked {
 					data.counter -= 1
