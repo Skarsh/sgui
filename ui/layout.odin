@@ -83,7 +83,6 @@ Layout_Config :: struct {
 	relative_position: base.Vec2,
 	alignment_x:       Alignment_X,
 	alignment_y:       Alignment_Y,
-	text_padding:      Padding,
 	text_alignment_x:  Alignment_X,
 	text_alignment_y:  Alignment_Y,
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
@@ -174,12 +173,12 @@ element_equip_text :: proc(
 	)
 	defer free_all(context.temp_allocator)
 
-	// Calculate total content size including text_padding and border
-	text_padding := element.config.layout.text_padding
+	// Calculate total content size including padding and border
+	padding := element.config.layout.padding
 	border := element.config.layout.border
 	element.text_content_size = base.Vec2 {
-		largest_line_width + text_padding.left + text_padding.right + border.left + border.right,
-		text_height + text_padding.top + text_padding.bottom + border.top + border.bottom,
+		largest_line_width + padding.left + padding.right + border.left + border.right,
+		text_height + padding.top + padding.bottom + border.top + border.bottom,
 	}
 
 	// Set initial element size based on text content (for Fit/Grow sizing)
@@ -241,7 +240,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 		}
 	}
 
-	// Also consider text content size (text_content_size already includes text_padding + border)
+	// Also consider text content size (text_content_size already includes padding + border)
 	if .Text in element.config.capability_flags {
 		content_size = max(
 			content_size + padding_sum + border_sum,
@@ -633,12 +632,12 @@ resolve_dependent_sizes_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
 	if .Text in element.config.capability_flags {
 		border := element.config.layout.border
-		text_padding := element.config.layout.text_padding
+		padding := element.config.layout.padding
 		text := element.config.content.text_data.text
 
 		// Determine available width for text wrapping
 		// Use parent's available space if it's more constrained than element's size
-		element_available := get_available_size(element.size, text_padding, border)
+		element_available := get_available_size(element.size, padding, border)
 		wrap_width := element_available.x
 
 		if element.parent != nil {
@@ -650,11 +649,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			// If parent has less space, use that and account for text's own padding/border
 			if parent_available.x < element.size.x {
 				wrap_width =
-					parent_available.x -
-					text_padding.left -
-					text_padding.right -
-					border.left -
-					border.right
+					parent_available.x - padding.left - padding.right - border.left - border.right
 			}
 		}
 
@@ -663,7 +658,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		element.config.content.text_data.lines = lines[:]
 
 		// Update text_content_size.y based on wrapped height
-		final_height := h + text_padding.top + text_padding.bottom + border.top + border.bottom
+		final_height := h + padding.top + padding.bottom + border.top + border.bottom
 		element.text_content_size.y = final_height
 
 		// Constrain element width to parent's available space for Fit sizing

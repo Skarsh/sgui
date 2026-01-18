@@ -99,7 +99,6 @@ Style :: struct {
 	relative_position: Maybe(base.Vec2),
 	alignment_x:       Maybe(Alignment_X),
 	alignment_y:       Maybe(Alignment_Y),
-	text_padding:      Maybe(Padding),
 	text_alignment_x:  Maybe(Alignment_X),
 	text_alignment_y:  Maybe(Alignment_Y),
 
@@ -210,12 +209,6 @@ resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) ->
 		style.alignment_y.? or_else (default_style.alignment_y.? or_else Alignment_Y{}),
 	)
 
-	config.layout.text_padding = resolve_maybe(
-		style.text_padding,
-		&ctx.text_padding_stack,
-		style.text_padding.? or_else (default_style.text_padding.? or_else Padding{}),
-	)
-
 	config.layout.text_alignment_x = resolve_maybe(
 		style.text_alignment_x,
 		&ctx.text_alignment_x_stack,
@@ -300,7 +293,7 @@ default_theme :: proc() -> Theme {
 		button = Style {
 			sizing_x = sizing_grow(),
 			sizing_y = sizing_grow(),
-			text_padding = padding_all(10),
+			padding = padding_all(10),
 			text_alignment_x = .Center,
 			background_fill = base.fill_color(60, 60, 65),
 			text_fill = base.fill_color(230, 230, 230),
@@ -372,7 +365,6 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.relative_position != nil do result.relative_position = b.relative_position
 	if b.alignment_x != nil do result.alignment_x = b.alignment_x
 	if b.alignment_y != nil do result.alignment_y = b.alignment_y
-	if b.text_padding != nil do result.text_padding = b.text_padding
 	if b.text_alignment_x != nil do result.text_alignment_x = b.text_alignment_x
 	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
 

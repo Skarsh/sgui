@@ -21,7 +21,7 @@ dark_theme :: proc() -> ui.Theme {
 	theme.button = ui.Style {
 		sizing_x         = ui.sizing_fit(),
 		sizing_y         = ui.sizing_fit(),
-		text_padding     = ui.padding_all(12),
+		padding          = ui.padding_all(12),
 		text_alignment_x = .Center,
 		background_fill  = base.fill_color(30, 30, 35),
 		text_fill        = base.fill_color(200, 200, 210),
@@ -50,7 +50,7 @@ colorful_theme :: proc() -> ui.Theme {
 	theme.button = ui.Style {
 		sizing_x         = ui.sizing_fit(),
 		sizing_y         = ui.sizing_fit(),
-		text_padding     = ui.padding_all(12),
+		padding          = ui.padding_all(12),
 		text_alignment_x = .Center,
 		background_fill  = base.fill_color(59, 130, 246), // Blue
 		text_fill        = base.fill_color(255, 255, 255),
@@ -74,7 +74,7 @@ danger_button_style :: proc() -> ui.Style {
 	return ui.Style {
 		sizing_x         = ui.sizing_fit(),
 		sizing_y         = ui.sizing_fit(),
-		text_padding     = ui.padding_all(12),
+		padding          = ui.padding_all(12),
 		text_alignment_x = .Center,
 		background_fill  = base.fill_color(220, 38, 38), // Red
 		text_fill        = base.fill_color(255, 255, 255),
@@ -88,7 +88,7 @@ success_button_style :: proc() -> ui.Style {
 	return ui.Style {
 		sizing_x         = ui.sizing_fit(),
 		sizing_y         = ui.sizing_fit(),
-		text_padding     = ui.padding_all(12),
+		padding          = ui.padding_all(12),
 		text_alignment_x = .Center,
 		background_fill  = base.fill_color(34, 197, 94), // Green
 		text_fill        = base.fill_color(255, 255, 255),

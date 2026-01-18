@@ -52,7 +52,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_grow(max = 50),
-					text_padding = title_padding,
+					padding = title_padding,
 					background_fill = title_bg,
 				},
 			)

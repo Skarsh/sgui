@@ -471,10 +471,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"title",
 				"Themed UI Demo",
-				ui.Style {
-					text_padding = ui.padding_all(5),
-					text_fill = base.fill_color(230, 230, 230),
-				},
+				ui.Style{padding = ui.padding_all(5), text_fill = base.fill_color(230, 230, 230)},
 			)
 
 			{
@@ -530,10 +527,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"footer_text",
 				"The styles above were scoped.",
-				ui.Style {
-					text_padding = ui.padding_all(5),
-					text_fill = base.fill_color(255, 150, 150),
-				},
+				ui.Style{padding = ui.padding_all(5), text_fill = base.fill_color(255, 150, 150)},
 			)
 		},
 	)

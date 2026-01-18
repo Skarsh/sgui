@@ -151,7 +151,6 @@ Context :: struct {
 	relative_position_stack: Stack(base.Vec2, STYLE_STACK_SIZE),
 	alignment_x_stack:       Stack(Alignment_X, STYLE_STACK_SIZE),
 	alignment_y_stack:       Stack(Alignment_Y, STYLE_STACK_SIZE),
-	text_padding_stack:      Stack(Padding, STYLE_STACK_SIZE),
 	text_alignment_x_stack:  Stack(Alignment_X, STYLE_STACK_SIZE),
 	text_alignment_y_stack:  Stack(Alignment_Y, STYLE_STACK_SIZE),
 	border_radius_stack:     Stack(base.Vec4, STYLE_STACK_SIZE),
@@ -679,11 +678,11 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if .Text in cap_flags {
-		text_padding := element.config.layout.text_padding
-		content_area_x := element.position.x + text_padding.left
-		content_area_y := element.position.y + text_padding.top
-		content_area_w := element.size.x - text_padding.left - text_padding.right
-		content_area_h := element.size.y - text_padding.top - text_padding.bottom
+		padding := element.config.layout.padding
+		content_area_x := element.position.x + padding.left
+		content_area_y := element.position.y + padding.top
+		content_area_w := element.size.x - padding.left - padding.right
+		content_area_h := element.size.y - padding.top - padding.bottom
 
 		// Calculate the total height of the entire text block
 		total_text_height: f32 = 0
@@ -812,7 +811,6 @@ spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
 
 text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	default_style := Style {
-		text_padding = Padding{},
 		text_alignment_x = .Left,
 		text_alignment_y = .Top,
 		text_fill = base.fill_color(255, 255, 255),
@@ -831,7 +829,7 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	default_style := Style {
 		sizing_x = sizing_grow(),
 		sizing_y = sizing_grow(),
-		text_padding = padding_all(10),
+		padding = padding_all(10),
 		text_alignment_x = .Center,
 		background_fill = base.fill_color(24, 24, 24),
 		text_fill = base.fill_color(255, 128, 255, 128),
@@ -1285,14 +1283,6 @@ push_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
 
 pop_alignment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
 	return pop(&ctx.alignment_y_stack)
-}
-
-push_text_padding :: proc(ctx: ^Context, padding: Padding) -> bool {
-	return push(&ctx.text_padding_stack, padding)
-}
-
-pop_text_padding :: proc(ctx: ^Context) -> (Padding, bool) {
-	return pop(&ctx.text_padding_stack)
 }
 
 push_text_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {

@@ -2522,16 +2522,16 @@ test_fit_sizing_respects_min_size_constraint :: proc(t: ^testing.T) {
 test_text_element_size_includes_border :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {
-		root_size:    base.Vec2,
-		text_string:  string,
-		text_padding: Padding,
-		border:       Border,
+		root_size:   base.Vec2,
+		text_string: string,
+		padding:     Padding,
+		border:      Border,
 	}
 
 	test_data := Test_Data {
 		root_size = {500, 500},
 		text_string = "Button",
-		text_padding = Padding{left = 12, top = 8, right = 12, bottom = 8},
+		padding = Padding{left = 12, top = 8, right = 12, bottom = 8},
 		border = Border{left = 2, top = 2, right = 2, bottom = 2},
 	}
 
@@ -2547,7 +2547,7 @@ test_text_element_size_includes_border :: proc(t: ^testing.T) {
 					ctx,
 					"test_button",
 					data.text_string,
-					Style{text_padding = data.text_padding, border = data.border},
+					Style{padding = data.padding, border = data.border},
 				)
 			},
 		)
@@ -2559,18 +2559,18 @@ test_text_element_size_includes_border :: proc(t: ^testing.T) {
 		text_width: f32 = 6 * MOCK_LINE_HEIGHT // "Button" = 6 chars
 		text_height: f32 = MOCK_LINE_HEIGHT
 
-		// Expected button size should include text + text_padding + border
+		// Expected button size should include text + padding + border
 		expected_width :=
 			text_width +
-			data.text_padding.left +
-			data.text_padding.right +
+			data.padding.left +
+			data.padding.right +
 			data.border.left +
 			data.border.right
 
 		expected_height :=
 			text_height +
-			data.text_padding.top +
-			data.text_padding.bottom +
+			data.padding.top +
+			data.padding.bottom +
 			data.border.top +
 			data.border.bottom
 
