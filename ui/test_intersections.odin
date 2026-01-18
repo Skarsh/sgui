@@ -71,36 +71,21 @@ test_intersections_deep_hierarchy :: proc(t: ^testing.T) {
 		container(
 			ctx,
 			"layer_1",
-			Config_Options {
-				layout = {
-					padding = &data.pad,
-					sizing = {
-						&Sizing{kind = .Fixed, value = 200},
-						&Sizing{kind = .Fixed, value = 200},
-					},
-				},
-			},
+			Style{padding = data.pad, sizing_x = sizing_fixed(200), sizing_y = sizing_fixed(200)},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
 				// Layer 2
 				container(
 					ctx,
 					"layer_2",
-					Config_Options {
-						layout = {
-							padding = &data.pad,
-							sizing = {&Sizing{kind = .Grow}, &Sizing{kind = .Grow}},
-						},
-					},
+					Style{padding = data.pad, sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 					data,
 					proc(ctx: ^Context, data: ^Test_Data) {
 						// Layer 3
 						container(
 							ctx,
 							"layer_3",
-							Config_Options {
-								layout = {sizing = {&Sizing{kind = .Grow}, &Sizing{kind = .Grow}}},
-							},
+							Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 						)
 					},
 				)
@@ -145,16 +130,13 @@ test_intersections_siblings_distinct :: proc(t: ^testing.T) {
 	}
 
 	build_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		layout_dir := Layout_Direction.Left_To_Right
-
 		container(
 			ctx,
 			"wrapper",
-			Config_Options {
-				layout = {
-					layout_direction = &layout_dir,
-					sizing = {&Sizing{kind = .Fit}, &Sizing{kind = .Fit}},
-				},
+			Style {
+				layout_direction = .Left_To_Right,
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
@@ -163,28 +145,14 @@ test_intersections_siblings_distinct :: proc(t: ^testing.T) {
 				container(
 					ctx,
 					"box_a",
-					Config_Options {
-						layout = {
-							sizing = {
-								&Sizing{kind = .Fixed, value = data.size},
-								&Sizing{kind = .Fixed, value = data.size},
-							},
-						},
-					},
+					Style{sizing_x = sizing_fixed(data.size), sizing_y = sizing_fixed(data.size)},
 				)
 
 				// Box B
 				container(
 					ctx,
 					"box_b",
-					Config_Options {
-						layout = {
-							sizing = {
-								&Sizing{kind = .Fixed, value = data.size},
-								&Sizing{kind = .Fixed, value = data.size},
-							},
-						},
-					},
+					Style{sizing_x = sizing_fixed(data.size), sizing_y = sizing_fixed(data.size)},
 				)
 			},
 		)

@@ -139,33 +139,6 @@ Element_Config :: struct {
 	content:          Element_Content,
 }
 
-Layout_Options :: struct {
-	sizing:            [2]^Sizing,
-	padding:           ^Padding,
-	margin:            ^Margin,
-	child_gap:         ^f32,
-	layout_mode:       ^Layout_Mode,
-	layout_direction:  ^Layout_Direction,
-	relative_position: ^base.Vec2,
-	alignment_x:       ^Alignment_X,
-	alignment_y:       ^Alignment_Y,
-	text_padding:      ^Padding,
-	text_alignment_x:  ^Alignment_X,
-	text_alignment_y:  ^Alignment_Y,
-	border_radius:     ^base.Vec4,
-	border:            ^Border,
-}
-
-Config_Options :: struct {
-	layout:           Layout_Options,
-	background_fill:  ^base.Fill,
-	text_fill:        ^base.Fill,
-	border_fill:      ^base.Fill,
-	clip:             ^Clip_Config,
-	capability_flags: ^Capability_Flags,
-	content:          Element_Content,
-}
-
 Text_Sizing_Mode :: enum {
 	// Do not adjust element sizing
 	None,
@@ -304,146 +277,13 @@ close_element :: proc(ctx: ^Context) {
 open_element :: proc(
 	ctx: ^Context,
 	id: string,
-	opts: Config_Options = {},
-	default_opts: Config_Options = {},
+	style: Style = {},
+	default_style: Style = {},
 ) -> (
 	^UI_Element,
 	bool,
 ) {
-	final_config := Element_Config{}
-
-	final_config.layout.sizing[Axis2.X] = resolve_value(
-		opts.layout.sizing[Axis2.X],
-		&ctx.sizing_x_stack,
-		resolve_default(default_opts.layout.sizing[Axis2.X]),
-	)
-
-	final_config.layout.sizing[Axis2.Y] = resolve_value(
-		opts.layout.sizing[Axis2.Y],
-		&ctx.sizing_y_stack,
-		resolve_default(default_opts.layout.sizing[Axis2.Y]),
-	)
-
-	final_config.layout.padding = resolve_value(
-		opts.layout.padding,
-		&ctx.padding_stack,
-		resolve_default(default_opts.layout.padding),
-	)
-
-	final_config.layout.margin = resolve_value(
-		opts.layout.margin,
-		&ctx.margin_stack,
-		resolve_default(default_opts.layout.margin),
-	)
-
-	final_config.layout.child_gap = resolve_value(
-		opts.layout.child_gap,
-		&ctx.child_gap_stack,
-		resolve_default(default_opts.layout.child_gap),
-	)
-
-	final_config.layout.layout_mode = resolve_value(
-		opts.layout.layout_mode,
-		&ctx.layout_mode_stack,
-		resolve_default(default_opts.layout.layout_mode),
-	)
-
-	final_config.layout.layout_direction = resolve_value(
-		opts.layout.layout_direction,
-		&ctx.layout_direction_stack,
-		resolve_default(default_opts.layout.layout_direction),
-	)
-
-	final_config.layout.relative_position = resolve_value(
-		opts.layout.relative_position,
-		&ctx.relative_position_stack,
-		resolve_default(default_opts.layout.relative_position),
-	)
-
-	final_config.layout.alignment_x = resolve_value(
-		opts.layout.alignment_x,
-		&ctx.alignment_x_stack,
-		resolve_default(default_opts.layout.alignment_x),
-	)
-
-	final_config.layout.alignment_y = resolve_value(
-		opts.layout.alignment_y,
-		&ctx.alignment_y_stack,
-		resolve_default(default_opts.layout.alignment_y),
-	)
-
-	final_config.layout.text_padding = resolve_value(
-		opts.layout.text_padding,
-		&ctx.text_padding_stack,
-		resolve_default(default_opts.layout.text_padding),
-	)
-
-	final_config.layout.text_alignment_x = resolve_value(
-		opts.layout.text_alignment_x,
-		&ctx.text_alignment_x_stack,
-		resolve_default(default_opts.layout.text_alignment_x),
-	)
-
-	final_config.layout.text_alignment_y = resolve_value(
-		opts.layout.text_alignment_y,
-		&ctx.text_alignment_y_stack,
-		resolve_default(default_opts.layout.text_alignment_y),
-	)
-
-	final_config.layout.border_radius = resolve_value(
-		opts.layout.border_radius,
-		&ctx.border_radius_stack,
-		resolve_default(default_opts.layout.border_radius),
-	)
-
-	final_config.layout.border = resolve_value(
-		opts.layout.border,
-		&ctx.border_stack,
-		resolve_default(default_opts.layout.border),
-	)
-
-	final_config.background_fill = resolve_value(
-		opts.background_fill,
-		&ctx.background_fill_stack,
-		resolve_default(default_opts.background_fill),
-	)
-
-	final_config.text_fill = resolve_value(
-		opts.text_fill,
-		&ctx.text_fill_stack,
-		resolve_default(default_opts.text_fill),
-	)
-
-	final_config.border_fill = resolve_value(
-		opts.border_fill,
-		&ctx.border_fill_stack,
-		resolve_default(default_opts.border_fill),
-	)
-
-	final_config.clip = resolve_value(
-		opts.clip,
-		&ctx.clip_stack,
-		resolve_default(default_opts.clip),
-	)
-
-	// Capability flags are hanled differently by being additive.
-	// TODO(Thomas): Should the user specified flags completely override, e.g.
-	// not OR but set directly?
-
-	if default_opts.capability_flags != nil {
-		final_config.capability_flags |= default_opts.capability_flags^
-	}
-
-	if stack_flags, stack_flags_ok := peek(&ctx.capability_flags_stack); stack_flags_ok {
-		final_config.capability_flags |= stack_flags
-	}
-
-	if opts.capability_flags != nil {
-		final_config.capability_flags |= opts.capability_flags^
-	}
-
-	// Content is a special case too
-	final_config.content = opts.content
+	final_config := resolve_style(ctx, style, default_style)
 
 	element, element_ok := make_element(ctx, id, final_config)
 	assert(element_ok)
@@ -457,8 +297,8 @@ open_element :: proc(
 	return element, true
 }
 
-begin_container :: proc(ctx: ^Context, id: string, opts: Config_Options = {}) -> bool {
-	_, open_ok := open_element(ctx, id, opts)
+begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> bool {
+	_, open_ok := open_element(ctx, id, style)
 	assert(open_ok)
 	return open_ok
 }
@@ -486,10 +326,10 @@ container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = n
 container_styled :: proc(
 	ctx: ^Context,
 	id: string,
-	opts: Config_Options,
+	style: Style,
 	body: proc(ctx: ^Context) = nil,
 ) {
-	if begin_container(ctx, id, opts) {
+	if begin_container(ctx, id, style) {
 		if body != nil {
 			body(ctx)
 		}
@@ -514,11 +354,11 @@ container_data :: proc(
 container_data_styled :: proc(
 	ctx: ^Context,
 	id: string,
-	opts: Config_Options,
+	style: Style,
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 ) {
-	if begin_container(ctx, id, opts) {
+	if begin_container(ctx, id, style) {
 		if body != nil {
 			body(ctx, data)
 		}

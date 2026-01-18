@@ -262,21 +262,15 @@ begin :: proc(ctx: ^Context) -> bool {
 
 	reset_render_state(&ctx.render_state, ctx.window_size)
 
-	background_fill := base.fill_color(128, 128, 128)
-	sizing_x := Sizing {
-		kind  = .Fixed,
-		value = f32(ctx.window_size.x),
-	}
-	sizing_y := Sizing {
-		kind  = .Fixed,
-		value = f32(ctx.window_size.y),
-	}
-
 	// Open the root element
 	_, root_open_ok := open_element(
 		ctx,
 		"root",
-		{background_fill = &background_fill, layout = {sizing = {&sizing_x, &sizing_y}}},
+		Style {
+			sizing_x = sizing_fixed(f32(ctx.window_size.x)),
+			sizing_y = sizing_fixed(f32(ctx.window_size.y)),
+			background_fill = base.fill_color(128, 128, 128),
+		},
 	)
 	assert(root_open_ok)
 	root_element, _ := peek(&ctx.element_stack)
@@ -795,66 +789,29 @@ draw_shape :: proc(ctx: ^Context, rect: base.Rect, data: Shape_Data, z_offset: i
 }
 
 
-// Determines the final value for a property by checking sources in a specific order.
-// Precedence:
-// 1. The user-provided value (if it exists).
-// 2. The value from the top of the style stack (if it exists).
-// 3. The provided default value.
-@(private)
-resolve_value :: proc(user_value: ^$T, stack: ^Stack(T, $N), default_value: T) -> T {
-	if user_value != nil {
-		return user_value^
+spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
+	default_style := Style {
+		sizing_x = sizing_grow(),
+		sizing_y = sizing_grow(),
 	}
 
-	if val, ok := peek(stack); ok {
-		return val
-	}
-
-	return default_value
-}
-
-@(private)
-resolve_default :: proc(user_value: ^$T) -> T {
-	if user_value != nil {
-		return user_value^
-	}
-
-	return T{}
-}
-
-spacer :: proc(ctx: ^Context, id: string = "", opts := Config_Options{}) {
-	sizing := [2]Sizing{sizing_grow(), sizing_grow()}
-	default_opts := Config_Options {
-		layout = {sizing = {&sizing.x, &sizing.y}},
-	}
-
-	_, open_ok := open_element(ctx, id, opts, default_opts)
+	_, open_ok := open_element(ctx, id, style, default_style)
 	assert(open_ok)
 	if open_ok {
 		close_element(ctx)
 	}
 }
 
-text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
-	default_text_padding := Padding{}
-	default_text_alignment_x := Alignment_X.Left
-	default_text_alignment_y := Alignment_Y.Top
-	default_text_fill := base.fill_color(255, 255, 255)
-	default_clip_config := Clip_Config {
-		clip_axes = {true, true},
+text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
+	default_style := Style {
+		text_padding = Padding{},
+		text_alignment_x = .Left,
+		text_alignment_y = .Top,
+		text_fill = base.fill_color(255, 255, 255),
+		clip = Clip_Config{clip_axes = {true, true}},
 	}
 
-	default_opts := Config_Options {
-		layout = {
-			text_padding = &default_text_padding,
-			text_alignment_x = &default_text_alignment_x,
-			text_alignment_y = &default_text_alignment_y,
-		},
-		text_fill = &default_text_fill,
-		clip = &default_clip_config,
-	}
-
-	element, open_ok := open_element(ctx, id, opts, default_opts)
+	element, open_ok := open_element(ctx, id, style, default_style)
 	assert(open_ok)
 	if open_ok {
 		element_equip_text(ctx, element, text)
@@ -862,37 +819,19 @@ text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 	}
 }
 
-button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Comm {
-	sizing_grow := Sizing {
-		kind = .Grow,
+button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
+	default_style := Style {
+		sizing_x = sizing_grow(),
+		sizing_y = sizing_grow(),
+		text_padding = padding_all(10),
+		text_alignment_x = .Center,
+		background_fill = base.fill_color(24, 24, 24),
+		text_fill = base.fill_color(255, 128, 255, 128),
+		capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
+		clip = Clip_Config{clip_axes = {true, true}},
 	}
 
-	text_padding := Padding {
-		left   = 10,
-		top    = 10,
-		right  = 10,
-		bottom = 10,
-	}
-
-	text_alignment_x := Alignment_X.Center
-	background_fill := base.fill_color(24, 24, 24)
-	text_fill := base.fill_color(255, 128, 255, 128)
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
-	clip := Clip_Config{{true, true}}
-
-	default_opts := Config_Options {
-		layout = {
-			sizing = {&sizing_grow, &sizing_grow},
-			text_padding = &text_padding,
-			text_alignment_x = &text_alignment_x,
-		},
-		background_fill = &background_fill,
-		text_fill = &text_fill,
-		capability_flags = &capability_flags,
-		clip = &clip,
-	}
-
-	element, open_ok := open_element(ctx, id, opts, default_opts)
+	element, open_ok := open_element(ctx, id, style, default_style)
 
 	if open_ok {
 		element_equip_text(ctx, element, text, .Fixed)
@@ -904,7 +843,6 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 }
 
 
-// TODO(Thomas): Make it possible to style the thumb. Maybe by taking in a thumb Config_Options?
 slider :: proc(
 	ctx: ^Context,
 	id: string,
@@ -914,35 +852,43 @@ slider :: proc(
 	axis: Axis2 = .X,
 	thumb_size: base.Vec2 = {20, 20},
 	thumb_color: base.Fill = {},
-	thumb_border: Border = {},
+	thumb_border_width: Border = {},
 	thumb_border_fill_param: base.Fill = {},
-	opts: Config_Options = {},
+	style: Style = {},
 ) -> Comm {
 
-	sizing: [2]Sizing
-
+	default_style: Style
 	if axis == .X {
-		sizing = {sizing_grow(), sizing_fixed(thumb_size.y)}
+		default_style = Style {
+			sizing_x         = sizing_grow(),
+			sizing_y         = sizing_fixed(thumb_size.y),
+			layout_mode      = .Relative,
+			border_radius    = border_radius_all(2),
+			background_fill  = base.fill_color(24, 24, 24),
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Focusable,
+				.Hot_Animation,
+			},
+		}
 	} else {
-		sizing = {sizing_fixed(thumb_size.x), sizing_grow()}
+		default_style = Style {
+			sizing_x         = sizing_fixed(thumb_size.x),
+			sizing_y         = sizing_grow(),
+			layout_mode      = .Relative,
+			border_radius    = border_radius_all(2),
+			background_fill  = base.fill_color(24, 24, 24),
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Focusable,
+				.Hot_Animation,
+			},
+		}
 	}
 
-	background_fill := base.fill_color(24, 24, 24)
-	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
-	layout_mode: Layout_Mode = .Relative
-	border_radius := border_radius_all(2)
-
-	default_opts := Config_Options {
-		layout = {
-			sizing = {&sizing.x, &sizing.y},
-			layout_mode = &layout_mode,
-			border_radius = &border_radius,
-		},
-		background_fill = &background_fill,
-		capability_flags = &capability_flags,
-	}
-
-	element, open_ok := open_element(ctx, id, opts, default_opts)
+	element, open_ok := open_element(ctx, id, style, default_style)
 
 	if open_ok {
 		padding := element.config.layout.padding
@@ -988,40 +934,28 @@ slider :: proc(
 			thumb_rel_pos = base.Vec2{-thumb_size.x / 2, thumb_offset}
 		}
 
-		// Thumb configuration
-		thumb_sizing := [2]Sizing{sizing_fixed(thumb_size.x), sizing_fixed(thumb_size.y)}
-
 		// Apply defaults for Fill parameters
 		thumb_bg_fill :=
 			thumb_color.kind == .Not_Set ? base.fill_color(255, 200, 200) : thumb_color
 		thumb_border_fill :=
 			thumb_border_fill_param.kind == .Not_Set ? base.fill_color(240, 240, 240) : thumb_border_fill_param
-		thumb_border := thumb_border
-		thumb_caps := Capability_Flags{.Background}
 		thumb_radius_val := math.min(thumb_size.x, thumb_size.y) / 2
-		thumb_border_radius := base.Vec4 {
-			thumb_radius_val,
-			thumb_radius_val,
-			thumb_radius_val,
-			thumb_radius_val,
-		}
 		thumb_id := fmt.tprintf("%v_thumb", id)
 
 		container(
 			ctx,
 			thumb_id,
-			Config_Options {
-				layout = {
-					sizing = {&thumb_sizing.x, &thumb_sizing.y},
-					alignment_x = &thumb_align_x,
-					alignment_y = &thumb_align_y,
-					relative_position = &thumb_rel_pos,
-					border_radius = &thumb_border_radius,
-					border = &thumb_border,
-				},
-				background_fill = &thumb_bg_fill,
-				border_fill = &thumb_border_fill,
-				capability_flags = &thumb_caps,
+			Style {
+				sizing_x = sizing_fixed(thumb_size.x),
+				sizing_y = sizing_fixed(thumb_size.y),
+				alignment_x = thumb_align_x,
+				alignment_y = thumb_align_y,
+				relative_position = thumb_rel_pos,
+				border_radius = border_radius_all(thumb_radius_val),
+				border = thumb_border_width,
+				background_fill = thumb_bg_fill,
+				border_fill = thumb_border_fill,
+				capability_flags = Capability_Flags{.Background},
 			},
 		)
 		close_element(ctx)
@@ -1031,13 +965,12 @@ slider :: proc(
 	return element.last_comm
 }
 
-// TODO(Thomas): Styling etc together with the slider needs to make sense.
 scrollbar :: proc(
 	ctx: ^Context,
 	id: string,
 	target_id: string,
 	axis: Axis2 = .Y,
-	opts: Config_Options = {},
+	style: Style = {},
 ) {
 	target := find_element_by_id(ctx, target_id)
 	if target == nil {
@@ -1069,10 +1002,10 @@ scrollbar :: proc(
 	// Safety clamp
 	val^ = clamp(val^, 0, target.scroll_region.max_offset[axis])
 
-	bg_fill := base.fill_color(0, 0, 0, 0)
-	sb_opts := opts
-	if sb_opts.background_fill == nil {
-		sb_opts.background_fill = &bg_fill
+	// Merge user style with default transparent background
+	sb_style := style
+	if sb_style.background_fill.kind == .Not_Set {
+		sb_style.background_fill = base.fill_color(0, 0, 0, 0)
 	}
 
 	thumb_col := base.fill_color(80, 80, 80)
@@ -1087,7 +1020,7 @@ scrollbar :: proc(
 		thumb_col,
 		{},
 		base.fill_color(0, 0, 0, 0),
-		sb_opts,
+		sb_style,
 	)
 
 	// Sync the target_offset if the user is interacting with the scrollbar.
@@ -1102,35 +1035,22 @@ text_input :: proc(
 	id: string,
 	buf: []u8,
 	buf_len: ^int,
-	opts: Config_Options = {},
+	style: Style = {},
 ) -> Comm {
 	// TODO(Thomas): Figure out how to do the sizing properly.
-	sizing := [2]Sizing{sizing_grow(), sizing_fixed(48)}
-
-	background_fill := base.fill_color(255, 128, 128)
-	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
-	clip_config := Clip_Config {
-		clip_axes = {true, true},
-	}
-	layout_mode := Layout_Mode.Relative
-	alignment_x := Alignment_X.Left
-	alignment_y := Alignment_Y.Center
-	text_alignment_y := Alignment_Y.Center
-
-	default_opts := Config_Options {
-		layout = {
-			sizing = {&sizing.x, &sizing.y},
-			layout_mode = &layout_mode,
-			alignment_x = &alignment_x,
-			alignment_y = &alignment_y,
-			text_alignment_y = &text_alignment_y,
-		},
-		background_fill = &background_fill,
-		capability_flags = &capability_flags,
-		clip = &clip_config,
+	default_style := Style {
+		sizing_x = sizing_grow(),
+		sizing_y = sizing_fixed(48),
+		layout_mode = .Relative,
+		alignment_x = .Left,
+		alignment_y = .Center,
+		text_alignment_y = .Center,
+		background_fill = base.fill_color(255, 128, 128),
+		capability_flags = Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation},
+		clip = Clip_Config{clip_axes = {true, true}},
 	}
 
-	element, open_ok := open_element(ctx, id, opts, default_opts)
+	element, open_ok := open_element(ctx, id, style, default_style)
 	if open_ok {
 
 		key := ui_key_hash(element.id_string)
@@ -1181,27 +1101,19 @@ text_input :: proc(
 
 				// TODO(Thomas): Caret should be stylable
 				CARET_WIDTH :: 2.0
-				caret_sizing := [2]Sizing{sizing_fixed(CARET_WIDTH), sizing_fixed(caret_height)}
-
-				caret_align_x := Alignment_X.Left
-				caret_align_y := Alignment_Y.Center
-				caret_rel_pos := base.Vec2{caret_x_offset, -caret_height / 2}
-				caret_bg_fill := base.fill(default_color_style[.Text])
-				caret_caps := Capability_Flags{.Background}
 				caret_id := fmt.tprintf("%s_caret", id)
 
 				container(
 					ctx,
 					caret_id,
-					Config_Options {
-						layout = {
-							sizing = {&caret_sizing.x, &caret_sizing.y},
-							alignment_x = &caret_align_x,
-							alignment_y = &caret_align_y,
-							relative_position = &caret_rel_pos,
-						},
-						background_fill = &caret_bg_fill,
-						capability_flags = &caret_caps,
+					Style {
+						sizing_x = sizing_fixed(CARET_WIDTH),
+						sizing_y = sizing_fixed(caret_height),
+						alignment_x = .Left,
+						alignment_y = .Center,
+						relative_position = base.Vec2{caret_x_offset, -caret_height / 2},
+						background_fill = base.fill(default_color_style[.Text]),
+						capability_flags = Capability_Flags{.Background},
 					},
 				)
 			}
@@ -1224,18 +1136,16 @@ checkbox :: proc(
 	id: string,
 	checked: ^bool,
 	shape_data: Shape_Data,
-	opts: Config_Options = {},
+	style: Style = {},
 ) -> Comm {
 	// TODO(Thomas): Don't hardcode min- and max_value like this.
-	sizing := [2]Sizing{sizing_grow(min = 36, max = 36), sizing_grow(min = 36, max = 36)}
-	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
-
-	default_opts := Config_Options {
-		layout = {sizing = {&sizing.x, &sizing.y}},
-		capability_flags = &capability_flags,
+	default_style := Style {
+		sizing_x         = sizing_grow(min = 36, max = 36),
+		sizing_y         = sizing_grow(min = 36, max = 36),
+		capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
 	}
 
-	element, open_ok := open_element(ctx, id, opts, default_opts)
+	element, open_ok := open_element(ctx, id, style, default_style)
 	if open_ok {
 
 		if element.last_comm.clicked {

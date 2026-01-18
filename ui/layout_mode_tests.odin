@@ -153,31 +153,23 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 	for &test_data in tests_data {
 		// --- 2. Define the UI Building Logic ---
 		build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-			parent_sizing := [2]Sizing {
-				sizing_fixed(data.parent_width),
-				sizing_fixed(data.parent_height),
-			}
 			container(
 				ctx,
 				"parent",
-				Config_Options {
-					layout = {
-						sizing = {&parent_sizing.x, &parent_sizing.y},
-						alignment_x = &data.alignment_x,
-						alignment_y = &data.alignment_y,
-					},
+				Style {
+					sizing_x = sizing_fixed(data.parent_width),
+					sizing_y = sizing_fixed(data.parent_height),
+					alignment_x = data.alignment_x,
+					alignment_y = data.alignment_y,
 				},
 				data,
 				proc(ctx: ^Context, data: ^Test_Data) {
-					container_sizing := [2]Sizing {
-						sizing_fixed(data.container_width),
-						sizing_fixed(data.container_height),
-					}
 					container(
 						ctx,
 						"container",
-						Config_Options {
-							layout = {sizing = {&container_sizing.x, &container_sizing.y}},
+						Style {
+							sizing_x = sizing_fixed(data.container_width),
+							sizing_y = sizing_fixed(data.container_height),
 						},
 					)
 				},
@@ -230,21 +222,13 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		layout_mode := Layout_Mode.Relative
-
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-
 		if begin_container(
 			ctx,
 			"relative_parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					layout_mode = &layout_mode,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				layout_mode = .Relative,
 			},
 		) {
 
@@ -252,42 +236,31 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 			anchor_child :: proc(
 				ctx: ^Context,
 				id: string,
-				child_sizing: [2]Sizing,
+				child_size_x: f32,
+				child_size_y: f32,
 				alignment_x: Alignment_X,
 				alignment_y: Alignment_Y,
 			) {
-
-				child_sizing := child_sizing
-
-				child_alignment_x := alignment_x
-				child_alignment_y := alignment_y
-
 				container(
 					ctx,
 					id,
-					Config_Options {
-						layout = {
-							sizing = {&child_sizing.x, &child_sizing.y},
-							alignment_x = &child_alignment_x,
-							alignment_y = &child_alignment_y,
-						},
+					Style {
+						sizing_x = sizing_fixed(child_size_x),
+						sizing_y = sizing_fixed(child_size_y),
+						alignment_x = alignment_x,
+						alignment_y = alignment_y,
 					},
 				)
 			}
 
-			child_sizing := [2]Sizing {
-				sizing_fixed(data.child_size.x),
-				sizing_fixed(data.child_size.y),
-			}
-
 			// Top-Left
-			anchor_child(ctx, "child_tl", child_sizing, Alignment_X.Left, Alignment_Y.Top)
+			anchor_child(ctx, "child_tl", data.child_size.x, data.child_size.y, .Left, .Top)
 			// Top-Right
-			anchor_child(ctx, "child_tr", child_sizing, Alignment_X.Right, Alignment_Y.Top)
+			anchor_child(ctx, "child_tr", data.child_size.x, data.child_size.y, .Right, .Top)
 			// Bottom-Right
-			anchor_child(ctx, "child_br", child_sizing, Alignment_X.Right, Alignment_Y.Bottom)
+			anchor_child(ctx, "child_br", data.child_size.x, data.child_size.y, .Right, .Bottom)
 			// Bottom-Left
-			anchor_child(ctx, "child_bl", child_sizing, Alignment_X.Left, Alignment_Y.Bottom)
+			anchor_child(ctx, "child_bl", data.child_size.x, data.child_size.y, .Left, .Bottom)
 
 			end_container(ctx)
 		}
@@ -369,53 +342,34 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		layout_mode := Layout_Mode.Relative
-
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-
 		if begin_container(
 			ctx,
 			"relative_parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					layout_mode = &layout_mode,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				layout_mode = .Relative,
 			},
 		) {
-
-			child_sizing := [2]Sizing {
-				sizing_fixed(data.child_size.x),
-				sizing_fixed(data.child_size.y),
-			}
 
 			offset_child :: proc(
 				ctx: ^Context,
 				id: string,
-				child_sizing: [2]Sizing,
+				child_size_x: f32,
+				child_size_y: f32,
 				align_x: Alignment_X,
 				align_y: Alignment_Y,
 				offset: base.Vec2,
 			) {
-
-				child_sizing := child_sizing
-				align_x := align_x
-				align_y := align_y
-				offset := offset
-
 				container(
 					ctx,
 					id,
-					Config_Options {
-						layout = {
-							sizing = {&child_sizing.x, &child_sizing.y},
-							alignment_x = &align_x,
-							alignment_y = &align_y,
-							relative_position = &offset,
-						},
+					Style {
+						sizing_x = sizing_fixed(child_size_x),
+						sizing_y = sizing_fixed(child_size_y),
+						alignment_x = align_x,
+						alignment_y = align_y,
+						relative_position = offset,
 					},
 				)
 
@@ -425,9 +379,10 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			offset_child(
 				ctx,
 				"child_offset_tl",
-				child_sizing,
-				Alignment_X.Left,
-				Alignment_Y.Top,
+				data.child_size.x,
+				data.child_size.y,
+				.Left,
+				.Top,
 				data.offset_tl,
 			)
 
@@ -435,9 +390,10 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			offset_child(
 				ctx,
 				"child_offset_tr",
-				child_sizing,
-				Alignment_X.Right,
-				Alignment_Y.Top,
+				data.child_size.x,
+				data.child_size.y,
+				.Right,
+				.Top,
 				data.offset_tr,
 			)
 
@@ -445,9 +401,10 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			offset_child(
 				ctx,
 				"child_offset_br",
-				child_sizing,
-				Alignment_X.Right,
-				Alignment_Y.Bottom,
+				data.child_size.x,
+				data.child_size.y,
+				.Right,
+				.Bottom,
 				data.offset_br,
 			)
 
@@ -455,9 +412,10 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			offset_child(
 				ctx,
 				"child_offset_bl",
-				child_sizing,
-				Alignment_X.Left,
-				Alignment_Y.Bottom,
+				data.child_size.x,
+				data.child_size.y,
+				.Left,
+				.Bottom,
 				data.offset_bl,
 			)
 
@@ -536,65 +494,48 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		layout_mode := Layout_Mode.Relative
-
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-
 		if begin_container(
 			ctx,
 			"relative_parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					layout_mode = &layout_mode,
-					padding = &data.padding,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				layout_mode = .Relative,
+				padding = data.padding,
 			},
 		) {
 
 			anchor_child :: proc(
 				ctx: ^Context,
 				id: string,
-				sizing: [2]Sizing,
+				child_size_x: f32,
+				child_size_y: f32,
 				align_x: Alignment_X,
 				align_y: Alignment_Y,
 			) {
-				sizing := sizing
-				align_x := align_x
-				align_y := align_y
-
 				container(
 					ctx,
 					id,
-					Config_Options {
-						layout = {
-							sizing = {&sizing.x, &sizing.y},
-							alignment_x = &align_x,
-							alignment_y = &align_y,
-						},
+					Style {
+						sizing_x = sizing_fixed(child_size_x),
+						sizing_y = sizing_fixed(child_size_y),
+						alignment_x = align_x,
+						alignment_y = align_y,
 					},
 				)
 			}
 
-			child_sizing := [2]Sizing {
-				sizing_fixed(data.child_size.x),
-				sizing_fixed(data.child_size.y),
-			}
-
 			// Top-Left
-			anchor_child(ctx, "child_tl", child_sizing, .Left, .Top)
+			anchor_child(ctx, "child_tl", data.child_size.x, data.child_size.y, .Left, .Top)
 
 			// Top-Right
-			anchor_child(ctx, "child_tr", child_sizing, .Right, .Top)
+			anchor_child(ctx, "child_tr", data.child_size.x, data.child_size.y, .Right, .Top)
 
 			// Bottom-Right
-			anchor_child(ctx, "child_br", child_sizing, .Right, .Bottom)
+			anchor_child(ctx, "child_br", data.child_size.x, data.child_size.y, .Right, .Bottom)
 
 			// Bottom-Left
-			anchor_child(ctx, "child_bl", child_sizing, .Left, .Bottom)
+			anchor_child(ctx, "child_bl", data.child_size.x, data.child_size.y, .Left, .Bottom)
 
 			end_container(ctx)
 		}

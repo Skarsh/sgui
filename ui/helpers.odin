@@ -3,10 +3,6 @@ package ui
 import base "../base"
 import "core:math"
 
-// =============================================================================
-// Padding Constructors
-// =============================================================================
-
 // Uniform padding (all sides same)
 padding_all :: proc(value: f32) -> Padding {
 	return Padding{value, value, value, value}
@@ -21,10 +17,6 @@ padding_xy :: proc(vertical, horizontal: f32) -> Padding {
 padding_trbl :: proc(top, right, bottom, left: f32) -> Padding {
 	return Padding{top, right, bottom, left}
 }
-
-// =============================================================================
-// Margin Constructors
-// =============================================================================
 
 // Uniform margin (all sides same)
 margin_all :: proc(value: f32) -> Margin {
@@ -41,10 +33,6 @@ margin_trbl :: proc(top, right, bottom, left: f32) -> Margin {
 	return Margin{top, right, bottom, left}
 }
 
-// =============================================================================
-// Border Constructors
-// =============================================================================
-
 // Uniform border (all sides same)
 border_all :: proc(value: f32) -> Border {
 	return Border{value, value, value, value}
@@ -60,10 +48,6 @@ border_trbl :: proc(top, right, bottom, left: f32) -> Border {
 	return Border{top, right, bottom, left}
 }
 
-// =============================================================================
-// Border Radius Constructors
-// =============================================================================
-
 // Uniform border radius (all corners same)
 border_radius_all :: proc(value: f32) -> base.Vec4 {
 	return {value, value, value, value}
@@ -78,10 +62,6 @@ border_radius_tb :: proc(top, bottom: f32) -> base.Vec4 {
 border_radius :: proc(tl, tr, br, bl: f32) -> base.Vec4 {
 	return {tl, tr, br, bl}
 }
-
-// =============================================================================
-// Sizing Constructors
-// =============================================================================
 
 // Fixed size
 sizing_fixed :: proc(value: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
@@ -101,4 +81,239 @@ sizing_fit :: proc(min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 // Percentage of parent size
 sizing_percent :: proc(percent: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 	return Sizing{kind = .Percentage_Of_Parent, value = percent, min_value = min, max_value = max}
+}
+
+// Uses Maybe(T) for optional simple types and tagged structs for unions (Fill).
+// Zero-value fields mean "not set" and will inherit from stack or defaults.
+Style :: struct {
+	// Layout properties
+	sizing_x:          Maybe(Sizing),
+	sizing_y:          Maybe(Sizing),
+	padding:           Maybe(Padding),
+	margin:            Maybe(Margin),
+	border:            Maybe(Border),
+	border_radius:     Maybe(base.Vec4),
+	child_gap:         Maybe(f32),
+	layout_mode:       Maybe(Layout_Mode),
+	layout_direction:  Maybe(Layout_Direction),
+	relative_position: Maybe(base.Vec2),
+	alignment_x:       Maybe(Alignment_X),
+	alignment_y:       Maybe(Alignment_Y),
+	text_padding:      Maybe(Padding),
+	text_alignment_x:  Maybe(Alignment_X),
+	text_alignment_y:  Maybe(Alignment_Y),
+
+	// Visual properties (uses tagged Fill - .Not_Set means "inherit")
+	background_fill:   base.Fill,
+	text_fill:         base.Fill,
+	border_fill:       base.Fill,
+
+	// Other
+	clip:              Maybe(Clip_Config),
+	capability_flags:  Maybe(Capability_Flags),
+}
+
+// Resolves a Maybe value: user -> stack -> default
+@(private)
+resolve_maybe :: proc(user: Maybe($T), stack: ^Stack(T, $N), default_value: T) -> T {
+	if val, ok := user.?; ok {
+		return val
+	}
+
+	if val, ok := peek(stack); ok {
+		return val
+	}
+
+	return default_value
+}
+
+// Resolves a Fill value: user -> stack -> default (uses .Not_Set check)
+@(private)
+resolve_fill :: proc(
+	user: base.Fill,
+	stack: ^Stack(base.Fill, $N),
+	default_value: base.Fill,
+) -> base.Fill {
+	if user.kind != .Not_Set {
+		return user
+	}
+
+	if val, ok := peek(stack); ok && val.kind != .Not_Set {
+		return val
+	}
+
+	return default_value
+}
+
+// Converts a Style struct to Element_Config using context stacks for defaults
+resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) -> Element_Config {
+	config: Element_Config
+
+	// Layout properties
+	config.layout.sizing[Axis2.X] = resolve_maybe(
+		style.sizing_x,
+		&ctx.sizing_x_stack,
+		style.sizing_x.? or_else (default_style.sizing_x.? or_else Sizing{}),
+	)
+
+	config.layout.sizing[Axis2.Y] = resolve_maybe(
+		style.sizing_y,
+		&ctx.sizing_y_stack,
+		style.sizing_y.? or_else (default_style.sizing_y.? or_else Sizing{}),
+	)
+
+	config.layout.padding = resolve_maybe(
+		style.padding,
+		&ctx.padding_stack,
+		style.padding.? or_else (default_style.padding.? or_else Padding{}),
+	)
+
+	config.layout.margin = resolve_maybe(
+		style.margin,
+		&ctx.margin_stack,
+		style.margin.? or_else (default_style.margin.? or_else Margin{}),
+	)
+
+	config.layout.child_gap = resolve_maybe(
+		style.child_gap,
+		&ctx.child_gap_stack,
+		style.child_gap.? or_else (default_style.child_gap.? or_else 0),
+	)
+
+	config.layout.layout_mode = resolve_maybe(
+		style.layout_mode,
+		&ctx.layout_mode_stack,
+		style.layout_mode.? or_else (default_style.layout_mode.? or_else Layout_Mode{}),
+	)
+
+	config.layout.layout_direction = resolve_maybe(
+		style.layout_direction,
+		&ctx.layout_direction_stack,
+		style.layout_direction.? or_else (default_style.layout_direction.? or_else Layout_Direction{}),
+	)
+
+	config.layout.relative_position = resolve_maybe(
+		style.relative_position,
+		&ctx.relative_position_stack,
+		style.relative_position.? or_else (default_style.relative_position.? or_else base.Vec2{}),
+	)
+
+	config.layout.alignment_x = resolve_maybe(
+		style.alignment_x,
+		&ctx.alignment_x_stack,
+		style.alignment_x.? or_else (default_style.alignment_x.? or_else Alignment_X{}),
+	)
+
+	config.layout.alignment_y = resolve_maybe(
+		style.alignment_y,
+		&ctx.alignment_y_stack,
+		style.alignment_y.? or_else (default_style.alignment_y.? or_else Alignment_Y{}),
+	)
+
+	config.layout.text_padding = resolve_maybe(
+		style.text_padding,
+		&ctx.text_padding_stack,
+		style.text_padding.? or_else (default_style.text_padding.? or_else Padding{}),
+	)
+
+	config.layout.text_alignment_x = resolve_maybe(
+		style.text_alignment_x,
+		&ctx.text_alignment_x_stack,
+		style.text_alignment_x.? or_else (default_style.text_alignment_x.? or_else Alignment_X{}),
+	)
+
+	config.layout.text_alignment_y = resolve_maybe(
+		style.text_alignment_y,
+		&ctx.text_alignment_y_stack,
+		style.text_alignment_y.? or_else (default_style.text_alignment_y.? or_else Alignment_Y{}),
+	)
+
+	config.layout.border_radius = resolve_maybe(
+		style.border_radius,
+		&ctx.border_radius_stack,
+		style.border_radius.? or_else (default_style.border_radius.? or_else base.Vec4{}),
+	)
+
+	config.layout.border = resolve_maybe(
+		style.border,
+		&ctx.border_stack,
+		style.border.? or_else (default_style.border.? or_else Border{}),
+	)
+
+	// Visual properties (Fill - use tagged resolution)
+	config.background_fill = resolve_fill(
+		style.background_fill,
+		&ctx.background_fill_stack,
+		default_style.background_fill.kind != .Not_Set ? default_style.background_fill : base.Fill{},
+	)
+
+	config.text_fill = resolve_fill(
+		style.text_fill,
+		&ctx.text_fill_stack,
+		default_style.text_fill.kind != .Not_Set ? default_style.text_fill : base.Fill{},
+	)
+
+	config.border_fill = resolve_fill(
+		style.border_fill,
+		&ctx.border_fill_stack,
+		default_style.border_fill.kind != .Not_Set ? default_style.border_fill : base.Fill{},
+	)
+
+	// Clip config
+	config.clip = resolve_maybe(
+		style.clip,
+		&ctx.clip_stack,
+		style.clip.? or_else (default_style.clip.? or_else Clip_Config{}),
+	)
+
+	// Capability flags are handled differently by being additive.
+	// TODO(Thomas): Should the user specified flags completely override, e.g.
+	// not OR but set directly?
+	if flags, ok := default_style.capability_flags.?; ok {
+		config.capability_flags |= flags
+	}
+
+	if stack_flags, stack_ok := peek(&ctx.capability_flags_stack); stack_ok {
+		config.capability_flags |= stack_flags
+	}
+
+	if flags, ok := style.capability_flags.?; ok {
+		config.capability_flags |= flags
+	}
+
+	return config
+}
+
+// Merges two styles - style b overrides style a for any "set" fields
+merge_styles :: proc(a, b: Style) -> Style {
+	result := a
+
+	// Layout properties - override if b has value
+	if b.sizing_x != nil do result.sizing_x = b.sizing_x
+	if b.sizing_y != nil do result.sizing_y = b.sizing_y
+	if b.padding != nil do result.padding = b.padding
+	if b.margin != nil do result.margin = b.margin
+	if b.border != nil do result.border = b.border
+	if b.border_radius != nil do result.border_radius = b.border_radius
+	if b.child_gap != nil do result.child_gap = b.child_gap
+	if b.layout_mode != nil do result.layout_mode = b.layout_mode
+	if b.layout_direction != nil do result.layout_direction = b.layout_direction
+	if b.relative_position != nil do result.relative_position = b.relative_position
+	if b.alignment_x != nil do result.alignment_x = b.alignment_x
+	if b.alignment_y != nil do result.alignment_y = b.alignment_y
+	if b.text_padding != nil do result.text_padding = b.text_padding
+	if b.text_alignment_x != nil do result.text_alignment_x = b.text_alignment_x
+	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
+
+	// Visual properties - override if b is set
+	if b.background_fill.kind != .Not_Set do result.background_fill = b.background_fill
+	if b.text_fill.kind != .Not_Set do result.text_fill = b.text_fill
+	if b.border_fill.kind != .Not_Set do result.border_fill = b.border_fill
+
+	// Other
+	if b.clip != nil do result.clip = b.clip
+
+	if b.capability_flags != nil do result.capability_flags = b.capability_flags
+
+	return result
 }

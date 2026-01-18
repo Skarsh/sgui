@@ -27,9 +27,11 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	// 3. Build logic
 
 	build_ui :: proc(ctx: ^Context, data: ^Test_Data) {
-		sizing := [2]Sizing{sizing_fixed(100), sizing_fixed(data.element_height)}
-
-		container(ctx, "resizable_box", Config_Options{layout = {sizing = {&sizing.x, &sizing.y}}})
+		container(
+			ctx,
+			"resizable_box",
+			Style{sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(data.element_height)},
+		)
 	}
 
 	// --- Frame 1: Initial Render ---

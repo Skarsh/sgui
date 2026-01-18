@@ -89,124 +89,79 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
 		// --- Main Panel (centered) ---
-		main_panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
-		main_panel_align_x := ui.Alignment_X.Center
-		main_panel_align_y := ui.Alignment_Y.Center
-
 		if ui.begin_container(
 			ctx,
 			"main_panel",
-			ui.Config_Options {
-				layout = {
-					sizing = {&main_panel_sizing.x, &main_panel_sizing.y},
-					alignment_x = &main_panel_align_x,
-					alignment_y = &main_panel_align_y,
-				},
+			ui.Style {
+				sizing_x = ui.sizing_percent(1.0),
+				sizing_y = ui.sizing_percent(1.0),
+				alignment_x = ui.Alignment_X.Center,
+				alignment_y = ui.Alignment_Y.Center,
 			},
 		) {
 
 			// --- Inner content panel ---
-			panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
-			panel_padding := ui.padding_all(25)
-			panel_border_radius := ui.border_radius_all(10)
-			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
-			panel_child_gap: f32 = 15
-			panel_bg := base.fill(PANEL_BG)
-
 			if ui.begin_container(
 				ctx,
 				"panel",
-				ui.Config_Options {
-					layout = {
-						sizing = {&panel_sizing.x, &panel_sizing.y},
-						layout_direction = &panel_layout_dir,
-						padding = &panel_padding,
-						child_gap = &panel_child_gap,
-						border_radius = &panel_border_radius,
-					},
-					background_fill = &panel_bg,
+				ui.Style {
+					sizing_x = ui.sizing_percent(1.0),
+					sizing_y = ui.sizing_percent(1.0),
+					padding = ui.padding_all(25),
+					border_radius = ui.border_radius_all(10),
+					layout_direction = ui.Layout_Direction.Top_To_Bottom,
+					child_gap = 15,
+					background_fill = base.fill(PANEL_BG),
 				},
 			) {
 				// --- Title ---
-				title_text_align_x := ui.Alignment_X.Center
-				title_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_grow(max = 50)}
-				title_bg_fill := base.fill_color(0, 0, 0, 0)
 				ui.text(
 					ctx,
 					"title",
 					"Odin To-Do List",
-					ui.Config_Options {
-						layout = {
-							sizing = {&title_sizing.x, &title_sizing.y},
-							text_alignment_x = &title_text_align_x,
-						},
-						background_fill = &title_bg_fill,
+					ui.Style {
+						sizing_x = ui.sizing_grow(),
+						sizing_y = ui.sizing_grow(max = 50),
+						text_alignment_x = ui.Alignment_X.Center,
+						background_fill = base.fill_color(0, 0, 0, 0),
 					},
 				)
 
 				// -- Task List Wrapper
-				list_wrapper_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit(max = 350)}
-				list_wrapper_dir := ui.Layout_Direction.Left_To_Right
-				list_wrapper_gap: f32 = 5
-				list_wrapper_border := ui.Border {
-					top    = 8,
-					right  = 7,
-					bottom = 10,
-					left   = 5,
-				}
-				list_wrapper_border_fill := base.fill_color(100, 69, 69)
-				list_wrapper_bg := base.fill_color(50, 50, 55)
-				list_wrapper_padding := ui.padding_all(5)
 				if ui.begin_container(
 					ctx,
 					"task_list_wrapper",
-					ui.Config_Options {
-						layout = {
-							sizing = {&list_wrapper_sizing.x, &list_wrapper_sizing.y},
-							layout_direction = &list_wrapper_dir,
-							child_gap = &list_wrapper_gap,
-							border = &list_wrapper_border,
-							padding = &list_wrapper_padding,
-						},
-						background_fill = &list_wrapper_bg,
-						border_fill = &list_wrapper_border_fill,
+					ui.Style {
+						sizing_x = ui.sizing_grow(),
+						sizing_y = ui.sizing_fit(max = 350),
+						layout_direction = ui.Layout_Direction.Left_To_Right,
+						child_gap = 5,
+						border = ui.Border{top = 8, right = 7, bottom = 10, left = 5},
+						padding = ui.padding_all(5),
+						background_fill = base.fill_color(50, 50, 55),
+						border_fill = base.fill_color(100, 69, 69),
 					},
 				) {
 
 					// --- Task List ---
 					task_list_id := "task_list"
-					task_list_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit(max = 300)}
-					task_list_layout_dir := ui.Layout_Direction.Top_To_Bottom
-					task_list_child_gap: f32 = 8
-					task_list_padding := ui.padding_all(10)
-					task_list_caps := ui.Capability_Flags{.Scrollable}
-					task_list_clip: ui.Clip_Config = {
-						clip_axes = {true, true},
-					}
 					if ui.begin_container(
 						ctx,
 						task_list_id,
-						ui.Config_Options {
-							layout = {
-								sizing = {&task_list_sizing.x, &task_list_sizing.y},
-								layout_direction = &task_list_layout_dir,
-								child_gap = &task_list_child_gap,
-								padding = &task_list_padding,
-							},
-							clip = &task_list_clip,
-							capability_flags = &task_list_caps,
+						ui.Style {
+							sizing_x = ui.sizing_grow(),
+							sizing_y = ui.sizing_fit(max = 300),
+							layout_direction = ui.Layout_Direction.Top_To_Bottom,
+							child_gap = 8,
+							padding = ui.padding_all(10),
+							capability_flags = ui.Capability_Flags{.Scrollable},
+							clip = ui.Clip_Config{clip_axes = {true, true}},
 						},
 					) {
 
 						for &task, i in data.tasks {
 
 							// --- Task Row ---
-							row_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
-							row_layout_dir := ui.Layout_Direction.Left_To_Right
-							row_align_y := ui.Alignment_Y.Center
-							row_child_gap: f32 = 10
-							row_padding := ui.padding_all(5)
-
 							ui.push_background_fill(
 								ctx,
 								base.fill(ROW_BG),
@@ -215,14 +170,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							if ui.begin_container(
 								ctx,
 								fmt.tprintf("task_row_%d", i),
-								ui.Config_Options {
-									layout = {
-										sizing = {&row_sizing.x, &row_sizing.y},
-										layout_direction = &row_layout_dir,
-										alignment_y = &row_align_y,
-										child_gap = &row_child_gap,
-										padding = &row_padding,
-									},
+								ui.Style {
+									sizing_x = ui.sizing_grow(),
+									sizing_y = ui.sizing_fit(),
+									layout_direction = ui.Layout_Direction.Left_To_Right,
+									alignment_y = ui.Alignment_Y.Center,
+									child_gap = 10,
+									padding = ui.padding_all(5),
 								},
 							) {
 
@@ -231,8 +185,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 								if task.completed {
 									current_checkbox_color = CHECKBOX_DONE_BG
 								}
-
-								checkbox_bg_fill := base.fill(current_checkbox_color)
 
 								ui.checkbox(
 									ctx,
@@ -243,15 +195,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 										base.fill_color(255, 255, 255),
 										2.0,
 									},
-									ui.Config_Options{background_fill = &checkbox_bg_fill},
+									ui.Style{background_fill = base.fill(current_checkbox_color)},
 								)
 
 								// --- Spacer ---
 								ui.spacer(ctx)
 
 								// --- Task Text ---
-								alignment_y := ui.Alignment_Y.Center
-								text_alignment_y := ui.Alignment_Y.Center
 								task_id := fmt.tprintf("task_text_%d", i)
 
 								task_text_color := TEXT_COLOR
@@ -259,18 +209,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									task_text_color = COMPLETED_TEXT_COLOR
 								}
 
-								task_text_fill := base.fill(task_text_color)
-
 								ui.text(
 									ctx,
 									task_id,
 									task.text,
-									ui.Config_Options {
-										layout = {
-											alignment_y = &alignment_y,
-											text_alignment_y = &text_alignment_y,
-										},
-										text_fill = &task_text_fill,
+									ui.Style {
+										alignment_y = ui.Alignment_Y.Center,
+										text_alignment_y = ui.Alignment_Y.Center,
+										text_fill = base.fill(task_text_color),
 									},
 								)
 
@@ -278,16 +224,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 								ui.spacer(ctx)
 
 								// --- Delete Button ---
-								delete_border_radius := ui.border_radius_all(3.0)
-								delete_bg_fill := base.fill(DELETE_BUTTON_COLOR)
 								delete_button_id := fmt.tprintf("task_delete_button_%d", i)
 								delete_comm := ui.button(
 									ctx,
 									delete_button_id,
 									"Delete",
-									ui.Config_Options {
-										layout = {border_radius = &delete_border_radius},
-										background_fill = &delete_bg_fill,
+									ui.Style {
+										border_radius = ui.border_radius_all(3.0),
+										background_fill = base.fill(DELETE_BUTTON_COLOR),
 									},
 								)
 								if delete_comm.clicked {
@@ -301,27 +245,16 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						ui.end_container(ctx)
 					}
 
-					scrollbar_width: f32 = 12
-					scrollbar_sizing := [2]ui.Sizing {
-						ui.sizing_fixed(scrollbar_width),
-						ui.sizing_grow(),
-					}
-					scrollbar_border_radius := ui.border_radius_all(6.0)
-
-					// Transparent track
-					scrollbar_bg := base.fill_color(0, 0, 0, 0)
-
 					ui.scrollbar(
 						ctx,
 						"task_list_scrollbar",
 						task_list_id,
 						.Y,
-						ui.Config_Options {
-							layout = {
-								sizing = {&scrollbar_sizing.x, &scrollbar_sizing.y},
-								border_radius = &scrollbar_border_radius,
-							},
-							background_fill = &scrollbar_bg,
+						ui.Style {
+							sizing_x = ui.sizing_fixed(12),
+							sizing_y = ui.sizing_grow(),
+							border_radius = ui.border_radius_all(6.0),
+							background_fill = base.fill_color(0, 0, 0, 0),
 						},
 					)
 
@@ -329,43 +262,35 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				}
 
 
-				spacer_bg_fill := base.fill_color(0, 0, 0, 0)
-				ui.spacer(ctx, opts = ui.Config_Options{background_fill = &spacer_bg_fill})
+				ui.spacer(ctx, style = ui.Style{background_fill = base.fill_color(0, 0, 0, 0)})
 
 				// --- Add Task Panel ---
-				add_task_panel_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
-				add_task_layout_direction := ui.Layout_Direction.Left_To_Right
-				add_task_child_gap: f32 = 10
 				input_comm, add_button_comm: ui.Comm
 				if ui.begin_container(
 					ctx,
 					"add_task_panel",
-					ui.Config_Options {
-						layout = {
-							sizing = {&add_task_panel_sizing.x, &add_task_panel_sizing.y},
-							layout_direction = &add_task_layout_direction,
-							child_gap = &add_task_child_gap,
-						},
+					ui.Style {
+						sizing_x = ui.sizing_grow(),
+						sizing_y = ui.sizing_fit(),
+						layout_direction = ui.Layout_Direction.Left_To_Right,
+						child_gap = 10,
 					},
 				) {
 					// --- Text Input field ---
-					input_bg := base.fill(ITEM_BG)
-
 					input_comm = ui.text_input(
 						ctx,
 						"new_task_input",
 						data.new_task_buf,
 						&data.new_task_buf_len,
-						ui.Config_Options{background_fill = &input_bg},
+						ui.Style{background_fill = base.fill(ITEM_BG)},
 					)
 
 					// --- Add Button ---
-					add_button_fill := base.fill(ADD_BUTTON_COLOR)
 					add_button_comm = ui.button(
 						ctx,
 						"add_task_button",
 						"Add",
-						ui.Config_Options{background_fill = &add_button_fill},
+						ui.Style{background_fill = base.fill(ADD_BUTTON_COLOR)},
 					)
 
 					if add_button_comm.clicked {

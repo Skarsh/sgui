@@ -197,7 +197,6 @@ build_bug_repro :: proc(app_state: ^App_State) {
 
 	build_rows :: proc(ctx: ^ui.Context, texts: []string) {
 		b := false
-		row_padding := ui.padding_all(10)
 		row_child_gap: f32 = 5
 		bg_fill: base.Fill
 		for text, i in texts {
@@ -212,9 +211,10 @@ build_bug_repro :: proc(app_state: ^App_State) {
 			if ui.begin_container(
 				ctx,
 				fmt.tprintf("row_%d", i),
-				ui.Config_Options {
-					layout = {padding = &row_padding, child_gap = &row_child_gap},
-					background_fill = &bg_fill,
+				ui.Style {
+					padding = ui.padding_all(10),
+					child_gap = row_child_gap,
+					background_fill = bg_fill,
 				},
 			) {
 
@@ -238,27 +238,21 @@ build_bug_repro :: proc(app_state: ^App_State) {
 			base.fill_color(50, 50, 50),
 		); defer ui.pop_background_fill(ctx)
 
-		main_container_sizing := [2]ui.Sizing{ui.sizing_percent(0.5), ui.sizing_percent(0.5)}
-		main_container_alignment_x := ui.Alignment_X.Center
-		main_container_alignment_y := ui.Alignment_Y.Center
-
 		if ui.begin_container(
 			ctx,
 			"main_container",
-			ui.Config_Options {
-				layout = {
-					sizing = {&main_container_sizing.x, &main_container_sizing.y},
-					alignment_x = &main_container_alignment_x,
-					alignment_y = &main_container_alignment_y,
-				},
+			ui.Style {
+				sizing_x = ui.sizing_percent(0.5),
+				sizing_y = ui.sizing_percent(0.5),
+				alignment_x = .Center,
+				alignment_y = .Center,
 			},
 		) {
 
-			panel_layout_direction := ui.Layout_Direction.Top_To_Bottom
 			if ui.begin_container(
 				ctx,
 				"panel_container",
-				ui.Config_Options{layout = {layout_direction = &panel_layout_direction}},
+				ui.Style{layout_direction = .Top_To_Bottom},
 			) {
 
 				build_rows(ctx, texts)
@@ -281,39 +275,27 @@ build_relative_layout_ui :: proc(app_state: ^App_State) {
 	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
 	ui.push_background_fill(ctx, base.fill_color(128, 128, 128)); defer ui.pop_background_fill(ctx)
 
-	main_container_sizing := [2]ui.Sizing{ui.sizing_fixed(400), ui.sizing_fixed(400)}
-
-	layout_mode := ui.Layout_Mode.Relative
-
 	if ui.begin_container(
 		ctx,
 		"main_container",
-		ui.Config_Options {
-			layout = {
-				sizing = {&main_container_sizing.x, &main_container_sizing.y},
-				layout_mode = &layout_mode,
-			},
+		ui.Style {
+			sizing_x = ui.sizing_fixed(400),
+			sizing_y = ui.sizing_fixed(400),
+			layout_mode = .Relative,
 		},
 	) {
 
 		ui.push_background_fill(ctx, base.fill_color(255, 0, 0)); defer ui.pop_background_fill(ctx)
 
-		child_sizing := [2]ui.Sizing{ui.sizing_fixed(50), ui.sizing_fixed(50)}
-
-		child_align_x := ui.Alignment_X.Right
-		child_align_y := ui.Alignment_Y.Bottom
-		child_rel_pos := base.Vec2{-10, -10}
-
 		ui.container(
 			ctx,
 			"child",
-			ui.Config_Options {
-				layout = {
-					sizing = {&child_sizing.x, &child_sizing.y},
-					alignment_x = &child_align_x,
-					alignment_y = &child_align_y,
-					relative_position = &child_rel_pos,
-				},
+			ui.Style {
+				sizing_x = ui.sizing_fixed(50),
+				sizing_y = ui.sizing_fixed(50),
+				alignment_x = .Right,
+				alignment_y = .Bottom,
+				relative_position = base.Vec2{-10, -10},
 			},
 		)
 		ui.end_container(ctx)
@@ -328,11 +310,10 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 
 	ui.push_background_fill(ctx, base.fill_color(255, 255, 255)); defer ui.pop_background_fill(ctx)
 
-	main_container_sizing := ui.sizing_grow()
 	ui.container(
 		ctx,
 		"main_container",
-		ui.Config_Options{layout = {sizing = {&main_container_sizing, &main_container_sizing}}},
+		ui.Style{sizing_x = ui.sizing_grow(), sizing_y = ui.sizing_grow()},
 		image_data,
 		proc(ctx: ^ui.Context, data: ^Image_Data) {
 
@@ -345,35 +326,31 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 			); defer ui.pop_capability_flags(ctx)
 
 
-			ui.container(
-				ctx,
-				"image_1",
-				ui.Config_Options{content = {image_data = rawptr(&data.tex_1)}},
-			)
+			// Images use content, not style - set image_data after element creation
+			if elem_1, ok := ui.open_element(ctx, "image_1"); ok {
+				elem_1.config.content.image_data = rawptr(&data.tex_1)
+				ui.close_element(ctx)
+			}
 
-			ui.container(
-				ctx,
-				"image_2",
-				ui.Config_Options{content = {image_data = rawptr(&data.tex_2)}},
-			)
+			if elem_2, ok := ui.open_element(ctx, "image_2"); ok {
+				elem_2.config.content.image_data = rawptr(&data.tex_2)
+				ui.close_element(ctx)
+			}
 
-			ui.container(
-				ctx,
-				"image_3",
-				ui.Config_Options{content = {image_data = rawptr(&data.tex_3)}},
-			)
+			if elem_3, ok := ui.open_element(ctx, "image_3"); ok {
+				elem_3.config.content.image_data = rawptr(&data.tex_3)
+				ui.close_element(ctx)
+			}
 
-			ui.container(
-				ctx,
-				"image_4",
-				ui.Config_Options{content = {image_data = rawptr(&data.tex_4)}},
-			)
+			if elem_4, ok := ui.open_element(ctx, "image_4"); ok {
+				elem_4.config.content.image_data = rawptr(&data.tex_4)
+				ui.close_element(ctx)
+			}
 
-			ui.container(
-				ctx,
-				"image_5",
-				ui.Config_Options{content = {image_data = rawptr(&data.tex_5)}},
-			)
+			if elem_5, ok := ui.open_element(ctx, "image_5"); ok {
+				elem_5.config.content.image_data = rawptr(&data.tex_5)
+				ui.close_element(ctx)
+			}
 		},
 	)
 
@@ -392,21 +369,19 @@ build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
 	ui.push_background_fill(ctx, base.fill_color(255, 0, 0)); defer ui.pop_background_fill(ctx)
 
 	// Child 1
-	child_1_sizing := [2]ui.Sizing{ui.sizing_percent(0.5), ui.sizing_percent(0.5)}
 	ui.container(
 		ctx,
 		"child_1",
-		ui.Config_Options{layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}}},
+		ui.Style{sizing_x = ui.sizing_percent(0.5), sizing_y = ui.sizing_percent(0.5)},
 	)
 
 	ui.push_background_fill(ctx, base.fill_color(0, 0, 255)); defer ui.pop_background_fill(ctx)
 
 	// Child 2
-	child_2_sizing := [2]ui.Sizing{ui.sizing_percent(0.5), ui.sizing_percent(0.5)}
 	ui.container(
 		ctx,
 		"child_2",
-		ui.Config_Options{layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}}},
+		ui.Style{sizing_x = ui.sizing_percent(0.5), sizing_y = ui.sizing_percent(0.5)},
 	)
 
 	ui.end(ctx)
@@ -415,10 +390,6 @@ build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
 build_grow_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
-	sizing := [2]ui.Sizing{ui.sizing_fixed(400), ui.sizing_fit()}
-	padding := ui.padding_all(10)
-	child_gap: f32 = 10
-	background_fill := base.fill_color(255, 255, 255)
 
 	ui.push_capability_flags(
 		ctx,
@@ -427,45 +398,41 @@ build_grow_ui :: proc(app_state: ^App_State) {
 	ui.container(
 		&app_state.ctx,
 		"parent",
-		ui.Config_Options {
-			layout = {sizing = {&sizing.x, &sizing.y}, padding = &padding, child_gap = &child_gap},
-			background_fill = &background_fill,
+		ui.Style {
+			sizing_x = ui.sizing_fixed(400),
+			sizing_y = ui.sizing_fit(),
+			padding = ui.padding_all(10),
+			child_gap = 10,
+			background_fill = base.fill_color(255, 255, 255),
 		},
 		proc(ctx: ^ui.Context) {
-			child_1_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fixed(100)}
-			child_1_background_fill := base.fill_color(255, 0, 0)
-
-
 			ui.container(
 				ctx,
 				"child_1",
-				ui.Config_Options {
-					layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}},
-					background_fill = &child_1_background_fill,
+				ui.Style {
+					sizing_x = ui.sizing_grow(),
+					sizing_y = ui.sizing_fixed(100),
+					background_fill = base.fill_color(255, 0, 0),
 				},
 			)
-
-			child_2_sizing := [2]ui.Sizing{ui.sizing_fixed(100), ui.sizing_fixed(100)}
-			child_2_background_fill := base.fill_color(0, 255, 0)
 
 			ui.container(
 				ctx,
 				"child_2",
-				ui.Config_Options {
-					layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}},
-					background_fill = &child_2_background_fill,
+				ui.Style {
+					sizing_x = ui.sizing_fixed(100),
+					sizing_y = ui.sizing_fixed(100),
+					background_fill = base.fill_color(0, 255, 0),
 				},
 			)
-
-			child_3_sizing := [2]ui.Sizing{ui.sizing_grow(max = 50), ui.sizing_grow()}
-			child_3_background_fill := base.fill_color(0, 0, 255)
 
 			ui.container(
 				ctx,
 				"child_3",
-				ui.Config_Options {
-					layout = {sizing = {&child_3_sizing.x, &child_3_sizing.y}},
-					background_fill = &child_3_background_fill,
+				ui.Style {
+					sizing_x = ui.sizing_grow(max = 50),
+					sizing_y = ui.sizing_grow(),
+					background_fill = base.fill_color(0, 0, 255),
 				},
 			)
 
@@ -494,23 +461,19 @@ build_styled_ui :: proc(app_state: ^App_State) {
 		base.fill_gradient({2, 0, 36, 255}, {9, 121, 105, 255}, {1, 0}),
 	); defer ui.pop_border_fill(ctx)
 
-	main_container_sizing := ui.sizing_percent(1.0)
-
 	ui.container(
 		ctx,
 		"main_container",
-		ui.Config_Options{layout = {sizing = {&main_container_sizing, &main_container_sizing}}},
+		ui.Style{sizing_x = ui.sizing_percent(1.0), sizing_y = ui.sizing_percent(1.0)},
 		proc(ctx: ^ui.Context) {
 
-			title_text_fill := base.fill_color(230, 230, 230)
-			title_text_padding := ui.padding_all(5)
 			ui.text(
 				ctx,
 				"title",
 				"Themed UI Demo",
-				ui.Config_Options {
-					layout = {text_padding = &title_text_padding},
-					text_fill = &title_text_fill,
+				ui.Style {
+					text_padding = ui.padding_all(5),
+					text_fill = base.fill_color(230, 230, 230),
 				},
 			)
 
@@ -553,21 +516,23 @@ build_styled_ui :: proc(app_state: ^App_State) {
 						ctx,
 						base.fill_color(255, 144, 101),
 					); defer ui.pop_background_fill(ctx)
-					text_fill := base.fill_color(255, 255, 255)
-					ui.button(ctx, "button3", "Danger Button", {text_fill = &text_fill})
+					ui.button(
+						ctx,
+						"button3",
+						"Danger Button",
+						ui.Style{text_fill = base.fill_color(255, 255, 255)},
+					)
 					ui.pop_background_fill(ctx)
 				})
 			}
 
-			footer_text_fill := base.fill_color(255, 150, 150)
-			footer_text_padding := ui.padding_all(5)
 			ui.text(
 				ctx,
 				"footer_text",
 				"The styles above were scoped.",
-				ui.Config_Options {
-					layout = {text_padding = &footer_text_padding},
-					text_fill = &footer_text_fill,
+				ui.Style {
+					text_padding = ui.padding_all(5),
+					text_fill = base.fill_color(255, 150, 150),
 				},
 			)
 		},
@@ -579,38 +544,31 @@ build_styled_ui :: proc(app_state: ^App_State) {
 build_interactive_button_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
-	sizing := ui.sizing_percent(1.0)
 
 	ui.push_padding(ctx, ui.padding_all(10)); defer ui.pop_padding(ctx)
 	ui.push_child_gap(ctx, 10); defer ui.pop_child_gap(ctx)
 	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
 
-	background_fill := base.fill_color(48, 200, 128)
-	clip := ui.Clip_Config{{true, true}}
-
 	ui.container(
 		&app_state.ctx,
 		"container",
-		ui.Config_Options {
-			layout = {sizing = {&sizing, &sizing}},
-			background_fill = &background_fill,
-			clip = &clip,
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			background_fill = base.fill_color(48, 200, 128),
+			clip = ui.Clip_Config{{true, true}},
 		},
 		proc(ctx: ^ui.Context) {
 			comm := ui.button(ctx, "button1", "Button 1")
 			if comm.active {
-				sizing := ui.sizing_grow()
-				layout_direction := ui.Layout_Direction.Top_To_Bottom
-				background_fill := base.fill_color(75, 75, 75)
 				ui.container(
 					ctx,
 					"panel",
-					ui.Config_Options {
-						layout = {
-							sizing = {&sizing, &sizing},
-							layout_direction = &layout_direction,
-						},
-						background_fill = &background_fill,
+					ui.Style {
+						sizing_x = ui.sizing_grow(),
+						sizing_y = ui.sizing_grow(),
+						layout_direction = .Top_To_Bottom,
+						background_fill = base.fill_color(75, 75, 75),
 					},
 					proc(ctx: ^ui.Context) {
 						ui.button(ctx, "button2", "Button 2")
@@ -628,38 +586,27 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 
 	ui.begin(ctx)
-	sizing := ui.sizing_fit()
-	padding := ui.padding_all(10)
-	child_gap: f32 = 10
-	layout_direction := ui.Layout_Direction.Left_To_Right
-	background_fill := base.fill_color(0, 0, 255)
-	capability_flags := ui.Capability_Flags{.Background}
 
 	ui.container(
 		ctx,
 		"text_container",
-		ui.Config_Options {
-			layout = {
-				sizing = {&sizing, &sizing},
-				padding = &padding,
-				child_gap = &child_gap,
-				layout_direction = &layout_direction,
-			},
-			background_fill = &background_fill,
-			capability_flags = &capability_flags,
+		ui.Style {
+			sizing_x = ui.sizing_fit(),
+			sizing_y = ui.sizing_fit(),
+			padding = ui.padding_all(10),
+			child_gap = 10,
+			layout_direction = .Left_To_Right,
+			background_fill = base.fill_color(0, 0, 255),
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
 			ui.text(
 				ctx,
 				"text",
 				"one two three four five six seven eight  nine ten",
-				ui.Config_Options {
-					layout = {
-						sizing = {
-							&{kind = .Grow, min_value = 100, max_value = 100},
-							&{kind = .Grow, min_value = 30},
-						},
-					},
+				ui.Style {
+					sizing_x = ui.sizing_grow(min = 100, max = 100),
+					sizing_y = ui.sizing_grow(min = 30),
 				},
 			)
 		},
@@ -671,67 +618,43 @@ build_nested_text_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	parent_sizing_x := ui.sizing_fit(min = 430, max = 630)
-	parent_sizing_y := ui.sizing_fit()
-	parent_padding := ui.padding_all(16)
-	parent_dir := ui.Layout_Direction.Top_To_Bottom
-	parent_align_x := ui.Alignment_X.Center
-	parent_gap: f32 = 16
-	parent_bg_fill := base.fill_color(102, 51, 153)
-	parent_cap_flags := ui.Capability_Flags{.Background}
-
 	ui.container(
 		ctx,
 		"parent",
-		ui.Config_Options {
-			layout = {
-				sizing = {&parent_sizing_x, &parent_sizing_y},
-				padding = &parent_padding,
-				layout_direction = &parent_dir,
-				alignment_x = &parent_align_x,
-				child_gap = &parent_gap,
-			},
-			background_fill = &parent_bg_fill,
-			capability_flags = &parent_cap_flags,
+		ui.Style {
+			sizing_x = ui.sizing_fit(min = 430, max = 630),
+			sizing_y = ui.sizing_fit(),
+			padding = ui.padding_all(16),
+			layout_direction = .Top_To_Bottom,
+			alignment_x = .Center,
+			child_gap = 16,
+			background_fill = base.fill_color(102, 51, 153),
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		proc(ctx: ^ui.Context) {
-			grow_sizing_x := ui.sizing_grow()
-			grow_sizing_y := ui.sizing_fit(min = 80)
-			grow_padding := ui.padding_xy(16, 32)
-			grow_gap: f32 = 32
-			grow_align_x := ui.Alignment_X.Left
-			grow_align_y := ui.Alignment_Y.Center
-			grow_bg_fill := base.fill_color(255, 0, 0)
-			grow_cap_flags := ui.Capability_Flags{.Background}
-			grow_clip := ui.Clip_Config{{true, false}}
-
 			ui.container(
 				ctx,
 				"grow",
-				ui.Config_Options {
-					layout = {
-						sizing = {&grow_sizing_x, &grow_sizing_y},
-						padding = &grow_padding,
-						child_gap = &grow_gap,
-						alignment_x = &grow_align_x,
-						alignment_y = &grow_align_y,
-					},
-					background_fill = &grow_bg_fill,
-					capability_flags = &grow_cap_flags,
-					clip = &grow_clip,
+				ui.Style {
+					sizing_x = ui.sizing_grow(),
+					sizing_y = ui.sizing_fit(min = 80),
+					padding = ui.padding_xy(16, 32),
+					child_gap = 32,
+					alignment_x = .Left,
+					alignment_y = .Center,
+					background_fill = base.fill_color(255, 0, 0),
+					capability_flags = ui.Capability_Flags{.Background},
+					clip = ui.Clip_Config{{true, false}},
 				},
 				proc(ctx: ^ui.Context) {
-					fit_sizing := ui.sizing_fit()
-					fit_bg_fill := base.fill_color(157, 125, 172)
-					fit_cap_flags := ui.Capability_Flags{.Background}
-
 					ui.container(
 						ctx,
 						"fit",
-						ui.Config_Options {
-							layout = {sizing = {&fit_sizing, &fit_sizing}},
-							background_fill = &fit_bg_fill,
-							capability_flags = &fit_cap_flags,
+						ui.Style {
+							sizing_x = ui.sizing_fit(),
+							sizing_y = ui.sizing_fit(),
+							background_fill = base.fill_color(157, 125, 172),
+							capability_flags = ui.Capability_Flags{.Background},
 						},
 						proc(ctx: ^ui.Context) {
 							ui.text(ctx, "text", "one two three four")
@@ -760,60 +683,38 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 
 	ui.begin(ctx)
 
-	parent_sizing_x := ui.sizing_percent(1.0)
-	parent_sizing_y := ui.sizing_percent(1.0)
-	parent_padding := ui.padding_all(16)
-	parent_dir := ui.Layout_Direction.Top_To_Bottom
-	parent_align_x := ui.Alignment_X.Center
-	parent_gap: f32 = 16
-	parent_bg_fill := base.fill_color(102, 51, 153)
-	parent_cap_flags := ui.Capability_Flags{.Background}
-
 	ui.container(
 		ctx,
 		"parent",
-		ui.Config_Options {
-			layout = {
-				sizing = {&parent_sizing_x, &parent_sizing_y},
-				padding = &parent_padding,
-				layout_direction = &parent_dir,
-				alignment_x = &parent_align_x,
-				child_gap = &parent_gap,
-			},
-			background_fill = &parent_bg_fill,
-			capability_flags = &parent_cap_flags,
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			padding = ui.padding_all(16),
+			layout_direction = .Top_To_Bottom,
+			alignment_x = .Center,
+			child_gap = 16,
+			background_fill = base.fill_color(102, 51, 153),
+			capability_flags = ui.Capability_Flags{.Background},
 		},
 		complex_ui_data,
 		proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
-
-			item_sizing_x := ui.sizing_grow()
-			item_sizing_y := ui.sizing_fit(min = 80)
-			item_padding := ui.padding_xy(16, 32)
-			item_gap: f32 = 32
-			item_align_x := ui.Alignment_X.Left
-			item_align_y := ui.Alignment_Y.Center
-			item_border_radius := ui.border_radius_all(4)
-			item_bg_fill := base.fill_color(255, 125, 172)
-			item_clip := ui.Clip_Config{{true, true}}
-			item_cap_flags := ui.Capability_Flags{.Background}
 
 			for item, idx in data.items {
 				data.idx = idx
 				ui.container(
 					ctx,
 					item,
-					ui.Config_Options {
-						layout = {
-							sizing = {&item_sizing_x, &item_sizing_y},
-							padding = &item_padding,
-							child_gap = &item_gap,
-							alignment_x = &item_align_x,
-							alignment_y = &item_align_y,
-							border_radius = &item_border_radius,
-						},
-						background_fill = &item_bg_fill,
-						clip = &item_clip,
-						capability_flags = &item_cap_flags,
+					ui.Style {
+						sizing_x = ui.sizing_grow(),
+						sizing_y = ui.sizing_fit(min = 80),
+						padding = ui.padding_xy(16, 32),
+						child_gap = 32,
+						alignment_x = .Left,
+						alignment_y = .Center,
+						border_radius = ui.border_radius_all(4),
+						background_fill = base.fill_color(255, 125, 172),
+						clip = ui.Clip_Config{{true, true}},
+						capability_flags = ui.Capability_Flags{.Background},
 					},
 					data,
 					proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
@@ -822,30 +723,20 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 						id := strings.to_string(data.builder)
 
 						// Config for the text container
-						text_sizing_grow := ui.sizing_grow()
 						ui.container(
 							ctx,
 							id,
-							ui.Config_Options {
-								layout = {sizing = {&text_sizing_grow, &text_sizing_grow}},
-							},
+							ui.Style{sizing_x = ui.sizing_grow(), sizing_y = ui.sizing_grow()},
 							data,
 							proc(ctx: ^ui.Context, data: ^Complex_UI_Data) {
 								item := data.items[data.idx]
 								strings.write_int(&data.builder, len(data.items) + data.idx)
 								text_id := strings.to_string(data.builder)
-								text_alignment_x := ui.Alignment_X.Left
-								text_alignment_y := ui.Alignment_Y.Center
 								ui.text(
 									ctx,
 									text_id,
 									item,
-									ui.Config_Options {
-										layout = {
-											text_alignment_x = &text_alignment_x,
-											text_alignment_y = &text_alignment_y,
-										},
-									},
+									ui.Style{text_alignment_x = .Left, text_alignment_y = .Center},
 								)
 							},
 						)
@@ -853,18 +744,21 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 						strings.write_int(&data.builder, len(data.items) + data.idx + 13 * 100)
 						image_id := strings.to_string(data.builder)
 
-						// Config for the image container
-						image_sizing := ui.sizing_fixed(64)
-						image_cap_flags := ui.Capability_Flags{.Image}
-						ui.container(
+						// Config for the image container - content set after element creation
+						if img_elem, ok := ui.open_element(
 							ctx,
 							image_id,
-							ui.Config_Options {
-								layout = {sizing = {&image_sizing, &image_sizing}},
-								capability_flags = &image_cap_flags,
-								content = {image_data = rawptr(&data.item_texture_idxs[data.idx])},
+							ui.Style {
+								sizing_x = ui.sizing_fixed(64),
+								sizing_y = ui.sizing_fixed(64),
+								capability_flags = ui.Capability_Flags{.Image},
 							},
-						)
+						); ok {
+							img_elem.config.content.image_data = rawptr(
+								&data.item_texture_idxs[data.idx],
+							)
+							ui.close_element(ctx)
+						}
 					},
 				)
 			}

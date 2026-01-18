@@ -56,13 +56,12 @@ make_slider_row :: proc(
 	if ui.begin_container(
 		ctx,
 		fmt.tprintf("%s_slider_row", id_suffix),
-		ui.Config_Options {
-			layout = {
-				sizing = {&row_sizing.x, &row_sizing.y},
-				layout_direction = &row_layout_dir,
-				alignment_y = &row_align_y,
-				child_gap = &row_chlid_gap,
-			},
+		ui.Style {
+			sizing_x = row_sizing.x,
+			sizing_y = row_sizing.y,
+			layout_direction = row_layout_dir,
+			alignment_y = row_align_y,
+			child_gap = row_chlid_gap,
 		},
 	) {
 
@@ -74,10 +73,7 @@ make_slider_row :: proc(
 			ctx,
 			fmt.tprintf("%s_label", id_suffix),
 			label,
-			ui.Config_Options {
-				layout = {sizing = {&label_sizing.x, &label_sizing.y}},
-				text_fill = &text_fill,
-			},
+			ui.Style{sizing_x = label_sizing.x, sizing_y = label_sizing.y, text_fill = text_fill},
 		)
 
 		comm = ui.slider(
@@ -103,11 +99,10 @@ make_slider_row :: proc(
 			ctx,
 			fmt.tprintf("%s_value", id_suffix),
 			strings.to_string(sb^),
-			ui.Config_Options {
-				layout = {
-					sizing = {&value_sizing.x, &value_sizing.y},
-					text_alignment_x = &value_align_x,
-				},
+			ui.Style {
+				sizing_x = value_sizing.x,
+				sizing_y = value_sizing.y,
+				text_alignment_x = value_align_x,
 			},
 		)
 
@@ -127,18 +122,16 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		main_panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
 		main_panel_align_x := ui.Alignment_X.Center
 		main_panel_align_y := ui.Alignment_Y.Center
-		main_panel_caps := ui.Capability_Flags{.Background}
 
 		if ui.begin_container(
 			ctx,
 			"main_panel",
-			ui.Config_Options {
-				layout = {
-					sizing = {&main_panel_sizing.x, &main_panel_sizing.y},
-					alignment_x = &main_panel_align_x,
-					alignment_y = &main_panel_align_y,
-				},
-				capability_flags = &main_panel_caps,
+			ui.Style {
+				sizing_x = main_panel_sizing.x,
+				sizing_y = main_panel_sizing.y,
+				alignment_x = main_panel_align_x,
+				alignment_y = main_panel_align_y,
+				capability_flags = ui.Capability_Flags{.Background},
 			},
 		) {
 
@@ -149,22 +142,19 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 10
 			panel_bg := base.fill(PANEL_BG)
-			panel_caps := ui.Capability_Flags{.Background}
 
 			if ui.begin_container(
 				ctx,
 				"panel",
-				ui.Config_Options {
-					layout = {
-						alignment_x = &panel_align_x,
-						alignment_y = &panel_align_y,
-						layout_direction = &panel_layout_dir,
-						padding = &panel_padding,
-						child_gap = &panel_child_gap,
-						border_radius = &panel_border_radius,
-					},
-					background_fill = &panel_bg,
-					capability_flags = &panel_caps,
+				ui.Style {
+					alignment_x = panel_align_x,
+					alignment_y = panel_align_y,
+					layout_direction = panel_layout_dir,
+					padding = panel_padding,
+					child_gap = panel_child_gap,
+					border_radius = panel_border_radius,
+					background_fill = panel_bg,
+					capability_flags = ui.Capability_Flags{.Background},
 				},
 			) {
 
@@ -197,16 +187,15 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				ui.container(
 					ctx,
 					"color_viewer",
-					ui.Config_Options {
-						layout = {
-							sizing = {&color_viewer_sizing.x, &color_viewer_sizing.y},
-							border_radius = &color_viewer_border_radius,
-							alignment_x = &color_viewer_align_x,
-							border = &border,
-						},
-						background_fill = &color_viewer_bg_fill,
-						border_fill = &border_fill,
-						capability_flags = &panel_caps,
+					ui.Style {
+						sizing_x = color_viewer_sizing.x,
+						sizing_y = color_viewer_sizing.y,
+						border_radius = color_viewer_border_radius,
+						alignment_x = color_viewer_align_x,
+						border = border,
+						background_fill = color_viewer_bg_fill,
+						border_fill = border_fill,
+						capability_flags = ui.Capability_Flags{.Background},
 					},
 				)
 
@@ -247,17 +236,16 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				if ui.begin_container(
 					ctx,
 					"hex_container",
-					ui.Config_Options {
-						layout = {
-							sizing = {&hex_sizing.x, &hex_sizing.y},
-							layout_direction = &hex_layout_dir,
-							alignment_y = &hex_align_y,
-							padding = &hex_padding,
-							border_radius = &hex_border_radius,
-							child_gap = &hex_child_gap,
-						},
-						background_fill = &hex_bg,
-						capability_flags = &panel_caps,
+					ui.Style {
+						sizing_x = hex_sizing.x,
+						sizing_y = hex_sizing.y,
+						layout_direction = hex_layout_dir,
+						alignment_y = hex_align_y,
+						padding = hex_padding,
+						border_radius = hex_border_radius,
+						child_gap = hex_child_gap,
+						background_fill = hex_bg,
+						capability_flags = ui.Capability_Flags{.Background},
 					},
 				) {
 
@@ -276,9 +264,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						ctx,
 						"hex_label",
 						hex_label_str,
-						ui.Config_Options {
-							layout = {sizing = {&hex_label_sizing.x, &hex_label_sizing.y}},
-						},
+						ui.Style{sizing_x = hex_label_sizing.x, sizing_y = hex_label_sizing.y},
 					)
 					input_bg := base.fill_color(0, 0, 0, 0)
 					hex_comm = ui.text_input(
@@ -286,7 +272,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						"hex_field",
 						data.buf,
 						&data.buf_len,
-						ui.Config_Options{background_fill = &input_bg},
+						ui.Style{background_fill = input_bg},
 					)
 
 					ui.end_container(ctx)

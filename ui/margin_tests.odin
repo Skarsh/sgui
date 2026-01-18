@@ -35,64 +35,47 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-		layout_dir := Layout_Direction.Left_To_Right
-		padding := &data.parent_padding
-
 		begin_container(
 			ctx,
 			"parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					layout_direction = &layout_dir,
-					padding = padding,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				layout_direction = .Left_To_Right,
+				padding = data.parent_padding,
 			},
 		)
 
 		// Child 1
-		child_1_sizing := [2]Sizing {
-			sizing_fixed(data.child_1_size.x),
-			sizing_fixed(data.child_1_size.y),
-		}
-		margin_1 := &data.child_1_margin
 		container(
 			ctx,
 			"child_1",
-			Config_Options {
-				layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}, margin = margin_1},
+			Style {
+				sizing_x = sizing_fixed(data.child_1_size.x),
+				sizing_y = sizing_fixed(data.child_1_size.y),
+				margin = data.child_1_margin,
 			},
 		)
 
 		// Child 2
-		child_2_sizing := [2]Sizing {
-			sizing_fixed(data.child_2_size.x),
-			sizing_fixed(data.child_2_size.y),
-		}
-		margin_2 := &data.child_2_margin
 		container(
 			ctx,
 			"child_2",
-			Config_Options {
-				layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}, margin = margin_2},
+			Style {
+				sizing_x = sizing_fixed(data.child_2_size.x),
+				sizing_y = sizing_fixed(data.child_2_size.y),
+				margin = data.child_2_margin,
 			},
 		)
 
 		// Child 3
-		child_3_sizing := [2]Sizing {
-			sizing_fixed(data.child_3_size.x),
-			sizing_fixed(data.child_3_size.y),
-		}
-		margin_3 := &data.child_3_margin
 		container(
 			ctx,
 			"child_3",
-			Config_Options {
-				layout = {sizing = {&child_3_sizing.x, &child_3_sizing.y}, margin = margin_3},
+			Style {
+				sizing_x = sizing_fixed(data.child_3_size.x),
+				sizing_y = sizing_fixed(data.child_3_size.y),
+				margin = data.child_3_margin,
 			},
 		)
 
@@ -182,50 +165,36 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-		layout_dir := Layout_Direction.Top_To_Bottom
-		padding := &data.parent_padding
-
 		begin_container(
 			ctx,
 			"parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					layout_direction = &layout_dir,
-					padding = padding,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				layout_direction = .Top_To_Bottom,
+				padding = data.parent_padding,
 			},
 		)
 
 		// Child 1
-		child_1_sizing := [2]Sizing {
-			sizing_fixed(data.child_1_size.x),
-			sizing_fixed(data.child_1_size.y),
-		}
-		margin_1 := &data.child_1_margin
 		container(
 			ctx,
 			"child_1",
-			Config_Options {
-				layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}, margin = margin_1},
+			Style {
+				sizing_x = sizing_fixed(data.child_1_size.x),
+				sizing_y = sizing_fixed(data.child_1_size.y),
+				margin = data.child_1_margin,
 			},
 		)
 
 		// Child 2
-		child_2_sizing := [2]Sizing {
-			sizing_fixed(data.child_2_size.x),
-			sizing_fixed(data.child_2_size.y),
-		}
-		margin_2 := &data.child_2_margin
 		container(
 			ctx,
 			"child_2",
-			Config_Options {
-				layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}, margin = margin_2},
+			Style {
+				sizing_x = sizing_fixed(data.child_2_size.x),
+				sizing_y = sizing_fixed(data.child_2_size.y),
+				margin = data.child_2_margin,
 			},
 		)
 
@@ -301,38 +270,30 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		grandparent_sizing := [2]Sizing{sizing_fixed(600), sizing_fixed(500)}
-
 		begin_container(
 			ctx,
 			"grandparent",
-			Config_Options{layout = {sizing = {&grandparent_sizing.x, &grandparent_sizing.y}}},
+			Style{sizing_x = sizing_fixed(600), sizing_y = sizing_fixed(500)},
 		)
-
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-		padding := &data.parent_padding
-		margin := &data.parent_margin
 
 		begin_container(
 			ctx,
 			"parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					padding = padding,
-					margin = margin,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				padding = data.parent_padding,
+				margin = data.parent_margin,
 			},
 		)
 
-		child_sizing := [2]Sizing{sizing_fixed(data.child_size.x), sizing_fixed(data.child_size.y)}
 		container(
 			ctx,
 			"child",
-			Config_Options{layout = {sizing = {&child_sizing.x, &child_sizing.y}}},
+			Style {
+				sizing_x = sizing_fixed(data.child_size.x),
+				sizing_y = sizing_fixed(data.child_size.y),
+			},
 		)
 
 		end_container(ctx) // parent
@@ -425,46 +386,33 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		parent_sizing := [2]Sizing {
-			sizing_fixed(data.parent_size.x),
-			sizing_fixed(data.parent_size.y),
-		}
-		layout_dir := Layout_Direction.Left_To_Right
-
 		begin_container(
 			ctx,
 			"parent",
-			Config_Options {
-				layout = {
-					sizing = {&parent_sizing.x, &parent_sizing.y},
-					layout_direction = &layout_dir,
-				},
+			Style {
+				sizing_x = sizing_fixed(data.parent_size.x),
+				sizing_y = sizing_fixed(data.parent_size.y),
+				layout_direction = .Left_To_Right,
 			},
 		)
 
-		child_1_sizing := [2]Sizing {
-			sizing_fixed(data.child_1_size.x),
-			sizing_fixed(data.child_1_size.y),
-		}
-		margin_1 := &data.child_1_margin
 		container(
 			ctx,
 			"child_1",
-			Config_Options {
-				layout = {sizing = {&child_1_sizing.x, &child_1_sizing.y}, margin = margin_1},
+			Style {
+				sizing_x = sizing_fixed(data.child_1_size.x),
+				sizing_y = sizing_fixed(data.child_1_size.y),
+				margin = data.child_1_margin,
 			},
 		)
 
-		child_2_sizing := [2]Sizing {
-			sizing_fixed(data.child_2_size.x),
-			sizing_fixed(data.child_2_size.y),
-		}
-		margin_2 := &data.child_2_margin
 		container(
 			ctx,
 			"child_2",
-			Config_Options {
-				layout = {sizing = {&child_2_sizing.x, &child_2_sizing.y}, margin = margin_2},
+			Style {
+				sizing_x = sizing_fixed(data.child_2_size.x),
+				sizing_y = sizing_fixed(data.child_2_size.y),
+				margin = data.child_2_margin,
 			},
 		)
 

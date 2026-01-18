@@ -13,7 +13,8 @@ Test_Data :: struct {}
 build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 	if ui.begin(ctx) {
 		// Main container
-		main_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
+		main_sizing_x := ui.sizing_percent(1.0)
+		main_sizing_y := ui.sizing_percent(1.0)
 		main_layout_dir := ui.Layout_Direction.Top_To_Bottom
 		main_padding := ui.padding_all(50)
 		main_child_gap: f32 = 30
@@ -22,19 +23,19 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 		if ui.begin_container(
 			ctx,
 			"main",
-			ui.Config_Options {
-				layout = {
-					sizing = {&main_sizing.x, &main_sizing.y},
-					layout_direction = &main_layout_dir,
-					padding = &main_padding,
-					child_gap = &main_child_gap,
-				},
-				background_fill = &main_bg,
+			ui.Style {
+				sizing_x = main_sizing_x,
+				sizing_y = main_sizing_y,
+				layout_direction = main_layout_dir,
+				padding = main_padding,
+				child_gap = main_child_gap,
+				background_fill = main_bg,
 			},
 		) {
 
 			// Test 1: Uniform border, uniform corner radii
-			test1_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
+			test1_sizing_x := ui.sizing_fixed(300)
+			test1_sizing_y := ui.sizing_fixed(100)
 			test1_border := ui.border_all(5)
 			test1_border_radius := ui.border_radius_all(10)
 			test1_border_fill := base.fill_color(255, 100, 100)
@@ -44,21 +45,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 			ui.container(
 				ctx,
 				"test1",
-				ui.Config_Options {
-					layout = {
-						sizing = {&test1_sizing.x, &test1_sizing.y},
-						border = &test1_border,
-						border_radius = &test1_border_radius,
-					},
-					background_fill = &test1_bg,
-					border_fill = &test1_border_fill,
-					capability_flags = &test1_caps,
+				ui.Style {
+					sizing_x = test1_sizing_x,
+					sizing_y = test1_sizing_y,
+					border = test1_border,
+					border_radius = test1_border_radius,
+					background_fill = test1_bg,
+					border_fill = test1_border_fill,
+					capability_flags = test1_caps,
 				},
 			)
 
 			// Test 2: Variable border widths, uniform corner radii
 			// Using asymmetry to make the shift very obvious
-			test2_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
+			test2_sizing_x := ui.sizing_fixed(300)
+			test2_sizing_y := ui.sizing_fixed(100)
 
 			// Thick right border
 			test2_border := ui.Border {
@@ -75,20 +76,20 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 			ui.container(
 				ctx,
 				"test2",
-				ui.Config_Options {
-					layout = {
-						sizing = {&test2_sizing.x, &test2_sizing.y},
-						border = &test2_border,
-						border_radius = &test2_border_radius,
-					},
-					background_fill = &test2_bg,
-					border_fill = &test2_border_fill,
-					capability_flags = &test2_caps,
+				ui.Style {
+					sizing_x = test2_sizing_x,
+					sizing_y = test2_sizing_y,
+					border = test2_border,
+					border_radius = test2_border_radius,
+					background_fill = test2_bg,
+					border_fill = test2_border_fill,
+					capability_flags = test2_caps,
 				},
 			)
 
 			// Test 3: Thick left border (should shift content RIGHT)
-			test3_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
+			test3_sizing_x := ui.sizing_fixed(300)
+			test3_sizing_y := ui.sizing_fixed(100)
 			test3_border := ui.Border {
 				left   = 50,
 				right  = 5,
@@ -103,20 +104,20 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 			ui.container(
 				ctx,
 				"test3",
-				ui.Config_Options {
-					layout = {
-						sizing = {&test3_sizing.x, &test3_sizing.y},
-						border = &test3_border,
-						border_radius = &test3_border_radius,
-					},
-					background_fill = &test3_bg,
-					border_fill = &test3_border_fill,
-					capability_flags = &test3_caps,
+				ui.Style {
+					sizing_x = test3_sizing_x,
+					sizing_y = test3_sizing_y,
+					border = test3_border,
+					border_radius = test3_border_radius,
+					background_fill = test3_bg,
+					border_fill = test3_border_fill,
+					capability_flags = test3_caps,
 				},
 			)
 
 			// Test 4: Variable border widths AND variable corner radii
-			test4_sizing := [2]ui.Sizing{ui.sizing_fixed(300), ui.sizing_fixed(100)}
+			test4_sizing_x := ui.sizing_fixed(300)
+			test4_sizing_y := ui.sizing_fixed(100)
 			test4_border := ui.Border {
 				left   = 8,
 				right  = 3,
@@ -131,15 +132,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 			ui.container(
 				ctx,
 				"test4",
-				ui.Config_Options {
-					layout = {
-						sizing = {&test4_sizing.x, &test4_sizing.y},
-						border = &test4_border,
-						border_radius = &test4_border_radius,
-					},
-					background_fill = &test4_bg,
-					border_fill = &test4_border_fill,
-					capability_flags = &test4_caps,
+				ui.Style {
+					sizing_x = test4_sizing_x,
+					sizing_y = test4_sizing_y,
+					border = test4_border,
+					border_radius = test4_border_radius,
+					background_fill = test4_bg,
+					border_fill = test4_border_fill,
+					capability_flags = test4_caps,
 				},
 			)
 

@@ -34,29 +34,23 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
 		ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
 
-		main_container_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
-
 		if ui.begin_container(
 			ctx,
 			"main_container",
-			ui.Config_Options {
-				layout = {sizing = {&main_container_sizing.x, &main_container_sizing.y}},
-			},
+			ui.Style{sizing_x = ui.sizing_percent(1.0), sizing_y = ui.sizing_percent(1.0)},
 		) {
 
 			counter_container_padding := ui.padding_all(10)
 			counter_container_child_gap: f32 = 10
-			counter_container_sizing := [2]ui.Sizing{ui.sizing_fixed(200), ui.sizing_fixed(70)}
 
 			if ui.begin_container(
 				ctx,
 				"counter_container",
-				ui.Config_Options {
-					layout = {
-						sizing = {&counter_container_sizing.x, &counter_container_sizing.y},
-						padding = &counter_container_padding,
-						child_gap = &counter_container_child_gap,
-					},
+				ui.Style {
+					sizing_x = ui.sizing_fixed(200),
+					sizing_y = ui.sizing_fixed(70),
+					padding = counter_container_padding,
+					child_gap = counter_container_child_gap,
 				},
 			) {
 				ui.push_border_fill(ctx, base.fill_color(24, 36, 0)); defer ui.pop_border_fill(ctx)
@@ -73,9 +67,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ctx,
 					"counter_text",
 					num_str,
-					ui.Config_Options {
-						border_fill = &counter_text_border_fill,
-						background_fill = &text_background_fill,
+					ui.Style {
+						border_fill = counter_text_border_fill,
+						background_fill = text_background_fill,
 					},
 				)
 
