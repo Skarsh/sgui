@@ -214,6 +214,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									task_id,
 									task.text,
 									ui.Style {
+										sizing_x = ui.sizing_grow(),
 										alignment_y = ui.Alignment_Y.Center,
 										text_alignment_y = ui.Alignment_Y.Center,
 										text_fill = base.fill(task_text_color),
@@ -230,6 +231,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									delete_button_id,
 									"Delete",
 									ui.Style {
+										sizing_x = ui.sizing_fit(),
 										border_radius = ui.border_radius_all(3.0),
 										background_fill = base.fill(DELETE_BUTTON_COLOR),
 									},

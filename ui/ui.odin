@@ -842,7 +842,7 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_style)
 
 	if open_ok {
-		element_equip_text(ctx, element, text, .Fixed)
+		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
 	append(&ctx.interactive_elements, element)
@@ -1088,7 +1088,7 @@ text_input :: proc(
 
 		buf_len^ = strings.builder_len(state.builder)
 
-		element_equip_text(ctx, element, text_content, .None)
+		element_equip_text(ctx, element, text_content)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt

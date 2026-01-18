@@ -105,21 +105,22 @@ Scroll_Region :: struct {
 // TODO(Thomas): Redundant data between the Element_Config and fields in this struct
 // e.g. sizes, etc.
 UI_Element :: struct {
-	parent:         ^UI_Element,
-	id_string:      string,
-	position:       base.Vec2,
-	min_size:       base.Vec2,
-	max_size:       base.Vec2,
-	size:           base.Vec2,
-	scroll_region:  Scroll_Region,
-	config:         Element_Config,
-	children:       [dynamic]^UI_Element,
-	fill:           base.Fill,
-	z_index:        i32,
-	hot:            f32,
-	active:         f32,
-	last_comm:      Comm,
-	last_frame_idx: u64,
+	parent:            ^UI_Element,
+	id_string:         string,
+	position:          base.Vec2,
+	min_size:          base.Vec2,
+	max_size:          base.Vec2,
+	size:              base.Vec2,
+	text_content_size: base.Vec2,
+	scroll_region:     Scroll_Region,
+	config:            Element_Config,
+	children:          [dynamic]^UI_Element,
+	fill:              base.Fill,
+	z_index:           i32,
+	hot:               f32,
+	active:            f32,
+	last_comm:         Comm,
+	last_frame_idx:    u64,
 }
 
 Sizing :: struct {
@@ -139,27 +140,20 @@ Element_Config :: struct {
 	content:          Element_Content,
 }
 
-Text_Sizing_Mode :: enum {
-	// Do not adjust element sizing
-	None,
-	// Set preferred size to text size, but respect element min/max and allow stretching
-	Grow,
-	// Force the element size to equal the text size exactly (Strict)
-	Fixed,
-}
-
+// Attaches text content to an element and records its intrinsic size.
+// The element's sizing mode (Fit, Fixed, Grow) determines how the text affects layout:
+// - Fit: Element sizes to fit text content
+// - Fixed: Element uses specified size, text renders within
+// - Grow: Element can grow/shrink, text wraps as needed
 element_equip_text :: proc(
 	ctx: ^Context,
 	element: ^UI_Element,
 	text: string,
-	mode: Text_Sizing_Mode = .Grow,
 	text_fill: base.Fill = {},
 ) {
-
 	element.config.capability_flags |= {.Text}
 
 	if element.config.text_fill.kind == .Not_Set {
-		// If no fill was passed, default to white
 		if text_fill.kind == .Not_Set {
 			element.config.text_fill = base.fill_color(255, 255, 255)
 		} else {
@@ -171,10 +165,7 @@ element_equip_text :: proc(
 		text = text,
 	}
 
-	if mode == .None {
-		return
-	}
-
+	// Measure text to record intrinsic content size
 	largest_line_width, text_height, _ := measure_text_content(
 		ctx,
 		text,
@@ -183,43 +174,33 @@ element_equip_text :: proc(
 	)
 	defer free_all(context.temp_allocator)
 
+	// Calculate total content size including text_padding and border
 	text_padding := element.config.layout.text_padding
 	border := element.config.layout.border
-	content_size := base.Vec2 {
+	element.text_content_size = base.Vec2 {
 		largest_line_width + text_padding.left + text_padding.right + border.left + border.right,
 		text_height + text_padding.top + text_padding.bottom + border.top + border.bottom,
 	}
 
-	sizing_kind_x := Size_Kind.Grow
-	target_size := content_size
+	// Set initial element size based on text content (for Fit/Grow sizing)
+	// Fixed sizing keeps its specified size
+	sizing_x := element.config.layout.sizing.x
+	sizing_y := element.config.layout.sizing.y
 
-	if mode == .Fixed {
-		// Override element oncstraints to match exactly
-		element.min_size.x = content_size.x
-		element.max_size.x = content_size.x
-		sizing_kind_x = .Fixed
-	} else {
-		// Clamp content size to element's existing constraints
-		target_size.x = math.clamp(content_size.x, element.min_size.x, element.max_size.x)
+	if sizing_x.kind != .Fixed {
+		element.size.x = math.clamp(
+			element.text_content_size.x,
+			element.min_size.x,
+			element.max_size.x,
+		)
 	}
 
-	// Height is always treated as .Grow
-	target_size.y = math.clamp(content_size.y, element.min_size.y, element.max_size.y)
-
-	element.size = target_size
-
-	element.config.layout.sizing.x = {
-		kind      = sizing_kind_x,
-		min_value = element.min_size.x,
-		value     = target_size.x,
-		max_value = element.max_size.x,
-	}
-
-	element.config.layout.sizing.y = {
-		kind      = .Grow,
-		min_value = element.min_size.y,
-		value     = target_size.y,
-		max_value = element.max_size.y,
+	if sizing_y.kind != .Fixed {
+		element.size.y = math.clamp(
+			element.text_content_size.y,
+			element.min_size.y,
+			element.max_size.y,
+		)
 	}
 }
 
@@ -258,6 +239,15 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 		for child in element.children {
 			content_size = max(content_size, child.size[axis])
 		}
+	}
+
+	// Also consider text content size (text_content_size already includes text_padding + border)
+	if .Text in element.config.capability_flags {
+		content_size = max(
+			content_size + padding_sum + border_sum,
+			element.text_content_size[axis],
+		)
+		return math.clamp(content_size, element.min_size[axis], element.max_size[axis])
 	}
 
 	// Add padding and borders
@@ -646,15 +636,55 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		text_padding := element.config.layout.text_padding
 		text := element.config.content.text_data.text
 
-		// TODO(Thomas): Using text_padding here like this doesn't seem entirely right,
-		// seems like a bug waiting to happen. I'm not sure whether `get_available_size`
-		// should calculate with or without text padding though...
-		available_size := get_available_size(element.size, text_padding, border)
-		_, h, lines := measure_text_content(ctx, text, available_size.x, allocator)
+		// Determine available width for text wrapping
+		// Use parent's available space if it's more constrained than element's size
+		element_available := get_available_size(element.size, text_padding, border)
+		wrap_width := element_available.x
+
+		if element.parent != nil {
+			parent := element.parent
+			parent_padding := parent.config.layout.padding
+			parent_border := parent.config.layout.border
+			parent_available := get_available_size(parent.size, parent_padding, parent_border)
+
+			// If parent has less space, use that and account for text's own padding/border
+			if parent_available.x < element.size.x {
+				wrap_width =
+					parent_available.x -
+					text_padding.left -
+					text_padding.right -
+					border.left -
+					border.right
+			}
+		}
+
+		_, h, lines := measure_text_content(ctx, text, wrap_width, allocator)
 
 		element.config.content.text_data.lines = lines[:]
-		if element.config.layout.sizing.y.kind == .Grow {
-			final_height := h + text_padding.top + text_padding.bottom + border.top + border.bottom
+
+		// Update text_content_size.y based on wrapped height
+		final_height := h + text_padding.top + text_padding.bottom + border.top + border.bottom
+		element.text_content_size.y = final_height
+
+		// Constrain element width to parent's available space for Fit sizing
+		sizing_x_kind := element.config.layout.sizing.x.kind
+		if sizing_x_kind == .Fit && element.parent != nil {
+			parent := element.parent
+			parent_padding := parent.config.layout.padding
+			parent_border := parent.config.layout.border
+			parent_available := get_available_size(parent.size, parent_padding, parent_border)
+			if parent_available.x < element.size.x {
+				element.size.x = math.clamp(
+					parent_available.x,
+					element.min_size.x,
+					element.max_size.x,
+				)
+			}
+		}
+
+		// Update element size for Fit and Grow sizing (not Fixed)
+		sizing_y_kind := element.config.layout.sizing.y.kind
+		if sizing_y_kind == .Fit || sizing_y_kind == .Grow {
 			element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
 		}
 	}
