@@ -3,6 +3,10 @@
 ## Active
 
 ## Bugs
+* Having the border be `ui.border_all(1)` in the dark theme button style in the themeing example,
+    makes the text wrap onto a new line. For this example that feels weird, and I think its just
+    showing a deeper problem that we've known about for a while when it comes to text and the different
+    sizing modes fit vs grow. We should probably think about how this should be solved properly.
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
