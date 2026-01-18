@@ -284,6 +284,77 @@ resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) ->
 	return config
 }
 
+// Theme holds default Styles for each widget type.
+// Widgets use these as their default styles, which can be overridden per-call.
+Theme :: struct {
+	button:     Style,
+	text_input: Style,
+	checkbox:   Style,
+	slider:     Style,
+	panel:      Style,
+	label:      Style,
+}
+
+default_theme :: proc() -> Theme {
+	return Theme {
+		button = Style {
+			sizing_x = sizing_grow(),
+			sizing_y = sizing_grow(),
+			text_padding = padding_all(10),
+			text_alignment_x = .Center,
+			background_fill = base.fill_color(60, 60, 65),
+			text_fill = base.fill_color(230, 230, 230),
+			border_radius = border_radius_all(4),
+			capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
+		},
+		text_input = Style {
+			sizing_x = sizing_grow(),
+			sizing_y = sizing_fixed(40),
+			padding = padding_xy(8, 12),
+			background_fill = base.fill_color(30, 30, 35),
+			text_fill = base.fill_color(230, 230, 230),
+			border = border_all(1),
+			border_fill = base.fill_color(80, 80, 85),
+			border_radius = border_radius_all(4),
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Focusable,
+				.Hot_Animation,
+			},
+		},
+		checkbox = Style {
+			sizing_x = sizing_fixed(24),
+			sizing_y = sizing_fixed(24),
+			background_fill = base.fill_color(45, 45, 50),
+			border = border_all(2),
+			border_fill = base.fill_color(80, 80, 85),
+			border_radius = border_radius_all(4),
+			capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
+		},
+		slider = Style {
+			sizing_x = sizing_grow(),
+			sizing_y = sizing_fixed(20),
+			background_fill = base.fill_color(40, 40, 45),
+			border_radius = border_radius_all(2),
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Focusable,
+				.Hot_Animation,
+			},
+		},
+		panel = Style {
+			padding = padding_all(16),
+			background_fill = base.fill_color(35, 35, 40),
+			border_radius = border_radius_all(8),
+			capability_flags = Capability_Flags{.Background},
+		},
+		label = Style{text_fill = base.fill_color(230, 230, 230)},
+	}
+}
+
+
 // Merges two styles - style b overrides style a for any "set" fields
 merge_styles :: proc(a, b: Style) -> Style {
 	result := a

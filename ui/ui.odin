@@ -127,6 +127,8 @@ UI_Element_Text_Input_State :: struct {
 	caret_blink_timer: f32,
 }
 
+THEME_STACK_SIZE :: #config(SUI_THEME_STACK_SIZE, 8)
+
 Context :: struct {
 	persistent_allocator:    mem.Allocator,
 	frame_allocator:         mem.Allocator,
@@ -173,6 +175,9 @@ Context :: struct {
 	font_id:                 u16,
 	window_size:             [2]i32,
 	active_element:          ^UI_Element,
+	// Theme support
+	theme:                   Theme,
+	theme_stack:             Stack(Theme, THEME_STACK_SIZE),
 }
 
 Capability :: enum {
@@ -241,6 +246,9 @@ init :: proc(
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.text_input_states = make(map[UI_Key]UI_Element_Text_Input_State, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
+
+	// Initialize default theme
+	ctx.theme = default_theme()
 }
 
 set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
@@ -1325,4 +1333,28 @@ push_border_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {
 
 pop_border_fill :: proc(ctx: ^Context) -> (base.Fill, bool) {
 	return pop(&ctx.border_fill_stack)
+}
+
+set_theme :: proc(ctx: ^Context, theme: Theme) {
+	ctx.theme = theme
+}
+
+get_theme :: proc(ctx: ^Context) -> Theme {
+	return ctx.theme
+}
+
+push_theme :: proc(ctx: ^Context, theme: Theme) -> bool {
+	if push(&ctx.theme_stack, ctx.theme) {
+		ctx.theme = theme
+		return true
+	}
+	return false
+}
+
+pop_theme :: proc(ctx: ^Context) -> bool {
+	if theme, ok := pop(&ctx.theme_stack); ok {
+		ctx.theme = theme
+		return true
+	}
+	return false
 }
