@@ -184,9 +184,10 @@ element_equip_text :: proc(
 	defer free_all(context.temp_allocator)
 
 	text_padding := element.config.layout.text_padding
+	border := element.config.layout.border
 	content_size := base.Vec2 {
-		largest_line_width + text_padding.left + text_padding.right,
-		text_height + text_padding.top + text_padding.bottom,
+		largest_line_width + text_padding.left + text_padding.right + border.left + border.right,
+		text_height + text_padding.top + text_padding.bottom + border.top + border.bottom,
 	}
 
 	sizing_kind_x := Size_Kind.Grow
@@ -653,7 +654,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 
 		element.config.content.text_data.lines = lines[:]
 		if element.config.layout.sizing.y.kind == .Grow {
-			final_height := h + text_padding.top + text_padding.bottom
+			final_height := h + text_padding.top + text_padding.bottom + border.top + border.bottom
 			element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
 		}
 	}

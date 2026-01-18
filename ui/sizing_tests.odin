@@ -2516,3 +2516,94 @@ test_fit_sizing_respects_min_size_constraint :: proc(t: ^testing.T) {
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
 }
+
+
+@(test)
+test_text_element_size_includes_border :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Data ---
+	Test_Data :: struct {
+		root_size:    base.Vec2,
+		text_string:  string,
+		text_padding: Padding,
+		border:       Border,
+	}
+
+	test_data := Test_Data {
+		root_size = {500, 500},
+		text_string = "Button",
+		text_padding = Padding{left = 12, top = 8, right = 12, bottom = 8},
+		border = Border{left = 2, top = 2, right = 2, bottom = 2},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"wrapper",
+			Style{sizing_x = sizing_fit(), sizing_y = sizing_fit()},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				button(
+					ctx,
+					"test_button",
+					data.text_string,
+					Style{text_padding = data.text_padding, border = data.border},
+				)
+			},
+		)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// Calculate expected size:
+		text_width: f32 = 6 * MOCK_LINE_HEIGHT // "Button" = 6 chars
+		text_height: f32 = MOCK_LINE_HEIGHT
+
+		// Expected button size should include text + text_padding + border
+		expected_width :=
+			text_width +
+			data.text_padding.left +
+			data.text_padding.right +
+			data.border.left +
+			data.border.right
+
+		expected_height :=
+			text_height +
+			data.text_padding.top +
+			data.text_padding.bottom +
+			data.border.top +
+			data.border.bottom
+
+		// The wrapper container with .Fit sizing should shrink-wrap to the button size
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = {0, 0},
+			size     = data.root_size,
+			children = []Expected_Element {
+				{
+					id = "wrapper",
+					pos = {0, 0},
+					size = {expected_width, expected_height},
+					children = []Expected_Element {
+						{
+							id = "test_button",
+							pos = {0, 0},
+							size = {expected_width, expected_height},
+						},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree)
+	}
+
+	// --- 4. Run the Test ---
+	run_ui_test(
+		t,
+		build_ui_proc,
+		verify_proc,
+		&test_data,
+		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
+	)
+}
