@@ -827,8 +827,8 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 
 button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	default_style := Style {
-		sizing_x = sizing_grow(),
-		sizing_y = sizing_grow(),
+		sizing_x = sizing_fit(),
+		sizing_y = sizing_fit(),
 		padding = padding_all(10),
 		text_alignment_x = .Center,
 		background_fill = base.fill_color(24, 24, 24),

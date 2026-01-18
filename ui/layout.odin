@@ -640,6 +640,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		element_available := get_available_size(element.size, padding, border)
 		wrap_width := element_available.x
 
+		sizing_x_kind := element.config.layout.sizing.x.kind
 		if element.parent != nil {
 			parent := element.parent
 			parent_padding := parent.config.layout.padding
@@ -651,6 +652,17 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 				wrap_width =
 					parent_available.x - padding.left - padding.right - border.left - border.right
 			}
+
+			// Constrain element width to parent's available space for Fit sizing
+			if sizing_x_kind == .Fit {
+				if parent_available.x < element.size.x {
+					element.size.x = math.clamp(
+						parent_available.x,
+						element.min_size.x,
+						element.max_size.x,
+					)
+				}
+			}
 		}
 
 		_, h, lines := measure_text_content(ctx, text, wrap_width, allocator)
@@ -660,22 +672,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		// Update text_content_size.y based on wrapped height
 		final_height := h + padding.top + padding.bottom + border.top + border.bottom
 		element.text_content_size.y = final_height
-
-		// Constrain element width to parent's available space for Fit sizing
-		sizing_x_kind := element.config.layout.sizing.x.kind
-		if sizing_x_kind == .Fit && element.parent != nil {
-			parent := element.parent
-			parent_padding := parent.config.layout.padding
-			parent_border := parent.config.layout.border
-			parent_available := get_available_size(parent.size, parent_padding, parent_border)
-			if parent_available.x < element.size.x {
-				element.size.x = math.clamp(
-					parent_available.x,
-					element.min_size.x,
-					element.max_size.x,
-				)
-			}
-		}
 
 		// Update element size for Fit and Grow sizing (not Fixed)
 		sizing_y_kind := element.config.layout.sizing.y.kind
