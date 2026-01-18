@@ -19,7 +19,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 		ui.push_background_fill(
 			ctx,
-			base.Fill(base.Color{30, 30, 30, 255}),
+			base.fill_color(30, 30, 30),
 		); defer ui.pop_background_fill(ctx)
 
 		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
@@ -61,7 +61,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				bottom = 10,
 				left   = 10,
 			}
-			title_bg := base.Fill(base.Color{60, 60, 80, 255})
+			title_bg := base.fill_color(60, 60, 80)
 
 			ui.text(
 				ctx,
@@ -85,7 +85,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				left   = 20,
 			}
 			boxes_child_gap: f32 = 0 // No gap, we'll use margins instead
-			boxes_bg := base.Fill(base.Color{50, 50, 50, 255})
+			boxes_bg := base.fill_color(50, 50, 50)
 			boxes_layout_dir := ui.Layout_Direction.Left_To_Right
 
 			if ui.begin_container(
@@ -109,7 +109,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					bottom = 10,
 					left   = 10,
 				}
-				box1_bg := base.Fill(base.Color{200, 100, 100, 255})
+				box1_bg := base.fill_color(200, 100, 100)
 
 				ui.container(
 					ctx,
@@ -131,7 +131,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					bottom = 40,
 					left   = 40,
 				}
-				box2_bg := base.Fill(base.Color{100, 200, 100, 255})
+				box2_bg := base.fill_color(100, 200, 100)
 
 				ui.container(
 					ctx,
@@ -153,7 +153,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					bottom = 30,
 					left   = 80,
 				}
-				box3_bg := base.Fill(base.Color{100, 100, 200, 255})
+				box3_bg := base.fill_color(100, 100, 200)
 
 				ui.container(
 					ctx,

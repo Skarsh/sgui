@@ -81,12 +81,12 @@ add_new_task :: proc(data: ^Data) {
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
 		// --- Global Style Scope ---
-		ui.push_background_fill(ctx, base.Fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
+		ui.push_background_fill(ctx, base.fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
 		ui.push_capability_flags(
 			ctx,
 			ui.Capability_Flags{.Background},
 		); defer ui.pop_capability_flags(ctx)
-		ui.push_text_fill(ctx, base.Fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
+		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
 		// --- Main Panel (centered) ---
 		main_panel_sizing := [2]ui.Sizing {
@@ -122,7 +122,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			panel_border_radius := base.Vec4{10, 10, 10, 10}
 			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
 			panel_child_gap: f32 = 15
-			panel_bg := base.Fill(PANEL_BG)
+			panel_bg := base.fill(PANEL_BG)
 
 			if ui.begin_container(
 				ctx,
@@ -141,7 +141,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				// --- Title ---
 				title_text_align_x := ui.Alignment_X.Center
 				title_sizing := [2]ui.Sizing{{kind = .Grow}, {kind = .Grow, max_value = 50}}
-				title_bg_fill := base.Fill(base.Color{0, 0, 0, 0})
+				title_bg_fill := base.fill_color(0, 0, 0, 0)
 				ui.text(
 					ctx,
 					"title",
@@ -165,8 +165,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					bottom = 10,
 					left   = 5,
 				}
-				list_wrapper_border_fill := base.Fill(base.Color{100, 69, 69, 255})
-				list_wrapper_bg := base.Fill(base.Color{50, 50, 55, 255})
+				list_wrapper_border_fill := base.fill_color(100, 69, 69)
+				list_wrapper_bg := base.fill_color(50, 50, 55)
 				list_wrapper_padding := ui.Padding{5, 5, 5, 5}
 				if ui.begin_container(
 					ctx,
@@ -228,7 +228,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 							ui.push_background_fill(
 								ctx,
-								base.Fill(ROW_BG),
+								base.fill(ROW_BG),
 							); defer ui.pop_background_fill(ctx)
 
 							if ui.begin_container(
@@ -251,7 +251,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									current_checkbox_color = CHECKBOX_DONE_BG
 								}
 
-								checkbox_bg_fill := base.Fill(current_checkbox_color)
+								checkbox_bg_fill := base.fill(current_checkbox_color)
 
 								ui.checkbox(
 									ctx,
@@ -259,7 +259,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									&task.completed,
 									ui.Shape_Data {
 										ui.Shape_Kind.Checkmark,
-										base.Fill(base.Color{255, 255, 255, 255}),
+										base.fill_color(255, 255, 255),
 										2.0,
 									},
 									ui.Config_Options{background_fill = &checkbox_bg_fill},
@@ -278,7 +278,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									task_text_color = COMPLETED_TEXT_COLOR
 								}
 
-								task_text_fill := base.Fill(task_text_color)
+								task_text_fill := base.fill(task_text_color)
 
 								ui.text(
 									ctx,
@@ -298,7 +298,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 								// --- Delete Button ---
 								delete_border_radius := base.Vec4{3.0, 3.0, 3.0, 3.0}
-								delete_bg_fill := base.Fill(DELETE_BUTTON_COLOR)
+								delete_bg_fill := base.fill(DELETE_BUTTON_COLOR)
 								delete_button_id := fmt.tprintf("task_delete_button_%d", i)
 								delete_comm := ui.button(
 									ctx,
@@ -328,7 +328,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					scrollbar_border_radius := base.Vec4{6.0, 6.0, 6.0, 6.0}
 
 					// Transparent track
-					scrollbar_bg := base.Fill(base.Color{0, 0, 0, 0})
+					scrollbar_bg := base.fill_color(0, 0, 0, 0)
 
 					ui.scrollbar(
 						ctx,
@@ -348,7 +348,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				}
 
 
-				spacer_bg_fill := base.Fill(base.Color{0, 0, 0, 0})
+				spacer_bg_fill := base.fill_color(0, 0, 0, 0)
 				ui.spacer(ctx, opts = ui.Config_Options{background_fill = &spacer_bg_fill})
 
 				// --- Add Task Panel ---
@@ -368,7 +368,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				) {
 					// --- Text Input field ---
-					input_bg := base.Fill(ITEM_BG)
+					input_bg := base.fill(ITEM_BG)
 
 					input_comm = ui.text_input(
 						ctx,
@@ -379,7 +379,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					)
 
 					// --- Add Button ---
-					add_button_fill := base.Fill(ADD_BUTTON_COLOR)
+					add_button_fill := base.fill(ADD_BUTTON_COLOR)
 					add_button_comm = ui.button(
 						ctx,
 						"add_task_button",

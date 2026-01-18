@@ -22,15 +22,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 		ui.push_background_fill(
 			ctx,
-			base.Fill(base.Color{55, 55, 55, 255}),
+			base.fill_color(55, 55, 55),
 		); defer ui.pop_background_fill(ctx)
 
 		ui.push_border(ctx, {5, 5, 5, 5}); defer ui.pop_border(ctx)
 		ui.push_border_radius(ctx, {5, 5, 5, 5}); defer ui.pop_border_radius(ctx)
-		ui.push_border_fill(
-			ctx,
-			base.Fill(base.Color{24, 36, 55, 255}),
-		); defer ui.pop_border_fill(ctx)
+		ui.push_border_fill(ctx, base.fill_color(24, 36, 55)); defer ui.pop_border_fill(ctx)
 
 		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
 		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
@@ -73,19 +70,16 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				},
 			) {
-				ui.push_border_fill(
-					ctx,
-					base.Fill(base.Color{24, 36, 0, 255}),
-				); defer ui.pop_border_fill(ctx)
+				ui.push_border_fill(ctx, base.fill_color(24, 36, 0)); defer ui.pop_border_fill(ctx)
 
-				counter_text_border_fill := base.Fill(base.Color{0, 0, 0, 0})
+				counter_text_border_fill := base.fill_color(0, 0, 0, 0)
 
 				strings.write_int(&data.sb, data.counter)
 				num_str := strings.to_string(data.sb)
 				defer strings.builder_reset(&data.sb)
 
 
-				text_background_fill := base.Fill(base.Color{0, 0, 0, 0})
+				text_background_fill := base.fill_color(0, 0, 0, 0)
 				ui.text(
 					ctx,
 					"counter_text",
@@ -98,7 +92,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 				ui.push_background_fill(
 					ctx,
-					base.Fill(base.Color{95, 95, 95, 255}),
+					base.fill_color(95, 95, 95),
 				); defer ui.pop_background_fill(ctx)
 				ui.push_border(ctx, {2, 2, 2, 2}); defer ui.pop_border(ctx)
 

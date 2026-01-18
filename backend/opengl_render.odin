@@ -354,34 +354,36 @@ opengl_render_end :: proc(
 			border_color_start, border_color_end: base.Vec4
 			border_gradient_dir: base.Vec2
 
-			switch fill in val.fill {
-			case base.Color:
-				color := base.color_to_vec4(fill)
+			switch val.fill.kind {
+			case .Solid:
+				color := base.color_to_vec4(val.fill.color)
 				color_start = color
 				color_end = color
 				gradient_dir = {0, 0}
-
-			case base.Gradient:
-				cs := fill.color_start
-				ce := fill.color_end
-				color_start = base.color_to_vec4(cs)
-				color_end = base.color_to_vec4(ce)
-				gradient_dir = fill.direction
+			case .Gradient:
+				color_start = base.color_to_vec4(val.fill.gradient.color_start)
+				color_end = base.color_to_vec4(val.fill.gradient.color_end)
+				gradient_dir = val.fill.gradient.direction
+			case .Not_Set, .None:
+				color_start = {0, 0, 0, 0}
+				color_end = {0, 0, 0, 0}
+				gradient_dir = {0, 0}
 			}
 
-			switch border_fill in val.border_fill {
-			case base.Color:
-				color := base.color_to_vec4(border_fill)
+			switch val.border_fill.kind {
+			case .Solid:
+				color := base.color_to_vec4(val.border_fill.color)
 				border_color_start = color
 				border_color_end = color
 				border_gradient_dir = {0, 0}
-
-			case base.Gradient:
-				cs := border_fill.color_start
-				ce := border_fill.color_end
-				border_color_start = base.color_to_vec4(cs)
-				border_color_end = base.color_to_vec4(ce)
-				border_gradient_dir = border_fill.direction
+			case .Gradient:
+				border_color_start = base.color_to_vec4(val.border_fill.gradient.color_start)
+				border_color_end = base.color_to_vec4(val.border_fill.gradient.color_end)
+				border_gradient_dir = val.border_fill.gradient.direction
+			case .Not_Set, .None:
+				border_color_start = {0, 0, 0, 0}
+				border_color_end = {0, 0, 0, 0}
+				border_gradient_dir = {0, 0}
 			}
 
 			if batch.quad_idx >= MAX_QUADS {
@@ -431,14 +433,18 @@ opengl_render_end :: proc(
 			color_end: base.Vec4
 			gradient_dir: base.Vec2
 
-			switch fill in val.fill {
-			case base.Color:
-				color := base.color_to_vec4(fill)
+			switch val.fill.kind {
+			case .Solid:
+				color := base.color_to_vec4(val.fill.color)
 				color_start = color
 				color_end = color
 				gradient_dir = {0, 0}
-			case base.Gradient:
-				panic("TODO: Impelement")
+			case .Gradient:
+				panic("TODO: Implement gradient text")
+			case .Not_Set, .None:
+				color_start = {0, 0, 0, 0}
+				color_end = {0, 0, 0, 0}
+				gradient_dir = {0, 0}
 			}
 
 			// Measure space width once for tab character handling
@@ -590,18 +596,20 @@ opengl_render_end :: proc(
 			color_end: base.Vec4
 			gradient_dir: base.Vec2
 
-			switch fill in val.data.fill {
-			case base.Color:
-				color := base.color_to_vec4(fill)
+			switch val.data.fill.kind {
+			case .Solid:
+				color := base.color_to_vec4(val.data.fill.color)
 				color_start = color
 				color_end = color
 				gradient_dir = {0, 0}
-			case base.Gradient:
-				cs := fill.color_start
-				ce := fill.color_end
-				color_start = base.color_to_vec4(cs)
-				color_end = base.color_to_vec4(ce)
-				gradient_dir = fill.direction
+			case .Gradient:
+				color_start = base.color_to_vec4(val.data.fill.gradient.color_start)
+				color_end = base.color_to_vec4(val.data.fill.gradient.color_end)
+				gradient_dir = val.data.fill.gradient.direction
+			case .Not_Set, .None:
+				color_start = {0, 0, 0, 0}
+				color_end = {0, 0, 0, 0}
+				gradient_dir = {0, 0}
 			}
 
 			if batch.quad_idx >= MAX_QUADS {

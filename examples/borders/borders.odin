@@ -20,7 +20,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 		main_layout_dir := ui.Layout_Direction.Top_To_Bottom
 		main_padding := ui.Padding{50, 50, 50, 50}
 		main_child_gap: f32 = 30
-		main_bg := base.Fill(base.Color{30, 30, 30, 255})
+		main_bg := base.fill_color(30, 30, 30)
 
 		if ui.begin_container(
 			ctx,
@@ -48,8 +48,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 				bottom = 5,
 			}
 			test1_border_radius := base.Vec4{10, 10, 10, 10}
-			test1_border_fill := base.Fill(base.Color{255, 100, 100, 255})
-			test1_bg := base.Fill(base.Color{100, 100, 255, 255})
+			test1_border_fill := base.fill_color(255, 100, 100)
+			test1_bg := base.fill_color(100, 100, 255)
 			test1_caps := ui.Capability_Flags{.Background}
 
 			ui.container(
@@ -82,8 +82,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 				bottom = 5,
 			}
 			test2_border_radius := base.Vec4{15, 15, 15, 15}
-			test2_border_fill := base.Fill(base.Color{100, 255, 100, 255})
-			test2_bg := base.Fill(base.Color{255, 200, 100, 255})
+			test2_border_fill := base.fill_color(100, 255, 100)
+			test2_bg := base.fill_color(255, 200, 100)
 			test2_caps := ui.Capability_Flags{.Background}
 
 			ui.container(
@@ -113,8 +113,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 				bottom = 5,
 			}
 			test3_border_radius := base.Vec4{15, 15, 15, 15}
-			test3_border_fill := base.Fill(base.Color{255, 255, 100, 255})
-			test3_bg := base.Fill(base.Color{100, 255, 255, 255})
+			test3_border_fill := base.fill_color(255, 255, 100)
+			test3_bg := base.fill_color(100, 255, 255)
 			test3_caps := ui.Capability_Flags{.Background}
 
 			ui.container(
@@ -144,8 +144,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 				bottom = 15,
 			}
 			test4_border_radius := base.Vec4{25, 40, 10, 5} // TL, TR, BR, BL
-			test4_border_fill := base.Fill(base.Color{255, 100, 255, 255})
-			test4_bg := base.Fill(base.Color{200, 200, 200, 255})
+			test4_border_fill := base.fill_color(255, 100, 255)
+			test4_bg := base.fill_color(200, 200, 200)
 			test4_caps := ui.Capability_Flags{.Background}
 
 			ui.container(

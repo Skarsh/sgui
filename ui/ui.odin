@@ -262,7 +262,7 @@ begin :: proc(ctx: ^Context) -> bool {
 
 	reset_render_state(&ctx.render_state, ctx.window_size)
 
-	background_fill := base.Fill(base.Color{128, 128, 128, 255})
+	background_fill := base.fill_color(128, 128, 128)
 	sizing_x := Sizing {
 		kind  = .Fixed,
 		value = f32(ctx.window_size.x),
@@ -583,31 +583,28 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	// TODO(Thomas): Click could have an embossed / debossed animation effect instead.
 	// There's lots left to figure out for hot and active too, it could be highlighted with
 	// a border instead or many other things. This is a temporary a solution.
-	switch fill in final_bg_fill {
-	case base.Color:
+	switch final_bg_fill.kind {
+	case .Solid:
+		color := final_bg_fill.color
 		if .Hot_Animation in cap_flags {
 			hot_color := default_color_style[.Hot]
-			final_bg_fill = base.lerp_color(final_bg_fill.(base.Color), hot_color, element.hot)
+			color = base.lerp_color(color, hot_color, element.hot)
 		}
 
 		if .Active_Animation in cap_flags {
 			active_color := default_color_style[.Active]
-			final_bg_fill = base.lerp_color(
-				final_bg_fill.(base.Color),
-				active_color,
-				element.active,
-			)
+			color = base.lerp_color(color, active_color, element.active)
 		}
 
 		if .Clickable in cap_flags {
 			if last_comm.held {
-				click_color := default_color_style[.Click]
-				final_bg_fill = click_color
+				color = default_color_style[.Click]
 			}
 		}
+		final_bg_fill = base.fill(color)
 
-	case base.Gradient:
-		gradient := final_bg_fill.(base.Gradient)
+	case .Gradient:
+		gradient := final_bg_fill.gradient
 
 		if .Hot_Animation in cap_flags {
 			hot_color := default_color_style[.Hot]
@@ -625,14 +622,27 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			gradient.color_end = base.lerp_color(gradient.color_end, active_color, element.active)
 		}
 
-		final_bg_fill = gradient
-
 		if .Clickable in cap_flags {
 			if last_comm.held {
 				click_color := default_color_style[.Click]
-				final_bg_fill = click_color
+				final_bg_fill = base.fill(click_color)
+			} else {
+				final_bg_fill = base.fill_gradient(
+					gradient.color_start,
+					gradient.color_end,
+					gradient.direction,
+				)
 			}
+		} else {
+			final_bg_fill = base.fill_gradient(
+				gradient.color_start,
+				gradient.color_end,
+				gradient.direction,
+			)
 		}
+
+	case .Not_Set, .None:
+	// No fill, nothing to do
 	}
 
 
@@ -648,7 +658,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			final_bg_fill,
 			element.config.layout.border_radius,
 			border = Border{},
-			border_fill = base.Fill(base.Color{0, 0, 0, 0}),
+			border_fill = base.fill_color(0, 0, 0, 0),
 			z_offset = 0,
 		)
 	}
@@ -737,7 +747,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				i32(element.size.x),
 				i32(element.size.y),
 			},
-			base.Fill(base.Color{0, 0, 0, 0}),
+			base.fill_color(0, 0, 0, 0),
 			element.config.layout.border_radius,
 			element.config.layout.border,
 			element.config.border_fill,
@@ -829,7 +839,7 @@ text :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) {
 	default_text_padding := Padding{}
 	default_text_alignment_x := Alignment_X.Left
 	default_text_alignment_y := Alignment_Y.Top
-	default_text_fill := base.Fill(base.Color{255, 255, 255, 255})
+	default_text_fill := base.fill_color(255, 255, 255)
 	default_clip_config := Clip_Config {
 		clip_axes = {true, true},
 	}
@@ -865,8 +875,8 @@ button :: proc(ctx: ^Context, id, text: string, opts: Config_Options = {}) -> Co
 	}
 
 	text_alignment_x := Alignment_X.Center
-	background_fill := base.Fill(base.Color{24, 24, 24, 255})
-	text_fill := base.Fill(base.Color{255, 128, 255, 128})
+	background_fill := base.fill_color(24, 24, 24)
+	text_fill := base.fill_color(255, 128, 255, 128)
 	capability_flags := Capability_Flags{.Background, .Clickable, .Hot_Animation}
 	clip := Clip_Config{{true, true}}
 
@@ -903,9 +913,9 @@ slider :: proc(
 	max: f32,
 	axis: Axis2 = .X,
 	thumb_size: base.Vec2 = {20, 20},
-	thumb_color: base.Fill = base.Color{255, 200, 200, 255},
+	thumb_color: base.Fill = {},
 	thumb_border: Border = {},
-	thumb_border_fill: base.Fill = base.Color{240, 240, 240, 255},
+	thumb_border_fill_param: base.Fill = {},
 	opts: Config_Options = {},
 ) -> Comm {
 
@@ -917,7 +927,7 @@ slider :: proc(
 		sizing = {{kind = .Fixed, value = thumb_size.x}, {kind = .Grow}}
 	}
 
-	background_fill := base.Fill(base.Color{24, 24, 24, 255})
+	background_fill := base.fill_color(24, 24, 24)
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 	layout_mode: Layout_Mode = .Relative
 	border_radius := base.Vec4{2, 2, 2, 2}
@@ -984,8 +994,11 @@ slider :: proc(
 			{kind = .Fixed, value = thumb_size.y},
 		}
 
-		thumb_bg_fill := base.Fill(thumb_color)
-		thumb_border_fill := thumb_border_fill
+		// Apply defaults for Fill parameters
+		thumb_bg_fill :=
+			thumb_color.kind == .Not_Set ? base.fill_color(255, 200, 200) : thumb_color
+		thumb_border_fill :=
+			thumb_border_fill_param.kind == .Not_Set ? base.fill_color(240, 240, 240) : thumb_border_fill_param
 		thumb_border := thumb_border
 		thumb_caps := Capability_Flags{.Background}
 		thumb_radius_val := math.min(thumb_size.x, thumb_size.y) / 2
@@ -1059,13 +1072,13 @@ scrollbar :: proc(
 	// Safety clamp
 	val^ = clamp(val^, 0, target.scroll_region.max_offset[axis])
 
-	bg_fill := base.Fill(base.Color{0, 0, 0, 0})
+	bg_fill := base.fill_color(0, 0, 0, 0)
 	sb_opts := opts
 	if sb_opts.background_fill == nil {
 		sb_opts.background_fill = &bg_fill
 	}
 
-	thumb_col := base.Fill(base.Color{80, 80, 80, 255})
+	thumb_col := base.fill_color(80, 80, 80)
 	comm := slider(
 		ctx,
 		id,
@@ -1076,7 +1089,7 @@ scrollbar :: proc(
 		{20, calculated_thumb_size},
 		thumb_col,
 		{},
-		base.Color{0, 0, 0, 0},
+		base.fill_color(0, 0, 0, 0),
 		sb_opts,
 	)
 
@@ -1097,7 +1110,7 @@ text_input :: proc(
 	// TODO(Thomas): Figure out how to do the sizing properly.
 	sizing := [2]Sizing{{kind = .Grow}, {kind = .Fixed, value = 48}}
 
-	background_fill := base.Fill(base.Color{255, 128, 128, 255})
+	background_fill := base.fill_color(255, 128, 128)
 	capability_flags := Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation}
 	clip_config := Clip_Config {
 		clip_axes = {true, true},
@@ -1179,7 +1192,7 @@ text_input :: proc(
 				caret_align_x := Alignment_X.Left
 				caret_align_y := Alignment_Y.Center
 				caret_rel_pos := base.Vec2{caret_x_offset, -caret_height / 2}
-				caret_bg_fill := base.Fill(default_color_style[.Text])
+				caret_bg_fill := base.fill(default_color_style[.Text])
 				caret_caps := Capability_Flags{.Background}
 				caret_id := fmt.tprintf("%s_caret", id)
 

@@ -180,13 +180,18 @@ element_equip_text :: proc(
 	element: ^UI_Element,
 	text: string,
 	mode: Text_Sizing_Mode = .Grow,
-	text_fill: base.Fill = base.Color{255, 255, 255, 255},
+	text_fill: base.Fill = {},
 ) {
 
 	element.config.capability_flags |= {.Text}
 
-	if element.config.text_fill == nil {
-		element.config.text_fill = text_fill
+	if element.config.text_fill.kind == .Not_Set {
+		// If no fill was passed, default to white
+		if text_fill.kind == .Not_Set {
+			element.config.text_fill = base.fill_color(255, 255, 255)
+		} else {
+			element.config.text_fill = text_fill
+		}
 	}
 
 	element.config.content.text_data = Text_Data {
