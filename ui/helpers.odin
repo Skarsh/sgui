@@ -281,32 +281,38 @@ resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) ->
 // Widgets use these as their default styles, which can be overridden per-call.
 Theme :: struct {
 	button:     Style,
-	text_input: Style,
 	checkbox:   Style,
-	slider:     Style,
-	panel:      Style,
 	label:      Style,
+	panel:      Style,
+	slider:     Style,
+	spacer:     Style,
+	text:       Style,
+	text_input: Style,
 }
 
 default_theme :: proc() -> Theme {
 	return Theme {
 		button = Style {
-			sizing_x = sizing_grow(),
-			sizing_y = sizing_grow(),
+			sizing_x = sizing_fit(),
+			sizing_y = sizing_fit(),
 			padding = padding_all(10),
 			text_alignment_x = .Center,
 			background_fill = base.fill_color(60, 60, 65),
 			text_fill = base.fill_color(230, 230, 230),
 			border_radius = border_radius_all(4),
 			capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
+			clip = Clip_Config{clip_axes = {true, true}},
 		},
 		text_input = Style {
+			alignment_x = .Left,
+			alignment_y = .Center,
+			text_alignment_y = .Center,
 			sizing_x = sizing_grow(),
-			sizing_y = sizing_fixed(40),
+			sizing_y = sizing_fixed(48),
 			padding = padding_xy(8, 12),
 			background_fill = base.fill_color(30, 30, 35),
 			text_fill = base.fill_color(230, 230, 230),
-			border = border_all(1),
+			border = border_all(2),
 			border_fill = base.fill_color(80, 80, 85),
 			border_radius = border_radius_all(4),
 			capability_flags = Capability_Flags {
@@ -315,6 +321,14 @@ default_theme :: proc() -> Theme {
 				.Focusable,
 				.Hot_Animation,
 			},
+			layout_mode = .Relative,
+			clip = Clip_Config{clip_axes = {true, true}},
+		},
+		text = Style {
+			text_alignment_x = .Left,
+			text_alignment_y = .Top,
+			text_fill = base.fill_color(255, 255, 255),
+			clip = Clip_Config{clip_axes = {true, true}},
 		},
 		checkbox = Style {
 			sizing_x = sizing_fixed(24),
@@ -336,7 +350,9 @@ default_theme :: proc() -> Theme {
 				.Focusable,
 				.Hot_Animation,
 			},
+			layout_mode = .Relative,
 		},
+		spacer = Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 		panel = Style {
 			padding = padding_all(16),
 			background_fill = base.fill_color(35, 35, 40),

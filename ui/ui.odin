@@ -797,12 +797,7 @@ draw_shape :: proc(ctx: ^Context, rect: base.Rect, data: Shape_Data, z_offset: i
 
 
 spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
-	default_style := Style {
-		sizing_x = sizing_grow(),
-		sizing_y = sizing_grow(),
-	}
-
-	_, open_ok := open_element(ctx, id, style, default_style)
+	_, open_ok := open_element(ctx, id, style, default_theme().spacer)
 	assert(open_ok)
 	if open_ok {
 		close_element(ctx)
@@ -810,14 +805,7 @@ spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
 }
 
 text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
-	default_style := Style {
-		text_alignment_x = .Left,
-		text_alignment_y = .Top,
-		text_fill = base.fill_color(255, 255, 255),
-		clip = Clip_Config{clip_axes = {true, true}},
-	}
-
-	element, open_ok := open_element(ctx, id, style, default_style)
+	element, open_ok := open_element(ctx, id, style, default_theme().text)
 	assert(open_ok)
 	if open_ok {
 		element_equip_text(ctx, element, text)
@@ -826,18 +814,7 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 }
 
 button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
-	default_style := Style {
-		sizing_x = sizing_fit(),
-		sizing_y = sizing_fit(),
-		padding = padding_all(10),
-		text_alignment_x = .Center,
-		background_fill = base.fill_color(24, 24, 24),
-		text_fill = base.fill_color(255, 128, 255, 128),
-		capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
-		clip = Clip_Config{clip_axes = {true, true}},
-	}
-
-	element, open_ok := open_element(ctx, id, style, default_style)
+	element, open_ok := open_element(ctx, id, style, default_theme().button)
 
 	if open_ok {
 		element_equip_text(ctx, element, text)
@@ -862,36 +839,13 @@ slider :: proc(
 	thumb_border_fill_param: base.Fill = {},
 	style: Style = {},
 ) -> Comm {
-
-	default_style: Style
+	default_style := default_theme().slider
 	if axis == .X {
-		default_style = Style {
-			sizing_x         = sizing_grow(),
-			sizing_y         = sizing_fixed(thumb_size.y),
-			layout_mode      = .Relative,
-			border_radius    = border_radius_all(2),
-			background_fill  = base.fill_color(24, 24, 24),
-			capability_flags = Capability_Flags {
-				.Background,
-				.Clickable,
-				.Focusable,
-				.Hot_Animation,
-			},
-		}
+		default_style.sizing_x = sizing_grow()
+		default_style.sizing_y = sizing_fixed(thumb_size.y)
 	} else {
-		default_style = Style {
-			sizing_x         = sizing_fixed(thumb_size.x),
-			sizing_y         = sizing_grow(),
-			layout_mode      = .Relative,
-			border_radius    = border_radius_all(2),
-			background_fill  = base.fill_color(24, 24, 24),
-			capability_flags = Capability_Flags {
-				.Background,
-				.Clickable,
-				.Focusable,
-				.Hot_Animation,
-			},
-		}
+		default_style.sizing_x = sizing_fixed(thumb_size.x)
+		default_style.sizing_y = sizing_grow()
 	}
 
 	element, open_ok := open_element(ctx, id, style, default_style)
@@ -1043,20 +997,7 @@ text_input :: proc(
 	buf_len: ^int,
 	style: Style = {},
 ) -> Comm {
-	// TODO(Thomas): Figure out how to do the sizing properly.
-	default_style := Style {
-		sizing_x = sizing_grow(),
-		sizing_y = sizing_fixed(48),
-		layout_mode = .Relative,
-		alignment_x = .Left,
-		alignment_y = .Center,
-		text_alignment_y = .Center,
-		background_fill = base.fill_color(255, 128, 128),
-		capability_flags = Capability_Flags{.Background, .Clickable, .Focusable, .Hot_Animation},
-		clip = Clip_Config{clip_axes = {true, true}},
-	}
-
-	element, open_ok := open_element(ctx, id, style, default_style)
+	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 	if open_ok {
 
 		key := ui_key_hash(element.id_string)
@@ -1144,14 +1085,7 @@ checkbox :: proc(
 	shape_data: Shape_Data,
 	style: Style = {},
 ) -> Comm {
-	// TODO(Thomas): Don't hardcode min- and max_value like this.
-	default_style := Style {
-		sizing_x         = sizing_grow(min = 36, max = 36),
-		sizing_y         = sizing_grow(min = 36, max = 36),
-		capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
-	}
-
-	element, open_ok := open_element(ctx, id, style, default_style)
+	element, open_ok := open_element(ctx, id, style, default_theme().checkbox)
 	if open_ok {
 
 		if element.last_comm.clicked {
