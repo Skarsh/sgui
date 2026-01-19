@@ -1,6 +1,7 @@
 # TODOs
 
 ## Active
+* Prune "dead" ui elements (they're still cached in the map)
 
 ## Bugs
 
@@ -18,7 +19,6 @@
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator
     that lives on the App that gets reset for every frame. We don't wanna clone strings.
 * Embossing (gradient) effects
-* Prune "dead" ui elements (they're still cached in the map)
 * Upper Bound Limit Recursion
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
     and recursions.
