@@ -93,12 +93,6 @@ Command_Shape :: struct {
 	data: Shape_Data,
 }
 
-Command_Push_Scissor :: struct {
-	rect: base.Rect,
-}
-
-Command_Pop_Scissor :: struct {}
-
 Color_Style :: [Color_Type]base.Color
 
 // Font-agnostic text measurement result
