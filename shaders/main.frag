@@ -133,8 +133,6 @@ void main() {
             // Calculate the offset and size reduction for the inner rect
             // to account for variable border widths
             // v_border mapping: x=top, y=right, z=bottom, w=left
-            // border_offset maps to (x_offset, y_offset) in screen space
-            // border_reduction maps to (width_reduction, height_reduction)
             vec2 border_offset = vec2(
                 (v_border.w - v_border.y) * 0.5,  // X: (left - right) / 2
                 (v_border.x - v_border.z) * 0.5   // Y: (top - bottom) / 2
@@ -147,17 +145,8 @@ void main() {
 
             vec2 inner_half_size = v_quad_half_size - border_reduction;
 
-            // Reduce inner corner radii by the border width at each corner
-            // For each corner, use the average of the two adjacent border sides
-            vec4 inner_border_radius = vec4(
-                max(0.0, v_border_radius.x - (v_border.x + v_border.w) * 0.5), // TL: avg(top, left)
-                max(0.0, v_border_radius.y - (v_border.x + v_border.y) * 0.5), // TR: avg(top, right)
-                max(0.0, v_border_radius.z - (v_border.z + v_border.y) * 0.5), // BR: avg(bottom, right)
-                max(0.0, v_border_radius.w - (v_border.z + v_border.w) * 0.5)  // BL: avg(bottom, left)
-            );
-
             float d_border = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
-            float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, inner_border_radius);
+            float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, v_border_radius);
 
             float alpha_border = sdfAlpha(d_border);
             float alpha_inner = sdfAlpha(d_inner);
@@ -178,9 +167,10 @@ void main() {
                 v_local_pos - border_offset
             );
 
-            vec4 final_material = mix(border_color, inner_color, alpha_inner);
-
-            o_color = vec4(final_material.rgb, final_material.a * alpha_border);
+            // Render the border first
+            o_color = mix(o_color, border_color, alpha_border);
+            // Then the inner
+            o_color = mix(o_color, inner_color, alpha_inner);
         }
 
         if (v_shape_kind == 1) {
