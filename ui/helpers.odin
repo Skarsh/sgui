@@ -112,169 +112,90 @@ Style :: struct {
 	capability_flags:  Maybe(Capability_Flags),
 }
 
-// Resolves a Maybe value: user -> stack -> default
-@(private)
-resolve_maybe :: proc(user: Maybe($T), stack: ^Stack(T, $N), default_value: T) -> T {
-	if val, ok := user.?; ok {
-		return val
-	}
-
-	if val, ok := peek(stack); ok {
-		return val
-	}
-
-	return default_value
-}
-
-// Resolves a Fill value: user -> stack -> default (uses .Not_Set check)
-@(private)
-resolve_fill :: proc(
-	user: base.Fill,
-	stack: ^Stack(base.Fill, $N),
-	default_value: base.Fill,
-) -> base.Fill {
-	if user.kind != .Not_Set {
-		return user
-	}
-
-	if val, ok := peek(stack); ok && val.kind != .Not_Set {
-		return val
-	}
-
-	return default_value
-}
-
-// Converts a Style struct to Element_Config using context stacks for defaults
+// Converts a Style struct to Element_Config by walking the style stack.
+// Resolution order: default -> style_stack (bottom to top) -> user style
+// Single-pass: walks the stack once and merges all styles together.
 resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) -> Element_Config {
+	// Start with default, merge stack styles, then user style
+	// Note: Stack uses 1-based indexing (items[1] to items[top])
+	resolved := default_style
+	for i: i32 = 1; i <= ctx.style_stack.top; i += 1 {
+		resolved = merge_styles(resolved, ctx.style_stack.items[i])
+	}
+	resolved = merge_styles(resolved, style)
+
+	// Capability flags are additive (OR together from all sources)
+	capability_flags := resolve_capability_flags(ctx, style, default_style)
+
+	// Convert merged Style to Element_Config
+	return style_to_config(resolved, capability_flags)
+}
+
+// Converts a fully-resolved Style to Element_Config
+@(private)
+style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element_Config {
 	config: Element_Config
 
 	// Layout properties
-	config.layout.sizing[Axis2.X] = resolve_maybe(
-		style.sizing_x,
-		&ctx.sizing_x_stack,
-		style.sizing_x.? or_else (default_style.sizing_x.? or_else Sizing{}),
-	)
+	config.layout.sizing[Axis2.X] = s.sizing_x.? or_else Sizing{}
+	config.layout.sizing[Axis2.Y] = s.sizing_y.? or_else Sizing{}
+	config.layout.padding = s.padding.? or_else Padding{}
+	config.layout.margin = s.margin.? or_else Margin{}
+	config.layout.child_gap = s.child_gap.? or_else 0
+	config.layout.layout_mode = s.layout_mode.? or_else Layout_Mode{}
+	config.layout.layout_direction = s.layout_direction.? or_else Layout_Direction{}
+	config.layout.relative_position = s.relative_position.? or_else base.Vec2{}
+	config.layout.alignment_x = s.alignment_x.? or_else Alignment_X{}
+	config.layout.alignment_y = s.alignment_y.? or_else Alignment_Y{}
+	config.layout.text_alignment_x = s.text_alignment_x.? or_else Alignment_X{}
+	config.layout.text_alignment_y = s.text_alignment_y.? or_else Alignment_Y{}
+	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
+	config.layout.border = s.border.? or_else Border{}
 
-	config.layout.sizing[Axis2.Y] = resolve_maybe(
-		style.sizing_y,
-		&ctx.sizing_y_stack,
-		style.sizing_y.? or_else (default_style.sizing_y.? or_else Sizing{}),
-	)
-
-	config.layout.padding = resolve_maybe(
-		style.padding,
-		&ctx.padding_stack,
-		style.padding.? or_else (default_style.padding.? or_else Padding{}),
-	)
-
-	config.layout.margin = resolve_maybe(
-		style.margin,
-		&ctx.margin_stack,
-		style.margin.? or_else (default_style.margin.? or_else Margin{}),
-	)
-
-	config.layout.child_gap = resolve_maybe(
-		style.child_gap,
-		&ctx.child_gap_stack,
-		style.child_gap.? or_else (default_style.child_gap.? or_else 0),
-	)
-
-	config.layout.layout_mode = resolve_maybe(
-		style.layout_mode,
-		&ctx.layout_mode_stack,
-		style.layout_mode.? or_else (default_style.layout_mode.? or_else Layout_Mode{}),
-	)
-
-	config.layout.layout_direction = resolve_maybe(
-		style.layout_direction,
-		&ctx.layout_direction_stack,
-		style.layout_direction.? or_else (default_style.layout_direction.? or_else Layout_Direction{}),
-	)
-
-	config.layout.relative_position = resolve_maybe(
-		style.relative_position,
-		&ctx.relative_position_stack,
-		style.relative_position.? or_else (default_style.relative_position.? or_else base.Vec2{}),
-	)
-
-	config.layout.alignment_x = resolve_maybe(
-		style.alignment_x,
-		&ctx.alignment_x_stack,
-		style.alignment_x.? or_else (default_style.alignment_x.? or_else Alignment_X{}),
-	)
-
-	config.layout.alignment_y = resolve_maybe(
-		style.alignment_y,
-		&ctx.alignment_y_stack,
-		style.alignment_y.? or_else (default_style.alignment_y.? or_else Alignment_Y{}),
-	)
-
-	config.layout.text_alignment_x = resolve_maybe(
-		style.text_alignment_x,
-		&ctx.text_alignment_x_stack,
-		style.text_alignment_x.? or_else (default_style.text_alignment_x.? or_else Alignment_X{}),
-	)
-
-	config.layout.text_alignment_y = resolve_maybe(
-		style.text_alignment_y,
-		&ctx.text_alignment_y_stack,
-		style.text_alignment_y.? or_else (default_style.text_alignment_y.? or_else Alignment_Y{}),
-	)
-
-	config.layout.border_radius = resolve_maybe(
-		style.border_radius,
-		&ctx.border_radius_stack,
-		style.border_radius.? or_else (default_style.border_radius.? or_else base.Vec4{}),
-	)
-
-	config.layout.border = resolve_maybe(
-		style.border,
-		&ctx.border_stack,
-		style.border.? or_else (default_style.border.? or_else Border{}),
-	)
-
-	// Visual properties (Fill - use tagged resolution)
-	config.background_fill = resolve_fill(
-		style.background_fill,
-		&ctx.background_fill_stack,
-		default_style.background_fill.kind != .Not_Set ? default_style.background_fill : base.Fill{},
-	)
-
-	config.text_fill = resolve_fill(
-		style.text_fill,
-		&ctx.text_fill_stack,
-		default_style.text_fill.kind != .Not_Set ? default_style.text_fill : base.Fill{},
-	)
-
-	config.border_fill = resolve_fill(
-		style.border_fill,
-		&ctx.border_fill_stack,
-		default_style.border_fill.kind != .Not_Set ? default_style.border_fill : base.Fill{},
-	)
+	// Visual properties (Fill) - use value if set, otherwise empty
+	if s.background_fill.kind != .Not_Set {
+		config.background_fill = s.background_fill
+	}
+	if s.text_fill.kind != .Not_Set {
+		config.text_fill = s.text_fill
+	}
+	if s.border_fill.kind != .Not_Set {
+		config.border_fill = s.border_fill
+	}
 
 	// Clip config
-	config.clip = resolve_maybe(
-		style.clip,
-		&ctx.clip_stack,
-		style.clip.? or_else (default_style.clip.? or_else Clip_Config{}),
-	)
+	config.clip = s.clip.? or_else Clip_Config{}
 
-	// Capability flags are handled differently by being additive.
-	// TODO(Thomas): Should the user specified flags completely override, e.g.
-	// not OR but set directly?
-	if flags, ok := default_style.capability_flags.?; ok {
-		config.capability_flags |= flags
-	}
-
-	if stack_flags, stack_ok := peek(&ctx.capability_flags_stack); stack_ok {
-		config.capability_flags |= stack_flags
-	}
-
-	if flags, ok := style.capability_flags.?; ok {
-		config.capability_flags |= flags
-	}
+	// Capability flags (already computed additively)
+	config.capability_flags = capability_flags
 
 	return config
+}
+
+// Capability flags are additive - OR all set values together
+@(private)
+resolve_capability_flags :: proc(ctx: ^Context, style, default_style: Style) -> Capability_Flags {
+	result: Capability_Flags
+
+	// Add default flags
+	if flags, ok := default_style.capability_flags.?; ok {
+		result |= flags
+	}
+
+	// Add flags from style_stack (all levels, since they're additive)
+	// Note: Stack uses 1-based indexing (items[1] to items[top])
+	for i: i32 = 1; i <= ctx.style_stack.top; i += 1 {
+		if flags, ok := ctx.style_stack.items[i].capability_flags.?; ok {
+			result |= flags
+		}
+	}
+
+	// Add user flags
+	if flags, ok := style.capability_flags.?; ok {
+		result |= flags
+	}
+
+	return result
 }
 
 // Theme holds default Styles for each widget type.
@@ -395,4 +316,16 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.capability_flags != nil do result.capability_flags = b.capability_flags
 
 	return result
+}
+
+// Push a Style onto the style stack.
+// Use with defer pop_style(ctx) to ensure proper cleanup.
+// Only fields that are explicitly set will affect style resolution.
+push_style :: proc(ctx: ^Context, style: Style) {
+	push(&ctx.style_stack, style)
+}
+
+// Pop a Style from the style stack.
+pop_style :: proc(ctx: ^Context) {
+	pop(&ctx.style_stack)
 }

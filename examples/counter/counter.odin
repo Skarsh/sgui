@@ -15,24 +15,21 @@ Data :: struct {
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
-		ui.push_capability_flags(
+		ui.push_style(
 			ctx,
-			ui.Capability_Flags{.Background},
-		); defer ui.pop_capability_flags(ctx)
-
-		ui.push_background_fill(
-			ctx,
-			base.fill_color(55, 55, 55),
-		); defer ui.pop_background_fill(ctx)
-
-		ui.push_border(ctx, ui.border_all(5)); defer ui.pop_border(ctx)
-		ui.push_border_radius(ctx, ui.border_radius_all(5)); defer ui.pop_border_radius(ctx)
-		ui.push_border_fill(ctx, base.fill_color(24, 36, 55)); defer ui.pop_border_fill(ctx)
-
-		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
-		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
-		ui.push_text_alignment_x(ctx, .Center); defer ui.pop_text_alignment_x(ctx)
-		ui.push_text_alignment_y(ctx, .Center); defer ui.pop_text_alignment_y(ctx)
+			ui.Style {
+				capability_flags = ui.Capability_Flags{.Background},
+				background_fill = base.fill_color(55, 55, 55),
+				border = ui.border_all(5),
+				border_radius = ui.border_radius_all(5),
+				border_fill = base.fill_color(24, 36, 55),
+				alignment_x = .Center,
+				alignment_y = .Center,
+				text_alignment_x = .Center,
+				text_alignment_y = .Center,
+			},
+		)
+		defer ui.pop_style(ctx)
 
 		if ui.begin_container(
 			ctx,
@@ -40,50 +37,41 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			ui.Style{sizing_x = ui.sizing_percent(1.0), sizing_y = ui.sizing_percent(1.0)},
 		) {
 
-			counter_container_padding := ui.padding_all(10)
-			counter_container_child_gap: f32 = 10
-
 			if ui.begin_container(
 				ctx,
 				"counter_container",
 				ui.Style {
 					sizing_x = ui.sizing_fixed(200),
 					sizing_y = ui.sizing_fixed(70),
-					padding = counter_container_padding,
-					child_gap = counter_container_child_gap,
+					padding = ui.padding_all(10),
+					child_gap = 10,
+					border_fill = base.fill_color(24, 36, 0),
 				},
 			) {
-				ui.push_border_fill(ctx, base.fill_color(24, 36, 0)); defer ui.pop_border_fill(ctx)
-
-				counter_text_border_fill := base.fill_color(0, 0, 0, 0)
-
 				strings.write_int(&data.sb, data.counter)
 				num_str := strings.to_string(data.sb)
 				defer strings.builder_reset(&data.sb)
 
-
-				text_background_fill := base.fill_color(0, 0, 0, 0)
 				ui.text(
 					ctx,
 					"counter_text",
 					num_str,
 					ui.Style {
-						border_fill = counter_text_border_fill,
-						background_fill = text_background_fill,
+						border_fill = base.fill_color(0, 0, 0, 0),
+						background_fill = base.fill_color(0, 0, 0, 0),
 					},
 				)
 
-				ui.push_background_fill(
-					ctx,
-					base.fill_color(95, 95, 95),
-				); defer ui.pop_background_fill(ctx)
-				ui.push_border(ctx, ui.border_all(2)); defer ui.pop_border(ctx)
+				button_style := ui.Style {
+					background_fill = base.fill_color(95, 95, 95),
+					border          = ui.border_all(2),
+				}
 
-				if ui.button(ctx, "counter_minus_button", "-").clicked {
+				if ui.button(ctx, "counter_minus_button", "-", button_style).clicked {
 					data.counter -= 1
 				}
 
-				if ui.button(ctx, "counter_plus_button", "+").clicked {
+				if ui.button(ctx, "counter_plus_button", "+", button_style).clicked {
 					data.counter += 1
 				}
 

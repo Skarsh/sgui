@@ -106,10 +106,15 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			ui.set_theme(ctx, colorful_theme())
 		}
 
-		ui.push_background_fill(ctx, base.fill_color(25, 25, 30))
-		defer ui.pop_background_fill(ctx)
-		ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
-		defer ui.pop_capability_flags(ctx)
+		// Push app-wide styles using the style stack
+		ui.push_style(
+			ctx,
+			ui.Style {
+				background_fill = base.fill_color(25, 25, 30),
+				capability_flags = ui.Capability_Flags{.Background},
+			},
+		)
+		defer ui.pop_style(ctx)
 
 		// Main container
 		if ui.begin_container(

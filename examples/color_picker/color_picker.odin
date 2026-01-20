@@ -104,8 +104,11 @@ make_slider_row :: proc(
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
 		// --- Global Style Scope ---
-		ui.push_background_fill(ctx, base.fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
-		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
+		ui.push_style(
+			ctx,
+			ui.Style{background_fill = base.fill(WINDOW_BG), text_fill = base.fill(TEXT_COLOR)},
+		)
+		defer ui.pop_style(ctx)
 
 		// --- Main Panel (centered) ---
 		if ui.begin_container(

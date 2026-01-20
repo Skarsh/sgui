@@ -232,11 +232,14 @@ build_bug_repro :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	if ui.begin(ctx) {
 
-		ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-		ui.push_background_fill(
+		ui.push_style(
 			ctx,
-			base.fill_color(50, 50, 50),
-		); defer ui.pop_background_fill(ctx)
+			ui.Style {
+				capability_flags = ui.Capability_Flags{.Background},
+				background_fill = base.fill_color(50, 50, 50),
+			},
+		)
+		defer ui.pop_style(ctx)
 
 		if ui.begin_container(
 			ctx,
@@ -272,8 +275,14 @@ build_relative_layout_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-	ui.push_background_fill(ctx, base.fill_color(128, 128, 128)); defer ui.pop_background_fill(ctx)
+	ui.push_style(
+		ctx,
+		ui.Style {
+			capability_flags = ui.Capability_Flags{.Background},
+			background_fill = base.fill_color(128, 128, 128),
+		},
+	)
+	defer ui.pop_style(ctx)
 
 	if ui.begin_container(
 		ctx,
@@ -284,9 +293,6 @@ build_relative_layout_ui :: proc(app_state: ^App_State) {
 			layout_mode = .Relative,
 		},
 	) {
-
-		ui.push_background_fill(ctx, base.fill_color(255, 0, 0)); defer ui.pop_background_fill(ctx)
-
 		ui.container(
 			ctx,
 			"child",
@@ -296,6 +302,7 @@ build_relative_layout_ui :: proc(app_state: ^App_State) {
 				alignment_x = .Right,
 				alignment_y = .Bottom,
 				relative_position = base.Vec2{-10, -10},
+				background_fill = base.fill_color(255, 0, 0),
 			},
 		)
 		ui.end_container(ctx)
@@ -308,7 +315,8 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_background_fill(ctx, base.fill_color(255, 255, 255)); defer ui.pop_background_fill(ctx)
+	ui.push_style(ctx, ui.Style{background_fill = base.fill_color(255, 255, 255)})
+	defer ui.pop_style(ctx)
 
 	ui.container(
 		ctx,
@@ -317,13 +325,15 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 		image_data,
 		proc(ctx: ^ui.Context, data: ^Image_Data) {
 
-			ui.push_sizing_x(ctx, ui.sizing_fixed(256)); defer ui.pop_sizing_x(ctx)
-			ui.push_sizing_y(ctx, ui.sizing_fixed(256)); defer ui.pop_sizing_y(ctx)
-
-			ui.push_capability_flags(
+			ui.push_style(
 				ctx,
-				ui.Capability_Flags{.Image},
-			); defer ui.pop_capability_flags(ctx)
+				ui.Style {
+					sizing_x = ui.sizing_fixed(256),
+					sizing_y = ui.sizing_fixed(256),
+					capability_flags = ui.Capability_Flags{.Image},
+				},
+			)
+			defer ui.pop_style(ctx)
 
 
 			// Images use content, not style - set image_data after element creation
@@ -361,12 +371,14 @@ build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_capability_flags(
+	ui.push_style(
 		ctx,
-		ui.Capability_Flags{.Background},
-	); defer ui.pop_capability_flags(ctx)
-
-	ui.push_background_fill(ctx, base.fill_color(255, 0, 0)); defer ui.pop_background_fill(ctx)
+		ui.Style {
+			capability_flags = ui.Capability_Flags{.Background},
+			background_fill = base.fill_color(255, 0, 0),
+		},
+	)
+	defer ui.pop_style(ctx)
 
 	// Child 1
 	ui.container(
@@ -375,13 +387,15 @@ build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
 		ui.Style{sizing_x = ui.sizing_percent(0.5), sizing_y = ui.sizing_percent(0.5)},
 	)
 
-	ui.push_background_fill(ctx, base.fill_color(0, 0, 255)); defer ui.pop_background_fill(ctx)
-
 	// Child 2
 	ui.container(
 		ctx,
 		"child_2",
-		ui.Style{sizing_x = ui.sizing_percent(0.5), sizing_y = ui.sizing_percent(0.5)},
+		ui.Style {
+			sizing_x = ui.sizing_percent(0.5),
+			sizing_y = ui.sizing_percent(0.5),
+			background_fill = base.fill_color(0, 0, 255),
+		},
 	)
 
 	ui.end(ctx)
@@ -391,10 +405,8 @@ build_grow_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_capability_flags(
-		ctx,
-		ui.Capability_Flags{.Background},
-	); defer ui.pop_capability_flags(ctx)
+	ui.push_style(ctx, ui.Style{capability_flags = ui.Capability_Flags{.Background}})
+	defer ui.pop_style(ctx)
 	ui.container(
 		&app_state.ctx,
 		"parent",
@@ -445,21 +457,21 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_background_fill(ctx, base.fill_color(25, 25, 30)); defer ui.pop_background_fill(ctx)
-	ui.push_padding(ctx, ui.padding_all(20)); defer ui.pop_padding(ctx)
-	ui.push_layout_direction(ctx, .Top_To_Bottom); defer ui.pop_layout_direction(ctx)
-	ui.push_child_gap(ctx, 15); defer ui.pop_child_gap(ctx)
-
-	ui.push_sizing_x(ctx, {kind = .Grow}); defer ui.pop_sizing_x(ctx)
-	ui.push_sizing_y(ctx, {kind = .Fit}); defer ui.pop_sizing_y(ctx)
-
-	ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-	ui.push_border_radius(ctx, ui.border_radius_all(10)); defer ui.pop_border_radius(ctx)
-
-	ui.push_border_fill(
+	ui.push_style(
 		ctx,
-		base.fill_gradient({2, 0, 36, 255}, {9, 121, 105, 255}, {1, 0}),
-	); defer ui.pop_border_fill(ctx)
+		ui.Style {
+			background_fill = base.fill_color(25, 25, 30),
+			padding = ui.padding_all(20),
+			layout_direction = .Top_To_Bottom,
+			child_gap = 15,
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			capability_flags = ui.Capability_Flags{.Background},
+			border_radius = ui.border_radius_all(10),
+			border_fill = base.fill_gradient({2, 0, 36, 255}, {9, 121, 105, 255}, {1, 0}),
+		},
+	)
+	defer ui.pop_style(ctx)
 
 	ui.container(
 		ctx,
@@ -475,51 +487,55 @@ build_styled_ui :: proc(app_state: ^App_State) {
 			)
 
 			{
-				ui.push_background_fill(
+				ui.push_style(
 					ctx,
-					base.fill_color(80, 50, 60),
-				); defer ui.pop_background_fill(ctx)
-				ui.push_padding(ctx, ui.padding_all(10)); defer ui.pop_padding(ctx)
-				ui.push_layout_direction(ctx, .Left_To_Right); defer ui.pop_layout_direction(ctx)
+					ui.Style {
+						background_fill = base.fill_color(80, 50, 60),
+						padding = ui.padding_all(10),
+						layout_direction = .Left_To_Right,
+						capability_flags = ui.Capability_Flags{.Background},
+						border_radius = ui.border_radius_all(10),
+						clip = ui.Clip_Config{{true, true}},
+					},
+				)
+				defer ui.pop_style(ctx)
 
-				ui.push_capability_flags(ctx, {.Background}); defer ui.pop_capability_flags(ctx)
-				ui.push_border_radius(
-					ctx,
-					ui.border_radius_all(10),
-				); defer ui.pop_border_radius(ctx)
-				ui.push_clip_config(ctx, {{true, true}}); defer ui.pop_clip_config(ctx)
-
-				//ui.push_border_thickness(ctx, 2); defer ui.pop_border_thickness(ctx)
 				ui.container(ctx, "button_panel", proc(ctx: ^ui.Context) {
-
-					ui.push_background_fill(
+					ui.button(
 						ctx,
-						base.fill_gradient({0, 0, 0, 255}, {255, 255, 255, 255}, {1, 0}),
-					); defer ui.pop_background_fill(ctx)
-					ui.button(ctx, "button1", "Button A")
+						"button1",
+						"Button A",
+						ui.Style {
+							background_fill = base.fill_gradient(
+								{0, 0, 0, 255},
+								{255, 255, 255, 255},
+								{1, 0},
+							),
+						},
+					)
 
-					ui.push_background_fill(
+					ui.button(
 						ctx,
-						base.fill_gradient({81, 163, 163, 255}, {117, 72, 94, 210}, {1, 0}),
-					); defer ui.pop_background_fill(ctx)
-					ui.button(ctx, "button2", "Button B")
+						"button2",
+						"Button B",
+						ui.Style {
+							background_fill = base.fill_gradient(
+								{81, 163, 163, 255},
+								{117, 72, 94, 210},
+								{1, 0},
+							),
+						},
+					)
 
-					ui.push_background_fill(
-						ctx,
-						base.fill_color(150, 50, 50),
-					); defer ui.pop_background_fill(ctx)
-
-					ui.push_background_fill(
-						ctx,
-						base.fill_color(255, 144, 101),
-					); defer ui.pop_background_fill(ctx)
 					ui.button(
 						ctx,
 						"button3",
 						"Danger Button",
-						ui.Style{text_fill = base.fill_color(255, 255, 255)},
+						ui.Style {
+							text_fill = base.fill_color(255, 255, 255),
+							background_fill = base.fill_color(255, 144, 101),
+						},
 					)
-					ui.pop_background_fill(ctx)
 				})
 			}
 
@@ -539,9 +555,15 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 	ctx := &app_state.ctx
 	ui.begin(ctx)
 
-	ui.push_padding(ctx, ui.padding_all(10)); defer ui.pop_padding(ctx)
-	ui.push_child_gap(ctx, 10); defer ui.pop_child_gap(ctx)
-	ui.push_capability_flags(ctx, ui.Capability_Flags{.Background})
+	ui.push_style(
+		ctx,
+		ui.Style {
+			padding = ui.padding_all(10),
+			child_gap = 10,
+			capability_flags = ui.Capability_Flags{.Background},
+		},
+	)
+	defer ui.pop_style(ctx)
 
 	ui.container(
 		&app_state.ctx,

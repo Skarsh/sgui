@@ -81,12 +81,15 @@ add_new_task :: proc(data: ^Data) {
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
 		// --- Global Style Scope ---
-		ui.push_background_fill(ctx, base.fill(WINDOW_BG)); defer ui.pop_background_fill(ctx)
-		ui.push_capability_flags(
+		ui.push_style(
 			ctx,
-			ui.Capability_Flags{.Background},
-		); defer ui.pop_capability_flags(ctx)
-		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
+			ui.Style {
+				background_fill = base.fill(WINDOW_BG),
+				capability_flags = ui.Capability_Flags{.Background},
+				text_fill = base.fill(TEXT_COLOR),
+			},
+		)
+		defer ui.pop_style(ctx)
 
 		// --- Main Panel (centered) ---
 		if ui.begin_container(
@@ -162,10 +165,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						for &task, i in data.tasks {
 
 							// --- Task Row ---
-							ui.push_background_fill(
-								ctx,
-								base.fill(ROW_BG),
-							); defer ui.pop_background_fill(ctx)
+							ui.push_style(ctx, ui.Style{background_fill = base.fill(ROW_BG)})
+							defer ui.pop_style(ctx)
 
 							if ui.begin_container(
 								ctx,

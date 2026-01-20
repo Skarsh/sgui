@@ -12,19 +12,16 @@ Data :: struct {}
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
 		// Set global background
-		ui.push_capability_flags(
+		ui.push_style(
 			ctx,
-			ui.Capability_Flags{.Background},
-		); defer ui.pop_capability_flags(ctx)
-
-		ui.push_background_fill(
-			ctx,
-			base.fill_color(30, 30, 30),
-		); defer ui.pop_background_fill(ctx)
-
-		ui.push_alignment_x(ctx, .Center); defer ui.pop_alignment_x(ctx)
-
-		ui.push_alignment_y(ctx, .Center); defer ui.pop_alignment_y(ctx)
+			ui.Style {
+				capability_flags = ui.Capability_Flags{.Background},
+				background_fill = base.fill_color(30, 30, 30),
+				alignment_x = .Center,
+				alignment_y = .Center,
+			},
+		)
+		defer ui.pop_style(ctx)
 
 		// Main container
 		main_padding := ui.padding_all(20)

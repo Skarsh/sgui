@@ -124,53 +124,33 @@ UI_Element_Text_Input_State :: struct {
 THEME_STACK_SIZE :: #config(SUI_THEME_STACK_SIZE, 8)
 
 Context :: struct {
-	persistent_allocator:    mem.Allocator,
-	frame_allocator:         mem.Allocator,
-	draw_cmd_allocator:      mem.Allocator,
-	element_stack:           Stack(^UI_Element, ELEMENT_STACK_SIZE),
-	// TODO(Thomas): Style stacks, move them into its own struct?
-	// Maybe even do some metaprogramming to generate them if it becomes
-	// too many of them?
-	sizing_x_stack:          Stack(Sizing, STYLE_STACK_SIZE),
-	sizing_y_stack:          Stack(Sizing, STYLE_STACK_SIZE),
-	clip_stack:              Stack(Clip_Config, STYLE_STACK_SIZE),
-	capability_flags_stack:  Stack(Capability_Flags, STYLE_STACK_SIZE),
-	background_fill_stack:   Stack(base.Fill, STYLE_STACK_SIZE),
-	text_fill_stack:         Stack(base.Fill, STYLE_STACK_SIZE),
-	padding_stack:           Stack(Padding, STYLE_STACK_SIZE),
-	margin_stack:            Stack(Margin, STYLE_STACK_SIZE),
-	child_gap_stack:         Stack(f32, STYLE_STACK_SIZE),
-	layout_mode_stack:       Stack(Layout_Mode, STYLE_STACK_SIZE),
-	layout_direction_stack:  Stack(Layout_Direction, STYLE_STACK_SIZE),
-	relative_position_stack: Stack(base.Vec2, STYLE_STACK_SIZE),
-	alignment_x_stack:       Stack(Alignment_X, STYLE_STACK_SIZE),
-	alignment_y_stack:       Stack(Alignment_Y, STYLE_STACK_SIZE),
-	text_alignment_x_stack:  Stack(Alignment_X, STYLE_STACK_SIZE),
-	text_alignment_y_stack:  Stack(Alignment_Y, STYLE_STACK_SIZE),
-	border_radius_stack:     Stack(base.Vec4, STYLE_STACK_SIZE),
-	border_stack:            Stack(Border, STYLE_STACK_SIZE),
-	border_fill_stack:       Stack(base.Fill, STYLE_STACK_SIZE),
-	command_queue:           [dynamic]Draw_Command,
-	render_state:            Render_State,
-	current_parent:          ^UI_Element,
-	root_element:            ^UI_Element,
-	input:                   Input,
-	element_cache:           map[UI_Key]^UI_Element,
-	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
-	interactive_elements:    [dynamic]^UI_Element,
-	measure_text_proc:       Measure_Text_Proc,
-	measure_glyph_proc:      Measure_Glyph_Proc,
-	font_user_data:          rawptr,
-	frame_idx:               u64,
-	dt:                      f32,
+	persistent_allocator: mem.Allocator,
+	frame_allocator:      mem.Allocator,
+	draw_cmd_allocator:   mem.Allocator,
+	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	// Style stack for cascading styles. Use push_style/pop_style.
+	style_stack:          Stack(Style, STYLE_STACK_SIZE),
+	command_queue:        [dynamic]Draw_Command,
+	render_state:         Render_State,
+	current_parent:       ^UI_Element,
+	root_element:         ^UI_Element,
+	input:                Input,
+	element_cache:        map[UI_Key]^UI_Element,
+	text_input_states:    map[UI_Key]UI_Element_Text_Input_State,
+	interactive_elements: [dynamic]^UI_Element,
+	measure_text_proc:    Measure_Text_Proc,
+	measure_glyph_proc:   Measure_Glyph_Proc,
+	font_user_data:       rawptr,
+	frame_idx:            u64,
+	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
-	font_size:               f32,
-	font_id:                 u16,
-	window_size:             [2]i32,
-	active_element:          ^UI_Element,
+	font_size:            f32,
+	font_id:              u16,
+	window_size:          [2]i32,
+	active_element:       ^UI_Element,
 	// Theme support
-	theme:                   Theme,
-	theme_stack:             Stack(Theme, THEME_STACK_SIZE),
+	theme:                Theme,
+	theme_stack:          Stack(Theme, THEME_STACK_SIZE),
 }
 
 Capability :: enum {
@@ -1099,158 +1079,6 @@ checkbox :: proc(
 
 	append(&ctx.interactive_elements, element)
 	return element.last_comm
-}
-
-push_sizing_x :: proc(ctx: ^Context, sizing: Sizing) -> bool {
-	return push(&ctx.sizing_x_stack, sizing)
-}
-
-pop_sizing_x :: proc(ctx: ^Context) -> (Sizing, bool) {
-	return pop(&ctx.sizing_x_stack)
-}
-
-push_sizing_y :: proc(ctx: ^Context, sizing: Sizing) -> bool {
-	return push(&ctx.sizing_y_stack, sizing)
-}
-
-pop_sizing_y :: proc(ctx: ^Context) -> (Sizing, bool) {
-	return pop(&ctx.sizing_y_stack)
-}
-
-push_clip_config :: proc(ctx: ^Context, clip: Clip_Config) -> bool {
-	return push(&ctx.clip_stack, clip)
-}
-
-pop_clip_config :: proc(ctx: ^Context) -> (Clip_Config, bool) {
-	return pop(&ctx.clip_stack)
-}
-
-push_capability_flags :: proc(ctx: ^Context, flags: Capability_Flags) -> bool {
-	return push(&ctx.capability_flags_stack, flags)
-}
-
-pop_capability_flags :: proc(ctx: ^Context) -> (Capability_Flags, bool) {
-	return pop(&ctx.capability_flags_stack)
-}
-
-push_background_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {
-	return push(&ctx.background_fill_stack, fill)
-}
-
-pop_background_fill :: proc(ctx: ^Context) -> (base.Fill, bool) {
-	return pop(&ctx.background_fill_stack)
-}
-
-push_text_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {
-	return push(&ctx.text_fill_stack, fill)
-}
-
-pop_text_fill :: proc(ctx: ^Context) -> (base.Fill, bool) {
-	return pop(&ctx.text_fill_stack)
-}
-
-push_padding :: proc(ctx: ^Context, padding: Padding) -> bool {
-	return push(&ctx.padding_stack, padding)
-}
-
-pop_padding :: proc(ctx: ^Context) -> (Padding, bool) {
-	return pop(&ctx.padding_stack)
-}
-
-push_margin :: proc(ctx: ^Context, margin: Margin) -> bool {
-	return push(&ctx.margin_stack, margin)
-}
-
-pop_margin :: proc(ctx: ^Context) -> (Margin, bool) {
-	return pop(&ctx.margin_stack)
-}
-
-push_child_gap :: proc(ctx: ^Context, child_gap: f32) -> bool {
-	return push(&ctx.child_gap_stack, child_gap)
-}
-
-pop_child_gap :: proc(ctx: ^Context) -> (f32, bool) {
-	return pop(&ctx.child_gap_stack)
-}
-
-push_layout_mode :: proc(ctx: ^Context, layout_mode: Layout_Mode) -> bool {
-	return push(&ctx.layout_mode_stack, layout_mode)
-}
-
-pop_layout_mode :: proc(ctx: ^Context) -> (Layout_Mode, bool) {
-	return pop(&ctx.layout_mode_stack)
-}
-
-push_layout_direction :: proc(ctx: ^Context, layout_direction: Layout_Direction) -> bool {
-	return push(&ctx.layout_direction_stack, layout_direction)
-}
-
-pop_layout_direction :: proc(ctx: ^Context) -> (Layout_Direction, bool) {
-	return pop(&ctx.layout_direction_stack)
-}
-
-push_relative_position :: proc(ctx: ^Context, relative_position: base.Vec2) -> bool {
-	return push(&ctx.relative_position_stack, relative_position)
-}
-
-pop_relative_position :: proc(ctx: ^Context) -> (base.Vec2, bool) {
-	return pop(&ctx.relative_position_stack)
-}
-
-push_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {
-	return push(&ctx.alignment_x_stack, aligment_x)
-}
-
-pop_alignment_x :: proc(ctx: ^Context) -> (Alignment_X, bool) {
-	return pop(&ctx.alignment_x_stack)
-}
-
-push_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
-	return push(&ctx.alignment_y_stack, aligment_y)
-}
-
-pop_alignment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
-	return pop(&ctx.alignment_y_stack)
-}
-
-push_text_alignment_x :: proc(ctx: ^Context, aligment_x: Alignment_X) -> bool {
-	return push(&ctx.text_alignment_x_stack, aligment_x)
-}
-
-pop_text_alignment_x :: proc(ctx: ^Context) -> (Alignment_X, bool) {
-	return pop(&ctx.text_alignment_x_stack)
-}
-
-push_text_alignment_y :: proc(ctx: ^Context, aligment_y: Alignment_Y) -> bool {
-	return push(&ctx.text_alignment_y_stack, aligment_y)
-}
-
-pop_text_alignment_y :: proc(ctx: ^Context) -> (Alignment_Y, bool) {
-	return pop(&ctx.text_alignment_y_stack)
-}
-
-push_border_radius :: proc(ctx: ^Context, border_radius: base.Vec4) -> bool {
-	return push(&ctx.border_radius_stack, border_radius)
-}
-
-pop_border_radius :: proc(ctx: ^Context) -> (base.Vec4, bool) {
-	return pop(&ctx.border_radius_stack)
-}
-
-push_border :: proc(ctx: ^Context, border: Border) -> bool {
-	return push(&ctx.border_stack, border)
-}
-
-pop_border :: proc(ctx: ^Context) -> (Border, bool) {
-	return pop(&ctx.border_stack)
-}
-
-push_border_fill :: proc(ctx: ^Context, fill: base.Fill) -> bool {
-	return push(&ctx.border_fill_stack, fill)
-}
-
-pop_border_fill :: proc(ctx: ^Context) -> (base.Fill, bool) {
-	return pop(&ctx.border_fill_stack)
 }
 
 set_theme :: proc(ctx: ^Context, theme: Theme) {
