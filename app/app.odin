@@ -54,7 +54,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	persistent_arena_allocator := virtual.arena_allocator(&app.persistent_arena)
 
-	arena_err = virtual.arena_init_static(&app.frame_arena, 30 * mem.Kilobyte)
+	arena_err = virtual.arena_init_static(&app.frame_arena, 100 * mem.Kilobyte)
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocate frame arena")
