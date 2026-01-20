@@ -3,7 +3,6 @@ package main
 import "core:encoding/hex"
 import "core:fmt"
 import "core:log"
-import "core:strings"
 
 
 import "../../app"
@@ -11,18 +10,15 @@ import "../../base"
 import "../../diagnostics"
 import "../../ui"
 
-// TODO(Thomas): One string builder for each color is wasteful and bad practice. Hacky solution for now.
 Data :: struct {
-	r:        f32,
-	g:        f32,
-	b:        f32,
-	a:        f32,
-	buf:      []u8,
-	buf_len:  int,
-	red_sb:   strings.Builder,
-	green_sb: strings.Builder,
-	blue_sb:  strings.Builder,
-	alpha_sb: strings.Builder,
+	r:          f32,
+	g:          f32,
+	b:          f32,
+	a:          f32,
+	buf:        []u8,
+	buf_len:    int,
+	// Small fixed buffers for hex value display (max 2 chars each)
+	value_bufs: [4][3]u8,
 }
 
 // --- Style Palette ---
@@ -44,7 +40,7 @@ make_slider_row :: proc(
 	id_suffix, label: string,
 	value: ^f32,
 	color: base.Color,
-	sb: ^strings.Builder,
+	value_buf: []u8,
 ) -> ui.Comm {
 	comm: ui.Comm
 
@@ -84,15 +80,14 @@ make_slider_row :: proc(
 			ui.border_all(2),
 		)
 
-		// TODO(Thomas): This has to be made using a string builder instead
-		value_str := fmt.tprintf("%x", u8(value^ * 255))
-		strings.write_string(sb, value_str)
+		// Format hex value directly into the provided buffer
+		value_str := fmt.bprintf(value_buf, "%x", u8(value^ * 255))
 		// TODO(Thomas): @Perf string font size caching
 		value_string_width := ui.measure_string_width(ctx, value_str, ctx.font_id)
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_value", id_suffix),
-			strings.to_string(sb^),
+			value_str,
 			ui.Style {
 				sizing_x = ui.sizing_grow(max = value_string_width),
 				sizing_y = ui.sizing_fit(),
@@ -169,27 +164,37 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				// --- Sliders ---
-				strings.builder_reset(&data.red_sb)
-				red_comm := make_slider_row(ctx, "red", "R", &data.r, RED_COLOR, &data.red_sb)
-				strings.builder_reset(&data.green_sb)
+				red_comm := make_slider_row(
+					ctx,
+					"red",
+					"R",
+					&data.r,
+					RED_COLOR,
+					data.value_bufs[0][:],
+				)
 				green_comm := make_slider_row(
 					ctx,
 					"green",
 					"G",
 					&data.g,
 					GREEN_COLOR,
-					&data.green_sb,
+					data.value_bufs[1][:],
 				)
-				strings.builder_reset(&data.blue_sb)
-				blue_comm := make_slider_row(ctx, "blue", "B", &data.b, BLUE_COLOR, &data.blue_sb)
-				strings.builder_reset(&data.alpha_sb)
+				blue_comm := make_slider_row(
+					ctx,
+					"blue",
+					"B",
+					&data.b,
+					BLUE_COLOR,
+					data.value_bufs[2][:],
+				)
 				alpha_comm := make_slider_row(
 					ctx,
 					"alpha",
 					"A",
 					&data.a,
 					ALPHA_COLOR,
-					&data.alpha_sb,
+					data.value_bufs[3][:],
 				)
 
 				// --- Hex Input ---
@@ -254,25 +259,17 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					data.buf_len = n
 				} else if hex_from_input != hex_from_sliders && len(hex_from_input) >= 8 {
 					// Text field is source of truth, update sliders
-					if r_str, ok := strings.substring(hex_from_input, 0, 2); ok {
-						if r, r_ok := hex.decode_sequence(r_str); r_ok {
-							data.r = f32(r) / 255
-						}
+					if r, r_ok := hex.decode_sequence(hex_from_input[0:2]); r_ok {
+						data.r = f32(r) / 255
 					}
-					if g_str, ok := strings.substring(hex_from_input, 2, 4); ok {
-						if g, g_ok := hex.decode_sequence(g_str); g_ok {
-							data.g = f32(g) / 255
-						}
+					if g, g_ok := hex.decode_sequence(hex_from_input[2:4]); g_ok {
+						data.g = f32(g) / 255
 					}
-					if b_str, ok := strings.substring(hex_from_input, 4, 6); ok {
-						if b, b_ok := hex.decode_sequence(b_str); b_ok {
-							data.b = f32(b) / 255
-						}
+					if b, b_ok := hex.decode_sequence(hex_from_input[4:6]); b_ok {
+						data.b = f32(b) / 255
 					}
-					if a_str, ok := strings.substring(hex_from_input, 6, 8); ok {
-						if a, a_ok := hex.decode_sequence(a_str); a_ok {
-							data.a = f32(a) / 255
-						}
+					if a, a_ok := hex.decode_sequence(hex_from_input[6:8]); a_ok {
+						data.a = f32(a) / 255
 					}
 				}
 
@@ -314,33 +311,14 @@ main :: proc() {
 	buf := make([]u8, 8)
 	defer delete(buf)
 
-	red_sb_buf := make([]u8, 64)
-	defer delete(red_sb_buf)
-	red_sb := strings.builder_from_bytes(red_sb_buf)
-
-	green_sb_buf := make([]u8, 64)
-	defer delete(green_sb_buf)
-	green_sb := strings.builder_from_bytes(green_sb_buf)
-
-	blue_sb_buf := make([]u8, 64)
-	defer delete(blue_sb_buf)
-	blue_sb := strings.builder_from_bytes(blue_sb_buf)
-
-	alpha_sb_buf := make([]u8, 64)
-	defer delete(alpha_sb_buf)
-	alpha_sb := strings.builder_from_bytes(alpha_sb_buf)
-
 	my_data := Data {
-		r        = 0.5,
-		g        = 0.5,
-		b        = 0.5,
-		a        = 1.0,
-		buf      = buf,
-		buf_len  = 0,
-		red_sb   = red_sb,
-		green_sb = green_sb,
-		blue_sb  = blue_sb,
-		alpha_sb = alpha_sb,
+		r       = 0.5,
+		g       = 0.5,
+		b       = 0.5,
+		a       = 1.0,
+		buf     = buf,
+		buf_len = 0,
+		// value_bufs is zero-initialized automatically as a fixed array in the struct
 	}
 
 	app.run(my_app, &my_data, update_and_draw)
