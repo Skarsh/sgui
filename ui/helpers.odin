@@ -312,7 +312,7 @@ default_theme :: proc() -> Theme {
 			padding = padding_xy(8, 12),
 			background_fill = base.fill_color(30, 30, 35),
 			text_fill = base.fill_color(230, 230, 230),
-			border = border_all(2),
+			border = border_all(0),
 			border_fill = base.fill_color(80, 80, 85),
 			border_radius = border_radius_all(4),
 			capability_flags = Capability_Flags {
