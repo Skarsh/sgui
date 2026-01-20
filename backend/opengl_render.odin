@@ -123,6 +123,31 @@ Batch :: struct {
 	quad_idx:      i32,
 }
 
+// Helper struct for converting Fill to GPU-compatible color values
+Fill_Colors :: struct {
+	color_start:  base.Vec4,
+	color_end:    base.Vec4,
+	gradient_dir: base.Vec2,
+}
+
+// Converts a Fill to color values suitable for the GPU
+fill_to_colors :: proc(fill: base.Fill) -> Fill_Colors {
+	switch fill.kind {
+	case .Solid:
+		color := base.color_to_vec4(fill.color)
+		return Fill_Colors{color, color, {0, 0}}
+	case .Gradient:
+		return Fill_Colors {
+			base.color_to_vec4(fill.gradient.color_start),
+			base.color_to_vec4(fill.gradient.color_end),
+			fill.gradient.direction,
+		}
+	case .Not_Set, .None:
+		return Fill_Colors{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0}}
+	}
+	return {}
+}
+
 reset_batch :: proc(batch: ^Batch) {
 	clear(&batch.vertices)
 	clear(&batch.indices)
@@ -349,43 +374,9 @@ opengl_render_end :: proc(
 			border_radius := val.border_radius
 			border := val.border
 			border_vec := base.Vec4{border.top, border.right, border.bottom, border.left}
-			color_start, color_end: base.Vec4
-			gradient_dir: base.Vec2
 
-			border_color_start, border_color_end: base.Vec4
-			border_gradient_dir: base.Vec2
-
-			switch val.fill.kind {
-			case .Solid:
-				color := base.color_to_vec4(val.fill.color)
-				color_start = color
-				color_end = color
-				gradient_dir = {0, 0}
-			case .Gradient:
-				color_start = base.color_to_vec4(val.fill.gradient.color_start)
-				color_end = base.color_to_vec4(val.fill.gradient.color_end)
-				gradient_dir = val.fill.gradient.direction
-			case .Not_Set, .None:
-				color_start = {0, 0, 0, 0}
-				color_end = {0, 0, 0, 0}
-				gradient_dir = {0, 0}
-			}
-
-			switch val.border_fill.kind {
-			case .Solid:
-				color := base.color_to_vec4(val.border_fill.color)
-				border_color_start = color
-				border_color_end = color
-				border_gradient_dir = {0, 0}
-			case .Gradient:
-				border_color_start = base.color_to_vec4(val.border_fill.gradient.color_start)
-				border_color_end = base.color_to_vec4(val.border_fill.gradient.color_end)
-				border_gradient_dir = val.border_fill.gradient.direction
-			case .Not_Set, .None:
-				border_color_start = {0, 0, 0, 0}
-				border_color_end = {0, 0, 0, 0}
-				border_gradient_dir = {0, 0}
-			}
+			fill_colors := fill_to_colors(val.fill)
+			border_colors := fill_to_colors(val.border_fill)
 
 			if batch.quad_idx >= MAX_QUADS {
 				flush_render(render_data, batch)
@@ -396,13 +387,13 @@ opengl_render_end :: proc(
 
 			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 				// Rect Fill
-				color_start         = color_start,
-				color_end           = color_end,
-				gradient_dir        = gradient_dir,
+				color_start         = fill_colors.color_start,
+				color_end           = fill_colors.color_end,
+				gradient_dir        = fill_colors.gradient_dir,
 				// Border Fill
-				border_color_start  = border_color_start,
-				border_color_end    = border_color_end,
-				border_gradient_dir = border_gradient_dir,
+				border_color_start  = border_colors.color_start,
+				border_color_end    = border_colors.color_end,
+				border_gradient_dir = border_colors.gradient_dir,
 				// Clip Rect
 				clip_rect           = {
 					f32(command.clip_rect.x),
@@ -430,23 +421,10 @@ opengl_render_end :: proc(
 			start_x := x
 			start_y := y + render_data.font_atlas.metrics.ascent
 
-			color_start: base.Vec4
-			color_end: base.Vec4
-			gradient_dir: base.Vec2
-
-			switch val.fill.kind {
-			case .Solid:
-				color := base.color_to_vec4(val.fill.color)
-				color_start = color
-				color_end = color
-				gradient_dir = {0, 0}
-			case .Gradient:
+			if val.fill.kind == .Gradient {
 				panic("TODO: Implement gradient text")
-			case .Not_Set, .None:
-				color_start = {0, 0, 0, 0}
-				color_end = {0, 0, 0, 0}
-				gradient_dir = {0, 0}
 			}
+			fill_colors := fill_to_colors(val.fill)
 
 			// Measure space width once for tab character handling
 			space_glyph, space_found := get_glyph(&render_data.font_atlas, ' ')
@@ -505,9 +483,9 @@ opengl_render_end :: proc(
 				width := (q.x1 - q.x0)
 				height := (q.y1 - q.y0)
 				render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-					color_start  = color_start,
-					color_end    = color_end,
-					gradient_dir = gradient_dir,
+					color_start  = fill_colors.color_start,
+					color_end    = fill_colors.color_end,
+					gradient_dir = fill_colors.gradient_dir,
 					clip_rect    = {
 						f32(command.clip_rect.x),
 						f32(command.clip_rect.y),
@@ -593,25 +571,7 @@ opengl_render_end :: proc(
 
 			batch.quad_idx += 1
 		case ui.Command_Shape:
-			color_start: base.Vec4
-			color_end: base.Vec4
-			gradient_dir: base.Vec2
-
-			switch val.data.fill.kind {
-			case .Solid:
-				color := base.color_to_vec4(val.data.fill.color)
-				color_start = color
-				color_end = color
-				gradient_dir = {0, 0}
-			case .Gradient:
-				color_start = base.color_to_vec4(val.data.fill.gradient.color_start)
-				color_end = base.color_to_vec4(val.data.fill.gradient.color_end)
-				gradient_dir = val.data.fill.gradient.direction
-			case .Not_Set, .None:
-				color_start = {0, 0, 0, 0}
-				color_end = {0, 0, 0, 0}
-				gradient_dir = {0, 0}
-			}
+			fill_colors := fill_to_colors(val.data.fill)
 
 			if batch.quad_idx >= MAX_QUADS {
 				flush_render(render_data, batch)
@@ -623,9 +583,9 @@ opengl_render_end :: proc(
 			thickness := val.data.thickness
 
 			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-				color_start      = color_start,
-				color_end        = color_end,
-				gradient_dir     = gradient_dir,
+				color_start      = fill_colors.color_start,
+				color_end        = fill_colors.color_end,
+				gradient_dir     = fill_colors.gradient_dir,
 				clip_rect        = {
 					f32(command.clip_rect.x),
 					f32(command.clip_rect.y),
