@@ -19,7 +19,7 @@ out vec2 v_quad_half_size;
 out vec2 v_local_pos;
 out vec2 v_tex_coords;
 flat out int v_tex_slot;
-flat out int v_shape_kind;
+flat out int v_quad_type;
 flat out float v_stroke_thickness;
 out vec4 v_border;
 out vec4 v_border_radius;
@@ -48,7 +48,7 @@ struct QuadParams {
     vec2  uv_offset;
     vec2  uv_size;
     int   tex_slot;
-    int   shape_kind;
+    int   quad_type;
     float stroke_thickness;
     float _padding_3;
     vec4  border;
@@ -99,7 +99,7 @@ void main() {
     v_border_gradient_dir = quad.border_gradient_dir;
 
     v_tex_slot = quad.tex_slot;
-    v_shape_kind = quad.shape_kind;
+    v_quad_type = quad.quad_type;
     v_stroke_thickness = quad.stroke_thickness;
     v_border = quad.border;
     v_border_radius = quad.border_radius;

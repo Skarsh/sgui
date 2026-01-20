@@ -87,6 +87,14 @@ Vertex :: struct {
 	pos: base.Vec3,
 }
 
+// Explicit quad type for cleaner shader dispatch
+Quad_Type :: enum i32 {
+	Rect      = 0,
+	Text      = 1,
+	Image     = 2,
+	Checkmark = 3,
+}
+
 Quad_Param :: struct #align (16) {
 	// Rect fill
 	color_start:         base.Vec4,
@@ -107,7 +115,7 @@ Quad_Param :: struct #align (16) {
 	uv_offset:           base.Vec2,
 	uv_size:             base.Vec2,
 	tex_slot:            i32,
-	shape_kind:          i32,
+	quad_type:           i32,
 	stroke_thickness:    f32,
 	_padding_3:          f32,
 	// Mapping: x=top, y=right, z=bottom, w=left
@@ -410,7 +418,7 @@ opengl_render_end :: proc(
 				uv_offset           = {-1, -1},
 				uv_size             = {0, 0},
 				tex_slot            = 0,
-				shape_kind          = -1,
+				quad_type           = i32(Quad_Type.Rect),
 				border              = border_vec,
 				border_radius       = border_radius,
 			}
@@ -497,7 +505,7 @@ opengl_render_end :: proc(
 					uv_offset    = {q.s0, q.t0},
 					uv_size      = {q.s1 - q.s0, q.t1 - q.t0},
 					tex_slot     = 0,
-					shape_kind   = -1,
+					quad_type    = i32(Quad_Type.Text),
 				}
 
 				batch.quad_idx += 1
@@ -566,7 +574,7 @@ opengl_render_end :: proc(
 				uv_offset    = {0, 0},
 				uv_size      = {1, 1},
 				tex_slot     = tex_slot,
-				shape_kind   = -1,
+				quad_type    = i32(Quad_Type.Image),
 			}
 
 			batch.quad_idx += 1
@@ -579,8 +587,14 @@ opengl_render_end :: proc(
 			}
 
 			rect := val.rect
-			kind := val.data.kind
 			thickness := val.data.thickness
+
+			// Map ui.Shape_Kind to Quad_Type
+			quad_type: Quad_Type
+			switch val.data.kind {
+			case .Checkmark:
+				quad_type = .Checkmark
+			}
 
 			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 				color_start      = fill_colors.color_start,
@@ -597,7 +611,7 @@ opengl_render_end :: proc(
 				uv_offset        = {-1, -1},
 				uv_size          = {0, 0},
 				tex_slot         = 0,
-				shape_kind       = i32(kind),
+				quad_type        = i32(quad_type),
 				stroke_thickness = thickness,
 			}
 
