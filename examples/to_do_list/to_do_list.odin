@@ -203,9 +203,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									},
 								)
 
-								// --- Spacer ---
-								ui.spacer(ctx)
-
 								// --- Task Text ---
 								task_id := fmt.tprintf("task_text_%d", i)
 
@@ -226,9 +223,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									},
 								)
 
-								// --- Spacer ---
-								ui.spacer(ctx)
-
 								// --- Delete Button ---
 								delete_button_id := fmt.tprintf("task_delete_button_%d", i)
 								delete_comm := ui.button(
@@ -237,6 +231,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									"Delete",
 									ui.Style {
 										sizing_x = ui.sizing_fit(),
+										sizing_y = ui.sizing_fit(),
 										border_radius = ui.border_radius_all(3.0),
 										background_fill = base.fill(DELETE_BUTTON_COLOR),
 									},

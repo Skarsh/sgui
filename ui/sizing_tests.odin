@@ -1253,7 +1253,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 
 
 @(test)
-test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testing.T) {
+test_grow_sizing_equal_factors_reach_equal_size_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
 		parent_width:     f32,
@@ -1287,7 +1287,7 @@ test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testi
 				container(
 					ctx,
 					"child_2",
-					Style{sizing_x = Sizing{kind = .Grow, value = 70}, sizing_y = sizing_grow()},
+					Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 				)
 			},
 		)
@@ -1299,7 +1299,11 @@ test_grow_sizing_min_width_and_pref_width_reach_equal_size_ltr :: proc(t: ^testi
 		parent_pos := base.Vec2{0, 0}
 		parent_size := base.Vec2{data.parent_width, data.parent_height}
 
-		// Same pos since no padding etc
+		// With target-based distribution: equal factors = equal sizes
+		// Total factor = 2, available = 100
+		// Target for each = 100 / 2 = 50
+		// child_1 min=50, target=50 → 50
+		// child_2 min=0, target=50 → 50
 		child_1_pos := parent_pos
 		child_1_size := base.Vec2{50, 100}
 
@@ -1376,8 +1380,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					"text_1",
 					"First",
 					Style {
-						sizing_x = Sizing{kind = .Grow, min_value = data.text_1_min_width},
-						sizing_y = Sizing{kind = .Grow},
+						sizing_x = sizing_grow(min = data.text_1_min_width),
+						sizing_y = sizing_grow(),
 					},
 				)
 
@@ -1395,8 +1399,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 					"text_2",
 					"Last",
 					Style {
-						sizing_x = Sizing{kind = .Grow, min_value = data.text_2_min_width},
-						sizing_y = Sizing{kind = .Grow},
+						sizing_x = sizing_grow(min = data.text_2_min_width),
+						sizing_y = sizing_grow(),
 					},
 				)
 
@@ -1416,7 +1420,6 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			data.panel_border.right -
 			2 * data.panel_child_gap
 
-		expected_child_width := available_width / 3
 		expected_child_height :=
 			data.panel_size.y -
 			data.panel_padding.top -
@@ -1424,9 +1427,16 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			data.panel_border.top -
 			data.panel_border.bottom
 
+		// With target-based distribution: equal factors = equal sizes
+		// Available = 252, 3 elements with factor 1 each
+		// Target for each = 252 / 3 = 84
+		text_1_width: f32 = available_width / 3
+		grow_box_width: f32 = available_width / 3
+		text_2_width: f32 = available_width / 3
+
 		c1_pos_x := data.panel_padding.left + data.panel_border.left
-		c2_pos_x := c1_pos_x + expected_child_width + data.panel_child_gap
-		c3_pos_x := c2_pos_x + expected_child_width + data.panel_child_gap
+		c2_pos_x := c1_pos_x + text_1_width + data.panel_child_gap
+		c3_pos_x := c2_pos_x + grow_box_width + data.panel_child_gap
 
 
 		expected_layout_tree := Expected_Element {
@@ -1440,17 +1450,17 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 						{
 							id = "text_1",
 							pos = {c1_pos_x, data.panel_padding.top + data.panel_border.top},
-							size = {expected_child_width, expected_child_height},
+							size = {text_1_width, expected_child_height},
 						},
 						{
 							id = "grow_box",
 							pos = {c2_pos_x, data.panel_padding.top + data.panel_border.top},
-							size = {expected_child_width, expected_child_height},
+							size = {grow_box_width, expected_child_height},
 						},
 						{
 							id = "text_2",
 							pos = {c3_pos_x, data.panel_padding.top + data.panel_border.top},
-							size = {expected_child_width, expected_child_height},
+							size = {text_2_width, expected_child_height},
 						},
 					},
 				},
@@ -1510,8 +1520,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					"text_1",
 					"First",
 					Style {
-						sizing_x = Sizing{kind = .Grow},
-						sizing_y = Sizing{kind = .Grow, min_value = data.text_1_min_height},
+						sizing_x = sizing_grow(),
+						sizing_y = sizing_grow(min = data.text_1_min_height),
 					},
 				)
 
@@ -1529,8 +1539,8 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 					"text_2",
 					"Last",
 					Style {
-						sizing_x = Sizing{kind = .Grow},
-						sizing_y = Sizing{kind = .Grow, min_value = data.text_1_min_height},
+						sizing_x = sizing_grow(),
+						sizing_y = sizing_grow(min = data.text_1_min_height),
 					},
 				)
 
@@ -1556,11 +1566,17 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			data.panel_padding.right -
 			data.panel_border.left -
 			data.panel_border.right
-		expected_child_height := available_height / 3
+
+		// With target-based distribution: equal factors = equal sizes
+		// Available = 52, 3 elements with factor 1 each
+		// Target for each = 52 / 3 = 17.333...
+		text_1_height: f32 = available_height / 3
+		grow_box_height: f32 = available_height / 3
+		text_2_height: f32 = available_height / 3
 
 		c1_pos_y := data.panel_padding.top + data.panel_border.top
-		c2_pos_y := c1_pos_y + expected_child_height + data.panel_child_gap
-		c3_pos_y := c2_pos_y + expected_child_height + data.panel_child_gap
+		c2_pos_y := c1_pos_y + text_1_height + data.panel_child_gap
+		c3_pos_y := c2_pos_y + grow_box_height + data.panel_child_gap
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -1573,17 +1589,17 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 						{
 							id = "text_1",
 							pos = {data.panel_padding.left + data.panel_border.left, c1_pos_y},
-							size = {expected_child_width, expected_child_height},
+							size = {expected_child_width, text_1_height},
 						},
 						{
 							id = "grow_box",
 							pos = {data.panel_padding.left + data.panel_border.left, c2_pos_y},
-							size = {expected_child_width, expected_child_height},
+							size = {expected_child_width, grow_box_height},
 						},
 						{
 							id = "text_2",
 							pos = {data.panel_padding.left + data.panel_border.left, c3_pos_y},
-							size = {expected_child_width, expected_child_height},
+							size = {expected_child_width, text_2_height},
 						},
 					},
 				},
@@ -1948,10 +1964,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 						container(
 							ctx,
 							"second_child",
-							Style {
-								sizing_x = Sizing{kind = .Grow, value = 70},
-								sizing_y = sizing_grow(),
-							},
+							Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 						)
 					},
 				)
@@ -1992,16 +2005,14 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 
 		// Same pos as grouping container since no padding etc
 		first_child_pos := grouping_container_pos
-		// first_child has min_value = 50, grouping_container_size.x = 98
-		// So each would get 49, but first_child needs minimum 50
-		first_child_width := max(grouping_container_size.x / 2, 50)
-		first_child_size := base.Vec2{first_child_width, grouping_container_size.y}
+		// With target-based distribution: equal factors = equal target sizes
+		// Available = 98, target for each = 49
+		// first_child min=50 > 49, so clamped to 50
+		// Remaining for second_child = 98 - 50 = 48
+		first_child_size := base.Vec2{50, grouping_container_size.y}
 
 		second_child_pos := base.Vec2{first_child_pos.x + first_child_size.x, first_child_pos.y}
-		second_child_size := base.Vec2 {
-			grouping_container_size.x - first_child_width,
-			grouping_container_size.y,
-		}
+		second_child_size := base.Vec2{48, grouping_container_size.y}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -2606,4 +2617,455 @@ test_text_element_size_includes_border :: proc(t: ^testing.T) {
 		&test_data,
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
+}
+
+@(test)
+test_grow_equal_factors :: proc(t: ^testing.T) {
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {300, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(ctx, "c1", Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()})
+				container(ctx, "c2", Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()})
+				container(ctx, "c3", Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()})
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {100, 100}},
+					{id = "c2", pos = {100, 0}, size = {100, 100}},
+					{id = "c3", pos = {200, 0}, size = {100, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_grow_weighted_factors :: proc(t: ^testing.T) {
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {400, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"c1",
+					Style{sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c2",
+					Style{sizing_x = sizing_grow_weighted(2), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c3",
+					Style{sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {100, 100}},
+					{id = "c2", pos = {100, 0}, size = {200, 100}},
+					{id = "c3", pos = {300, 0}, size = {100, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_shrink_proportional_to_factor :: proc(t: ^testing.T) {
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {240, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"c1",
+					Style{sizing_x = sizing_fixed(100, 0), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c2",
+					Style{sizing_x = sizing_fixed(200, 0), sizing_y = sizing_grow()},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// Fixed sizing doesn't participate in shrink, so children keep their sizes
+		// The panel just doesn't have enough space, but fixed children don't shrink
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {100, 100}},
+					{id = "c2", pos = {100, 0}, size = {200, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_shrink_grow_elements :: proc(t: ^testing.T) {
+	// Test shrink behavior with Grow elements
+	// Two grow elements with equal grow_factor split the space equally
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {240, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(ctx, "c1", Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()})
+				container(ctx, "c2", Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()})
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// Both grow elements split the space equally
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {120, 100}},
+					{id = "c2", pos = {120, 0}, size = {120, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_zero_grow_factor_excluded :: proc(t: ^testing.T) {
+	// Test that factor=0 child doesn't participate in grow distribution
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {400, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"c1",
+					Style{sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c2",
+					Style{sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c3",
+					Style{sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// c2 with factor=0 stays at 0, c1 and c3 split the 400px equally
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {200, 100}},
+					{id = "c2", pos = {200, 0}, size = {0, 100}},
+					{id = "c3", pos = {200, 0}, size = {200, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_weighted_grow_with_max_constraint :: proc(t: ^testing.T) {
+	// Test weighted grow where one child hits max constraint
+	// factors [1,1], 400px, but c1 has max=100
+	// c1 gets 100 (hits max), remaining 300px goes to c2
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {400, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"c1",
+					Style{sizing_x = sizing_grow_weighted(1, 0, 100), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c2",
+					Style{sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// c1 hits max at 100, c2 gets the rest (300)
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {100, 100}},
+					{id = "c2", pos = {100, 0}, size = {300, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_all_zero_factors :: proc(t: ^testing.T) {
+	// Test edge case: all factors are 0, no distribution should happen
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {400, 100},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Left_To_Right,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"c1",
+					Style{sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()},
+				)
+				container(
+					ctx,
+					"c2",
+					Style{sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// Both have factor=0, so no grow distribution; they stay at initial size (0)
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {0, 100}},
+					{id = "c2", pos = {0, 0}, size = {0, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_weighted_grow_ttb :: proc(t: ^testing.T) {
+	// Test weighted distribution on Y axis (Top_To_Bottom layout)
+	Test_Data :: struct {
+		panel_size: base.Vec2,
+	}
+	test_data := Test_Data {
+		panel_size = {100, 400},
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fixed(data.panel_size.x),
+				sizing_y = sizing_fixed(data.panel_size.y),
+				layout_direction = .Top_To_Bottom,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"c1",
+					Style{sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(1)},
+				)
+				container(
+					ctx,
+					"c2",
+					Style{sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(2)},
+				)
+				container(
+					ctx,
+					"c3",
+					Style{sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(1)},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// factors [1,2,1] on Y axis, 400px => [100, 200, 100]
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = data.panel_size,
+				children = []Expected_Element {
+					{id = "c1", pos = {0, 0}, size = {100, 100}},
+					{id = "c2", pos = {0, 100}, size = {100, 200}},
+					{id = "c3", pos = {0, 300}, size = {100, 100}},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }

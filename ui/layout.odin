@@ -123,10 +123,11 @@ UI_Element :: struct {
 }
 
 Sizing :: struct {
-	kind:      Size_Kind,
-	min_value: f32,
-	max_value: f32,
-	value:     f32,
+	kind:        Size_Kind,
+	min_value:   f32,
+	max_value:   f32,
+	value:       f32,
+	grow_factor: f32,
 }
 
 Element_Config :: struct {
@@ -377,7 +378,7 @@ update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis
 		return
 	}
 
-	if parent.config.layout.sizing[axis].kind == .Fixed {
+	if parent.config.layout.sizing[axis].kind != .Fit {
 		return
 	}
 
@@ -497,7 +498,8 @@ calculate_size_to_distribute :: proc(
 }
 
 
-// Combined grow and shrink size procedure
+// Target-based distribution: elements are sized to match their factor ratios
+// e.g., factors 1:2:1 in 400px → sizes 100:200:100
 @(private)
 RESIZE_ITER_MAX :: 32
 resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
@@ -509,75 +511,73 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	main_axis := is_main_axis(element^, axis)
 
 	if main_axis {
-
-		// Constraints pass
-		used_space: f32 = 0
 		padding := element.config.layout.padding
 		border := element.config.layout.border
 		padding_sum := get_padding_sum_for_axis(padding, axis)
 		border_sum := get_border_sum_for_axis(border, axis)
-		used_space += padding_sum
-		used_space += border_sum
-		for child in element.children {
-			size_kind := child.config.layout.sizing[axis].kind
-			if size_kind == .Grow {
-				child.size[axis] = clamp(
-					child.size[axis],
-					child.min_size[axis],
-					child.max_size[axis],
-				)
-			}
-			used_space += child.size[axis]
-		}
 		child_gap := calc_child_gap(element^)
-		used_space += child_gap
 
-		// Calculate delta and filter resizables
-		delta_size := element.size[axis] - used_space
-
+		// Calculate space used by non-grow elements
+		fixed_space: f32 = padding_sum + border_sum + child_gap
 		for child in element.children {
-			sizing_kind := child.config.layout.sizing[axis].kind
-			if sizing_kind == .Grow {
-				if (delta_size > 0 && child.size[axis] < child.max_size[axis]) ||
-				   (delta_size < 0 && child.size[axis] > child.min_size[axis]) {
+			if child.config.layout.sizing[axis].kind != .Grow {
+				fixed_space += child.size[axis]
+			}
+		}
+
+		// Available space for grow elements
+		available_for_grow := element.size[axis] - fixed_space
+
+		// Collect grow elements with positive factor
+		for child in element.children {
+			if child.config.layout.sizing[axis].kind == .Grow {
+				factor := child.config.layout.sizing[axis].grow_factor
+				if factor > 0 {
 					append(&resizables, child)
 				}
 			}
 		}
 
-		// Distribution pass
+		if len(resizables) == 0 {
+			return
+		}
+
+		// Iteratively assign target sizes, handling constraints
 		resize_iter := 0
-		for !base.approx_equal(delta_size, 0, EPSILON) && len(resizables) > 0 {
-			assert(resize_iter < RESIZE_ITER_MAX)
+		for resize_iter < RESIZE_ITER_MAX && len(resizables) > 0 {
 			resize_iter += 1
 
-			is_growing := delta_size > 0
-
-			dist, target := calculate_size_to_distribute(is_growing, resizables[:], axis)
-
-			share := delta_size / f32(len(resizables))
-			step_amount := dist
-			if abs(share) < abs(dist) {
-				step_amount = share
+			// Calculate total factor for current resizables
+			total_factor: f32 = 0
+			for child in resizables {
+				total_factor += child.config.layout.sizing[axis].grow_factor
 			}
 
+			if base.approx_equal(total_factor, 0, EPSILON) {
+				break
+			}
+
+			any_clamped := false
+
+			// Calculate and apply target sizes
 			#reverse for child, idx in resizables {
-				// Only process children close to the target value
-				if base.approx_equal(child.size[axis], target, EPSILON) {
-					prev_size := child.size[axis]
-					potential_size := prev_size + step_amount
+				child_factor := child.config.layout.sizing[axis].grow_factor
+				target_size := (child_factor / total_factor) * available_for_grow
+				clamped_size := clamp(target_size, child.min_size[axis], child.max_size[axis])
 
-					next_size := clamp(potential_size, child.min_size[axis], child.max_size[axis])
+				child.size[axis] = clamped_size
 
-					child.size[axis] = next_size
-					delta_size -= (next_size - prev_size)
-
-					// If the size was clamped (didn't reach potential), we hit a limit.
-					// Remove this child from the pool so we don't try to resize it again
-					if !base.approx_equal(next_size, potential_size, EPSILON) {
-						unordered_remove(&resizables, idx)
-					}
+				// If clamped, remove from pool and adjust available space
+				if !base.approx_equal(clamped_size, target_size, EPSILON) {
+					unordered_remove(&resizables, idx)
+					available_for_grow -= clamped_size
+					any_clamped = true
 				}
+			}
+
+			// If no constraints were hit, we're done
+			if !any_clamped {
+				break
 			}
 		}
 

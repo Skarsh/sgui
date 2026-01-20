@@ -65,22 +65,44 @@ border_radius :: proc(tl, tr, br, bl: f32) -> base.Vec4 {
 
 // Fixed size
 sizing_fixed :: proc(value: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
-	return Sizing{kind = .Fixed, value = value, min_value = min, max_value = max}
+	return Sizing {
+		kind = .Fixed,
+		value = value,
+		min_value = min,
+		max_value = max,
+		grow_factor = 0.0,
+	}
 }
 
 // Grow to fill available space
 sizing_grow :: proc(min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
-	return Sizing{kind = .Grow, min_value = min, max_value = max}
+	return Sizing{kind = .Grow, min_value = min, max_value = max, grow_factor = 1.0}
+}
+
+// Grow with weighted factor for proportional space distribution
+sizing_grow_weighted :: proc(factor: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
+	return Sizing {
+		kind = .Grow,
+		min_value = min,
+		max_value = max,
+		grow_factor = math.max(factor, 0),
+	}
 }
 
 // Fit to content
 sizing_fit :: proc(min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
-	return Sizing{kind = .Fit, min_value = min, max_value = max}
+	return Sizing{kind = .Fit, min_value = min, max_value = max, grow_factor = 0.0}
 }
 
 // Percentage of parent size
 sizing_percent :: proc(percent: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
-	return Sizing{kind = .Percentage_Of_Parent, value = percent, min_value = min, max_value = max}
+	return Sizing {
+		kind = .Percentage_Of_Parent,
+		value = percent,
+		min_value = min,
+		max_value = max,
+		grow_factor = 0.0,
+	}
 }
 
 // Uses Maybe(T) for optional simple types and tagged structs for unions (Fill).
