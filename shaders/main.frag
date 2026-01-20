@@ -18,6 +18,7 @@ in vec2 v_local_pos;
 in vec2 v_tex_coords;
 flat in int v_tex_slot;
 flat in int v_shape_kind;
+flat in float v_stroke_thickness;
 in vec4 v_border;
 in vec4 v_border_radius;
 
@@ -113,78 +114,93 @@ void main() {
 
     // If tex_coords are negative, it's a solid/gradient shape, not text or an image.
     if (v_tex_coords.x < 0.0) {
-        float border_sum = v_border.x + v_border.y + v_border.z + v_border.w;
-        if (border_sum <= 0.001 ) {
-            // No border, use a simpler path
-            float d = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
-            float alpha = sdfAlpha(d);
-
-            vec4 inner_color = calcGradientColor(
-                v_color_start,
-                v_color_end,
-                v_gradient_dir,
-                v_quad_half_size,
-                v_local_pos
-            );
-
-            o_color = vec4(inner_color.rgb, inner_color.a * alpha);
-
-        } else {
-            // Calculate the offset and size reduction for the inner rect
-            // to account for variable border widths
-            // v_border mapping: x=top, y=right, z=bottom, w=left
-            vec2 border_offset = vec2(
-                (v_border.w - v_border.y) * 0.5,  // X: (left - right) / 2
-                (v_border.x - v_border.z) * 0.5   // Y: (top - bottom) / 2
-            );
-
-            vec2 border_reduction = vec2(
-                (v_border.y + v_border.w) * 0.5,  // X: (right + left) / 2
-                (v_border.x + v_border.z) * 0.5   // Y: (top + bottom) / 2
-            );
-
-            vec2 inner_half_size = v_quad_half_size - border_reduction;
-
-            float d_border = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
-            float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, v_border_radius);
-
-            float alpha_border = sdfAlpha(d_border);
-            float alpha_inner = sdfAlpha(d_inner);
-
-            vec4 border_color = calcGradientColor(
-                v_border_color_start,
-                v_border_color_end,
-                v_border_gradient_dir,
-                v_quad_half_size,
-                v_local_pos
-            );
-
-            vec4 inner_color = calcGradientColor(
-                v_color_start,
-                v_color_end,
-                v_gradient_dir,
-                inner_half_size,
-                v_local_pos - border_offset
-            );
-
-            // Render the border first
-            o_color = mix(o_color, border_color, alpha_border);
-            // Then the inner
-            o_color = mix(o_color, inner_color, alpha_inner);
-        }
-
         if (v_shape_kind == 1) {
-            vec2 p1 = vec2(-0.75 * v_quad_half_size.x, 0.1 * v_quad_half_size.y);
-            vec2 p2 = vec2(0.0 * v_quad_half_size.x, 0.75 * v_quad_half_size.y);
-            float d1 = sdSegment(v_local_pos, p1,  p2);
+            // Checkmark shape - two line segments forming a check
+            // Points are scaled relative to quad size for proportional rendering
+            vec2 p1 = vec2(-0.35, 0.0) * v_quad_half_size;    // Left point
+            vec2 p2 = vec2(-0.05, 0.35) * v_quad_half_size;   // Bottom point
+            vec2 p3 = vec2(0.40, -0.35) * v_quad_half_size;   // Top-right point
 
-            vec2 p3 = vec2(0.7 * v_quad_half_size.x, -0.65 * v_quad_half_size.y);
+            float d1 = sdSegment(v_local_pos, p1, p2);
             float d2 = sdSegment(v_local_pos, p2, p3);
+            float d = min(d1, d2);
 
-            float combined_d = min(d1, d2);
-            float stroke_width = 1.0;
-            float alpha = 1.0 - smoothstep(0.0, 1.0, combined_d - stroke_width);
-            o_color = mix(vec4(0.3, 0.3, 0.3, 1.0), vec4(1.0, 1.0, 1.0, 1.0), alpha);
+            float half_thickness = v_stroke_thickness * 0.5;
+            float stroked_d = d - half_thickness;
+
+            float alpha = sdfAlpha(stroked_d);
+
+            vec4 checkmark_color = calcGradientColor(
+                v_color_start,
+                v_color_end,
+                v_gradient_dir,
+                v_quad_half_size,
+                v_local_pos
+            );
+
+            // Output the checkmark with proper alpha for blending
+            o_color = vec4(checkmark_color.rgb, checkmark_color.a * alpha);
+        } else if (v_shape_kind <= 0) {
+            // Regular rectangle rendering (not a shape)
+            float border_sum = v_border.x + v_border.y + v_border.z + v_border.w;
+            if (border_sum <= 0.001 ) {
+                // No border, use a simpler path
+                float d = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
+                float alpha = sdfAlpha(d);
+
+                vec4 inner_color = calcGradientColor(
+                    v_color_start,
+                    v_color_end,
+                    v_gradient_dir,
+                    v_quad_half_size,
+                    v_local_pos
+                );
+
+                o_color = vec4(inner_color.rgb, inner_color.a * alpha);
+
+            } else {
+                // Calculate the offset and size reduction for the inner rect
+                // to account for variable border widths
+                // v_border mapping: x=top, y=right, z=bottom, w=left
+                vec2 border_offset = vec2(
+                    (v_border.w - v_border.y) * 0.5,  // X: (left - right) / 2
+                    (v_border.x - v_border.z) * 0.5   // Y: (top - bottom) / 2
+                );
+
+                vec2 border_reduction = vec2(
+                    (v_border.y + v_border.w) * 0.5,  // X: (right + left) / 2
+                    (v_border.x + v_border.z) * 0.5   // Y: (top + bottom) / 2
+                );
+
+                vec2 inner_half_size = v_quad_half_size - border_reduction;
+
+                float d_border = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
+                float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, v_border_radius);
+
+                float alpha_border = sdfAlpha(d_border);
+                float alpha_inner = sdfAlpha(d_inner);
+
+                vec4 border_color = calcGradientColor(
+                    v_border_color_start,
+                    v_border_color_end,
+                    v_border_gradient_dir,
+                    v_quad_half_size,
+                    v_local_pos
+                );
+
+                vec4 inner_color = calcGradientColor(
+                    v_color_start,
+                    v_color_end,
+                    v_gradient_dir,
+                    inner_half_size,
+                    v_local_pos - border_offset
+                );
+
+                // Render the border first
+                o_color = mix(o_color, border_color, alpha_border);
+                // Then the inner
+                o_color = mix(o_color, inner_color, alpha_inner);
+            }
         }
     } else {
         switch (v_tex_slot) {

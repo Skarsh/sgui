@@ -195,7 +195,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 										base.fill_color(255, 255, 255),
 										2.0,
 									},
-									ui.Style{background_fill = base.fill(current_checkbox_color)},
+									ui.Style {
+										sizing_x = ui.sizing_fixed(36),
+										sizing_y = ui.sizing_fixed(36),
+										background_fill = base.fill(current_checkbox_color),
+									},
 								)
 
 								// --- Spacer ---

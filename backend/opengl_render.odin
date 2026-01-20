@@ -108,7 +108,8 @@ Quad_Param :: struct #align (16) {
 	uv_size:             base.Vec2,
 	tex_slot:            i32,
 	shape_kind:          i32,
-	_padding_3:          base.Vec2,
+	stroke_thickness:    f32,
+	_padding_3:          f32,
 	// Mapping: x=top, y=right, z=bottom, w=left
 	border:              base.Vec4,
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
@@ -619,24 +620,25 @@ opengl_render_end :: proc(
 
 			rect := val.rect
 			kind := val.data.kind
+			thickness := val.data.thickness
 
 			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-				color_start  = color_start,
-				color_end    = color_end,
-				gradient_dir = gradient_dir,
-				clip_rect    = {
+				color_start      = color_start,
+				color_end        = color_end,
+				gradient_dir     = gradient_dir,
+				clip_rect        = {
 					f32(command.clip_rect.x),
 					f32(command.clip_rect.y),
 					f32(command.clip_rect.w),
 					f32(command.clip_rect.h),
 				},
-				quad_pos     = {f32(rect.x) + f32(rect.w) / 2, f32(rect.y) + f32(rect.h) / 2},
-				quad_size    = {f32(rect.w), f32(rect.h)},
-				uv_offset    = {-1, -1},
-				uv_size      = {0, 0},
-				tex_slot     = 0,
-				// TODO(Thomas): Use the actual shape kind
-				shape_kind   = i32(kind),
+				quad_pos         = {f32(rect.x) + f32(rect.w) / 2, f32(rect.y) + f32(rect.h) / 2},
+				quad_size        = {f32(rect.w), f32(rect.h)},
+				uv_offset        = {-1, -1},
+				uv_size          = {0, 0},
+				tex_slot         = 0,
+				shape_kind       = i32(kind),
+				stroke_thickness = thickness,
 			}
 
 			batch.quad_idx += 1
