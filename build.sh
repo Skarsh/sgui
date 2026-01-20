@@ -4,6 +4,10 @@ set -eo pipefail
 # Ensure the build output directory exists
 mkdir -p build
 
+echo "--- Formatting codebase ---"
+odinfmt -w .
+
+echo ""
 echo "--- Running tests ---"
 if ! odin test ui; then
     echo "Ui tests failed! Cannot successfully build."
