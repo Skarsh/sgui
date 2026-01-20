@@ -46,34 +46,30 @@ make_slider_row :: proc(
 	color: base.Color,
 	sb: ^strings.Builder,
 ) -> ui.Comm {
-
-	row_layout_dir := ui.Layout_Direction.Left_To_Right
-	row_align_y := ui.Alignment_Y.Center
-	row_chlid_gap: f32 = 10
-	row_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
 	comm: ui.Comm
 
 	if ui.begin_container(
 		ctx,
 		fmt.tprintf("%s_slider_row", id_suffix),
 		ui.Style {
-			sizing_x = row_sizing.x,
-			sizing_y = row_sizing.y,
-			layout_direction = row_layout_dir,
-			alignment_y = row_align_y,
-			child_gap = row_chlid_gap,
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			layout_direction = .Left_To_Right,
+			alignment_y = .Center,
+			child_gap = 10,
 		},
 	) {
-
 		// TODO(Thomas): @Perf string font size caching
 		label_string_width := ui.measure_string_width(ctx, label, ctx.font_id)
-		label_sizing := [2]ui.Sizing{ui.sizing_grow(max = label_string_width), ui.sizing_fit()}
-		text_fill := base.fill(color)
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_label", id_suffix),
 			label,
-			ui.Style{sizing_x = label_sizing.x, sizing_y = label_sizing.y, text_fill = text_fill},
+			ui.Style {
+				sizing_x = ui.sizing_grow(max = label_string_width),
+				sizing_y = ui.sizing_fit(),
+				text_fill = base.fill(color),
+			},
 		)
 
 		comm = ui.slider(
@@ -93,16 +89,14 @@ make_slider_row :: proc(
 		strings.write_string(sb, value_str)
 		// TODO(Thomas): @Perf string font size caching
 		value_string_width := ui.measure_string_width(ctx, value_str, ctx.font_id)
-		value_sizing := [2]ui.Sizing{ui.sizing_grow(max = value_string_width), ui.sizing_fit()}
-		value_align_x := ui.Alignment_X.Right
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_value", id_suffix),
 			strings.to_string(sb^),
 			ui.Style {
-				sizing_x = value_sizing.x,
-				sizing_y = value_sizing.y,
-				text_alignment_x = value_align_x,
+				sizing_x = ui.sizing_grow(max = value_string_width),
+				sizing_y = ui.sizing_fit(),
+				text_alignment_x = .Right,
 			},
 		)
 
@@ -119,82 +113,57 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_text_fill(ctx, base.fill(TEXT_COLOR)); defer ui.pop_text_fill(ctx)
 
 		// --- Main Panel (centered) ---
-		main_panel_sizing := [2]ui.Sizing{ui.sizing_percent(1.0), ui.sizing_percent(1.0)}
-		main_panel_align_x := ui.Alignment_X.Center
-		main_panel_align_y := ui.Alignment_Y.Center
-
 		if ui.begin_container(
 			ctx,
 			"main_panel",
 			ui.Style {
-				sizing_x = main_panel_sizing.x,
-				sizing_y = main_panel_sizing.y,
-				alignment_x = main_panel_align_x,
-				alignment_y = main_panel_align_y,
+				sizing_x = ui.sizing_percent(1.0),
+				sizing_y = ui.sizing_percent(1.0),
+				alignment_x = .Center,
+				alignment_y = .Center,
 				capability_flags = ui.Capability_Flags{.Background},
 			},
 		) {
-
-			panel_align_x := ui.Alignment_X.Center
-			panel_align_y := ui.Alignment_Y.Center
-			panel_padding := ui.padding_all(15)
-			panel_border_radius := ui.border_radius_all(10)
-			panel_layout_dir := ui.Layout_Direction.Top_To_Bottom
-			panel_child_gap: f32 = 10
-			panel_bg := base.fill(PANEL_BG)
-
 			if ui.begin_container(
 				ctx,
 				"panel",
 				ui.Style {
-					alignment_x = panel_align_x,
-					alignment_y = panel_align_y,
-					layout_direction = panel_layout_dir,
-					padding = panel_padding,
-					child_gap = panel_child_gap,
-					border_radius = panel_border_radius,
-					background_fill = panel_bg,
+					alignment_x = .Center,
+					alignment_y = .Center,
+					layout_direction = .Top_To_Bottom,
+					padding = ui.padding_all(15),
+					child_gap = 10,
+					border_radius = ui.border_radius_all(10),
+					background_fill = base.fill(PANEL_BG),
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			) {
 
 				// --- Color Viewer ---
 				color_viewer_size: f32 = 300
-				color_viewer_sizing := [2]ui.Sizing {
-					ui.sizing_fixed(color_viewer_size),
-					ui.sizing_fixed(color_viewer_size),
-				}
-
-				color_viewer_bg_fill := base.fill_color(
-					u8(data.r * 255),
-					u8(data.g * 255),
-					u8(data.b * 255),
-					u8(data.a * 255),
-				)
-
-				color_viewer_radius_val := color_viewer_size / 2
-				color_viewer_border_radius := ui.border_radius_all(color_viewer_radius_val)
-				color_viewer_align_x := ui.Alignment_X.Center
-				border := ui.border_all(4)
-				border_color := base.Color {
-					u8(data.r * 200),
-					u8(data.g * 200),
-					u8(data.b * 200),
-					u8(data.a * 200),
-				}
-				border_fill := base.fill(border_color)
-
 				ui.container(
 					ctx,
 					"color_viewer",
 					ui.Style {
-						sizing_x = color_viewer_sizing.x,
-						sizing_y = color_viewer_sizing.y,
-						border_radius = color_viewer_border_radius,
-						alignment_x = color_viewer_align_x,
-						border = border,
-						background_fill = color_viewer_bg_fill,
-						border_fill = border_fill,
+						sizing_x = ui.sizing_fixed(color_viewer_size),
+						sizing_y = ui.sizing_fixed(color_viewer_size),
+						border_radius = ui.border_radius_all(color_viewer_size / 2),
+						alignment_x = .Center,
+						border = ui.border_all(4),
+						background_fill = base.fill_color(
+							u8(data.r * 255),
+							u8(data.g * 255),
+							u8(data.b * 255),
+							u8(data.a * 255),
+						),
+						border_fill = base.fill(
+							base.Color {
+								u8(data.r * 200),
+								u8(data.g * 200),
+								u8(data.b * 200),
+								u8(data.a * 200),
+							},
+						),
 						capability_flags = ui.Capability_Flags{.Background},
 					},
 				)
@@ -225,30 +194,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 				// --- Hex Input ---
 				hex_comm: ui.Comm
-				hex_layout_dir := ui.Layout_Direction.Left_To_Right
-				hex_align_y := ui.Alignment_Y.Center
-				hex_padding := ui.padding_xy(5, 10)
-				hex_child_gap: f32 = 10
-				hex_border_radius := ui.border_radius_all(5)
-				hex_sizing := [2]ui.Sizing{ui.sizing_grow(), ui.sizing_fit()}
-				hex_bg := base.fill(ITEM_BG)
-
 				if ui.begin_container(
 					ctx,
 					"hex_container",
 					ui.Style {
-						sizing_x = hex_sizing.x,
-						sizing_y = hex_sizing.y,
-						layout_direction = hex_layout_dir,
-						alignment_y = hex_align_y,
-						padding = hex_padding,
-						border_radius = hex_border_radius,
-						child_gap = hex_child_gap,
-						background_fill = hex_bg,
+						sizing_x = ui.sizing_grow(),
+						sizing_y = ui.sizing_fit(),
+						layout_direction = .Left_To_Right,
+						alignment_y = .Center,
+						padding = ui.padding_xy(5, 10),
+						border_radius = ui.border_radius_all(5),
+						child_gap = 10,
+						background_fill = base.fill(ITEM_BG),
 						capability_flags = ui.Capability_Flags{.Background},
 					},
 				) {
-
 					hex_label_str := "#"
 					// TODO(Thomas): @Perf string font size caching
 					hex_label_string_width := ui.measure_string_width(
@@ -256,23 +216,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						hex_label_str,
 						ctx.font_id,
 					)
-					hex_label_sizing := [2]ui.Sizing {
-						ui.sizing_grow(max = hex_label_string_width),
-						ui.sizing_fit(),
-					}
 					ui.text(
 						ctx,
 						"hex_label",
 						hex_label_str,
-						ui.Style{sizing_x = hex_label_sizing.x, sizing_y = hex_label_sizing.y},
+						ui.Style {
+							sizing_x = ui.sizing_grow(max = hex_label_string_width),
+							sizing_y = ui.sizing_fit(),
+						},
 					)
-					input_bg := base.fill_color(0, 0, 0, 0)
 					hex_comm = ui.text_input(
 						ctx,
 						"hex_field",
 						data.buf,
 						&data.buf_len,
-						ui.Style{background_fill = input_bg},
+						ui.Style{background_fill = base.fill_color(0, 0, 0, 0)},
 					)
 
 					ui.end_container(ctx)
