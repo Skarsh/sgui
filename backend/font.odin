@@ -136,7 +136,7 @@ pack_font_glyphs :: proc(
 	return pack_result != 0
 }
 
-// We need to iterate over the packed chars and insert them 
+// We need to iterate over the packed chars and insert them
 // into the glyph cache
 cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	// Cache ASCII printable characters
