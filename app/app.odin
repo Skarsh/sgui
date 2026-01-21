@@ -9,15 +9,15 @@ import "../ui"
 import sdl "vendor:sdl2"
 
 App :: struct {
-	app_arena:        virtual.Arena,
-	persistent_arena: virtual.Arena,
-	frame_arena:      virtual.Arena,
-	draw_cmd_arena:   virtual.Arena,
-	io_arena:         virtual.Arena,
-	window:           backend.Window,
-	ui_ctx:           ui.Context,
-	backend_ctx:      backend.Context,
-	running:          bool,
+	app_arena:            virtual.Arena,
+	persistent_allocator: mem.Allocator,
+	frame_arena:          virtual.Arena,
+	draw_cmd_arena:       virtual.Arena,
+	io_arena:             virtual.Arena,
+	window:               backend.Window,
+	ui_ctx:               ui.Context,
+	backend_ctx:          backend.Context,
+	running:              bool,
 }
 
 App_Config :: struct {
@@ -45,14 +45,15 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	app_arena_allocator := virtual.arena_allocator(&app.app_arena)
 
-	arena_err = virtual.arena_init_static(&app.persistent_arena, 100 * mem.Kilobyte)
-	assert(arena_err == .None)
-	if arena_err != .None {
-		log.error("Failed to allocate persistent arena")
-		free(app)
-		return nil, false
-	}
-	persistent_arena_allocator := virtual.arena_allocator(&app.persistent_arena)
+	//arena_err = virtual.arena_init_static(&app.persistent_arena, 100 * mem.Kilobyte)
+	//assert(arena_err == .None)
+	//if arena_err != .None {
+	//	log.error("Failed to allocate persistent arena")
+	//	free(app)
+	//	return nil, false
+	//}
+	//persistent_arena_allocator := virtual.arena_allocator(&app.persistent_arena)
+	persistent_allocator := context.allocator
 
 	arena_err = virtual.arena_init_static(&app.frame_arena, 100 * mem.Kilobyte)
 	assert(arena_err == .None)
@@ -96,7 +97,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	ui.init(
 		&app.ui_ctx,
-		persistent_arena_allocator,
+		//persistent_arena_allocator,
+		persistent_allocator,
 		frame_arena_allocator,
 		draw_cmd_arena_allocator,
 		{app_config.width, app_config.height},

@@ -236,6 +236,8 @@ deinit :: proc(ctx: ^Context) {
 }
 
 begin :: proc(ctx: ^Context) -> bool {
+	ctx.frame_idx += 1
+
 	clear_dynamic_array(&ctx.interactive_elements)
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
@@ -313,7 +315,40 @@ end :: proc(ctx: ^Context) {
 
 	clear_input(ctx)
 
-	ctx.frame_idx += 1
+	prune_dead_elements(ctx)
+
+}
+
+// CONTINUE HERE:
+// We're still not properly cleaning up everything,
+// the tracking allocator is complaining about leaks.
+prune_dead_elements :: proc(ctx: ^Context) {
+	Elem :: struct {
+		key:   UI_Key,
+		value: ^UI_Element,
+	}
+
+	// Cannot alter map while iterating, so we make a free list
+	free_list := make([dynamic]Elem, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	for key, elem in ctx.element_cache {
+		if elem != nil {
+			if elem.last_frame_idx < ctx.frame_idx - 1 {
+				append(&free_list, Elem{key, elem})
+			}
+		}
+	}
+
+	for elem in free_list {
+		delete_key(&ctx.element_cache, elem.key)
+		if elem.value != nil {
+			if elem.value.children != nil {
+				delete(elem.value.children)
+			}
+			delete(elem.value.id_string)
+			free(elem.value, ctx.persistent_allocator)
+		}
+	}
 }
 
 // Traverses the element hierarchy in BFS order and appends on the elements
