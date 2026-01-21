@@ -4,6 +4,8 @@
 * Prune "dead" ui elements (they're still cached in the map)
 
 ## Bugs
+* Buttons in counter has seemingly wrong size when using `sizing_fit()`.
+    - This is probably a deeper issue, needs investigation.
 
 ## Backlog
 * Review how capability flags are set in `open_element`. Currently they are additive, which
