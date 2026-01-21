@@ -2,6 +2,10 @@
 
 ## Active
 * Prune "dead" ui elements (they're still cached in the map)
+    - Currently persistent allocator is an arena allocator, which makes it not possible for us to individually free elements
+    - An element should be freed if the `last_frame_idx` if it was not updated last frame.
+    - Probably have to traverse the element hierarchy or iterate the cache map to find elements that haven't been touched.
+        Cannot do this in `make_element` because that will only be called on elements that should be created for this frame.
 
 ## Bugs
 * Buttons in counter has seemingly wrong size when using `sizing_fit()`.
