@@ -799,13 +799,11 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	return element.last_comm
 }
 
-
 slider :: proc(
 	ctx: ^Context,
 	id: string,
 	value: ^f32,
-	min: f32,
-	max: f32,
+	min_val, max_val: f32,
 	axis: Axis2 = .X,
 	thumb_size: base.Vec2 = {20, 20},
 	thumb_color: base.Fill = {},
@@ -813,90 +811,80 @@ slider :: proc(
 	thumb_border_fill_param: base.Fill = {},
 	style: Style = {},
 ) -> Comm {
-	default_style := default_theme().slider
-	if axis == .X {
-		default_style.sizing_x = sizing_grow()
-		default_style.sizing_y = sizing_fixed(thumb_size.y)
-	} else {
-		default_style.sizing_x = sizing_fixed(thumb_size.x)
-		default_style.sizing_y = sizing_grow()
+	is_vert := axis == .Y
+	axis_idx := int(axis)
+
+	// Setup Track style
+	track_style := default_theme().slider
+	track_style.sizing_x = is_vert ? sizing_fixed(thumb_size.x) : sizing_grow()
+	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
+
+	track, ok := open_element(ctx, id, style, track_style)
+	if !ok {return {}}
+
+	// Setup Thumb Style
+	thumb_bg := thumb_color.kind == .Not_Set ? base.fill_color(255, 200, 200) : thumb_color
+	thumb_bd :=
+		thumb_border_fill_param.kind == .Not_Set ? base.fill_color(240, 240, 240) : thumb_border_fill_param
+
+	thumb_style := Style {
+		sizing_x         = sizing_fixed(thumb_size.x),
+		sizing_y         = sizing_fixed(thumb_size.y),
+		alignment_x      = is_vert ? .Center : .Left,
+		alignment_y      = is_vert ? .Top : .Center,
+		border_radius    = border_radius_all(min(thumb_size.x, thumb_size.y) * 0.5),
+		border           = thumb_border_width,
+		background_fill  = thumb_bg,
+		border_fill      = thumb_bd,
+		capability_flags = Capability_Flags{.Background, .Clickable, .Focusable},
 	}
 
-	element, open_ok := open_element(ctx, id, style, default_style)
+	// Open Thumb & Logic
+	thumb, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), thumb_style)
+	if t_ok {
 
-	if open_ok {
-		padding := element.config.layout.padding
-		border := element.config.layout.border
-		pad_start, pad_end := get_padding_for_axis(padding, axis)
-		border_start, border_end := get_border_for_axis(border, axis)
+		// Calculate Space
+		pad, border := track.config.layout.padding, track.config.layout.border
+		start_space := is_vert ? (pad.top + border.top) : (pad.left + border.left)
+		end_space := is_vert ? (pad.bottom + border.bottom) : (pad.right + border.right)
 
-		track_len := element.size[axis] - pad_start - pad_end - border_start - border_end
-		thumb_len := axis == .X ? thumb_size.x : thumb_size.y
+		travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
 
-		range := max - min
+		// Input Handling
+		if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
+			mouse_val := f32(ctx.input.mouse_pos[axis_idx])
+			mouse_rel := mouse_val - track.position[axis_idx] - start_space
 
-		// Handle input
-		if element.last_comm.held && track_len > 0 {
-			mouse_val := axis == .X ? f32(ctx.input.mouse_pos.x) : f32(ctx.input.mouse_pos.y)
-			element_pos := axis == .X ? element.position.x : element.position.y
-
-			mouse_relative := mouse_val - (element_pos + pad_start)
-
-			new_ratio := math.clamp(mouse_relative / track_len, 0, 1)
-			value^ = min + (new_ratio * range)
+			// Calculate ratio (centering thumb on mouse)
+			ratio := (mouse_rel - thumb_size[axis_idx] * 0.5) / travel_len
+			value^ = min_val + (math.clamp(ratio, 0, 1) * (max_val - min_val))
 		}
 
-		ratio: f32 = 0
-		if range != 0 {
-			ratio = math.clamp((value^ - min) / range, 0, 1)
-		}
+		// Visual Positioning
+		range := max_val - min_val
+		ratio := range != 0 ? math.clamp((value^ - min_val) / range, 0, 1) : 0.0
+		offset := ratio * travel_len
 
-		thumb_travel := track_len - thumb_len
-		thumb_offset := ratio * thumb_travel
-
-		thumb_align_x: Alignment_X
-		thumb_align_y: Alignment_Y
-		thumb_rel_pos: base.Vec2
-
-		if axis == .X {
-			thumb_align_x = .Left
-			thumb_align_y = .Center
-			thumb_rel_pos = base.Vec2{thumb_offset, -thumb_size.y / 2}
+		if is_vert {
+			thumb.config.layout.relative_position = {-thumb_size.x * 0.5, offset}
 		} else {
-			thumb_align_x = .Center
-			thumb_align_y = .Top
-			thumb_rel_pos = base.Vec2{-thumb_size.x / 2, thumb_offset}
+			thumb.config.layout.relative_position = {offset, -thumb_size.y * 0.5}
 		}
 
-		// Apply defaults for Fill parameters
-		thumb_bg_fill :=
-			thumb_color.kind == .Not_Set ? base.fill_color(255, 200, 200) : thumb_color
-		thumb_border_fill :=
-			thumb_border_fill_param.kind == .Not_Set ? base.fill_color(240, 240, 240) : thumb_border_fill_param
-		thumb_radius_val := math.min(thumb_size.x, thumb_size.y) / 2
-		thumb_id := fmt.tprintf("%v_thumb", id)
+		// Merge interaction states
+		track.last_comm.held |= thumb.last_comm.held
+		track.last_comm.clicked |= thumb.last_comm.clicked
+		track.last_comm.active |= thumb.last_comm.active
+		track.last_comm.hovering |= thumb.last_comm.hovering
 
-		container(
-			ctx,
-			thumb_id,
-			Style {
-				sizing_x = sizing_fixed(thumb_size.x),
-				sizing_y = sizing_fixed(thumb_size.y),
-				alignment_x = thumb_align_x,
-				alignment_y = thumb_align_y,
-				relative_position = thumb_rel_pos,
-				border_radius = border_radius_all(thumb_radius_val),
-				border = thumb_border_width,
-				background_fill = thumb_bg_fill,
-				border_fill = thumb_border_fill,
-				capability_flags = Capability_Flags{.Background},
-			},
-		)
+		append(&ctx.interactive_elements, thumb)
 		close_element(ctx)
-
 	}
-	append(&ctx.interactive_elements, element)
-	return element.last_comm
+
+	append(&ctx.interactive_elements, track)
+	close_element(ctx)
+
+	return track.last_comm
 }
 
 scrollbar :: proc(
