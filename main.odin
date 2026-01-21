@@ -21,6 +21,8 @@ WINDOW_HEIGHT :: 1080
 
 main :: proc() {
 	diag := diagnostics.init()
+	context.logger = diag.logger
+	context.allocator = mem.tracking_allocator(&diag.tracking_allocator)
 	defer diagnostics.deinit(&diag)
 
 	window, window_ok := backend.init_and_create_window("ImGUI", WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -157,10 +159,10 @@ main :: proc() {
 		//build_interactive_button_ui(&app_state)
 		//build_styled_ui(&app_state)
 		//build_percentage_of_parent_ui(&app_state)
-		//build_grow_ui(&app_state)
+		build_grow_ui(&app_state)
 		//build_multiple_images_ui(&app_state, &image_data)
 		//build_relative_layout_ui(&app_state)
-		build_bug_repro(&app_state)
+		//build_bug_repro(&app_state)
 
 		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
 
@@ -411,7 +413,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 		&app_state.ctx,
 		"parent",
 		ui.Style {
-			sizing_x = ui.sizing_fixed(400),
+			sizing_x = ui.sizing_fixed(350),
 			sizing_y = ui.sizing_fit(),
 			padding = ui.padding_all(10),
 			child_gap = 10,
@@ -442,7 +444,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 				ctx,
 				"child_3",
 				ui.Style {
-					sizing_x = ui.sizing_grow(max = 50),
+					sizing_x = ui.sizing_grow(min = 200),
 					sizing_y = ui.sizing_grow(),
 					background_fill = base.fill_color(0, 0, 255),
 				},

@@ -1,6 +1,7 @@
 package main
 
 import "core:log"
+import "core:mem"
 import "core:strings"
 
 import "../../app"
@@ -91,6 +92,8 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
 
 main :: proc() {
 	diag := diagnostics.init()
+	context.logger = diag.logger
+	context.allocator = mem.tracking_allocator(&diag.tracking_allocator)
 	defer diagnostics.deinit(&diag)
 
 	config := app.App_Config {

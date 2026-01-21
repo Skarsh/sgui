@@ -11,19 +11,17 @@ Diagnostics_Context :: struct {
 }
 
 // Initialize diagnostics (tracking allocator + logger)
-init :: proc(log_level := log.Level.Info) -> Diagnostics_Context {
+init :: proc(log_level := log.Level.Info, allocator := context.allocator) -> Diagnostics_Context {
 	diag := Diagnostics_Context{}
 
 	// Store the base allocator
-	diag.base_allocator = context.allocator
+	diag.base_allocator = allocator
 
 	// Setup tracking allocator
 	mem.tracking_allocator_init(&diag.tracking_allocator, diag.base_allocator)
-	context.allocator = mem.tracking_allocator(&diag.tracking_allocator)
 
 	// Setup logger
-	diag.logger = log.create_console_logger(log_level)
-	context.logger = diag.logger
+	diag.logger = log.create_console_logger(log_level, allocator = diag.base_allocator)
 
 	return diag
 }
@@ -31,8 +29,7 @@ init :: proc(log_level := log.Level.Info) -> Diagnostics_Context {
 // Cleanup and report diagnostics
 deinit :: proc(diag: ^Diagnostics_Context) {
 	// Cleanup logger first (before checking for leaks)
-	// Use the tracking allocator to ensure the free is tracked
-	log.destroy_console_logger(diag.logger, mem.tracking_allocator(&diag.tracking_allocator))
+	log.destroy_console_logger(diag.logger, diag.base_allocator)
 
 	// Report tracking allocator results
 	if len(diag.tracking_allocator.allocation_map) > 0 {
