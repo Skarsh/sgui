@@ -805,14 +805,33 @@ slider :: proc(
 	value: ^f32,
 	min_val, max_val: f32,
 	axis: Axis2 = .X,
-	thumb_size: base.Vec2 = {20, 20},
-	thumb_color: base.Fill = {},
-	thumb_border_width: Border = {},
-	thumb_border_fill_param: base.Fill = {},
 	style: Style = {},
+	thumb_style: Style = {},
 ) -> Comm {
 	is_vert := axis == .Y
 	axis_idx := int(axis)
+
+	// Merge user thumb_style with theme default
+	resolved_thumb := merge_styles(default_theme().slider_thumb, thumb_style)
+
+	// Set axis-dependent alignment if not explicitly set by user
+	if resolved_thumb.alignment_x == nil {
+		resolved_thumb.alignment_x = is_vert ? .Center : .Left
+	}
+	if resolved_thumb.alignment_y == nil {
+		resolved_thumb.alignment_y = is_vert ? .Top : .Center
+	}
+
+	// Extract thumb size from resolved style
+	thumb_size_x: f32 = 20.0
+	thumb_size_y: f32 = 20.0
+	if sizing, ok := resolved_thumb.sizing_x.?; ok {
+		thumb_size_x = sizing.value
+	}
+	if sizing, ok := resolved_thumb.sizing_y.?; ok {
+		thumb_size_y = sizing.value
+	}
+	thumb_size := base.Vec2{thumb_size_x, thumb_size_y}
 
 	// Setup Track style
 	track_style := default_theme().slider
@@ -822,25 +841,8 @@ slider :: proc(
 	track, ok := open_element(ctx, id, style, track_style)
 	if !ok {return {}}
 
-	// Setup Thumb Style
-	thumb_bg := thumb_color.kind == .Not_Set ? base.fill_color(255, 200, 200) : thumb_color
-	thumb_bd :=
-		thumb_border_fill_param.kind == .Not_Set ? base.fill_color(240, 240, 240) : thumb_border_fill_param
-
-	thumb_style := Style {
-		sizing_x         = sizing_fixed(thumb_size.x),
-		sizing_y         = sizing_fixed(thumb_size.y),
-		alignment_x      = is_vert ? .Center : .Left,
-		alignment_y      = is_vert ? .Top : .Center,
-		border_radius    = border_radius_all(min(thumb_size.x, thumb_size.y) * 0.5),
-		border           = thumb_border_width,
-		background_fill  = thumb_bg,
-		border_fill      = thumb_bd,
-		capability_flags = Capability_Flags{.Background, .Clickable, .Focusable},
-	}
-
 	// Open Thumb & Logic
-	thumb, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), thumb_style)
+	thumb, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), resolved_thumb)
 	if t_ok {
 
 		// Calculate Space
@@ -930,7 +932,6 @@ scrollbar :: proc(
 		sb_style.background_fill = base.fill_color(0, 0, 0, 0)
 	}
 
-	thumb_col := base.fill_color(80, 80, 80)
 	comm := slider(
 		ctx,
 		id,
@@ -938,11 +939,13 @@ scrollbar :: proc(
 		0,
 		target.scroll_region.max_offset[axis],
 		axis,
-		{20, calculated_thumb_size},
-		thumb_col,
-		{},
-		base.fill_color(0, 0, 0, 0),
 		sb_style,
+		Style {
+			sizing_x = sizing_fixed(20),
+			sizing_y = sizing_fixed(calculated_thumb_size),
+			background_fill = base.fill_color(80, 80, 80),
+			border_fill = base.fill_color(0, 0, 0, 0),
+		},
 	)
 
 	// Sync the target_offset if the user is interacting with the scrollbar.

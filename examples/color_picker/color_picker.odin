@@ -76,9 +76,13 @@ make_slider_row :: proc(
 			0,
 			1,
 			.X,
-			20,
-			base.fill(color),
-			ui.border_all(2),
+			{},
+			ui.Style {
+				sizing_x = ui.sizing_fixed(20),
+				sizing_y = ui.sizing_fixed(20),
+				background_fill = base.fill(color),
+				border = ui.border_all(2),
+			},
 		)
 
 		// Format hex value directly into the provided buffer

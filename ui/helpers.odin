@@ -223,14 +223,15 @@ resolve_capability_flags :: proc(ctx: ^Context, style, default_style: Style) -> 
 // Theme holds default Styles for each widget type.
 // Widgets use these as their default styles, which can be overridden per-call.
 Theme :: struct {
-	button:     Style,
-	checkbox:   Style,
-	label:      Style,
-	panel:      Style,
-	slider:     Style,
-	spacer:     Style,
-	text:       Style,
-	text_input: Style,
+	button:       Style,
+	checkbox:     Style,
+	label:        Style,
+	panel:        Style,
+	slider:       Style,
+	slider_thumb: Style,
+	spacer:       Style,
+	text:         Style,
+	text_input:   Style,
 }
 
 default_theme :: proc() -> Theme {
@@ -294,6 +295,14 @@ default_theme :: proc() -> Theme {
 				.Hot_Animation,
 			},
 			layout_mode = .Relative,
+		},
+		slider_thumb = Style {
+			sizing_x = sizing_fixed(20),
+			sizing_y = sizing_fixed(20),
+			background_fill = base.fill_color(255, 200, 200),
+			border_fill = base.fill_color(240, 240, 240),
+			border_radius = border_radius_all(10),
+			capability_flags = Capability_Flags{.Background, .Clickable, .Focusable},
 		},
 		spacer = Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 		panel = Style {
