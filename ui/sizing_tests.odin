@@ -1668,14 +1668,8 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"child_1",
 					Style {
-						sizing_x = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_1_pct_x,
-						},
-						sizing_y = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_1_pct_y,
-						},
+						sizing_x = Sizing{kind = .Percentage, value = data.child_1_pct_x},
+						sizing_y = Sizing{kind = .Percentage, value = data.child_1_pct_y},
 					},
 				)
 
@@ -1684,14 +1678,8 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 					ctx,
 					"child_2",
 					Style {
-						sizing_x = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_2_pct_x,
-						},
-						sizing_y = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_2_pct_y,
-						},
+						sizing_x = Sizing{kind = .Percentage, value = data.child_2_pct_x},
+						sizing_y = Sizing{kind = .Percentage, value = data.child_2_pct_y},
 					},
 				)
 			},
@@ -1816,14 +1804,8 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 					ctx,
 					"child_1",
 					Style {
-						sizing_x = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_1_pct_x,
-						},
-						sizing_y = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_1_pct_y,
-						},
+						sizing_x = Sizing{kind = .Percentage, value = data.child_1_pct_x},
+						sizing_y = Sizing{kind = .Percentage, value = data.child_1_pct_y},
 					},
 				)
 
@@ -1832,14 +1814,8 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 					ctx,
 					"child_2",
 					Style {
-						sizing_x = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_2_pct_x,
-						},
-						sizing_y = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.child_2_pct_y,
-						},
+						sizing_x = Sizing{kind = .Percentage, value = data.child_2_pct_x},
+						sizing_y = Sizing{kind = .Percentage, value = data.child_2_pct_y},
 					},
 				)
 			},
@@ -1950,8 +1926,8 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 					ctx,
 					"grouping_container",
 					Style {
-						sizing_x = Sizing{kind = .Percentage_Of_Parent, value = 1.0},
-						sizing_y = Sizing{kind = .Percentage_Of_Parent, value = 1.0},
+						sizing_x = Sizing{kind = .Percentage, value = 1.0},
+						sizing_y = Sizing{kind = .Percentage, value = 1.0},
 					},
 					data,
 					proc(ctx: ^Context, data: ^Test_Data) {
@@ -2088,14 +2064,8 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 					ctx,
 					"panel_container",
 					Style {
-						sizing_x = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.panel_container_pct_x,
-						},
-						sizing_y = Sizing {
-							kind = .Percentage_Of_Parent,
-							value = data.panel_container_pct_y,
-						},
+						sizing_x = Sizing{kind = .Percentage, value = data.panel_container_pct_x},
+						sizing_y = Sizing{kind = .Percentage, value = data.panel_container_pct_y},
 						layout_direction = data.layout_direction,
 					},
 					data,
@@ -2259,7 +2229,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 				ctx,
 				"container_1",
 				Style {
-					sizing_x = Sizing{kind = .Percentage_Of_Parent, value = data.container_1_pct},
+					sizing_x = Sizing{kind = .Percentage, value = data.container_1_pct},
 					sizing_y = sizing_grow(),
 				},
 			)

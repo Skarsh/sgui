@@ -40,7 +40,7 @@ Size_Kind :: enum {
 	Fit,
 	Fixed,
 	Grow,
-	Percentage_Of_Parent,
+	Percentage,
 }
 
 Box :: struct {
@@ -446,7 +446,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 		content_size_on_axis := calc_remaining_size(element^, axis)
 		for child in element.children {
 			child_sizing_kind := child.config.layout.sizing[axis].kind
-			if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage_Of_Parent {
+			if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage {
 				child.size[axis] = clamp(
 					content_size_on_axis,
 					child.min_size[axis],
@@ -609,7 +609,7 @@ resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) 
 
 	for child in parent.children {
 		sizing_info := child.config.layout.sizing[axis]
-		if sizing_info.kind == .Percentage_Of_Parent {
+		if sizing_info.kind == .Percentage {
 			percentage := clamp(sizing_info.value, 0.0, 1.0)
 			child.size[axis] = parent_content_available_size[axis] * percentage
 		}

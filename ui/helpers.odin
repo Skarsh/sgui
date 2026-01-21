@@ -97,7 +97,7 @@ sizing_fit :: proc(min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 // Percentage of parent size
 sizing_percent :: proc(percent: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 	return Sizing {
-		kind = .Percentage_Of_Parent,
+		kind = .Percentage,
 		value = percent,
 		min_value = min,
 		max_value = max,
