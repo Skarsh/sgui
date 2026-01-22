@@ -8,27 +8,22 @@ import "core:testing"
 
 import base "../base"
 
+// TODO(Thomas): Update with the allocators that the library uses, e.g. if we settle on
+// Pool_Allocator etc.
 Test_Environment :: struct {
-	ctx:                        Context,
-	persistent_arena:           virtual.Arena,
-	persistent_arena_allocator: mem.Allocator,
-	frame_arena:                virtual.Arena,
-	frame_arena_allocator:      mem.Allocator,
-	draw_cmd_arena:             virtual.Arena,
-	draw_cmd_arena_allocator:   mem.Allocator,
+	ctx:                      Context,
+	persistent_allocator:     mem.Allocator,
+	frame_arena:              virtual.Arena,
+	frame_arena_allocator:    mem.Allocator,
+	draw_cmd_arena:           virtual.Arena,
+	draw_cmd_arena_allocator: mem.Allocator,
 }
 
-// NOTE(Thomas): The reason we're returning a pointer to the
-// Test_Environment here is to make sure that the allocators live
-// long enough.
 setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	env := new(Test_Environment)
 
-	// Setup arena and allocator
-	env.persistent_arena = virtual.Arena{}
-	persistent_arena_alloc_err := virtual.arena_init_static(&env.persistent_arena)
-	assert(persistent_arena_alloc_err == .None)
-	env.persistent_arena_allocator = virtual.arena_allocator(&env.persistent_arena)
+	// Setup arenas and allocators
+	env.persistent_allocator = context.allocator
 
 	env.frame_arena = virtual.Arena{}
 	frame_arena_alloc_err := virtual.arena_init_static(&env.frame_arena)
@@ -42,7 +37,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 
 	init(
 		&env.ctx,
-		env.persistent_arena_allocator,
+		env.persistent_allocator,
 		env.frame_arena_allocator,
 		env.draw_cmd_arena_allocator,
 		window_size,
@@ -55,7 +50,6 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 
 cleanup_test_environment :: proc(env: ^Test_Environment) {
 	deinit(&env.ctx)
-	free_all(env.persistent_arena_allocator)
 	free(env)
 }
 

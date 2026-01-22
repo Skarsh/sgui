@@ -232,7 +232,35 @@ set_ctx_font_id :: proc(ctx: ^Context, font_id: u16) {
 	ctx.font_id = font_id
 }
 
+// TODO(Thomas): When we figure out a better allocation scheme for persistent stuf
+// this can become better / cleaner.
 deinit :: proc(ctx: ^Context) {
+	delete(ctx.interactive_elements)
+	delete(ctx.text_input_states)
+
+	free_list := make([dynamic]^UI_Element, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	for _, elem in ctx.element_cache {
+		if elem != nil {
+			append(&free_list, elem)
+		}
+	}
+
+	free_elements(free_list[:], ctx.persistent_allocator)
+
+	// Delete the cache after we've freed the elements in the free_list
+	delete(ctx.element_cache)
+}
+
+free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
+	for elem in free_list {
+		if elem.children != nil {
+			delete(elem.children)
+		}
+		delete(elem.id_string)
+		free(elem, allocator)
+	}
 }
 
 begin :: proc(ctx: ^Context) -> bool {
@@ -319,9 +347,9 @@ end :: proc(ctx: ^Context) {
 
 }
 
-// CONTINUE HERE:
-// We're still not properly cleaning up everything,
-// the tracking allocator is complaining about leaks.
+// Prunes dead elements from the cache and the hierarchy
+// Dead elements are elements which hasn't been had their last_frame_idx
+// update in the last frame.
 prune_dead_elements :: proc(ctx: ^Context) {
 	Elem :: struct {
 		key:   UI_Key,
