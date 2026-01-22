@@ -1,17 +1,15 @@
 # TODOs
 
 ## Active
-* Prune "dead" ui elements (they're still cached in the map)
-    - Currently persistent allocator is an arena allocator, which makes it not possible for us to individually free elements
-    - An element should be freed if the `last_frame_idx` if it was not updated last frame.
-    - Probably have to traverse the element hierarchy or iterate the cache map to find elements that haven't been touched.
-        Cannot do this in `make_element` because that will only be called on elements that should be created for this frame.
 
 ## Bugs
 * Buttons in counter has seemingly wrong size when using `sizing_fit()`.
     - This is probably a deeper issue, needs investigation.
+* The "Brightness" label for the slider in the dashboard example is getting cut off.
 
 ## Backlog
+* Elements are now allocated using the general purpose heap allocator, this could probably be done using
+    as `Pool_Allocator` or some other type of allocator for several benefits (simplicity, perf?).
 * Review how capability flags are set in `open_element`. Currently they are additive, which
     works fine usually, but we've already seen cases where overriding it would be nice. 
 * Review coordinate systems. Seems like origin is at upper left corner for fragment shader.
@@ -33,6 +31,7 @@
 * Tests should probably use the outputted Command queue instad of using `find_element_by_id` to get hold of the 
     element and assert on that. The Command output from a ui pass would test the library more completely,
     and be more robust to internal changes.
+* Look into a data-oriented design for the `UI_Elements` and hierarchy.
 
 * Property testing
     When the API has somewhat stabilized we should add property testing, e.g. generate Layout scenarios and assert properties
