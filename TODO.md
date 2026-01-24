@@ -10,11 +10,7 @@
 * Review how capability flags are set in `open_element`. Currently they are additive, which
     works fine usually, but we've already seen cases where overriding it would be nice. 
 * Review coordinate systems. Seems like origin is at upper left corner for fragment shader.
-* Make it possible to pass in memory chunks to the app, so that the usage code
-    can control how much memory is used for the app and to which part.
 * `text_input` has hardcoded sizing values now, figure out how to do this in a better way.
-* Text sizing is a bit complicated now, with different modes. Text should probably just work with
-    .Fit `Size_Kind`. This might cause some other issues, so holding it off for now.
 * Simpler text helper procedure, important to think about life time there, it probably
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator
     that lives on the App that gets reset for every frame. We don't wanna clone strings.
