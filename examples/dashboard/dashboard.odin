@@ -495,6 +495,7 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		slider_field(ctx, "volume_field", "Volume", &data.volume, theme)
 		slider_field(ctx, "brightness_field", "Brightness", &data.brightness, theme)
 
+
 		// Spacer
 		ui.spacer(ctx)
 
@@ -599,14 +600,17 @@ slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, t
 		},
 	) {
 		fa := ctx.frame_allocator
-		// Label - fixed width for alignment
+		// Label - grows with weight 1
 		ui.text(
 			ctx,
 			fmt.aprintf("%s_label", id, allocator = fa),
 			label,
-			ui.Style{sizing_x = ui.sizing_fixed(80), text_fill = base.fill(theme.text_secondary)},
+			ui.Style {
+				sizing_x = ui.sizing_grow_weighted(1),
+				text_fill = base.fill(theme.text_secondary),
+			},
 		)
-		// Slider - grows to fill remaining space
+		// Slider - grows with weight 3
 		ui.slider(
 			ctx,
 			fmt.aprintf("%s_slider", id, allocator = fa),
@@ -614,19 +618,19 @@ slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, t
 			0.0,
 			1.0,
 			style = ui.Style {
-				sizing_x = ui.sizing_grow(),
+				sizing_x = ui.sizing_grow_weighted(3),
 				sizing_y = ui.sizing_fixed(8),
 				background_fill = base.fill(theme.bg_input),
 				border_radius = ui.border_radius_all(4),
 			},
 		)
-		// Value display - fixed width
+		// Value display - grow with weight 0.5
 		ui.text(
 			ctx,
 			fmt.aprintf("%s_value", id, allocator = fa),
 			fmt.aprintf("%.0f%%", value^ * 100, allocator = fa),
 			ui.Style {
-				sizing_x = ui.sizing_fixed(50),
+				sizing_x = ui.sizing_grow_weighted(0.5),
 				text_fill = base.fill(theme.text_muted),
 				text_alignment_x = .Right,
 			},
