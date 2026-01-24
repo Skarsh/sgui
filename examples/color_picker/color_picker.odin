@@ -4,6 +4,7 @@ import "core:encoding/hex"
 import "core:fmt"
 import "core:log"
 import "core:mem"
+import "core:mem/virtual"
 
 
 import "../../app"
@@ -302,6 +303,19 @@ main :: proc() {
 	context.allocator = mem.tracking_allocator(&diag.tracking_allocator)
 	defer diagnostics.deinit(&diag)
 
+	arena := virtual.Arena{}
+	arena_err := virtual.arena_init_static(&arena, 100 * mem.Megabyte)
+	assert(arena_err == .None)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
+
+	app_memory := app.App_Memory {
+		app_arena_mem      = make([]u8, 10 * mem.Megabyte, arena_allocator),
+		frame_arena_mem    = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		draw_cmd_arena_mem = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		io_arena_mem       = make([]u8, 10 * mem.Kilobyte, arena_allocator),
+	}
+
 	config := app.App_Config {
 		title     = "Color Picker App",
 		width     = 1280,
@@ -309,6 +323,7 @@ main :: proc() {
 		font_path = "",
 		font_id   = 0,
 		font_size = 48,
+		memory    = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

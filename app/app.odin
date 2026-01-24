@@ -20,6 +20,13 @@ App :: struct {
 	running:              bool,
 }
 
+App_Memory :: struct {
+	app_arena_mem:      []u8,
+	frame_arena_mem:    []u8,
+	draw_cmd_arena_mem: []u8,
+	io_arena_mem:       []u8,
+}
+
 App_Config :: struct {
 	title:     string,
 	width:     i32,
@@ -27,6 +34,8 @@ App_Config :: struct {
 	font_path: string,
 	font_id:   u16,
 	font_size: f32,
+	allocator: mem.Allocator,
+	memory:    App_Memory,
 }
 
 init :: proc(app_config: App_Config) -> (^App, bool) {
@@ -36,7 +45,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		return nil, false
 	}
 
-	arena_err := virtual.arena_init_static(&app.app_arena, 10 * mem.Megabyte)
+	arena_err := virtual.arena_init_buffer(&app.app_arena, app_config.memory.app_arena_mem)
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocate app arena")
@@ -47,7 +56,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	persistent_allocator := context.allocator
 
-	arena_err = virtual.arena_init_static(&app.frame_arena, 100 * mem.Kilobyte)
+
+	arena_err = virtual.arena_init_buffer(&app.frame_arena, app_config.memory.frame_arena_mem)
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocate frame arena")
@@ -56,7 +66,10 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	frame_arena_allocator := virtual.arena_allocator(&app.frame_arena)
 
-	arena_err = virtual.arena_init_static(&app.draw_cmd_arena)
+	arena_err = virtual.arena_init_buffer(
+		&app.draw_cmd_arena,
+		app_config.memory.draw_cmd_arena_mem,
+	)
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocator draw_cmd_arena")
@@ -65,7 +78,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	draw_cmd_arena_allocator := virtual.arena_allocator(&app.draw_cmd_arena)
 
-	arena_err = virtual.arena_init_static(&app.io_arena, 10 * mem.Kilobyte)
+	arena_err = virtual.arena_init_buffer(&app.io_arena, app_config.memory.io_arena_mem)
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocate io arena")

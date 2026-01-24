@@ -323,6 +323,19 @@ main :: proc() {
 	context.allocator = mem.tracking_allocator(&diag.tracking_allocator)
 	defer diagnostics.deinit(&diag)
 
+	arena := virtual.Arena{}
+	arena_err := virtual.arena_init_static(&arena, 100 * mem.Megabyte)
+	assert(arena_err == .None)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
+
+	app_memory := app.App_Memory {
+		app_arena_mem      = make([]u8, 10 * mem.Megabyte, arena_allocator),
+		frame_arena_mem    = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		draw_cmd_arena_mem = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		io_arena_mem       = make([]u8, 10 * mem.Kilobyte, arena_allocator),
+	}
+
 	config := app.App_Config {
 		title     = "To-Do List App",
 		width     = 600,
@@ -330,6 +343,7 @@ main :: proc() {
 		font_path = "",
 		font_id   = 0,
 		font_size = 24,
+		memory    = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)
@@ -340,15 +354,8 @@ main :: proc() {
 	defer app.deinit(my_app)
 
 	// --- Initialize Application Data ---
-	new_task_buf := make([]u8, 256)
-	defer delete(new_task_buf)
-
-	arena := virtual.Arena{}
-	arena_err := virtual.arena_init_static(&arena, 10 * mem.Kilobyte)
-	assert(arena_err == .None)
-	arena_allocator := virtual.arena_allocator(&arena)
-	defer free_all(arena_allocator)
-
+	// Re-using the arena that was used for the app memory here.
+	new_task_buf := make([]u8, 256, arena_allocator)
 	tasks := make([dynamic]Task, arena_allocator)
 	append(&tasks, Task{text = "Learn Odin", completed = true})
 	append(&tasks, Task{text = "Build a UI library", completed = true})
