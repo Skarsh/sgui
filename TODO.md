@@ -3,9 +3,6 @@
 ## Active
 
 ## Bugs
-* Buttons in counter has seemingly wrong size when using `sizing_fit()`.
-    - This is probably a deeper issue, needs investigation.
-* The "Brightness" label for the slider in the dashboard example is getting cut off.
 
 ## Backlog
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
