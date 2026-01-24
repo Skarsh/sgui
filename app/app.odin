@@ -45,14 +45,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	app_arena_allocator := virtual.arena_allocator(&app.app_arena)
 
-	//arena_err = virtual.arena_init_static(&app.persistent_arena, 100 * mem.Kilobyte)
-	//assert(arena_err == .None)
-	//if arena_err != .None {
-	//	log.error("Failed to allocate persistent arena")
-	//	free(app)
-	//	return nil, false
-	//}
-	//persistent_arena_allocator := virtual.arena_allocator(&app.persistent_arena)
 	persistent_allocator := context.allocator
 
 	arena_err = virtual.arena_init_static(&app.frame_arena, 100 * mem.Kilobyte)
@@ -97,7 +89,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	ui.init(
 		&app.ui_ctx,
-		//persistent_arena_allocator,
 		persistent_allocator,
 		frame_arena_allocator,
 		draw_cmd_arena_allocator,
