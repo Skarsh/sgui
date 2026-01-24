@@ -145,8 +145,13 @@ void render_rect() {
 
         vec2 inner_half_size = v_quad_half_size - border_reduction;
 
+        // Reduce inner border radius to account for border width
+        // This ensures circles stay circular even with thick borders
+        float avg_border = (v_border.x + v_border.y + v_border.z + v_border.w) * 0.25;
+        vec4 inner_radius = max(v_border_radius - vec4(avg_border), vec4(0.0));
+
         float d_border = sdfRectVariableRadius(v_local_pos, v_quad_half_size, v_border_radius);
-        float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, v_border_radius);
+        float d_inner = sdfRectVariableRadius(v_local_pos - border_offset, inner_half_size, inner_radius);
 
         float alpha_border = sdfAlpha(d_border);
         float alpha_inner = sdfAlpha(d_inner);
@@ -241,3 +246,4 @@ void main() {
             break;
     }
 }
+
