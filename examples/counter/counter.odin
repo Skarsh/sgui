@@ -64,6 +64,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				)
 
 				button_style := ui.Style {
+					sizing_x        = ui.sizing_fixed(48),
+					sizing_y        = ui.sizing_fixed(48),
 					background_fill = base.fill_color(95, 95, 95),
 					border          = ui.border_all(2),
 				}
