@@ -15,7 +15,6 @@
 * `text_input` has hardcoded sizing values now, figure out how to do this in a better way.
 * Text sizing is a bit complicated now, with different modes. Text should probably just work with
     .Fit `Size_Kind`. This might cause some other issues, so holding it off for now.
-* Helper procedures should use `begin_container` helpers instead of `open_element` and `close_element`
 * Simpler text helper procedure, important to think about life time there, it probably
     has to take an allocator that lives for the length of the frame, e.g. an arena allocator
     that lives on the App that gets reset for every frame. We don't wanna clone strings.
