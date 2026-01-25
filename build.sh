@@ -19,6 +19,11 @@ if ! odin test base; then
     exit 1
 fi
 
+if ! odin test gap_buffer; then
+    echo "Gap buffer tests failed! Cannot successfully build."
+    exit 1
+fi
+
 echo ""
 echo "--- Building main application ---"
 if ! odin build . -strict-style -vet -debug -out:./build/sgui.bin; then
