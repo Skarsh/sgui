@@ -22,34 +22,51 @@ make_gap_buffer :: proc(size: int, allocator := context.allocator) -> Gap_Buffer
 	return gb
 }
 
-// Move the gap left
-left :: proc(gb: ^Gap_Buffer) {
-	shift_gap_to(gb, gb.start - 1)
-}
-
-// Move the gap right
-right :: proc(gb: ^Gap_Buffer) {
-	shift_gap_to(gb, gb.start + 1)
+to_string :: proc(gb: ^Gap_Buffer) -> (str: string) {
+	left, right := get_strings(gb^)
+	str = fmt.tprintf("%s%s", left, right)
+	return
 }
 
 // TODO(Thomas): Add more insert procs, insert_slice, insert_rune, insert_string etc.
-insert :: proc(gb: ^Gap_Buffer, ch: u8) {
-	if gb.start == gb.end {
-		// grow
+insert_char :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) {
+	if pos >= 0 && pos <= length(gb^) {
+
+		if gb.start == gb.end {
+			// grow
+			grow(gb, 1)
+		}
+
+		shift_gap_to(gb, pos)
+
+		gb.buf[gb.start] = ch
+		gb.start += 1
 	}
-	gb.buf[gb.start] = ch
-	gb.start += 1
 }
 
-delete :: proc(gb: ^Gap_Buffer) {
-	if gb.start != 0 {
-		gb.start -= 1
+delete_char :: proc(gb: ^Gap_Buffer, pos: int) {
+	if pos >= 0 && pos < length(gb^) {
+		shift_gap_to(gb, pos)
+		gb.end += 1
 	}
+}
+
+
+length :: proc(gb: Gap_Buffer) -> int {
+	return len(gb.buf) - (gb.end - gb.start)
+}
+
+capacity :: proc(gb: Gap_Buffer) -> int {
+	return len(gb.buf)
+}
+
+gap_size :: proc(gb: Gap_Buffer) -> int {
+	return gb.end - gb.start
 }
 
 // Helper procedure to get the left and right strings of the gap
 @(private)
-get_strings :: proc(gb: ^Gap_Buffer) -> (left: string, right: string) {
+get_strings :: proc(gb: Gap_Buffer) -> (left: string, right: string) {
 	left = string(gb.buf[0:gb.start])
 	right = string(gb.buf[gb.end:])
 	return
@@ -57,16 +74,39 @@ get_strings :: proc(gb: ^Gap_Buffer) -> (left: string, right: string) {
 
 // Grows the buffer when out of space
 @(private)
-grow :: proc(gb: ^Gap_Buffer) {
+grow :: proc(gb: ^Gap_Buffer, required: int) {
+	// The capacity we need to fit
+	needed_cap := len(gb.buf) + required
+
+	// We go for a default strategy of doubling the buffer, unless
+	// the required amount is larger than the double, then we use the required.
+	new_cap := max(2 * len(gb.buf), needed_cap)
+
+	amount_grown := new_cap - len(gb.buf)
+	new_buf := make([]u8, new_cap, gb.allocator)
+	// Now we need to move the gap end to the end.
+	// abecdefghi
+	//     ^^
+	// We grow
+	// abed__________efghi
+	//    ^          ^
+	// So the gap end has to move by the amount we've grown.
+	old_end := gb.end
+	gb.end += amount_grown
+
+	copy_slice(new_buf[:gb.start], gb.buf[:gb.start])
+	copy_slice(new_buf[gb.end:], gb.buf[old_end:])
+
+	delete(gb.buf)
+	gb.buf = new_buf
 }
 
 
-// TODO(Thomas): Make this use mem.copy for large jumps?
 // Shifts the gap to position given in the buf
 @(private)
 shift_gap_to :: proc(gb: ^Gap_Buffer, pos: int) {
-	// pos must be withing the size of buf, and not the same as gb.start
-	if pos < 0 || pos < len(gb.buf) && gb.start != pos {
+	// pos must be within the size of buf, and not the same as gb.start
+	if pos >= 0 && pos < len(gb.buf) && gb.start != pos {
 
 		// Before moving 1 right
 		// abcd____efgh
@@ -93,9 +133,9 @@ shift_gap_to :: proc(gb: ^Gap_Buffer, pos: int) {
 
 		// Moving gap left, so need to copy chars to the right
 		for pos < gb.start {
-			gb.buf[gb.end] = gb.buf[gb.start]
 			gb.start -= 1
 			gb.end -= 1
+			gb.buf[gb.end] = gb.buf[gb.start]
 		}
 	}
 }
@@ -103,14 +143,12 @@ shift_gap_to :: proc(gb: ^Gap_Buffer, pos: int) {
 main :: proc() {
 	gb := make_gap_buffer(16)
 
-	insert(&gb, 'k')
-	insert(&gb, 'e')
-	insert(&gb, 'k')
+	insert_char(&gb, 0, '1')
+	insert_char(&gb, 1, '2')
+	delete_char(&gb, 0)
 
-	delete(&gb)
-	insert(&gb, 'l')
 
-	left, right := get_strings(&gb)
+	left, right := get_strings(gb)
 	fmt.println("gb: ", gb)
 	fmt.println("left: ", left)
 	fmt.println("right: ", right)
@@ -118,6 +156,13 @@ main :: proc() {
 
 
 @(test)
-test_it_works :: proc(t: ^testing.T) {
-	testing.expect(t, true)
-}
+test_insert_and_delete_char :: proc(t: ^testing.T) {
+	gb := make_gap_buffer(16)
+	defer delete(gb.buf)
+	insert_char(&gb, 0, '1')
+	str := to_string(&gb)
+	testing.expect_value(t, str, "1")
+
+	delete_char(&gb, 0)
+	str = to_string(&gb)
+	testing.expect_value(t, str, "")}
