@@ -1,7 +1,5 @@
 package gap_buffer
 
-import "core:fmt"
-import "core:log"
 import "core:mem"
 import "core:testing"
 import "core:unicode/utf8"
