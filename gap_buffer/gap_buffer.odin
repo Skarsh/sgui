@@ -425,3 +425,66 @@ test_iterator_gap_in_the_middle :: proc(t: ^testing.T) {
 	val, idx, ok = gap_buffer_iterator_next(&it)
 	testing.expect(t, !ok, "Should be done")
 }
+
+@(test)
+test_iterator_matches_get_text :: proc(t: ^testing.T) {
+	gb := make_gap_buffer(20)
+	defer deinit(&gb)
+
+	// Insert "Hello World" with gap in the word "World"
+	insert(&gb, 0, "Hello World")
+	// Gap inside "Wor...ld"
+	shift_gap_to(&gb, 8)
+
+	// Get the standard string (allocating)
+	full_text := get_text(gb)
+	defer delete(full_text)
+
+	// Iterate (non-allocating)
+	it := make_gap_buffer_iterator(gb)
+
+	loop_count := 0
+	for ch, i in gap_buffer_iterator_next(&it) {
+		testing.expect_value(t, i, loop_count)
+
+		testing.expect_value(t, ch, full_text[i])
+
+		loop_count += 1
+	}
+
+	testing.expect_value(t, loop_count, len(full_text))
+}
+
+@(test)
+test_iterator_utf8_bytes :: proc(t: ^testing.T) {
+	gb := make_gap_buffer(10)
+	defer deinit(&gb)
+
+	// Insert '世' (3 bytes)
+	insert(&gb, 0, '世')
+
+	// Move gap to 0, moving '世' to the right of the gap
+	// This is to make sure that the iterator will skip the gap
+	shift_gap_to(&gb, 0)
+
+	it := make_gap_buffer_iterator(gb)
+
+	// We expect 3 individual bytes
+	// 1st byte
+	ch, i, ok := gap_buffer_iterator_next(&it)
+	testing.expect(t, ok)
+	testing.expect_value(t, ch, 0xE4)
+
+	// 2nd byte
+	ch, i, ok = gap_buffer_iterator_next(&it)
+	testing.expect(t, ok)
+	testing.expect_value(t, ch, 0xB8)
+
+	// 3rd byte
+	ch, i, ok = gap_buffer_iterator_next(&it)
+	testing.expect(t, ok)
+	testing.expect_value(t, ch, 0x96)
+
+	_, _, ok = gap_buffer_iterator_next(&it)
+	testing.expect(t, !ok)
+}
