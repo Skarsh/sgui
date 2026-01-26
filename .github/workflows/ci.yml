@@ -72,6 +72,9 @@ jobs:
       - name: Run Base tests
         run: odin test base -vet -strict-style -vet-tabs -warnings-as-errors
 
+      - name: Run Gap Buffer tests
+        run: odin test gap_buffer -vet -strict-style -vet-tabs -warnings-as-errors
+
       - name: Build main application
         run: odin build . -out:build/sgui${{ matrix.exe-ext }} -vet -strict-style -vet-tabs -warnings-as-errors -debug
 
