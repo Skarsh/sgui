@@ -165,4 +165,5 @@ test_insert_and_delete_char :: proc(t: ^testing.T) {
 
 	delete_char(&gb, 0)
 	str = to_string(&gb)
-	testing.expect_value(t, str, "")}
+	testing.expect_value(t, str, "")
+}
