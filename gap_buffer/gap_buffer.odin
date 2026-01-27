@@ -155,6 +155,8 @@ ensure_space :: proc(gb: ^Gap_Buffer, amount: int) {
 	}
 }
 
+// TODO(Thomas): @Perf - Can we do some copy here when
+// the jump is big?
 // Shifts the gap to position given in the buf
 // pos should be valid here due to checks from the callers.
 @(private)
