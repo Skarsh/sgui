@@ -1,8 +1,8 @@
-package ui
+package text
 
 import "core:mem"
 
-import gap_buffer "../gap_buffer"
+import gap_buffer "../../gap_buffer"
 
 // Text_Buffer is meant to be an abstraction providing a simple text manipulation
 // API on top of varying data structures e.g. Gap_Buffer, Rope etc.
