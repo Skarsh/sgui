@@ -1,5 +1,7 @@
 package ui
 
+import "core:hash"
+
 UI_Key :: struct {
 	hash: u64,
 }
@@ -9,22 +11,21 @@ ui_key_null :: proc() -> UI_Key {
 	return UI_Key{hash = 0}
 }
 
+// We treat 0 as a strictly reserved sentinel value for "no ID" / "do not cache".
+// If a valid non-empty string hashes to 0, we fallback to a non-zero value, e.g. 1.
 @(require_results)
-ui_key_hash :: proc(str: string) -> UI_Key {
-	// NOTE(Thomas): Empty string maps to 0 hash such that the ui system
-	// knows not to cache elements that has the empty string id.
-	// This is important for spacer elements etc.
+ui_key_hash :: proc(str: string, seed: u64 = 0xcbf29ce484222325) -> UI_Key {
 	if str == "" {
 		return UI_Key{hash = 0}
 	}
 
-	hash: u64 = 5381
+	h := hash.fnv64a(transmute([]u8)str, seed)
 
-	for b in transmute([]u8)str {
-		hash = ((hash << 5) + hash) + u64(b)
+	if h == 0 {
+		h = 1
 	}
 
-	return UI_Key{hash = hash}
+	return UI_Key{hash = h}
 }
 
 @(require_results)
