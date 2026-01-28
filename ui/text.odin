@@ -290,9 +290,9 @@ measure_text_content :: proc(
 	available_width: f32,
 	allocator: mem.Allocator,
 ) -> (
-	f32,
-	f32,
-	[dynamic]Text_Line,
+	w: f32,
+	h: f32,
+	lines: [dynamic]Text_Line,
 ) {
 	tokens, tokens_alloc_err := make([dynamic]Text_Token, allocator)
 	if tokens_alloc_err != .None {
@@ -302,7 +302,8 @@ measure_text_content :: proc(
 
 	tokenize_text(ctx, text, ctx.font_id, &tokens)
 
-	lines, lines_alloc_err := make([dynamic]Text_Line, allocator)
+	lines_alloc_err: mem.Allocator_Error
+	lines, lines_alloc_err = make([dynamic]Text_Line, allocator)
 	if lines_alloc_err != .None {
 		log.errorf("failed to allocate lines dynamic array: %v", lines_alloc_err)
 	}
@@ -310,13 +311,11 @@ measure_text_content :: proc(
 
 	layout_lines(ctx, text, tokens[:], available_width, &lines, allocator)
 
-	w: f32 = 0
-	h: f32 = 0
 	for line in lines {
 		w = math.max(w, line.width)
 		h += line.height
 	}
-	return w, h, lines
+	return
 }
 
 measure_string_width :: proc(ctx: ^Context, text: string, font_id: u16) -> f32 {
