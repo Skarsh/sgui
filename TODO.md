@@ -1,6 +1,12 @@
 # TODOs
 
 ## Active
+* New text system
+    - Implement a red line through the new text system
+        - Get a single word of text, no wrapping anything from a text() widget to render in a simple example
+    - Font caching?
+    - Layout caching?
+    - Clean up the old types and text implementation
 
 ## Bugs
 

@@ -685,6 +685,10 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 	}
 }
 
+wrap_text_2 :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
+
+}
+
 
 make_element :: proc(
 	ctx: ^Context,
