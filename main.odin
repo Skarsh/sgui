@@ -6,18 +6,32 @@ import "core:mem"
 import "core:mem/virtual"
 import "core:strings"
 
-import sdl "vendor:sdl2"
-
+import "app"
 import "backend"
 import "base"
 import "diagnostics"
 import "ui"
 
-// This example uses SDL2, but the immediate mode ui library should be
-// rendering and windowing agnostic
-
 WINDOW_WIDTH :: 1920
 WINDOW_HEIGHT :: 1080
+
+Data :: struct {
+	image_data:      Image_Data,
+	complex_ui_data: Complex_UI_Data,
+}
+
+update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
+	//build_simple_text_ui(ctx)
+	//build_nested_text_ui(ctx)
+	//build_complex_ui(ctx, &data.complex_ui_data)
+	build_interactive_button_ui(ctx)
+	//build_styled_ui(ctx)
+	//build_percentage_of_parent_ui(ctx)
+	//build_grow_ui(ctx)
+	//build_multiple_images_ui(ctx, &data.image_data)
+	//build_relative_layout_ui(ctx)
+	//build_bug_repro(ctx)
+}
 
 main :: proc() {
 	diag := diagnostics.init()
@@ -25,80 +39,37 @@ main :: proc() {
 	context.allocator = mem.tracking_allocator(&diag.tracking_allocator)
 	defer diagnostics.deinit(&diag)
 
-	window, window_ok := backend.init_and_create_window("ImGUI", WINDOW_WIDTH, WINDOW_HEIGHT)
-	assert(window_ok)
-	defer backend.deinit_window(window)
-
-	ctx := ui.Context{}
-
-
-	// TODO(Thomas): This is annoying for the user to have to make, what if a compromise
-	// could be to take in three pre-allocated blocks of memory for this instead?
-	// so ui.init would take two blocks, one for persistent and one for the frame arena
-	// and the backend would take the app_arena and io_arena?
-	app_arena := virtual.Arena{}
-	arena_err := virtual.arena_init_static(&app_arena, 10 * mem.Megabyte)
+	arena := virtual.Arena{}
+	arena_err := virtual.arena_init_static(&arena, 100 * mem.Megabyte)
 	assert(arena_err == .None)
-	app_arena_allocator := virtual.arena_allocator(&app_arena)
+	arena_allocator := virtual.arena_allocator(&arena)
+	defer free_all(arena_allocator)
 
-	persistent_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&persistent_arena, 100 * mem.Kilobyte)
-	assert(arena_err == .None)
-	persistent_arena_allocator := virtual.arena_allocator(&persistent_arena)
-
-	frame_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&frame_arena, 10 * mem.Kilobyte)
-	assert(arena_err == .None)
-	frame_arena_allocator := virtual.arena_allocator(&frame_arena)
-
-	draw_cmd_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&draw_cmd_arena, 10 * mem.Kilobyte)
-	assert(arena_err == .None)
-	draw_cmd_arena_allocator := virtual.arena_allocator(&draw_cmd_arena)
-
-	io_arena := virtual.Arena{}
-	arena_err = virtual.arena_init_static(&io_arena, 10 * mem.Kilobyte)
-	assert(arena_err == .None)
-	io_arena_allocator := virtual.arena_allocator(&io_arena)
-
-	font_size: f32 = 48
-	font_id: u16 = 0
-
-	ui.init(
-		&ctx,
-		persistent_arena_allocator,
-		frame_arena_allocator,
-		draw_cmd_arena_allocator,
-		{WINDOW_WIDTH, WINDOW_HEIGHT},
-		font_id,
-		font_size,
-	)
-	defer ui.deinit(&ctx)
-
-	backend_ctx := backend.Context{}
-	backend.init_ctx(
-		&backend_ctx,
-		&ctx,
-		window,
-		WINDOW_WIDTH,
-		WINDOW_HEIGHT,
-		font_size,
-		app_arena_allocator,
-		io_arena_allocator,
-	)
-
-	app_state := App_State {
-		window      = window,
-		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		ctx         = ctx,
-		backend_ctx = backend_ctx,
-		running     = true,
+	app_memory := app.App_Memory {
+		app_arena_mem      = make([]u8, 10 * mem.Megabyte, arena_allocator),
+		frame_arena_mem    = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		draw_cmd_arena_mem = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		io_arena_mem       = make([]u8, 10 * mem.Kilobyte, arena_allocator),
 	}
-	defer deinit_app_state(&app_state)
 
-	// TODO(Thomas): All this texture related and complex_ui_data stuff is
-	// really app / example specific, and should be moved when we get to the point
-	// where we start making standalone examples.
+	config := app.App_Config {
+		title     = "ImGUI",
+		width     = WINDOW_WIDTH,
+		height    = WINDOW_HEIGHT,
+		font_path = "",
+		font_id   = 0,
+		font_size = 48,
+		memory    = app_memory,
+	}
+
+	my_app, my_app_ok := app.init(config)
+	if !my_app_ok {
+		log.error("Failed to initialize GUI application")
+		return
+	}
+	defer app.deinit(my_app)
+
+	// Load textures (must be after app.init since OpenGL context is needed)
 	tex_1, tex_1_ok := backend.opengl_create_texture_from_file("data/textures/copy_icon.png")
 	assert(tex_1_ok)
 	defer backend.opengl_delete_texture(&tex_1.id)
@@ -140,50 +111,12 @@ main :: proc() {
 	complex_ui_data.items = item_texts
 	complex_ui_data.item_texture_idxs = item_texture_idxs
 
-	io := &app_state.backend_ctx.io
-	for app_state.running {
-		backend.time(io)
-		app_state.ctx.dt = io.frame_time.dt
-		if io.frame_time.counter % 100 == 0 {
-			log.infof("dt: %.2fms", io.frame_time.dt * 1000)
-		}
-
-		process_events(&app_state)
-		backend.process_events(&app_state.backend_ctx, &app_state.ctx)
-
-		backend.render_begin(&app_state.backend_ctx.render_ctx)
-
-		//build_simple_text_ui(&app_state)
-		//build_nested_text_ui(&app_state)
-		//build_complex_ui(&app_state, &complex_ui_data)
-		//build_interactive_button_ui(&app_state)
-		//build_styled_ui(&app_state)
-		//build_percentage_of_parent_ui(&app_state)
-		build_grow_ui(&app_state)
-		//build_multiple_images_ui(&app_state, &image_data)
-		//build_relative_layout_ui(&app_state)
-		//build_bug_repro(&app_state)
-
-		backend.render_end(&app_state.backend_ctx.render_ctx, app_state.ctx.command_queue[:])
-
-		// TODO(Thomas): Shouldn't use sdl.Delay directly here. Should use our own variant.
-		sdl.Delay(10)
+	data := Data {
+		image_data      = image_data,
+		complex_ui_data = complex_ui_data,
 	}
-}
 
-// TODO(Thomas): Should this App_State be something that the library can give when initalized?
-// The only app specific thing here is the running boolean, all the rest is something every application
-// that uses this library would need to set up. This is really part of the API design for the library.
-App_State :: struct {
-	window:      backend.Window,
-	window_size: [2]i32,
-	ctx:         ui.Context,
-	backend_ctx: backend.Context,
-	running:     bool,
-}
-
-deinit_app_state :: proc(app_state: ^App_State) {
-	backend.deinit(&app_state.backend_ctx)
+	app.run(my_app, &data, update_and_draw)
 }
 
 Image_Data :: struct {
@@ -195,7 +128,7 @@ Image_Data :: struct {
 }
 
 texts := []string{"yes", "nonnnnnnnnnnnnnnnnnnnnnn", "maybe"}
-build_bug_repro :: proc(app_state: ^App_State) {
+build_bug_repro :: proc(ctx: ^ui.Context) {
 
 	build_rows :: proc(ctx: ^ui.Context, texts: []string) {
 		b := false
@@ -231,7 +164,6 @@ build_bug_repro :: proc(app_state: ^App_State) {
 		}
 	}
 
-	ctx := &app_state.ctx
 	if ui.begin(ctx) {
 
 		ui.push_style(
@@ -273,8 +205,7 @@ build_bug_repro :: proc(app_state: ^App_State) {
 	}
 }
 
-build_relative_layout_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
+build_relative_layout_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.push_style(
@@ -313,8 +244,7 @@ build_relative_layout_ui :: proc(app_state: ^App_State) {
 	ui.end(ctx)
 }
 
-build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data) {
-	ctx := &app_state.ctx
+build_multiple_images_ui :: proc(ctx: ^ui.Context, image_data: ^Image_Data) {
 	ui.begin(ctx)
 
 	ui.push_style(ctx, ui.Style{background_fill = base.fill_color(255, 255, 255)})
@@ -369,8 +299,7 @@ build_multiple_images_ui :: proc(app_state: ^App_State, image_data: ^Image_Data)
 	ui.end(ctx)
 }
 
-build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
+build_percentage_of_parent_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.push_style(
@@ -403,14 +332,13 @@ build_percentage_of_parent_ui :: proc(app_state: ^App_State) {
 	ui.end(ctx)
 }
 
-build_grow_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
+build_grow_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.push_style(ctx, ui.Style{capability_flags = ui.Capability_Flags{.Background}})
 	defer ui.pop_style(ctx)
 	ui.container(
-		&app_state.ctx,
+		ctx,
 		"parent",
 		ui.Style {
 			sizing_x = ui.sizing_fixed(350),
@@ -455,8 +383,7 @@ build_grow_ui :: proc(app_state: ^App_State) {
 	ui.end(ctx)
 }
 
-build_styled_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
+build_styled_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.push_style(
@@ -553,8 +480,7 @@ build_styled_ui :: proc(app_state: ^App_State) {
 	ui.end(ctx)
 }
 
-build_interactive_button_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
+build_interactive_button_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.push_style(
@@ -568,7 +494,7 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 	defer ui.pop_style(ctx)
 
 	ui.container(
-		&app_state.ctx,
+		ctx,
 		"container",
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
@@ -597,12 +523,10 @@ build_interactive_button_ui :: proc(app_state: ^App_State) {
 			}
 		},
 	)
-	ui.end(&app_state.ctx)
+	ui.end(ctx)
 }
 
-build_simple_text_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
-
+build_simple_text_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.container(
@@ -629,11 +553,10 @@ build_simple_text_ui :: proc(app_state: ^App_State) {
 			)
 		},
 	)
-	ui.end(&app_state.ctx)
+	ui.end(ctx)
 }
 
-build_nested_text_ui :: proc(app_state: ^App_State) {
-	ctx := &app_state.ctx
+build_nested_text_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.container(
@@ -693,11 +616,10 @@ Complex_UI_Data :: struct {
 	builder:           strings.Builder,
 }
 
-build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Data) {
+build_complex_ui :: proc(ctx: ^ui.Context, complex_ui_data: ^Complex_UI_Data) {
 	buf: [1024]u8
 	builder := strings.builder_from_bytes(buf[:])
 	complex_ui_data.builder = builder
-	ctx := &app_state.ctx
 
 	ui.begin(ctx)
 
@@ -783,21 +705,4 @@ build_complex_ui :: proc(app_state: ^App_State, complex_ui_data: ^Complex_UI_Dat
 		},
 	)
 	ui.end(ctx)
-}
-
-process_events :: proc(app_state: ^App_State) {
-	// Process input
-	event := sdl.Event{}
-	for sdl.PollEvent(&event) {
-		backend.enqueue_sdl_event(&app_state.backend_ctx.io, event)
-		#partial switch event.type {
-		case .KEYUP:
-			#partial switch event.key.keysym.sym {
-			case .ESCAPE:
-				app_state.running = false
-			}
-		case .QUIT:
-			app_state.running = false
-		}
-	}
 }
