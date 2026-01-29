@@ -5,7 +5,7 @@ import "core:log"
 import "core:mem"
 import sdl "vendor:sdl2"
 
-import ui "../ui"
+import "../base"
 
 Frame_Time :: struct {
 	counter:   u64,
@@ -56,44 +56,44 @@ enqueue_sdl_event :: proc(io: ^Io, event: sdl.Event) {
 }
 
 
-sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> ui.Key {
-	key := ui.Key.Unknown
+sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
+	key := base.Key.Unknown
 	// TODO(Thomas): Complete more of this switch
 	#partial switch sdl_key {
 	case .ESCAPE:
-		key = ui.Key.Escape
+		key = base.Key.Escape
 	case .TAB:
-		key = ui.Key.Tab
+		key = base.Key.Tab
 	case .RETURN:
-		key = ui.Key.Return
+		key = base.Key.Return
 	case .UP:
-		key = ui.Key.Up
+		key = base.Key.Up
 	case .DOWN:
-		key = ui.Key.Down
+		key = base.Key.Down
 	case .LEFT:
-		key = ui.Key.Left
+		key = base.Key.Left
 	case .RIGHT:
-		key = ui.Key.Right
+		key = base.Key.Right
 	case .LSHIFT:
-		key = ui.Key.Left_Shift
+		key = base.Key.Left_Shift
 	case .RSHIFT:
-		key = ui.Key.Right_Shift
+		key = base.Key.Right_Shift
 	case .BACKSPACE:
-		key = ui.Key.Backspace
+		key = base.Key.Backspace
 	}
 	return key
 }
 
-sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> ui.Keymod_Set {
-	key_mod := ui.KMOD_NONE
+sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> base.Keymod_Set {
+	key_mod := base.KMOD_NONE
 
 	// TODO(Thomas): Do this for the complete set of modifiers
 	if .LSHIFT in sdl_key_mod {
-		key_mod = ui.KMOD_LSHIFT
+		key_mod = base.KMOD_LSHIFT
 	} else if .RSHIFT in sdl_key_mod {
-		key_mod = ui.KMOD_RSHIFT
+		key_mod = base.KMOD_RSHIFT
 	} else if .LSHIFT in sdl_key_mod && .RSHIFT in sdl_key_mod {
-		key_mod = ui.KMOD_SHIFT
+		key_mod = base.KMOD_SHIFT
 	}
 
 	return key_mod

@@ -6,6 +6,7 @@ import "core:mem"
 
 import sdl "vendor:sdl2"
 
+import "../base"
 import ui "../ui"
 
 // TODO(Thomas): This is hardcoded to use sdl now, this should support any windowing system
@@ -129,7 +130,7 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 		case .MOUSEMOTION:
 			ui.handle_mouse_move(ctx, event.motion.x, event.motion.y)
 		case .MOUSEBUTTONDOWN:
-			btn: ui.Mouse
+			btn: base.Mouse
 			switch event.button.button {
 			case sdl.BUTTON_LEFT:
 				btn = .Left
@@ -140,7 +141,7 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			}
 			ui.handle_mouse_down(ctx, event.motion.x, event.motion.y, btn)
 		case .MOUSEBUTTONUP:
-			btn: ui.Mouse
+			btn: base.Mouse
 			switch event.button.button {
 			case sdl.BUTTON_LEFT:
 				btn = .Left
