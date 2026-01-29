@@ -159,7 +159,7 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		backend.process_events(&app.backend_ctx, &app.ui_ctx)
 
 		// TODO(Thomas): This feels wrong, shouldn't have to call the ui package here
-		if ui.is_key_pressed(app.ui_ctx, base.Key.Escape) {
+		if base.is_key_pressed(app.ui_ctx.input, base.Key.Escape) {
 			app.running = false
 		}
 

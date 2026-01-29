@@ -128,7 +128,7 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 
 		#partial switch event.type {
 		case .MOUSEMOTION:
-			ui.handle_mouse_move(ctx, event.motion.x, event.motion.y)
+			base.handle_mouse_move(&ctx.input, event.motion.x, event.motion.y)
 		case .MOUSEBUTTONDOWN:
 			btn: base.Mouse
 			switch event.button.button {
@@ -139,7 +139,7 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			case sdl.BUTTON_MIDDLE:
 				btn = .Middle
 			}
-			ui.handle_mouse_down(ctx, event.motion.x, event.motion.y, btn)
+			base.handle_mouse_down(&ctx.input, event.motion.x, event.motion.y, btn)
 		case .MOUSEBUTTONUP:
 			btn: base.Mouse
 			switch event.button.button {
@@ -150,23 +150,23 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			case sdl.BUTTON_MIDDLE:
 				btn = .Middle
 			}
-			ui.handle_mouse_up(ctx, event.motion.x, event.motion.y, btn)
+			base.handle_mouse_up(&ctx.input, event.motion.x, event.motion.y, btn)
 		case .MOUSEWHEEL:
-			ui.handle_scroll(ctx, event.wheel.x, event.wheel.y)
+			base.handle_scroll(&ctx.input, event.wheel.x, event.wheel.y)
 		case .KEYUP:
 			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			ui.handle_key_up(ctx, key)
+			base.handle_key_up(&ctx.input, key)
 			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			ui.handle_keymod_up(ctx, keymod)
+			base.handle_keymod_up(&ctx.input, keymod)
 		case .KEYDOWN:
 			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			ui.handle_key_down(ctx, key)
+			base.handle_key_down(&ctx.input, key)
 			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			ui.handle_keymod_up(ctx, keymod)
+			base.handle_keymod_up(&ctx.input, keymod)
 		case .TEXTINPUT:
 			text := string(cstring(&event.text.text[0]))
-			ok := ui.handle_text(ctx, text)
-			if !ok {
+			handle_text_ok := base.handle_text(&ctx.input, text)
+			if !handle_text_ok {
 				log.error("Failed to handle text: ", text)
 			}
 		case .WINDOWEVENT:

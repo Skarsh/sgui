@@ -163,3 +163,107 @@ Key :: enum u32 {
 // If we want to use a bit_set for a more complete Key enumeration, we would have
 // go for another solution (e.g. core:container/bit_array?), but this works for now.
 Key_Set :: distinct bit_set[Key]
+
+Text_Input_Buffer :: struct {
+	data: [256]u8,
+	len:  int,
+}
+
+Input :: struct {
+	// Mouse
+	mouse_pos:           Vector2i32,
+	last_mouse_pos:      Vector2i32,
+	mouse_delta:         Vector2i32,
+	scroll_delta:        Vector2i32,
+	mouse_down_bits:     Mouse_Set,
+	mouse_pressed_bits:  Mouse_Set,
+	mouse_released_bits: Mouse_Set,
+	// Keys
+	key_down_bits:       Key_Set,
+	key_pressed_bits:    Key_Set,
+	keymod_down_bits:    Keymod_Set,
+	// Text input
+	text_input:          Text_Input_Buffer,
+}
+
+handle_mouse_move :: proc(input: ^Input, x, y: i32) {
+	input.mouse_pos = {x, y}
+}
+
+handle_mouse_down :: proc(input: ^Input, x, y: i32, btn: Mouse) {
+	handle_mouse_move(input, x, y)
+	input.mouse_down_bits += {btn}
+	input.mouse_pressed_bits += {btn}
+}
+
+handle_scroll :: proc(input: ^Input, x, y: i32) {
+	input.scroll_delta.x += x
+	input.scroll_delta.y += y
+}
+
+handle_mouse_up :: proc(input: ^Input, x, y: i32, btn: Mouse) {
+	handle_mouse_move(input, x, y)
+	input.mouse_down_bits -= {btn}
+	input.mouse_released_bits += {btn}
+}
+
+handle_keymod_down :: proc(input: ^Input, keymod: Keymod_Set) {
+	input.keymod_down_bits = keymod
+}
+
+handle_keymod_up :: proc(input: ^Input, keymod: Keymod_Set) {
+	input.keymod_down_bits = keymod
+}
+
+handle_key_down :: proc(input: ^Input, key: Key) {
+	input.key_pressed_bits += {key}
+	input.key_down_bits += {key}
+}
+
+handle_key_up :: proc(input: ^Input, key: Key) {
+	input.key_down_bits -= {key}
+}
+
+handle_text :: proc(input: ^Input, text: string) -> bool {
+	text_input := &input.text_input
+	text_bytes := transmute([]u8)text
+	available := len(text_input.data) - text_input.len
+	assert(len(text) < available)
+
+	if len(text) > available {
+		return false
+	}
+
+	to_copy := len(text_bytes)
+	copy(text_input.data[text_input.len:], text_bytes[:to_copy])
+	text_input.len += to_copy
+	return true
+}
+
+is_mouse_down :: proc(input: Input, mouse: Mouse) -> bool {
+	return mouse in input.mouse_down_bits
+}
+
+is_mouse_pressed :: proc(input: Input, mouse: Mouse) -> bool {
+	return mouse in input.mouse_pressed_bits
+}
+
+is_mouse_released :: proc(input: Input, mouse: Mouse) -> bool {
+	return mouse in input.mouse_released_bits
+}
+
+is_key_down :: proc(input: Input, key: Key) -> bool {
+	return key in input.key_down_bits
+}
+
+is_key_pressed :: proc(input: Input, key: Key) -> bool {
+	return key in input.key_pressed_bits
+}
+
+clear_input :: proc(input: ^Input) {
+	input.key_pressed_bits = {}
+	input.mouse_pressed_bits = {}
+	input.mouse_released_bits = {}
+	input.scroll_delta = {}
+	input.text_input.len = 0
+}

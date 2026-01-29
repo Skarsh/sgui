@@ -133,7 +133,7 @@ Context :: struct {
 	render_state:         Render_State,
 	current_parent:       ^UI_Element,
 	root_element:         ^UI_Element,
-	input:                Input,
+	input:                base.Input,
 	element_cache:        map[UI_Key]^UI_Element,
 	text_input_states:    map[UI_Key]UI_Element_Text_Input_State,
 	interactive_elements: [dynamic]^UI_Element,
@@ -340,7 +340,7 @@ end :: proc(ctx: ^Context) {
 
 	draw_all_elements(ctx)
 
-	clear_input(ctx)
+	base.clear_input(&ctx.input)
 
 	prune_dead_elements(ctx)
 
@@ -439,7 +439,7 @@ process_interactions :: proc(ctx: ^Context) {
 	}
 
 	// Clearing the active element when clicking elsewhere
-	if is_mouse_pressed(ctx^, .Left) {
+	if base.is_mouse_pressed(ctx.input, .Left) {
 		is_on_active :=
 			top_element != nil &&
 			ctx.active_element != nil &&
@@ -450,7 +450,7 @@ process_interactions :: proc(ctx: ^Context) {
 	}
 
 	// If mouse released and element is not focusable, immediately lose active status
-	if is_mouse_released(ctx^, .Left) {
+	if base.is_mouse_released(ctx.input, .Left) {
 		if ctx.active_element != nil &&
 		   .Focusable not_in ctx.active_element.config.capability_flags {
 			ctx.active_element = nil
@@ -503,12 +503,12 @@ process_interactions :: proc(ctx: ^Context) {
 
 		// Handle active state
 		if is_active_element {
-			if is_mouse_down(ctx^, .Left) {
+			if base.is_mouse_down(ctx.input, .Left) {
 				comm.held = true
 			}
 		} else if is_top_element {
 			// Set new active element
-			if is_mouse_pressed(ctx^, .Left) {
+			if base.is_mouse_pressed(ctx.input, .Left) {
 				if .Focusable in element.config.capability_flags {
 					ctx.active_element = element
 				}
@@ -544,17 +544,17 @@ process_interactions :: proc(ctx: ^Context) {
 					textedit.input_text(&state.state, text)
 				}
 
-				if is_key_pressed(ctx^, .Backspace) {
+				if base.is_key_pressed(ctx.input, .Backspace) {
 					translation: textedit.Translation
-					if is_key_down(ctx^, .Left_Shift) {
+					if base.is_key_down(ctx.input, .Left_Shift) {
 						translation = textedit.Translation.Word_Left
 					} else {
 						translation = textedit.Translation.Left
 					}
 					textedit.delete_to(&state.state, translation)
-				} else if is_key_pressed(ctx^, .Left) {
+				} else if base.is_key_pressed(ctx.input, .Left) {
 					translation: textedit.Translation
-					if is_key_down(ctx^, .Left_Shift) {
+					if base.is_key_down(ctx.input, .Left_Shift) {
 						translation = textedit.Translation.Word_Left
 					} else {
 						translation = textedit.Translation.Left
@@ -562,15 +562,15 @@ process_interactions :: proc(ctx: ^Context) {
 
 					textedit.move_to(&state.state, translation)
 
-				} else if is_key_pressed(ctx^, .Right) {
+				} else if base.is_key_pressed(ctx.input, .Right) {
 					translation: textedit.Translation
-					if is_key_down(ctx^, .Left_Shift) {
+					if base.is_key_down(ctx.input, .Left_Shift) {
 						translation = textedit.Translation.Word_Right
 					} else {
 						translation = textedit.Translation.Right
 					}
 					textedit.move_to(&state.state, translation)
-				} else if is_key_pressed(ctx^, .Tab) {
+				} else if base.is_key_pressed(ctx.input, .Tab) {
 					textedit.input_text(&state.state, "\t")
 				}
 			}
