@@ -8,7 +8,6 @@
     - Layout caching?
     - Clean up the old types and text implementation
 
-* Move input into base?
 
 ## Bugs
 
