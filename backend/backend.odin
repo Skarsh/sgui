@@ -165,7 +165,10 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			ui.handle_keymod_up(ctx, keymod)
 		case .TEXTINPUT:
 			text := string(cstring(&event.text.text[0]))
-			ui.handle_text(ctx, text)
+			ok := ui.handle_text(ctx, text)
+			if !ok {
+				log.error("Failed to handle text: ", text)
+			}
 		case .WINDOWEVENT:
 			#partial switch event.window.event {
 			case .SIZE_CHANGED:

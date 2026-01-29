@@ -539,6 +539,11 @@ process_interactions :: proc(ctx: ^Context) {
 			state, state_ok := &ctx.text_input_states[key]
 
 			if state_ok {
+				if ctx.input.text_input.len > 0 {
+					text := string(ctx.input.text_input.data[:ctx.input.text_input.len])
+					textedit.input_text(&state.state, text)
+				}
+
 				if is_key_pressed(ctx^, .Backspace) {
 					translation: textedit.Translation
 					if is_key_down(ctx^, .Left_Shift) {

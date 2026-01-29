@@ -1,8 +1,11 @@
 package ui
 
-import textedit "core:text/edit"
-
 import base "../base"
+
+Text_Input_Buffer :: struct {
+	data: [256]u8,
+	len:  int,
+}
 
 Input :: struct {
 	// Mouse
@@ -17,6 +20,8 @@ Input :: struct {
 	key_down_bits:       base.Key_Set,
 	key_pressed_bits:    base.Key_Set,
 	keymod_down_bits:    base.Keymod_Set,
+	// Text input
+	text_input:          Text_Input_Buffer,
 }
 
 handle_mouse_move :: proc(ctx: ^Context, x, y: i32) {
@@ -57,16 +62,20 @@ handle_key_up :: proc(ctx: ^Context, key: base.Key) {
 	ctx.input.key_down_bits -= {key}
 }
 
-// TODO(Thomas): Should we really do the textedit input here???
-// I do think I would prefer that this doesn't know details about
-// how text are inputted into the textedit etc.
-handle_text :: proc(ctx: ^Context, text: string) {
-	if ctx.active_element != nil {
-		key := ui_key_hash(ctx.active_element.id_string)
-		if state, ok := &ctx.text_input_states[key]; ok {
-			textedit.input_text(&state.state, text)
-		}
+handle_text :: proc(ctx: ^Context, text: string) -> bool {
+	text_input := &ctx.input.text_input
+	text_bytes := transmute([]u8)text
+	available := len(text_input.data) - text_input.len
+	assert(len(text) < available)
+
+	if len(text) > available {
+		return false
 	}
+
+	to_copy := len(text_bytes)
+	copy(text_input.data[text_input.len:], text_bytes[:to_copy])
+	text_input.len += to_copy
+	return true
 }
 
 is_mouse_down :: proc(ctx: Context, mouse: base.Mouse) -> bool {
@@ -94,4 +103,5 @@ clear_input :: proc(ctx: ^Context) {
 	ctx.input.mouse_pressed_bits = {}
 	ctx.input.mouse_released_bits = {}
 	ctx.input.scroll_delta = {}
+	ctx.input.text_input.len = 0
 }
