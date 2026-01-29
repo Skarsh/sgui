@@ -9,7 +9,7 @@ mkdir -p build
 
 echo ""
 echo "--- Running tests ---"
-if ! odin test ui -vet -strict-style -vet-tabs -warnings-as-errors; then
+if ! odin test ui -vet -strict-style -vet-tabs -warnings-as-errors -all-packages; then
     echo "Ui tests failed! Cannot successfully build."
     exit 1
 fi
