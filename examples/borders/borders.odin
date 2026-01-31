@@ -106,12 +106,11 @@ main :: proc() {
 	defer diagnostics.deinit(&diag)
 
 	config := app.App_Config {
-		title     = "Border Test",
-		width     = 800,
-		height    = 600,
-		font_path = "",
-		font_id   = 0,
-		font_size = 24,
+		title       = "Border Test",
+		window_size = {800, 600},
+		font_path   = "",
+		font_id     = 0,
+		font_size   = 24,
 	}
 
 	my_app, my_app_ok := app.init(config)

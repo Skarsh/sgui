@@ -53,13 +53,12 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title     = "ImGUI",
-		width     = WINDOW_WIDTH,
-		height    = WINDOW_HEIGHT,
-		font_path = "",
-		font_id   = 0,
-		font_size = 48,
-		memory    = app_memory,
+		title       = "ImGUI",
+		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
+		font_path   = "",
+		font_id     = 0,
+		font_size   = 48,
+		memory      = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

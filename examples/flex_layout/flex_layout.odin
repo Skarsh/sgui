@@ -493,13 +493,12 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title     = "Flex Layout Demo",
-		width     = 800,
-		height    = 800,
-		font_path = "",
-		font_id   = 0,
-		font_size = 24,
-		memory    = app_memory,
+		title       = "Flex Layout Demo",
+		window_size = {800, 800},
+		font_path   = "",
+		font_id     = 0,
+		font_size   = 24,
+		memory      = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

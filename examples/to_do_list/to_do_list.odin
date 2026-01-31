@@ -337,13 +337,12 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title     = "To-Do List App",
-		width     = 600,
-		height    = 800,
-		font_path = "",
-		font_id   = 0,
-		font_size = 24,
-		memory    = app_memory,
+		title       = "To-Do List App",
+		window_size = {600, 800},
+		font_path   = "",
+		font_id     = 0,
+		font_size   = 24,
+		memory      = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

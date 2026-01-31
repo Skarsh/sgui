@@ -113,13 +113,12 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title     = "Counter App",
-		width     = 640,
-		height    = 480,
-		font_path = "",
-		font_id   = 0,
-		font_size = 48,
-		memory    = app_memory,
+		title       = "Counter App",
+		window_size = {640, 480},
+		font_path   = "",
+		font_id     = 0,
+		font_size   = 48,
+		memory      = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

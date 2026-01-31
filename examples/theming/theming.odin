@@ -295,13 +295,12 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title     = "Theming Demo",
-		width     = 700,
-		height    = 500,
-		font_path = "",
-		font_id   = 0,
-		font_size = 20,
-		memory    = app_memory,
+		title       = "Theming Demo",
+		window_size = {700, 500},
+		font_path   = "",
+		font_id     = 0,
+		font_size   = 20,
+		memory      = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

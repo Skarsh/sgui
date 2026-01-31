@@ -156,13 +156,12 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title     = "Margins Demo",
-		width     = 800,
-		height    = 600,
-		font_path = "../../data/fonts/font.ttf",
-		font_id   = 0,
-		font_size = 24,
-		memory    = app_memory,
+		title       = "Margins Demo",
+		window_size = {800, 600},
+		font_path   = "../../data/fonts/font.ttf",
+		font_id     = 0,
+		font_size   = 24,
+		memory      = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)
