@@ -18,6 +18,7 @@ App :: struct {
 	io_arena:             virtual.Arena,
 	ui_ctx:               ui.Context,
 	backend_ctx:          backend.Context,
+	input:                base.Input,
 	running:              bool,
 }
 
@@ -89,6 +90,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	ui.init(
 		&app.ui_ctx,
+		&app.input,
 		persistent_allocator,
 		frame_arena_allocator,
 		draw_cmd_arena_allocator,
@@ -100,6 +102,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
 		&app.ui_ctx,
+		&app.input,
 		app_config.title,
 		app_config.window_size,
 		app_config.font_size,
@@ -140,13 +143,13 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 				app.running = false
 			}
 		}
-		backend.process_events(&app.backend_ctx, &app.ui_ctx)
+		backend.process_events(&app.backend_ctx)
 
 		// Update window size in ui Context
 		ui.window_resize(&app.ui_ctx, app.backend_ctx.window.size)
 
 		// TODO(Thomas): This feels wrong, shouldn't have to call the ui package here
-		if base.is_key_pressed(app.ui_ctx.input, base.Key.Escape) {
+		if base.is_key_pressed(app.ui_ctx.input^, base.Key.Escape) {
 			app.running = false
 		}
 

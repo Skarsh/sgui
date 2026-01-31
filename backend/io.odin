@@ -34,6 +34,7 @@ init_io :: proc(io: ^Io, allocator: mem.Allocator) -> bool {
 		log.error("Failed to init input queue")
 		return false
 	}
+
 	return true
 }
 

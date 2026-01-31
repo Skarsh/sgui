@@ -49,6 +49,7 @@ Context :: struct {
 	window:       Window,
 	stb_font_ctx: STB_Font_Context,
 	render_ctx:   Render_Context,
+	input:        ^base.Input,
 	io:           Io,
 }
 
@@ -56,6 +57,7 @@ Context :: struct {
 init_ctx :: proc(
 	ctx: ^Context,
 	ui_ctx: ^ui.Context,
+	input: ^base.Input,
 	window_title: string,
 	window_size: base.Vector2i32,
 	font_size: f32,
@@ -111,6 +113,8 @@ init_ctx :: proc(
 	init_io(&io, io_allocator)
 	ctx.io = io
 
+	ctx.input = input
+
 	return true
 }
 
@@ -127,8 +131,9 @@ deinit :: proc(ctx: ^Context) {
 // the intended setup with all of the event stuff living inside IO though.
 // TODO(Thomas): We should use our own Event type here instead of being
 // reliant on SDL.
-process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
+process_events :: proc(backend_ctx: ^Context) {
 	io := &backend_ctx.io
+	input := backend_ctx.input
 	for {
 		event, ok := queue.pop_front_safe(&io.input_queue)
 		if !ok {
@@ -137,7 +142,7 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 
 		#partial switch event.type {
 		case .MOUSEMOTION:
-			base.handle_mouse_move(&ctx.input, event.motion.x, event.motion.y)
+			base.handle_mouse_move(input, event.motion.x, event.motion.y)
 		case .MOUSEBUTTONDOWN:
 			btn: base.Mouse
 			switch event.button.button {
@@ -148,7 +153,7 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			case sdl.BUTTON_MIDDLE:
 				btn = .Middle
 			}
-			base.handle_mouse_down(&ctx.input, event.motion.x, event.motion.y, btn)
+			base.handle_mouse_down(input, event.motion.x, event.motion.y, btn)
 		case .MOUSEBUTTONUP:
 			btn: base.Mouse
 			switch event.button.button {
@@ -159,22 +164,22 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			case sdl.BUTTON_MIDDLE:
 				btn = .Middle
 			}
-			base.handle_mouse_up(&ctx.input, event.motion.x, event.motion.y, btn)
+			base.handle_mouse_up(input, event.motion.x, event.motion.y, btn)
 		case .MOUSEWHEEL:
-			base.handle_scroll(&ctx.input, event.wheel.x, event.wheel.y)
+			base.handle_scroll(input, event.wheel.x, event.wheel.y)
 		case .KEYUP:
 			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			base.handle_key_up(&ctx.input, key)
+			base.handle_key_up(input, key)
 			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			base.handle_keymod_up(&ctx.input, keymod)
+			base.handle_keymod_up(input, keymod)
 		case .KEYDOWN:
 			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			base.handle_key_down(&ctx.input, key)
+			base.handle_key_down(input, key)
 			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			base.handle_keymod_up(&ctx.input, keymod)
+			base.handle_keymod_up(input, keymod)
 		case .TEXTINPUT:
 			text := string(cstring(&event.text.text[0]))
-			handle_text_ok := base.handle_text(&ctx.input, text)
+			handle_text_ok := base.handle_text(input, text)
 			if !handle_text_ok {
 				log.error("Failed to handle text: ", text)
 			}

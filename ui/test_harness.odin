@@ -12,6 +12,7 @@ import base "../base"
 // Pool_Allocator etc.
 Test_Environment :: struct {
 	ctx:                      Context,
+	input:                    base.Input,
 	persistent_allocator:     mem.Allocator,
 	frame_arena:              virtual.Arena,
 	frame_arena_allocator:    mem.Allocator,
@@ -37,6 +38,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 
 	init(
 		&env.ctx,
+		&env.input,
 		env.persistent_allocator,
 		env.frame_arena_allocator,
 		env.draw_cmd_arena_allocator,
