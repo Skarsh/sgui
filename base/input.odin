@@ -1,5 +1,15 @@
 package base
 
+Event :: enum {
+	Mouse_Motion,
+	Mouse_Button_Down,
+	Mouse_Button_Up,
+	Mouse_Wheel,
+	Key_Down,
+	Key_Up,
+	Text_Input,
+}
+
 Mouse :: enum u32 {
 	Unknown,
 	Left,
