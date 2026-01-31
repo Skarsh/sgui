@@ -16,7 +16,6 @@ App :: struct {
 	frame_arena:          virtual.Arena,
 	draw_cmd_arena:       virtual.Arena,
 	io_arena:             virtual.Arena,
-	window:               backend.Window,
 	ui_ctx:               ui.Context,
 	backend_ctx:          backend.Context,
 	running:              bool,
@@ -30,14 +29,13 @@ App_Memory :: struct {
 }
 
 App_Config :: struct {
-	title:     string,
-	width:     i32,
-	height:    i32,
-	font_path: string,
-	font_id:   u16,
-	font_size: f32,
-	allocator: mem.Allocator,
-	memory:    App_Memory,
+	title:       string,
+	window_size: base.Vector2i32,
+	font_path:   string,
+	font_id:     u16,
+	font_size:   f32,
+	allocator:   mem.Allocator,
+	memory:      App_Memory,
 }
 
 init :: proc(app_config: App_Config) -> (^App, bool) {
@@ -89,25 +87,12 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	io_arena_allocator := virtual.arena_allocator(&app.io_arena)
 
-	window, window_ok := backend.init_and_create_window(
-		"ImGUI",
-		app_config.width,
-		app_config.height,
-	)
-	assert(window_ok)
-	if !window_ok {
-		free(app)
-		return nil, false
-	}
-
-	app.window = window
-
 	ui.init(
 		&app.ui_ctx,
 		persistent_allocator,
 		frame_arena_allocator,
 		draw_cmd_arena_allocator,
-		{app_config.width, app_config.height},
+		app_config.window_size,
 		app_config.font_id,
 		app_config.font_size,
 	)
@@ -115,9 +100,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
 		&app.ui_ctx,
-		app.window,
-		app_config.width,
-		app_config.height,
+		app_config.title,
+		app_config.window_size,
 		app_config.font_size,
 		app_arena_allocator,
 		io_arena_allocator,
@@ -157,6 +141,9 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 			}
 		}
 		backend.process_events(&app.backend_ctx, &app.ui_ctx)
+
+		// Update window size in ui Context
+		ui.window_resize(&app.ui_ctx, app.backend_ctx.window.size)
 
 		// TODO(Thomas): This feels wrong, shouldn't have to call the ui package here
 		if base.is_key_pressed(app.ui_ctx.input, base.Key.Escape) {

@@ -12,10 +12,11 @@ import ui "../ui"
 // TODO(Thomas): This is hardcoded to use sdl now, this should support any windowing system
 Window :: struct {
 	handle: ^sdl.Window,
+	size:   base.Vector2i32,
 }
 
 // TODO(Thomas): This is hardcoded to use sdl now, this should support any windowing system
-init_and_create_window :: proc(title: string, width, height: i32) -> (Window, bool) {
+init_and_create_window :: proc(title: string, size: base.Vector2i32) -> (Window, bool) {
 	if sdl.Init(sdl.INIT_VIDEO) < 0 {
 		log.error("Unable to init SDL: ", sdl.GetError())
 		return Window{}, false
@@ -25,8 +26,8 @@ init_and_create_window :: proc(title: string, width, height: i32) -> (Window, bo
 		"ImGUI",
 		sdl.WINDOWPOS_UNDEFINED,
 		sdl.WINDOWPOS_UNDEFINED,
-		width,
-		height,
+		size.x,
+		size.y,
 		{.SHOWN, .RESIZABLE, .OPENGL},
 	)
 
@@ -35,7 +36,7 @@ init_and_create_window :: proc(title: string, width, height: i32) -> (Window, bo
 		return Window{}, false
 	}
 
-	return Window{handle = window}, true
+	return Window{handle = window, size = size}, true
 }
 
 // TODO(Thomas): sdl.DestroyWindow() is hardcoded here now, this should be dependent on which windowing system
@@ -45,6 +46,7 @@ deinit_window :: proc(window: Window) {
 }
 
 Context :: struct {
+	window:       Window,
 	stb_font_ctx: STB_Font_Context,
 	render_ctx:   Render_Context,
 	io:           Io,
@@ -54,12 +56,20 @@ Context :: struct {
 init_ctx :: proc(
 	ctx: ^Context,
 	ui_ctx: ^ui.Context,
-	window: Window,
-	window_width, window_height: i32,
+	window_title: string,
+	window_size: base.Vector2i32,
 	font_size: f32,
 	allocator: mem.Allocator,
 	io_allocator: mem.Allocator,
 ) -> bool {
+
+	window, window_ok := init_and_create_window(window_title, window_size)
+	assert(window_ok)
+	if !window_ok {
+		log.error("Failed to init and create window")
+		return false
+	}
+	ctx.window = window
 
 	font_info := new(Font_Info, allocator)
 	stb_font_ctx := STB_Font_Context {
@@ -83,8 +93,7 @@ init_ctx :: proc(
 	render_ctx_ok := init_render_ctx(
 		&render_ctx,
 		window,
-		window_width,
-		window_height,
+		window_size,
 		stb_font_ctx,
 		font_size,
 		allocator,
@@ -174,8 +183,8 @@ process_events :: proc(backend_ctx: ^Context, ctx: ^ui.Context) {
 			case .SIZE_CHANGED:
 				x := event.window.data1
 				y := event.window.data2
-				ctx.window_size.x = x
-				ctx.window_size.y = y
+				backend_ctx.window.size.x = x
+				backend_ctx.window.size.y = y
 				render_resize(&backend_ctx.render_ctx, x, y)
 			}
 		}

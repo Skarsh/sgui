@@ -187,7 +187,7 @@ MAX_INDICES :: MAX_QUADS * 6
 init_opengl :: proc(
 	render_data: ^Render_Data,
 	window: ^sdl.Window,
-	width, height: i32,
+	window_size: base.Vector2i32,
 	stb_font_ctx: STB_Font_Context,
 	font_size: f32,
 	allocator := context.allocator,
@@ -259,7 +259,7 @@ init_opengl :: proc(
 	gl.BindVertexArray(0)
 
 	// NOTE(Thomas): Flipped y-axis for top-left coords
-	ortho := linalg.matrix_ortho3d_f32(0, f32(width), f32(height), 0, -1, 1)
+	ortho := linalg.matrix_ortho3d_f32(0, f32(window_size.x), f32(window_size.y), 0, -1, 1)
 
 	font_atlas := Font_Atlas{}
 	init_font_atlas(
@@ -274,7 +274,7 @@ init_opengl :: proc(
 	)
 
 	data := OpenGL_Render_Data{}
-	data.window_size = base.Vector2i32{width, height}
+	data.window_size = window_size
 	data.vao = vao
 	data.vbo = vbo
 	data.ebo = ebo

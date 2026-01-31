@@ -223,6 +223,10 @@ init :: proc(
 	ctx.theme = default_theme()
 }
 
+window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
+	ctx.window_size = window_size
+}
+
 set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
 	ctx.font_size = font_size
 }
