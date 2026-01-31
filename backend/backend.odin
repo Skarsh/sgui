@@ -49,7 +49,6 @@ Context :: struct {
 	window:       Window,
 	stb_font_ctx: STB_Font_Context,
 	render_ctx:   Render_Context,
-	input:        ^base.Input,
 	io:           Io,
 }
 
@@ -110,10 +109,8 @@ init_ctx :: proc(
 	ctx.render_ctx = render_ctx
 
 	io := Io{}
-	init_io(&io, io_allocator)
+	init_io(&io, &ctx.window.size, input, io_allocator)
 	ctx.io = io
-
-	ctx.input = input
 
 	return true
 }
@@ -126,73 +123,9 @@ deinit :: proc(ctx: ^Context) {
 	sdl.Quit()
 }
 
-// TODO(Thomas): Putting process events here to make it easy to
-// call resize procedures for the rendering. This does break
-// the intended setup with all of the event stuff living inside IO though.
-// TODO(Thomas): We should use our own Event type here instead of being
-// reliant on SDL.
-process_events :: proc(backend_ctx: ^Context) {
+process :: proc(backend_ctx: ^Context) {
 	io := &backend_ctx.io
-	input := backend_ctx.input
-	for {
-		event, ok := queue.pop_front_safe(&io.input_queue)
-		if !ok {
-			break
-		}
-
-		#partial switch event.type {
-		case .MOUSEMOTION:
-			base.handle_mouse_move(input, event.motion.x, event.motion.y)
-		case .MOUSEBUTTONDOWN:
-			btn: base.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
-			}
-			base.handle_mouse_down(input, event.motion.x, event.motion.y, btn)
-		case .MOUSEBUTTONUP:
-			btn: base.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
-			}
-			base.handle_mouse_up(input, event.motion.x, event.motion.y, btn)
-		case .MOUSEWHEEL:
-			base.handle_scroll(input, event.wheel.x, event.wheel.y)
-		case .KEYUP:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			base.handle_key_up(input, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			base.handle_keymod_up(input, keymod)
-		case .KEYDOWN:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			base.handle_key_down(input, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			base.handle_keymod_up(input, keymod)
-		case .TEXTINPUT:
-			text := string(cstring(&event.text.text[0]))
-			handle_text_ok := base.handle_text(input, text)
-			if !handle_text_ok {
-				log.error("Failed to handle text: ", text)
-			}
-		case .WINDOWEVENT:
-			#partial switch event.window.event {
-			case .SIZE_CHANGED:
-				x := event.window.data1
-				y := event.window.data2
-				backend_ctx.window.size.x = x
-				backend_ctx.window.size.y = y
-				render_resize(&backend_ctx.render_ctx, x, y)
-			}
-		}
-	}
-	free_all(io.allocator)
+	window := backend_ctx.window
+	process_events(io)
+	render_resize(&backend_ctx.render_ctx, window.size.x, window.size.y)
 }

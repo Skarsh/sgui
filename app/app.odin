@@ -143,7 +143,8 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 				app.running = false
 			}
 		}
-		backend.process_events(&app.backend_ctx)
+
+		backend.process(&app.backend_ctx)
 
 		// Update window size in ui Context
 		ui.window_resize(&app.ui_ctx, app.backend_ctx.window.size)
