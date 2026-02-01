@@ -1,6 +1,7 @@
 # TODOs
 
 ## Active
+* io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
     - Implement a red line through the new text system
         - Get a single word of text, no wrapping anything from a text() widget to render in a simple example
@@ -10,7 +11,6 @@
 
 
 ## Bugs
-* Key handling with the new input setup doesn't work properly. Repeating keys, backspace not working etc.
 * Investigate `handle_keymod_x` in `base/input.odin`, it seems like both down and up here does the same??
 
 ## Backlog
