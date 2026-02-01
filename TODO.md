@@ -10,6 +10,8 @@
 
 
 ## Bugs
+* Key handling with the new input setup doesn't work properly. Repeating keys, backspace not working etc.
+* Investigate `handle_keymod_x` in `base/input.odin`, it seems like both down and up here does the same??
 
 ## Backlog
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
