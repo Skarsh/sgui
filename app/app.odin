@@ -7,8 +7,6 @@ import "core:mem/virtual"
 import "../backend"
 import "../base"
 import "../ui"
-import sdl "vendor:sdl2"
-
 
 App :: struct {
 	app_arena:            virtual.Arena,
@@ -99,6 +97,14 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.font_size,
 	)
 
+	// TODO(Thomas): This should come in from the app user instead, so they can implement their own
+	// backend if they want eventually.
+	platform_api := backend.Platform_API {
+		get_perf_counter = backend.sdl_get_perf_counter,
+		get_perf_freq    = backend.sdl_get_perf_freq,
+		poll_events      = backend.sdl_poll_events,
+	}
+
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
 		&app.ui_ctx,
@@ -106,6 +112,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.title,
 		app_config.window_size,
 		app_config.font_size,
+		platform_api,
 		app_arena_allocator,
 		io_arena_allocator,
 	)
@@ -134,17 +141,9 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		app.ui_ctx.dt = app.backend_ctx.io.frame_time.dt
 
 		// 2. Event processing
-		// TODO(Thomas): Shouldn't use sdl directly here
-		event := sdl.Event{}
-		for sdl.PollEvent(&event) {
-			backend.enqueue_sdl_event(&app.backend_ctx.io, event)
-			#partial switch event.type {
-			case .QUIT:
-				app.running = false
-			}
+		if backend.process(&app.backend_ctx) {
+			app.running = false
 		}
-
-		backend.process(&app.backend_ctx)
 
 		// Update window size in ui Context
 		ui.window_resize(&app.ui_ctx, app.backend_ctx.window.size)

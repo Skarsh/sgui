@@ -1,29 +1,16 @@
 package backend
 
-import "core:container/queue"
-
 import sdl "vendor:sdl2"
 
 import "../base"
 
-// TODO(Thomas): We should use our own GetPerformanceCounter wrapper procedure at least, so we're
-// not reliant on SDL.
-time :: proc(io: ^Io) {
-	io.frame_time.last = io.frame_time.now
-	io.frame_time.now = sdl.GetPerformanceCounter()
-	io.frame_time.dt = f32(
-		f32(io.frame_time.now - io.frame_time.last) / f32(io.frame_time.frequency),
-	)
-
-	io.frame_time.counter += 1
+sdl_get_perf_counter :: proc() -> u64 {
+	return sdl.GetPerformanceCounter()
 }
 
-// TODO(Thomas): We should use our own GetPerformanceCounter wrapper procedure at least, so we're
-// not reliant on SDL.
-enqueue_sdl_event :: proc(io: ^Io, event: sdl.Event) {
-	queue.push_back(&io.input_queue, event)
+sdl_get_perf_freq :: proc() -> u64 {
+	return sdl.GetPerformanceFrequency()
 }
-
 
 sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
 	key := base.Key.Unknown
@@ -66,4 +53,80 @@ sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> base.Keymod_Set {
 	}
 
 	return key_mod
+}
+
+sdl_poll_events :: proc(user_data: rawptr, on_event: proc(data: rawptr, event: base.Event)) {
+	sdl_event: sdl.Event
+	for sdl.PollEvent(&sdl_event) {
+		event: base.Event
+		valid := false
+
+		#partial switch sdl_event.type {
+		case .MOUSEMOTION:
+			event = base.Mouse_Motion_Event {
+				x = sdl_event.motion.x,
+				y = sdl_event.motion.y,
+			}
+			valid = true
+		case .MOUSEBUTTONDOWN, .MOUSEBUTTONUP:
+			btn: base.Mouse
+			switch sdl_event.button.button {
+			case sdl.BUTTON_LEFT:
+				btn = .Left
+			case sdl.BUTTON_RIGHT:
+				btn = .Right
+			case sdl.BUTTON_MIDDLE:
+				btn = .Middle
+			}
+			event = base.Mouse_Button_Event {
+				x      = sdl_event.button.x,
+				y      = sdl_event.button.y,
+				button = btn,
+				down   = (sdl_event.type == .MOUSEBUTTONDOWN),
+			}
+			valid = true
+		case .MOUSEWHEEL:
+			event = base.Mouse_Wheel_Event {
+				x = sdl_event.wheel.x,
+				y = sdl_event.wheel.y,
+			}
+			valid = true
+		case .KEYDOWN, .KEYUP:
+			key := sdl_key_to_ui_key(sdl_event.key.keysym.sym)
+			mod := sdl_keymod_to_ui_keymod(sdl_event.key.keysym.mod)
+			event = base.Keyboard_Event {
+				key  = key,
+				mod  = mod,
+				down = (sdl_event.type == .KEYDOWN),
+			}
+			valid = true
+		// TODO(Thomas): Any possible non-copy solution here?
+		// TODO(Thomas): This doesn't have the right lifetime
+		// TODO(Thomas): Make sure we're dealing with cases of overflow properly
+		case .TEXTINPUT:
+			event = base.Text_Input_Event {
+				text = sdl_event.text.text[0],
+			}
+			valid = true
+		case .WINDOWEVENT:
+			#partial switch sdl_event.window.event {
+			case .SIZE_CHANGED:
+				event = base.Window_Event {
+					size_x = sdl_event.window.data1,
+					size_y = sdl_event.window.data2,
+				}
+			}
+			valid = true
+		case .QUIT:
+			// TODO(Thomas): What to do here?? Return bool? Callback?
+			event = base.Quit_Event {
+				quit = true,
+			}
+			valid = true
+		}
+
+		if valid {
+			on_event(user_data, event)
+		}
+	}
 }

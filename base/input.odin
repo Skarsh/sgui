@@ -1,13 +1,53 @@
 package base
 
-Event :: enum {
-	Mouse_Motion,
-	Mouse_Button_Down,
-	Mouse_Button_Up,
-	Mouse_Wheel,
-	Key_Down,
-	Key_Up,
-	Text_Input,
+Event :: union {
+	Mouse_Motion_Event,
+	Mouse_Button_Event,
+	Mouse_Wheel_Event,
+	Keyboard_Event,
+	Text_Input_Event,
+	Quit_Event,
+	Window_Event,
+}
+
+Mouse_Motion_Event :: struct {
+	x:     i32,
+	y:     i32,
+	x_rel: i32,
+	y_rel: i32,
+}
+
+Mouse_Button_Event :: struct {
+	x:      i32,
+	y:      i32,
+	button: Mouse,
+	down:   bool,
+}
+
+Mouse_Wheel_Event :: struct {
+	x:         i32,
+	y:         i32,
+	direction: i32,
+}
+
+Keyboard_Event :: struct {
+	key:  Key,
+	mod:  Keymod_Set,
+	down: bool,
+}
+
+TEXT_INPUT_EVENT_TEXT_SIZE :: 32
+Text_Input_Event :: struct {
+	text: [TEXT_INPUT_EVENT_TEXT_SIZE]u8,
+}
+
+Window_Event :: struct {
+	size_x: i32,
+	size_y: i32,
+}
+
+Quit_Event :: struct {
+	quit: bool,
 }
 
 Mouse :: enum u32 {
@@ -221,6 +261,7 @@ handle_keymod_down :: proc(input: ^Input, keymod: Keymod_Set) {
 	input.keymod_down_bits = keymod
 }
 
+// TODO(Thomas): BUG???
 handle_keymod_up :: proc(input: ^Input, keymod: Keymod_Set) {
 	input.keymod_down_bits = keymod
 }
@@ -234,9 +275,8 @@ handle_key_up :: proc(input: ^Input, key: Key) {
 	input.key_down_bits -= {key}
 }
 
-handle_text :: proc(input: ^Input, text: string) -> bool {
+handle_text :: proc(input: ^Input, text: []u8) -> bool {
 	text_input := &input.text_input
-	text_bytes := transmute([]u8)text
 	available := len(text_input.data) - text_input.len
 	assert(len(text) < available)
 
@@ -244,8 +284,8 @@ handle_text :: proc(input: ^Input, text: string) -> bool {
 		return false
 	}
 
-	to_copy := len(text_bytes)
-	copy(text_input.data[text_input.len:], text_bytes[:to_copy])
+	to_copy := len(text)
+	copy(text_input.data[text_input.len:], text[:to_copy])
 	text_input.len += to_copy
 	return true
 }

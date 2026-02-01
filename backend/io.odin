@@ -3,7 +3,6 @@ package backend
 import "core:container/queue"
 import "core:log"
 import "core:mem"
-import sdl "vendor:sdl2"
 
 import "../base"
 
@@ -15,27 +14,37 @@ Frame_Time :: struct {
 	dt:        f32,
 }
 
+Platform_API :: struct {
+	get_perf_counter: proc() -> u64,
+	get_perf_freq:    proc() -> u64,
+	poll_events:      proc(
+		user_data: rawptr,
+		on_event: proc(user_data: rawptr, event: base.Event),
+	),
+}
+
 // TODO(Thomas): The queue should hold our own Event type so we're not
 // reliant on SDL
 Io :: struct {
-	allocator:   mem.Allocator,
-	frame_time:  Frame_Time,
-	input_queue: queue.Queue(sdl.Event),
+	allocator:    mem.Allocator,
+	frame_time:   Frame_Time,
+	platform_api: Platform_API,
+	//input_queue:  queue.Queue(sdl.Event),
+	input_queue:  queue.Queue(base.Event),
 	// input pointer is owned by backend context
-	input:       ^base.Input,
+	input:        ^base.Input,
 	// window_size pointer is owned by backend context
-	window_size: ^base.Vector2i32,
+	window_size:  ^base.Vector2i32,
 }
 
-// TODO(Thomas): We should use our own GetPerformanceCounter wrapper procedure at least, so we're
-// not reliant on SDL.
 init_io :: proc(
 	io: ^Io,
+	platform_api: Platform_API,
 	window_size: ^base.Vector2i32,
 	input: ^base.Input,
 	allocator: mem.Allocator,
 ) -> bool {
-	io.frame_time.frequency = sdl.GetPerformanceFrequency()
+	io.frame_time.frequency = platform_api.get_perf_freq()
 	io.allocator = allocator
 	alloc_err := queue.init(&io.input_queue, 32, io.allocator)
 	assert(alloc_err == .None)
@@ -44,75 +53,67 @@ init_io :: proc(
 		return false
 	}
 
+	io.platform_api = platform_api
 	io.input = input
 	io.window_size = window_size
 
 	return true
 }
 
-// TODO(Thomas): We should use our own Event type here instead of being
-// reliant on SDL.
-// TODO(Thomas): Move into SDL backend when ready.
-process_events :: proc(io: ^Io) {
+_io_push_event_callback :: proc(user_data: rawptr, event: base.Event) {
+	io := (^Io)(user_data)
+	queue.push_back(&io.input_queue, event)
+}
+
+time :: proc(io: ^Io) {
+	io.frame_time.last = io.frame_time.now
+	io.frame_time.now = io.platform_api.get_perf_counter()
+	io.frame_time.dt = f32(
+		f32(io.frame_time.now - io.frame_time.last) / f32(io.frame_time.frequency),
+	)
+	io.frame_time.counter += 1
+}
+
+process_events :: proc(io: ^Io) -> (should_quit: bool) {
+	io.platform_api.poll_events(io, _io_push_event_callback)
+
 	input := io.input
+
 	for {
 		event, ok := queue.pop_front_safe(&io.input_queue)
-		if !ok {
-			break
-		}
+		if !ok {break}
 
-		#partial switch event.type {
-		case .MOUSEMOTION:
-			base.handle_mouse_move(input, event.motion.x, event.motion.y)
-		case .MOUSEBUTTONDOWN:
-			btn: base.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
+		switch e in event {
+		case base.Mouse_Motion_Event:
+			base.handle_mouse_move(input, e.x, e.y)
+		case base.Mouse_Button_Event:
+			if e.down {
+				base.handle_mouse_down(input, e.x, e.y, e.button)
+			} else {
+				base.handle_mouse_up(input, e.x, e.y, e.button)
 			}
-			base.handle_mouse_down(input, event.motion.x, event.motion.y, btn)
-		case .MOUSEBUTTONUP:
-			btn: base.Mouse
-			switch event.button.button {
-			case sdl.BUTTON_LEFT:
-				btn = .Left
-			case sdl.BUTTON_RIGHT:
-				btn = .Right
-			case sdl.BUTTON_MIDDLE:
-				btn = .Middle
+		case base.Mouse_Wheel_Event:
+			base.handle_scroll(input, e.x, e.y)
+		case base.Keyboard_Event:
+			if e.down {
+				base.handle_keymod_down(input, e.mod)
+				base.handle_key_up(input, e.key)
+			} else {
+				base.handle_keymod_up(input, e.mod)
+				base.handle_key_up(input, e.key)
 			}
-			base.handle_mouse_up(input, event.motion.x, event.motion.y, btn)
-		case .MOUSEWHEEL:
-			base.handle_scroll(input, event.wheel.x, event.wheel.y)
-		case .KEYUP:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			base.handle_key_up(input, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			base.handle_keymod_up(input, keymod)
-		case .KEYDOWN:
-			key := sdl_key_to_ui_key(event.key.keysym.sym)
-			base.handle_key_down(input, key)
-			keymod := sdl_keymod_to_ui_keymod(event.key.keysym.mod)
-			base.handle_keymod_up(input, keymod)
-		case .TEXTINPUT:
-			text := string(cstring(&event.text.text[0]))
-			handle_text_ok := base.handle_text(input, text)
-			if !handle_text_ok {
-				log.error("Failed to handle text: ", text)
-			}
-		case .WINDOWEVENT:
-			#partial switch event.window.event {
-			case .SIZE_CHANGED:
-				x := event.window.data1
-				y := event.window.data2
-				io.window_size.x = x
-				io.window_size.y = y
-			}
+		case base.Text_Input_Event:
+			// TODO(Thomas): HACK, can we do this another way?? Thinking about the copy
+			text := e.text
+			base.handle_text(input, text[:])
+		case base.Window_Event:
+			io.window_size.x = e.size_x
+			io.window_size.y = e.size_y
+		case base.Quit_Event:
+			should_quit = true
+			break
 		}
 	}
 	free_all(io.allocator)
+	return
 }
