@@ -1,7 +1,8 @@
 #!/bin/bash
 set -eo pipefail
 
-# Ensure the build output directory exists
+# Clean and recreate the build output directory
+rm -rf build
 mkdir -p build
 
 #echo "--- Formatting codebase ---"
