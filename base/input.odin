@@ -275,7 +275,7 @@ handle_key_up :: proc(input: ^Input, key: Key) {
 	input.key_down_bits -= {key}
 }
 
-handle_text :: proc(input: ^Input, text: []u8) -> bool {
+handle_text :: proc(input: ^Input, text: string) -> bool {
 	text_input := &input.text_input
 	available := len(text_input.data) - text_input.len
 	assert(len(text) < available)
@@ -284,9 +284,8 @@ handle_text :: proc(input: ^Input, text: []u8) -> bool {
 		return false
 	}
 
-	to_copy := len(text)
-	copy(text_input.data[text_input.len:], text[:to_copy])
-	text_input.len += to_copy
+	copy(text_input.data[text_input.len:], text)
+	text_input.len += len(text)
 	return true
 }
 

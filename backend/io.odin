@@ -97,15 +97,14 @@ process_events :: proc(io: ^Io) -> (should_quit: bool) {
 		case base.Keyboard_Event:
 			if e.down {
 				base.handle_keymod_down(input, e.mod)
-				base.handle_key_up(input, e.key)
+				base.handle_key_down(input, e.key)
 			} else {
 				base.handle_keymod_up(input, e.mod)
 				base.handle_key_up(input, e.key)
 			}
 		case base.Text_Input_Event:
-			// TODO(Thomas): HACK, can we do this another way?? Thinking about the copy
 			text := e.text
-			base.handle_text(input, text[:])
+			base.handle_text(input, string(cstring(&text[0])))
 		case base.Window_Event:
 			io.window_size.x = e.size_x
 			io.window_size.y = e.size_y

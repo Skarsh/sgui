@@ -105,7 +105,7 @@ sdl_poll_events :: proc(user_data: rawptr, on_event: proc(data: rawptr, event: b
 		// TODO(Thomas): Make sure we're dealing with cases of overflow properly
 		case .TEXTINPUT:
 			event = base.Text_Input_Event {
-				text = sdl_event.text.text[0],
+				text = sdl_event.text.text,
 			}
 			valid = true
 		case .WINDOWEVENT:
