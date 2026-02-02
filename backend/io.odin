@@ -23,18 +23,23 @@ Platform_API :: struct {
 	),
 }
 
+App_Callbacks :: struct {
+	on_quit:      proc(user_data: rawptr),
+	on_quit_data: rawptr,
+}
+
 // TODO(Thomas): The queue should hold our own Event type so we're not
 // reliant on SDL
 Io :: struct {
-	allocator:    mem.Allocator,
-	frame_time:   Frame_Time,
-	platform_api: Platform_API,
-	//input_queue:  queue.Queue(sdl.Event),
-	input_queue:  queue.Queue(base.Event),
+	allocator:     mem.Allocator,
+	frame_time:    Frame_Time,
+	platform_api:  Platform_API,
+	app_callbacks: App_Callbacks,
+	input_queue:   queue.Queue(base.Event),
 	// input pointer is owned by backend context
-	input:        ^base.Input,
+	input:         ^base.Input,
 	// window_size pointer is owned by backend context
-	window_size:  ^base.Vector2i32,
+	window_size:   ^base.Vector2i32,
 }
 
 init_io :: proc(
@@ -42,6 +47,7 @@ init_io :: proc(
 	platform_api: Platform_API,
 	window_size: ^base.Vector2i32,
 	input: ^base.Input,
+	app_callbacks: App_Callbacks,
 	allocator: mem.Allocator,
 ) -> bool {
 	io.frame_time.frequency = platform_api.get_perf_freq()
@@ -56,6 +62,7 @@ init_io :: proc(
 	io.platform_api = platform_api
 	io.input = input
 	io.window_size = window_size
+	io.app_callbacks = app_callbacks
 
 	return true
 }
@@ -74,7 +81,7 @@ time :: proc(io: ^Io) {
 	io.frame_time.counter += 1
 }
 
-process_events :: proc(io: ^Io) -> (should_quit: bool) {
+process_events :: proc(io: ^Io) {
 	io.platform_api.poll_events(io, _io_push_event_callback)
 
 	input := io.input
@@ -109,10 +116,10 @@ process_events :: proc(io: ^Io) -> (should_quit: bool) {
 			io.window_size.x = e.size_x
 			io.window_size.y = e.size_y
 		case base.Quit_Event:
-			should_quit = true
-			break
+			if io.app_callbacks.on_quit != nil {
+				io.app_callbacks.on_quit(io.app_callbacks.on_quit_data)
+			}
 		}
 	}
 	free_all(io.allocator)
-	return
 }

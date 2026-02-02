@@ -13,7 +13,11 @@ import "../../ui"
 
 Test_Data :: struct {}
 
-build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
+build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
+	if base.is_key_pressed(ctx.input^, base.Key.Escape) {
+		return false
+	}
+
 	if ui.begin(ctx) {
 		// Main container
 		main_sizing_x := ui.sizing_percent(1.0)
@@ -102,6 +106,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) {
 
 		ui.end(ctx)
 	}
+
+	return true
 }
 
 main :: proc() {

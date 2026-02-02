@@ -60,6 +60,7 @@ init_ctx :: proc(
 	window_size: base.Vector2i32,
 	font_size: f32,
 	platform_api: Platform_API,
+	app_callbacks: App_Callbacks,
 	allocator: mem.Allocator,
 	io_allocator: mem.Allocator,
 ) -> bool {
@@ -109,7 +110,7 @@ init_ctx :: proc(
 	ctx.render_ctx = render_ctx
 
 	io := Io{}
-	init_io(&io, platform_api, &ctx.window.size, input, io_allocator)
+	init_io(&io, platform_api, &ctx.window.size, input, app_callbacks, io_allocator)
 	ctx.io = io
 
 	return true
@@ -123,10 +124,9 @@ deinit :: proc(ctx: ^Context) {
 	sdl.Quit()
 }
 
-process :: proc(backend_ctx: ^Context) -> (should_close: bool) {
+process :: proc(backend_ctx: ^Context) {
 	io := &backend_ctx.io
 	window := backend_ctx.window
-	should_close = process_events(io)
+	process_events(io)
 	render_resize(&backend_ctx.render_ctx, window.size.x, window.size.y)
-	return
 }

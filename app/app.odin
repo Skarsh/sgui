@@ -8,6 +8,11 @@ import "../backend"
 import "../base"
 import "../ui"
 
+_on_quit_callback :: proc(user_data: rawptr) {
+	app := (^App)(user_data)
+	app.running = false
+}
+
 App :: struct {
 	app_arena:            virtual.Arena,
 	persistent_allocator: mem.Allocator,
@@ -98,6 +103,11 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.font_size,
 	)
 
+	app_callbacks := backend.App_Callbacks {
+		on_quit      = _on_quit_callback,
+		on_quit_data = app,
+	}
+
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
 		&app.ui_ctx,
@@ -106,6 +116,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.window_size,
 		app_config.font_size,
 		app_config.platform_api,
+		app_callbacks,
 		app_arena_allocator,
 		io_arena_allocator,
 	)
@@ -126,7 +137,7 @@ deinit :: proc(app: ^App) {
 	free(app)
 }
 
-run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_data: T)) {
+run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_data: T) -> bool) {
 	for app.running {
 
 		// 1. Timing
@@ -134,21 +145,17 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		app.ui_ctx.dt = app.backend_ctx.io.frame_time.dt
 
 		// 2. Event processing
-		if backend.process(&app.backend_ctx) {
-			app.running = false
-		}
+		backend.process(&app.backend_ctx)
 
 		// Update window size in ui Context
 		ui.window_resize(&app.ui_ctx, app.backend_ctx.window.size)
 
-		// TODO(Thomas): This feels wrong, shouldn't have to call the ui package here
-		if base.is_key_pressed(app.ui_ctx.input^, base.Key.Escape) {
-			app.running = false
-		}
-
 		// 3. Rendering
 		backend.render_begin(&app.backend_ctx.render_ctx)
-		update_proc(&app.ui_ctx, app_data)
+		keep_running := update_proc(&app.ui_ctx, app_data)
+		if !keep_running {
+			app.running = false
+		}
 		backend.render_end(&app.backend_ctx.render_ctx, app.ui_ctx.command_queue[:])
 
 		// 4. TODO(Thomas): Sleep to hit target framerate if not vsync.

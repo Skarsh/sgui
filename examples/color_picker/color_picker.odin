@@ -294,8 +294,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	}
 }
 
-update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
+update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
+	if base.is_key_pressed(ctx.input^, base.Key.Escape) {
+		return false
+	}
 	build_ui(ctx, data)
+	return true
 }
 
 main :: proc() {

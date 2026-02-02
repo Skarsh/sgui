@@ -20,7 +20,11 @@ Data :: struct {
 	complex_ui_data: Complex_UI_Data,
 }
 
-update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
+update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
+	if base.is_key_pressed(ctx.input^, base.Key.Escape) {
+		return false
+	}
+
 	//build_simple_text_ui(ctx)
 	//build_nested_text_ui(ctx)
 	//build_complex_ui(ctx, &data.complex_ui_data)
@@ -31,6 +35,8 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) {
 	//build_multiple_images_ui(ctx, &data.image_data)
 	//build_relative_layout_ui(ctx)
 	//build_bug_repro(ctx)
+
+	return true
 }
 
 main :: proc() {
