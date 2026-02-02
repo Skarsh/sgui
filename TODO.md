@@ -14,6 +14,7 @@
 * Investigate `handle_keymod_x` in `base/input.odin`, it seems like both down and up here does the same??
 
 ## Backlog
+* Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
     as `Pool_Allocator` or some other type of allocator for several benefits (simplicity, perf?).
 * Review how capability flags are set in `open_element`. Currently they are additive, which
