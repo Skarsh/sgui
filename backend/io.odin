@@ -28,8 +28,6 @@ App_Callbacks :: struct {
 	on_quit_data: rawptr,
 }
 
-// TODO(Thomas): The queue should hold our own Event type so we're not
-// reliant on SDL
 Io :: struct {
 	allocator:     mem.Allocator,
 	frame_time:    Frame_Time,
