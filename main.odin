@@ -53,12 +53,17 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title       = "ImGUI",
+		title = "ImGUI",
 		window_size = {WINDOW_WIDTH, WINDOW_HEIGHT},
-		font_path   = "",
-		font_id     = 0,
-		font_size   = 48,
-		memory      = app_memory,
+		font_path = "",
+		font_id = 0,
+		font_size = 48,
+		platform_api = {
+			get_perf_counter = backend.sdl_get_perf_counter,
+			get_perf_freq = backend.sdl_get_perf_freq,
+			poll_events = backend.sdl_poll_events,
+		},
+		memory = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

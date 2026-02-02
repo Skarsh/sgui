@@ -5,6 +5,7 @@ import "core:mem"
 import "core:mem/virtual"
 
 import "../../app"
+import "../../backend"
 import "../../base"
 import "../../diagnostics"
 import "../../ui"
@@ -156,12 +157,17 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title       = "Margins Demo",
+		title = "Margins Demo",
 		window_size = {800, 600},
-		font_path   = "../../data/fonts/font.ttf",
-		font_id     = 0,
-		font_size   = 24,
-		memory      = app_memory,
+		font_path = "../../data/fonts/font.ttf",
+		font_id = 0,
+		font_size = 24,
+		platform_api = {
+			get_perf_counter = backend.sdl_get_perf_counter,
+			get_perf_freq = backend.sdl_get_perf_freq,
+			poll_events = backend.sdl_poll_events,
+		},
+		memory = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)

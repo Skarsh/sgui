@@ -28,13 +28,14 @@ App_Memory :: struct {
 }
 
 App_Config :: struct {
-	title:       string,
-	window_size: base.Vector2i32,
-	font_path:   string,
-	font_id:     u16,
-	font_size:   f32,
-	allocator:   mem.Allocator,
-	memory:      App_Memory,
+	title:        string,
+	window_size:  base.Vector2i32,
+	font_path:    string,
+	font_id:      u16,
+	font_size:    f32,
+	platform_api: backend.Platform_API,
+	allocator:    mem.Allocator,
+	memory:       App_Memory,
 }
 
 init :: proc(app_config: App_Config) -> (^App, bool) {
@@ -97,14 +98,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.font_size,
 	)
 
-	// TODO(Thomas): This should come in from the app user instead, so they can implement their own
-	// backend if they want eventually.
-	platform_api := backend.Platform_API {
-		get_perf_counter = backend.sdl_get_perf_counter,
-		get_perf_freq    = backend.sdl_get_perf_freq,
-		poll_events      = backend.sdl_poll_events,
-	}
-
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
 		&app.ui_ctx,
@@ -112,7 +105,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.title,
 		app_config.window_size,
 		app_config.font_size,
-		platform_api,
+		app_config.platform_api,
 		app_arena_allocator,
 		io_arena_allocator,
 	)

@@ -6,6 +6,7 @@ import "core:mem/virtual"
 import "core:strings"
 
 import "../../app"
+import "../../backend"
 import "../../base"
 import "../../diagnostics"
 import "../../ui"
@@ -113,12 +114,17 @@ main :: proc() {
 	}
 
 	config := app.App_Config {
-		title       = "Counter App",
+		title = "Counter App",
 		window_size = {640, 480},
-		font_path   = "",
-		font_id     = 0,
-		font_size   = 48,
-		memory      = app_memory,
+		font_path = "",
+		font_id = 0,
+		font_size = 48,
+		platform_api = {
+			get_perf_counter = backend.sdl_get_perf_counter,
+			get_perf_freq = backend.sdl_get_perf_freq,
+			poll_events = backend.sdl_poll_events,
+		},
+		memory = app_memory,
 	}
 
 	my_app, my_app_ok := app.init(config)
