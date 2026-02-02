@@ -8,7 +8,6 @@ import "core:reflect"
 import "core:slice"
 
 import gl "vendor:OpenGL"
-import sdl "vendor:sdl2"
 import stbtt "vendor:stb/truetype"
 
 import base "../base"
@@ -182,26 +181,32 @@ MAX_QUADS :: 10_000
 MAX_VERTICES :: MAX_QUADS * 4
 MAX_INDICES :: MAX_QUADS * 6
 
-// TODO(Thomas): Replace with our own window wrapper type, or at least
-// figure out a way to not make this dependent on SDL.
 init_opengl :: proc(
 	render_data: ^Render_Data,
-	window: ^sdl.Window,
+	window: ^Window,
+	window_api: Window_API,
 	window_size: base.Vector2i32,
 	stb_font_ctx: STB_Font_Context,
 	font_size: f32,
 	allocator := context.allocator,
 ) -> bool {
-	sdl.GL_SetAttribute(.CONTEXT_PROFILE_MASK, i32(sdl.GLprofile.CORE))
-	sdl.GL_SetAttribute(.CONTEXT_MAJOR_VERSION, 4)
-	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, 3)
-	gl_context := sdl.GL_CreateContext(window)
-	sdl.GL_MakeCurrent(window, gl_context)
+	window_api.set_gl_attribute(.Context_Profile_Mask, i32(GL_Profile.Core))
+	window_api.set_gl_attribute(.Context_Major_Version, 4)
+	window_api.set_gl_attribute(.Context_Minor_Version, 3)
+
+	gl_context, gl_ok := window_api.create_gl_context(window.handle)
+	if !gl_ok {
+		log.error("Failed to create GL context")
+		return false
+	}
+	window.gl_context = gl_context
+
+	window_api.make_gl_current(window.handle, gl_context)
 
 	// TODO(Thomas): Hardcoding VSync here, should be coming from options struct eventually
-	sdl.GL_SetSwapInterval(1)
+	window_api.set_swap_interval(1)
 
-	gl.load_up_to(4, 3, sdl.gl_set_proc_address)
+	gl.load_up_to(4, 3, window_api.get_gl_proc_address())
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
@@ -338,11 +343,7 @@ opengl_render_begin :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
-opengl_render_end :: proc(
-	window: ^sdl.Window,
-	render_data: ^OpenGL_Render_Data,
-	command_queue: []ui.Draw_Command,
-) {
+opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.Draw_Command) {
 
 	if len(command_queue) == 0 {
 		return

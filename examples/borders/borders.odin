@@ -138,6 +138,7 @@ main :: proc() {
 			get_perf_freq = backend.sdl_get_perf_freq,
 			poll_events = backend.sdl_poll_events,
 		},
+		window_api = backend.create_sdl_window_api(),
 		memory = app_memory,
 	}
 

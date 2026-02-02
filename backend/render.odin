@@ -3,8 +3,6 @@ package backend
 import "core:log"
 import "core:mem"
 
-import sdl "vendor:sdl2"
-
 import base "../base"
 import ui "../ui"
 
@@ -17,7 +15,8 @@ Render_Data :: union {
 }
 
 Render_Context :: struct {
-	window:        Window,
+	window:        ^Window,
+	window_api:    Window_API,
 	renderer_type: Renderer_Type,
 	render_data:   Render_Data,
 	allocator:     mem.Allocator,
@@ -25,7 +24,8 @@ Render_Context :: struct {
 
 init_render_ctx :: proc(
 	ctx: ^Render_Context,
-	window: Window,
+	window: ^Window,
+	window_api: Window_API,
 	window_size: base.Vector2i32,
 	stb_font_ctx: STB_Font_Context,
 	font_size: f32,
@@ -33,15 +33,23 @@ init_render_ctx :: proc(
 	renderer_type: Renderer_Type,
 ) -> bool {
 
-	win := window.handle
 	ctx.window = window
+	ctx.window_api = window_api
 	ctx.allocator = allocator
 	ctx.renderer_type = renderer_type
 
 	ok := false
 	switch renderer_type {
 	case .OpenGL:
-		ok = init_opengl(&ctx.render_data, win, window_size, stb_font_ctx, font_size, allocator)
+		ok = init_opengl(
+			&ctx.render_data,
+			window,
+			window_api,
+			window_size,
+			stb_font_ctx,
+			font_size,
+			allocator,
+		)
 	}
 
 	// TODO(Thomas): More details about which backend etc?
@@ -86,14 +94,10 @@ render_begin :: proc(render_ctx: ^Render_Context) {
 
 // TODO(Thomas): The command_stack could just be a member of render_ctx instead??
 render_end :: proc(render_ctx: ^Render_Context, command_queue: []ui.Draw_Command) {
-	win := render_ctx.window.handle
 	switch render_ctx.renderer_type {
-
 	case .OpenGL:
-		opengl_render_end(win, &render_ctx.render_data.(OpenGL_Render_Data), command_queue)
+		opengl_render_end(&render_ctx.render_data.(OpenGL_Render_Data), command_queue)
 	}
 
-	// TODO(Thomas) We're using SDL windowing for both right now, but
-	// this should not be sdl specific later
-	sdl.GL_SwapWindow(win)
+	render_ctx.window_api.swap_window(render_ctx.window.handle)
 }

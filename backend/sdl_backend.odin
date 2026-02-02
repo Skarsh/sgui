@@ -12,6 +12,80 @@ sdl_get_perf_freq :: proc() -> u64 {
 	return sdl.GetPerformanceFrequency()
 }
 
+// Window API implementations
+sdl_window_init :: proc() -> bool {
+	return sdl.Init(sdl.INIT_VIDEO) >= 0
+}
+
+sdl_window_deinit :: proc() {
+	sdl.Quit()
+}
+
+sdl_create_window :: proc(title: cstring, size: base.Vector2i32) -> (rawptr, bool) {
+	window := sdl.CreateWindow(
+		title,
+		sdl.WINDOWPOS_UNDEFINED,
+		sdl.WINDOWPOS_UNDEFINED,
+		size.x,
+		size.y,
+		{.SHOWN, .RESIZABLE, .OPENGL},
+	)
+	return rawptr(window), window != nil
+}
+
+sdl_destroy_window :: proc(handle: rawptr) {
+	sdl.DestroyWindow(cast(^sdl.Window)handle)
+}
+
+sdl_create_gl_context :: proc(handle: rawptr) -> (rawptr, bool) {
+	gl_context := sdl.GL_CreateContext(cast(^sdl.Window)handle)
+	return rawptr(gl_context), gl_context != nil
+}
+
+sdl_make_gl_current :: proc(handle: rawptr, gl_context: rawptr) -> bool {
+	return sdl.GL_MakeCurrent(cast(^sdl.Window)handle, cast(sdl.GLContext)gl_context) == 0
+}
+
+sdl_set_gl_attribute :: proc(attr: GL_Attribute, value: i32) -> bool {
+	sdl_attr: sdl.GLattr
+	switch attr {
+	case .Context_Profile_Mask:
+		sdl_attr = .CONTEXT_PROFILE_MASK
+	case .Context_Major_Version:
+		sdl_attr = .CONTEXT_MAJOR_VERSION
+	case .Context_Minor_Version:
+		sdl_attr = .CONTEXT_MINOR_VERSION
+	}
+	return sdl.GL_SetAttribute(sdl_attr, value) == 0
+}
+
+sdl_set_swap_interval :: proc(interval: i32) -> bool {
+	return sdl.GL_SetSwapInterval(interval) == 0
+}
+
+sdl_swap_window :: proc(handle: rawptr) {
+	sdl.GL_SwapWindow(cast(^sdl.Window)handle)
+}
+
+sdl_get_gl_proc_address :: proc() -> GL_Set_Proc_Address_Type {
+	return sdl.gl_set_proc_address
+}
+
+create_sdl_window_api :: proc() -> Window_API {
+	return Window_API {
+		init = sdl_window_init,
+		deinit = sdl_window_deinit,
+		create_window = sdl_create_window,
+		destroy_window = sdl_destroy_window,
+		create_gl_context = sdl_create_gl_context,
+		make_gl_current = sdl_make_gl_current,
+		set_gl_attribute = sdl_set_gl_attribute,
+		set_swap_interval = sdl_set_swap_interval,
+		swap_window = sdl_swap_window,
+		get_gl_proc_address = sdl_get_gl_proc_address,
+	}
+}
+
 sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
 	key := base.Key.Unknown
 	// TODO(Thomas): Complete more of this switch

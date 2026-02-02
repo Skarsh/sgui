@@ -33,12 +33,13 @@ App_Memory :: struct {
 }
 
 App_Config :: struct {
-	title:        string,
+	title:        cstring,
 	window_size:  base.Vector2i32,
 	font_path:    string,
 	font_id:      u16,
 	font_size:    f32,
 	platform_api: backend.Platform_API,
+	window_api:   backend.Window_API,
 	allocator:    mem.Allocator,
 	memory:       App_Memory,
 }
@@ -116,6 +117,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.window_size,
 		app_config.font_size,
 		app_config.platform_api,
+		app_config.window_api,
 		app_callbacks,
 		app_arena_allocator,
 		io_arena_allocator,
