@@ -499,7 +499,7 @@ main :: proc() {
 
 	config := app.App_Config {
 		title = "Flex Layout Demo",
-		window_size = {800, 800},
+		window_size = {800, 900},
 		font_path = "",
 		font_id = 0,
 		font_size = 24,
