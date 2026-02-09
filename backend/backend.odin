@@ -148,7 +148,6 @@ deinit :: proc(ctx: ^Context) {
 
 process :: proc(backend_ctx: ^Context) {
 	io := &backend_ctx.io
-	window := backend_ctx.window
 	process_events(io)
-	render_resize(&backend_ctx.render_ctx, window.size.x, window.size.y)
+	render_resize(&backend_ctx.render_ctx, backend_ctx.window.size.x, backend_ctx.window.size.y)
 }

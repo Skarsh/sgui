@@ -189,8 +189,8 @@ sdl_poll_events :: proc(user_data: rawptr, on_event: proc(data: rawptr, event: b
 					size_x = sdl_event.window.data1,
 					size_y = sdl_event.window.data2,
 				}
+				valid = true
 			}
-			valid = true
 		case .QUIT:
 			// TODO(Thomas): What to do here?? Return bool? Callback?
 			event = base.Quit_Event {
