@@ -21,6 +21,7 @@ Font_Data :: struct {
 	// Screen space positions
 	x0, y0, x1, y1: f32,
 	x_advance:      f32,
+	// packed char idx
 	pc_idx:         i32,
 }
 
@@ -210,4 +211,32 @@ get_glyph :: proc(atlas: ^Font_Atlas, codepoint: rune) -> (Font_Data, bool) {
 	// In practice this shouldn't really happen because '?' should always
 	// be in the glyph_cache
 	return Font_Data{}, false
+}
+
+Glyph_Quad :: struct {
+	x0, y0, s0, t0: f32, // top-left
+	x1, y1, s1, t1: f32, // bottom-right
+	x_advance:      f32,
+}
+
+// TODO(Thomas): Should be agnostic to font rasterization library, e.g. not
+// depend on stb truetype
+get_glyph_quad :: proc(atlas: ^Font_Atlas, codepoint: rune, x, y: ^f32) -> (Glyph_Quad, bool) {
+	glyph, found := get_glyph(atlas, codepoint)
+
+	q: stbtt.aligned_quad
+	stbtt.GetPackedQuad(
+		&atlas.packed_chars[0],
+		atlas.atlas_width,
+		atlas.atlas_height,
+		glyph.pc_idx,
+		x,
+		y,
+		&q,
+		true,
+	)
+
+	glyph_quad := Glyph_Quad{q.x0, q.y0, q.s0, q.t0, q.x1, q.y1, q.s1, q.t1, x^}
+
+	return glyph_quad, found
 }

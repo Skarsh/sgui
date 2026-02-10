@@ -8,7 +8,6 @@ import "core:reflect"
 import "core:slice"
 
 import gl "vendor:OpenGL"
-import stbtt "vendor:stb/truetype"
 
 import base "../base"
 import ui "../ui"
@@ -438,23 +437,17 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			fill_colors := fill_to_colors(val.fill)
 
 			// Measure space width once for tab character handling
-			space_glyph, space_found := get_glyph(&render_data.font_atlas, ' ')
+			space_x := f32(0)
+			space_y := f32(0)
+			space_quad, space_found := get_glyph_quad(
+				&render_data.font_atlas,
+				' ',
+				&space_x,
+				&space_y,
+			)
 			space_width: f32 = 0
 			if space_found {
-				space_q: stbtt.aligned_quad
-				space_x := f32(0)
-				space_y := f32(0)
-				stbtt.GetPackedQuad(
-					&render_data.font_atlas.packed_chars[0],
-					render_data.font_atlas.atlas_width,
-					render_data.font_atlas.atlas_height,
-					space_glyph.pc_idx,
-					&space_x,
-					&space_y,
-					&space_q,
-					true,
-				)
-				space_width = space_x
+				space_width = space_quad.x_advance
 			}
 
 			for r in val.str {
@@ -468,22 +461,10 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 					continue
 				}
 
-				glyph, found := get_glyph(&render_data.font_atlas, r)
+				glyph_quad, found := get_glyph_quad(&render_data.font_atlas, r, &start_x, &start_y)
 				if !found && r != ' ' {
 					log.error("Glyph not found for rune: ", r)
 				}
-
-				q: stbtt.aligned_quad
-				stbtt.GetPackedQuad(
-					&render_data.font_atlas.packed_chars[0],
-					render_data.font_atlas.atlas_width,
-					render_data.font_atlas.atlas_height,
-					glyph.pc_idx,
-					&start_x,
-					&start_y,
-					&q,
-					true,
-				)
 
 				if batch.quad_idx >= MAX_QUADS {
 					flush_render(render_data, batch)
@@ -491,8 +472,8 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				}
 
 				// Set Quad_Param in ubo data
-				width := (q.x1 - q.x0)
-				height := (q.y1 - q.y0)
+				width := (glyph_quad.x1 - glyph_quad.x0)
+				height := (glyph_quad.y1 - glyph_quad.y0)
 				render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 					color_start  = fill_colors.color_start,
 					color_end    = fill_colors.color_end,
@@ -503,10 +484,10 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 						f32(command.clip_rect.w),
 						f32(command.clip_rect.h),
 					},
-					quad_pos     = {q.x0 + width / 2, q.y0 + height / 2},
+					quad_pos     = {glyph_quad.x0 + width / 2, glyph_quad.y0 + height / 2},
 					quad_size    = {width, height},
-					uv_offset    = {q.s0, q.t0},
-					uv_size      = {q.s1 - q.s0, q.t1 - q.t0},
+					uv_offset    = {glyph_quad.s0, glyph_quad.t0},
+					uv_size      = {glyph_quad.s1 - glyph_quad.s0, glyph_quad.t1 - glyph_quad.t0},
 					tex_slot     = 0,
 					quad_type    = i32(Quad_Type.Text),
 				}
