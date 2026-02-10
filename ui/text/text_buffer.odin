@@ -61,3 +61,7 @@ text_buffer_len :: proc(buf: Text_Buffer) -> int {
 text_buffer_capacity :: proc(buf: Text_Buffer) -> int {
 	return gap_buffer.capacity(buf.gb)
 }
+
+text_buffer_text :: proc(buf: Text_Buffer) -> string {
+	return gap_buffer.get_text(buf.gb)
+}

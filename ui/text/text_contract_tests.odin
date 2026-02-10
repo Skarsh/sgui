@@ -11,7 +11,7 @@ test_text_buffer_delete_range_removes_middle_bytes :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&buf, 3, 3)
 
-	actual := gap_buffer.get_text(buf.gb)
+	actual := text_buffer_text(buf)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -26,7 +26,7 @@ test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&buf, 2, 0)
 
-	actual := gap_buffer.get_text(buf.gb)
+	actual := text_buffer_text(buf)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -44,7 +44,7 @@ test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing
 	text_buffer_delete_range(&buf, 6, 2)
 	text_buffer_delete_range(&buf, 7, 2)
 
-	actual := gap_buffer.get_text(buf.gb)
+	actual := text_buffer_text(buf)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -58,7 +58,7 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&buf, 4, 999)
 
-	actual := gap_buffer.get_text(buf.gb)
+	actual := text_buffer_text(buf)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcd")
