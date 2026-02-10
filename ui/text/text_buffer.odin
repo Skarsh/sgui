@@ -26,7 +26,7 @@ Text_Buffer :: struct {
 DEFAULT_GAP_BUFFER_SIZE :: 4096
 
 text_buffer_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Buffer {
-	gb := gap_buffer.init_gap_buffer(4096, allocator)
+	gb := gap_buffer.init_gap_buffer(DEFAULT_GAP_BUFFER_SIZE, allocator)
 	return Text_Buffer{gb = gb}
 }
 
@@ -56,4 +56,8 @@ text_buffer_delete_range :: proc(buf: ^Text_Buffer, pos: int, count: int) {
 
 text_buffer_len :: proc(buf: Text_Buffer) -> int {
 	return gap_buffer.length(buf.gb)
+}
+
+text_buffer_capacity :: proc(buf: Text_Buffer) -> int {
+	return gap_buffer.capacity(buf.gb)
 }
