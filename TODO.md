@@ -11,7 +11,6 @@
 
 
 ## Bugs
-* Investigate `handle_keymod_x` in `base/input.odin`, it seems like both down and up here does the same??
 
 ## Backlog
 * Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
