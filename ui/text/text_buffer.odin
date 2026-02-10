@@ -50,4 +50,6 @@ text_buffer_delete_at :: proc(buf: ^Text_Buffer, pos: int) {
 	gap_buffer.delete_at(&buf.gb, pos)
 }
 
-text_buffer_delete_range :: proc(buf: ^Text_Buffer, pos: int, count: int)
+text_buffer_delete_range :: proc(buf: ^Text_Buffer, pos: int, count: int) {
+	gap_buffer.delete_range(&buf.gb, pos, count)
+}
