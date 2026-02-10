@@ -117,13 +117,38 @@ sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
 sdl_keymod_to_ui_keymod :: proc(sdl_key_mod: sdl.Keymod) -> base.Keymod_Set {
 	key_mod := base.KMOD_NONE
 
-	// TODO(Thomas): Do this for the complete set of modifiers
 	if .LSHIFT in sdl_key_mod {
-		key_mod = base.KMOD_LSHIFT
-	} else if .RSHIFT in sdl_key_mod {
-		key_mod = base.KMOD_RSHIFT
-	} else if .LSHIFT in sdl_key_mod && .RSHIFT in sdl_key_mod {
-		key_mod = base.KMOD_SHIFT
+		key_mod += base.KMOD_LSHIFT
+	}
+	if .RSHIFT in sdl_key_mod {
+		key_mod += base.KMOD_RSHIFT
+	}
+	if .LCTRL in sdl_key_mod {
+		key_mod += base.KMOD_LCTRL
+	}
+	if .RCTRL in sdl_key_mod {
+		key_mod += base.KMOD_RCTRL
+	}
+	if .LALT in sdl_key_mod {
+		key_mod += base.KMOD_LALT
+	}
+	if .RALT in sdl_key_mod {
+		key_mod += base.KMOD_RALT
+	}
+	if .LGUI in sdl_key_mod {
+		key_mod += base.KMOD_LGUI
+	}
+	if .RGUI in sdl_key_mod {
+		key_mod += base.KMOD_RGUI
+	}
+	if .NUM in sdl_key_mod {
+		key_mod += base.KMOD_NUM
+	}
+	if .CAPS in sdl_key_mod {
+		key_mod += base.KMOD_CAPS
+	}
+	if .MODE in sdl_key_mod {
+		key_mod += base.KMOD_MODE
 	}
 
 	return key_mod

@@ -257,13 +257,16 @@ handle_mouse_up :: proc(input: ^Input, x, y: i32, btn: Mouse) {
 	input.mouse_released_bits += {btn}
 }
 
-handle_keymod_down :: proc(input: ^Input, keymod: Keymod_Set) {
+set_keymods :: proc(input: ^Input, keymod: Keymod_Set) {
 	input.keymod_down_bits = keymod
 }
 
-// TODO(Thomas): BUG???
+handle_keymod_down :: proc(input: ^Input, keymod: Keymod_Set) {
+	set_keymods(input, keymod)
+}
+
 handle_keymod_up :: proc(input: ^Input, keymod: Keymod_Set) {
-	input.keymod_down_bits = keymod
+	set_keymods(input, keymod)
 }
 
 handle_key_down :: proc(input: ^Input, key: Key) {
@@ -307,6 +310,26 @@ is_key_down :: proc(input: Input, key: Key) -> bool {
 
 is_key_pressed :: proc(input: Input, key: Key) -> bool {
 	return key in input.key_pressed_bits
+}
+
+is_keymod_down :: proc(input: Input, keymod: Keymod_Flag) -> bool {
+	return keymod in input.keymod_down_bits
+}
+
+is_shift_down :: proc(input: Input) -> bool {
+	return is_keymod_down(input, .LSHIFT) || is_keymod_down(input, .RSHIFT)
+}
+
+is_ctrl_down :: proc(input: Input) -> bool {
+	return is_keymod_down(input, .LCTRL) || is_keymod_down(input, .RCTRL)
+}
+
+is_alt_down :: proc(input: Input) -> bool {
+	return is_keymod_down(input, .LALT) || is_keymod_down(input, .RALT)
+}
+
+is_gui_down :: proc(input: Input) -> bool {
+	return is_keymod_down(input, .LGUI) || is_keymod_down(input, .RGUI)
 }
 
 clear_input :: proc(input: ^Input) {
