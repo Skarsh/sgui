@@ -64,3 +64,11 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 	testing.expect_value(t, actual, "abcd")
 	testing.expect_value(t, gap_buffer.length(buf.gb), 4)
 }
+
+@(test)
+test_text_buffer_len_counts_utf8_bytes :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("a©", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	testing.expect_value(t, text_buffer_len(buf), 3)
+}
