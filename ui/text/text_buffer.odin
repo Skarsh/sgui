@@ -39,9 +39,17 @@ text_buffer_deinit :: proc(buf: ^Text_Buffer) {
 	gap_buffer.deinit(&buf.gb)
 }
 
-// TODO(Thomas): Clamp better here instead of relying on rune_index_to_byte_index??
 text_buffer_insert_at :: proc(buf: ^Text_Buffer, rune_pos: int, str: string) {
-	byte_idx := rune_index_to_byte_index(buf.gb, rune_pos)
+	byte_idx := 0
+	if rune_pos <= 0 {
+		byte_idx = 0
+	} else if rune_pos >= buf.cached_rune_count {
+		// Fast path for append without scanning runes
+		byte_idx = gap_buffer.byte_length(buf.gb)
+	} else {
+		byte_idx = rune_index_to_byte_index(buf.gb, rune_pos)
+	}
+
 	gap_buffer.insert_at(&buf.gb, byte_idx, str)
 	buf.cached_rune_count += utf8.rune_count_in_string(str)
 }
