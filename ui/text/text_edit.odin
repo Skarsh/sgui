@@ -4,7 +4,10 @@ import "core:mem"
 
 import "../../base"
 
-Selection :: [2]int
+Selection :: struct {
+	anchor: int,
+	active: int,
+}
 
 Text_Edit_State :: struct {
 	buffer: Text_Buffer,
