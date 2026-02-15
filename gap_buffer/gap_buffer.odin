@@ -30,7 +30,7 @@ deinit :: proc(gb: ^Gap_Buffer) {
 // for rendering and serach you might want to use the
 // Gap_Buffer_Iterator instead, which won't allocate.
 get_text :: proc(gb: Gap_Buffer) -> string {
-	res := make([]u8, length(gb), gb.allocator)
+	res := make([]u8, byte_length(gb), gb.allocator)
 
 	// copy left
 	copy(res[:gb.start], gb.buf[:gb.start])
@@ -49,7 +49,7 @@ insert_at :: proc {
 }
 
 insert_byte_at :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) {
-	if pos >= 0 && pos <= length(gb^) {
+	if pos >= 0 && pos <= byte_length(gb^) {
 		ensure_space(gb, 1)
 		shift_gap_to(gb, pos)
 		gb.buf[gb.start] = ch
@@ -58,14 +58,14 @@ insert_byte_at :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) {
 }
 
 insert_rune_at :: proc(gb: ^Gap_Buffer, pos: int, r: rune) {
-	if pos >= 0 && pos <= length(gb^) {
+	if pos >= 0 && pos <= byte_length(gb^) {
 		bytes, width := utf8.encode_rune(r)
 		insert_slice_at(gb, pos, bytes[:width])
 	}
 }
 
 insert_slice_at :: proc(gb: ^Gap_Buffer, pos: int, slice: []u8) {
-	if pos >= 0 && pos <= length(gb^) {
+	if pos >= 0 && pos <= byte_length(gb^) {
 		ensure_space(gb, len(slice))
 		shift_gap_to(gb, pos)
 		copy(gb.buf[gb.start:], slice)
@@ -74,22 +74,22 @@ insert_slice_at :: proc(gb: ^Gap_Buffer, pos: int, slice: []u8) {
 }
 
 insert_string_at :: proc(gb: ^Gap_Buffer, pos: int, str: string) {
-	if pos >= 0 && pos <= length(gb^) {
+	if pos >= 0 && pos <= byte_length(gb^) {
 		insert_slice_at(gb, pos, transmute([]u8)str)
 	}
 }
 
 
 delete_at :: proc(gb: ^Gap_Buffer, pos: int) {
-	if pos >= 0 && pos < length(gb^) {
+	if pos >= 0 && pos < byte_length(gb^) {
 		shift_gap_to(gb, pos)
 		gb.end += 1
 	}
 }
 
 delete_range :: proc(gb: ^Gap_Buffer, pos: int, count: int) {
-	valid_len := length(gb^)
-	if (pos >= 0 && pos < length(gb^)) && count > 0 {
+	valid_len := byte_length(gb^)
+	if (pos >= 0 && pos < byte_length(gb^)) && count > 0 {
 
 		// Clamp count so we don't delete past the end
 		actual_count := min(count, valid_len - pos)
@@ -102,7 +102,7 @@ delete_range :: proc(gb: ^Gap_Buffer, pos: int, count: int) {
 }
 
 
-length :: proc(gb: Gap_Buffer) -> int {
+byte_length :: proc(gb: Gap_Buffer) -> int {
 	return len(gb.buf) - (gb.end - gb.start)
 }
 
@@ -202,7 +202,7 @@ init_gap_buffer_iterator :: proc(gb: Gap_Buffer) -> Gap_Buffer_Iterator {
 }
 
 gap_buffer_iterator_next :: proc(it: ^Gap_Buffer_Iterator) -> (u8, int, bool) {
-	if it.idx >= length(it.gb) {
+	if it.idx >= byte_length(it.gb) {
 		return 0, it.idx, false
 	}
 
@@ -241,7 +241,7 @@ test_basic_insert :: proc(t: ^testing.T) {
 	check_str(t, gb, "Hiello")
 
 	// Test 3: Insert at end
-	insert_at(&gb, length(gb), "!")
+	insert_at(&gb, byte_length(gb), "!")
 	check_str(t, gb, "Hiello!")
 }
 
@@ -265,7 +265,7 @@ test_cursor_movement_logic :: proc(t: ^testing.T) {
 	check_str(t, gb, "AXBC")
 
 	// Total chars: A, X, B, C = 4
-	testing.expect_value(t, length(gb), 4)
+	testing.expect_value(t, byte_length(gb), 4)
 
 	// Total capacity (10) - Total text (4) = Remaining Gap (6)
 	testing.expect_value(t, gap_size(gb), 6)
@@ -313,7 +313,7 @@ test_deletion :: proc(t: ^testing.T) {
 	check_str(t, gb, "12346789")
 
 	// Delete at '9' (at the end)
-	len_now := length(gb)
+	len_now := byte_length(gb)
 	delete_at(&gb, len_now - 1)
 	check_str(t, gb, "1234678")
 }
@@ -352,7 +352,7 @@ test_rune_utf8 :: proc(t: ^testing.T) {
 	insert_at(&gb, 2, '世')
 
 	// Buffer should now be 2 + 3 = 5 bytes.
-	testing.expect_value(t, length(gb), 5)
+	testing.expect_value(t, byte_length(gb), 5)
 
 	// 2. Insert '界' AFTER '世'.
 	// We must advance by the byte width of '世' (3 bytes).
@@ -360,7 +360,7 @@ test_rune_utf8 :: proc(t: ^testing.T) {
 	insert_at(&gb, 5, '界')
 
 	// Buffer should now be 5 + 3 = 8 bytes.
-	testing.expect_value(t, length(gb), 8)
+	testing.expect_value(t, byte_length(gb), 8)
 
 	check_str(t, gb, "Hi世界")
 }
