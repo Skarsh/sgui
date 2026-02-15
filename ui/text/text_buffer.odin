@@ -7,17 +7,6 @@ import gap_buffer "../../gap_buffer"
 // Text_Buffer is meant to be an abstraction providing a simple text manipulation
 // API on top of varying data structures e.g. Gap_Buffer, Rope etc.
 
-Move_Direction :: enum {
-	Left,
-	Right,
-	Up,
-	Down,
-	Word_Left,
-	Word_Right,
-	Line_Start,
-	Line_End,
-}
-
 // TODO(Thomas): Add another backing data structure to see how the API holds
 Text_Buffer :: struct {
 	gb: gap_buffer.Gap_Buffer,
