@@ -1,6 +1,7 @@
 package text
 
 import "core:mem"
+import "core:unicode"
 import "core:unicode/utf8"
 
 import gap_buffer "../../gap_buffer"
@@ -100,6 +101,42 @@ text_buffer_capacity :: proc(buf: Text_Buffer) -> (byte_length: int) {
 text_buffer_text :: proc(buf: Text_Buffer) -> string {
 	return gap_buffer.get_text(buf.gb)
 }
+
+text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
+	max_pos := text_buffer_rune_len(buf)
+	rune_pos := clamp(pos, 0, max_pos)
+	if rune_pos >= max_pos {
+		return max_pos
+	}
+
+	byte_idx := rune_index_to_byte_index(buf.gb, rune_pos)
+	byte_len := text_buffer_byte_len(buf)
+
+	// Consume non-whitespace runes to the right
+	for byte_idx < byte_len {
+		r, w := peek_rune_at_byte_offset(buf.gb, byte_idx)
+		if w <= 0 || unicode.is_space(r) {
+			break
+		}
+		byte_idx += w
+		rune_pos += 1
+	}
+
+	// Consume whitespace runes to the right
+	for byte_idx < byte_len {
+		r, w := peek_rune_at_byte_offset(buf.gb, byte_idx)
+		if w <= 0 || !unicode.is_space(r) {
+			break
+		}
+
+		byte_idx += w
+		rune_pos += 1
+	}
+
+	return rune_pos
+}
+
+text_buffer_prev_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {}
 
 @(private)
 // Scans the Gap_Buffer (skipping the gap) to find the Byte Offset for specific Rune Index.

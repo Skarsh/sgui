@@ -214,3 +214,51 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 	// Remaining bytes: 4
 	testing.expect_value(t, text_buffer_byte_len(buf), 4)
 }
+
+@(test)
+text_text_buffer_next_word_rune_pos :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("ab cd", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	next_pos := text_buffer_next_word_rune_pos(buf, 0)
+
+	testing.expect_value(t, next_pos, 3)
+}
+
+@(test)
+test_text_buffer_next_word_rune_pos_gap_in_middle :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("ab cd ef", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	// Move the internal gap to the middle without changing content.
+	text_buffer_insert_at(&buf, 2, "")
+
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 0), 3)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 1), 3)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 2), 3)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 3), 6)
+}
+
+@(test)
+test_text_buffer_next_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
+	// "hé<NBSP><SPACE>世界"
+	buf := text_buffer_init_with_content("hé  世界", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	// h, é, NBSP, SPACE, 世, 界
+	testing.expect_value(t, text_buffer_rune_len(buf), 6)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 0), 4)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 1), 4)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 2), 4)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 3), 4)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 4), 6)
+}
+
+@(test)
+test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("ab cd", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, -100), 3)
+	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 999), text_buffer_rune_len(buf))
+}
