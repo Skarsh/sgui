@@ -48,7 +48,7 @@ text_buffer_insert_at :: proc(buf: ^Text_Buffer, rune_pos: int, str: string) {
 		// Fast path for append without scanning runes
 		byte_idx = gap_buffer.byte_length(buf.gb)
 	} else {
-		byte_idx = rune_index_to_byte_index(buf.gb, rune_pos)
+		byte_idx = rune_index_to_byte_index(buf^, rune_pos)
 	}
 
 	gap_buffer.insert_at(&buf.gb, byte_idx, str)
@@ -60,8 +60,8 @@ text_buffer_delete_at :: proc(buf: ^Text_Buffer, rune_pos: int) {
 		return
 	}
 
-	byte_idx := rune_index_to_byte_index(buf.gb, rune_pos)
-	_, width := peek_rune_at_byte_offset(buf.gb, byte_idx)
+	byte_idx := rune_index_to_byte_index(buf^, rune_pos)
+	_, width := peek_rune_at_byte_offset(buf^, byte_idx)
 	gap_buffer.delete_range(&buf.gb, byte_idx, width)
 
 	buf.cached_rune_count -= 1
@@ -75,8 +75,8 @@ text_buffer_delete_range :: proc(buf: ^Text_Buffer, rune_pos: int, rune_count: i
 	// Clamp count so we don't go out of bounds
 	actual_count := min(rune_count, buf.cached_rune_count - rune_pos)
 
-	start_byte_idx := rune_index_to_byte_index(buf.gb, rune_pos)
-	end_byte_idx := rune_index_to_byte_index(buf.gb, rune_pos + actual_count)
+	start_byte_idx := rune_index_to_byte_index(buf^, rune_pos)
+	end_byte_idx := rune_index_to_byte_index(buf^, rune_pos + actual_count)
 
 	byte_count := end_byte_idx - start_byte_idx
 
@@ -109,12 +109,12 @@ text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
 		return max_pos
 	}
 
-	byte_idx := rune_index_to_byte_index(buf.gb, rune_pos)
+	byte_idx := rune_index_to_byte_index(buf, rune_pos)
 	byte_len := text_buffer_byte_len(buf)
 
 	// Consume non-whitespace runes to the right
 	for byte_idx < byte_len {
-		r, w := peek_rune_at_byte_offset(buf.gb, byte_idx)
+		r, w := peek_rune_at_byte_offset(buf, byte_idx)
 		if w <= 0 || unicode.is_space(r) {
 			break
 		}
@@ -124,7 +124,7 @@ text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
 
 	// Consume whitespace runes to the right
 	for byte_idx < byte_len {
-		r, w := peek_rune_at_byte_offset(buf.gb, byte_idx)
+		r, w := peek_rune_at_byte_offset(buf, byte_idx)
 		if w <= 0 || !unicode.is_space(r) {
 			break
 		}
@@ -136,12 +136,14 @@ text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
 	return rune_pos
 }
 
-text_buffer_prev_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {}
+text_buffer_prev_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
+	return 0
+}
 
 @(private)
 // Scans the Gap_Buffer (skipping the gap) to find the Byte Offset for specific Rune Index.
 // Complexity O(N)
-rune_index_to_byte_index :: proc(gb: gap_buffer.Gap_Buffer, target_rune: int) -> int {
+rune_index_to_byte_index :: proc(buf: Text_Buffer, target_rune: int) -> int {
 	if target_rune <= 0 {
 		return 0
 	}
@@ -151,24 +153,24 @@ rune_index_to_byte_index :: proc(gb: gap_buffer.Gap_Buffer, target_rune: int) ->
 
 	// Scan before the gap
 	idx := 0
-	for idx < gb.start {
+	for idx < buf.gb.start {
 		if current_rune == target_rune {
 			return byte_offset
 		}
 
-		_, width := utf8.decode_rune(gb.buf[idx:gb.start])
+		_, width := utf8.decode_rune(buf.gb.buf[idx:buf.gb.start])
 		idx += width
 		byte_offset += width
 		current_rune += 1
 	}
 
 	// Scan after the gap
-	idx = gb.end
-	for idx < len(gb.buf) {
+	idx = buf.gb.end
+	for idx < len(buf.gb.buf) {
 		if current_rune == target_rune {
 			return byte_offset
 		}
-		_, width := utf8.decode_rune(gb.buf[idx:])
+		_, width := utf8.decode_rune(buf.gb.buf[idx:])
 		idx += width
 		byte_offset += width
 		current_rune += 1
@@ -178,23 +180,17 @@ rune_index_to_byte_index :: proc(gb: gap_buffer.Gap_Buffer, target_rune: int) ->
 }
 
 @(private)
-peek_rune_at_byte_offset :: proc(
-	gb: gap_buffer.Gap_Buffer,
-	byte_idx: int,
-) -> (
-	r: rune,
-	width: int,
-) {
+peek_rune_at_byte_offset :: proc(buf: Text_Buffer, byte_idx: int) -> (r: rune, width: int) {
 
-	if byte_idx < gb.start {
-		return utf8.decode_rune(gb.buf[byte_idx:])
+	if byte_idx < buf.gb.start {
+		return utf8.decode_rune(buf.gb.buf[byte_idx:])
 	}
 
-	gap_sz := gap_buffer.gap_size(gb)
+	gap_sz := gap_buffer.gap_size(buf.gb)
 	physical_idx := byte_idx + gap_sz
 
-	if physical_idx < len(gb.buf) {
-		return utf8.decode_rune(gb.buf[physical_idx:])
+	if physical_idx < len(buf.gb.buf) {
+		return utf8.decode_rune(buf.gb.buf[physical_idx:])
 	}
 
 	return utf8.RUNE_ERROR, 0
