@@ -60,7 +60,9 @@ text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 			set_caret(state, state.selection.active + 1)
 		}
 	case .Next_Word:
+		set_caret(state, text_buffer_next_word_rune_pos(state.buffer, state.selection.active))
 	case .Prev_Word:
+		set_caret(state, text_buffer_prev_word_rune_pos(state.buffer, state.selection.active))
 	case .Start:
 		set_caret(state, 0)
 	case .End:
