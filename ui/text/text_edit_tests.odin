@@ -52,3 +52,54 @@ test_text_edit_move_left_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 	testing.expect_value(t, state.selection.active, 1)
 	testing.expect_value(t, state.selection.anchor, 1)
 }
+
+@(test)
+test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 1,
+		anchor = 1,
+	}
+
+	text_edit_move_to(&state, .Right)
+
+	testing.expect_value(t, state.selection.active, 2)
+	testing.expect_value(t, state.selection.anchor, 2)
+}
+
+@(test)
+test_text_edit_move_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 3,
+		anchor = 3,
+	}
+
+	text_edit_move_to(&state, .Right)
+
+	testing.expect_value(t, state.selection.active, 3)
+	testing.expect_value(t, state.selection.anchor, 3)
+}
+
+@(test)
+test_text_edit_move_right_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "a世b")
+	state.selection = Selection {
+		active = 1,
+		anchor = 1,
+	}
+
+	text_edit_move_to(&state, .Right)
+
+	testing.expect_value(t, state.selection.active, 2)
+	testing.expect_value(t, state.selection.anchor, 2)
+}
