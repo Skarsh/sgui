@@ -114,6 +114,19 @@ gap_size :: proc(gb: Gap_Buffer) -> int {
 	return gb.end - gb.start
 }
 
+get_byte_at :: proc(gb: Gap_Buffer, pos: int) -> (u8, bool) {
+	if pos < 0 || pos >= byte_length(gb) {
+		return 0, false
+	}
+
+	if pos < gb.start {
+		return gb.buf[pos], true
+	}
+
+	gap_sz := gap_size(gb)
+	return gb.buf[pos + gap_sz], true
+}
+
 // Helper procedure to get the left and right strings of the gap
 @(private)
 get_strings :: proc(gb: Gap_Buffer) -> (left: string, right: string) {
@@ -224,6 +237,19 @@ check_str :: proc(t: ^testing.T, gb: Gap_Buffer, expected: string, loc := #calle
 	s := get_text(gb)
 	defer delete(s)
 	testing.expect_value(t, s, expected, loc)
+}
+
+check_byte_at :: proc(
+	t: ^testing.T,
+	gb: Gap_Buffer,
+	pos: int,
+	expected_byte: u8,
+	expected_ok: bool,
+	loc := #caller_location,
+) {
+	actual_byte, actual_ok := get_byte_at(gb, pos)
+	testing.expect_value(t, actual_ok, expected_ok, loc)
+	testing.expect_value(t, actual_byte, expected_byte, loc)
 }
 
 @(test)
@@ -379,6 +405,56 @@ test_stress_random :: proc(t: ^testing.T) {
 	insert_at(&gb, 1, "E") // CEAD
 
 	check_str(t, gb, "CEAD")
+}
+
+@(test)
+test_get_byte_at_bounds :: proc(t: ^testing.T) {
+	gb := init_gap_buffer(8)
+	defer deinit(&gb)
+
+	// Empty buffer should not allow index 0.
+	check_byte_at(t, gb, 0, 0, false)
+
+	insert_at(&gb, 0, "ABC")
+
+	// Negative, equal-to-length, and far out-of-range indices are invalid.
+	check_byte_at(t, gb, -1, 0, false)
+	check_byte_at(t, gb, 3, 0, false)
+	check_byte_at(t, gb, 99, 0, false)
+}
+
+@(test)
+test_get_byte_at_gap_in_middle :: proc(t: ^testing.T) {
+	gb := init_gap_buffer(10)
+	defer deinit(&gb)
+
+	insert_at(&gb, 0, "ABCD")
+
+	// Force the gap to sit between 'B' and 'C'.
+	shift_gap_to(&gb, 2)
+
+	check_byte_at(t, gb, 0, 'A', true)
+	check_byte_at(t, gb, 1, 'B', true)
+	check_byte_at(t, gb, 2, 'C', true)
+	check_byte_at(t, gb, 3, 'D', true)
+}
+
+@(test)
+test_get_byte_at_matches_get_text_after_edits :: proc(t: ^testing.T) {
+	gb := init_gap_buffer(12)
+	defer deinit(&gb)
+
+	insert_at(&gb, 0, "ABC")
+	insert_at(&gb, 1, "x")
+	delete_at(&gb, 2)
+	insert_at(&gb, 3, "D")
+
+	full_text := get_text(gb)
+	defer delete(full_text)
+
+	for i in 0 ..< len(full_text) {
+		check_byte_at(t, gb, i, full_text[i], true)
+	}
 }
 
 @(test)
