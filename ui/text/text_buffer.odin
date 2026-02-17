@@ -102,6 +102,10 @@ text_buffer_text :: proc(buf: Text_Buffer) -> string {
 	return gap_buffer.get_text(buf.gb)
 }
 
+text_buffer_get_byte_at :: proc(buf: Text_Buffer, byte_idx: int) -> (u8, bool) {
+	return gap_buffer.get_byte_at(buf.gb, byte_idx)
+}
+
 text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
 	max_pos := text_buffer_rune_len(buf)
 	rune_pos := clamp(pos, 0, max_pos)
@@ -137,7 +141,65 @@ text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
 }
 
 text_buffer_prev_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
-	return 0
+	max_pos := text_buffer_rune_len(buf)
+	rune_pos := clamp(pos, 0, max_pos)
+	if rune_pos <= 0 {
+		return 0
+	}
+
+	byte_idx := rune_index_to_byte_index(buf, rune_pos)
+
+	// Consume any trailing whitespace
+	for rune_pos > 0 {
+		r, w := get_prev_rune(buf, byte_idx)
+
+		if !unicode.is_space(r) {
+			break
+		}
+
+		byte_idx -= w
+		rune_pos -= 1
+	}
+
+	// Consume any word runes
+	for rune_pos > 0 {
+		r, w := get_prev_rune(buf, byte_idx)
+		if unicode.is_space(r) {
+			break
+		}
+		byte_idx -= w
+		rune_pos -= 1
+	}
+
+	return rune_pos
+}
+
+@(private)
+get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (r: rune, width: int) {
+	if byte_idx <= 0 {
+		return 0, 0
+	}
+
+	start := byte_idx - 1
+	for _ in 0 ..< 4 {
+		if start < 0 {
+			break
+		}
+
+		b, ok := text_buffer_get_byte_at(buf, start)
+		assert(ok)
+
+		if utf8.rune_start(b) {
+			break
+		}
+
+		start -= 1
+	}
+
+	// TODO(Thomas): Is this really necessary??
+	r, width = peek_rune_at_byte_offset(buf, start)
+	return
+
 }
 
 @(private)

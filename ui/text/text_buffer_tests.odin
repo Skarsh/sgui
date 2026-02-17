@@ -262,3 +262,36 @@ test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, -100), 3)
 	testing.expect_value(t, text_buffer_next_word_rune_pos(buf, 999), text_buffer_rune_len(buf))
 }
+
+@(test)
+test_text_buffer_prev_word_rune_pos_basic :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("ab cd ef", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 8), 6)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 7), 6)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 6), 3)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 3), 0)
+}
+
+@(test)
+test_text_buffer_prev_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
+	// "hé<NBSP><SPACE>世界"
+	buf := text_buffer_init_with_content("hé  世界", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	testing.expect_value(t, text_buffer_rune_len(buf), 6)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 6), 4)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 5), 4)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 4), 0)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 3), 0)
+}
+
+@(test)
+test_text_buffer_prev_word_rune_pos_clamps_input_position :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("ab cd", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, -100), 0)
+	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 999), 3)
+}
