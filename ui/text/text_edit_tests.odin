@@ -103,3 +103,55 @@ test_text_edit_move_right_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 	testing.expect_value(t, state.selection.active, 2)
 	testing.expect_value(t, state.selection.anchor, 2)
 }
+
+@(test)
+test_text_edit_move_next_word_moves_to_start_of_next_word :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "ab cd ef")
+	state.selection = Selection {
+		active = 0,
+		anchor = 0,
+	}
+
+	text_edit_move_to(&state, .Next_Word)
+
+	testing.expect_value(t, state.selection.active, 3)
+	testing.expect_value(t, state.selection.anchor, 3)
+}
+
+@(test)
+test_text_edit_move_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 3,
+		anchor = 3,
+	}
+
+	text_edit_move_to(&state, .Next_Word)
+
+	testing.expect_value(t, state.selection.active, 3)
+	testing.expect_value(t, state.selection.anchor, 3)
+}
+
+@(test)
+test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	// "hé<NBSP><SPACE>世界"
+	text_buffer_insert_at(&state.buffer, 0, "hé  世界")
+	state.selection = Selection {
+		active = 0,
+		anchor = 0,
+	}
+
+	text_edit_move_to(&state, .Next_Word)
+
+	testing.expect_value(t, state.selection.active, 4)
+	testing.expect_value(t, state.selection.anchor, 4)
+}
