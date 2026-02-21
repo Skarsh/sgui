@@ -106,6 +106,28 @@ text_buffer_get_byte_at :: proc(buf: Text_Buffer, byte_idx: int) -> (u8, bool) {
 	return gap_buffer.get_byte_at(buf.gb, byte_idx)
 }
 
+text_buffer_copy_into :: proc(buf: Text_Buffer, dst: []u8) -> int {
+	// TODO(Thomas): Replace iterator copy with a 2-slice bulk copy (left + right of gap)
+	// to reduce per-byte overhead in text input hot paths.
+	limit := min(len(dst), text_buffer_byte_len(buf))
+	if limit <= 0 {
+		return 0
+	}
+
+	it := gap_buffer.init_gap_buffer_iterator(buf.gb)
+	written := 0
+	for written < limit {
+		b, _, ok := gap_buffer.gap_buffer_iterator_next(&it)
+		if !ok {
+			break
+		}
+		dst[written] = b
+		written += 1
+	}
+
+	return written
+}
+
 text_buffer_next_word_rune_pos :: proc(buf: Text_Buffer, pos: int) -> int {
 	max_pos := text_buffer_rune_len(buf)
 	rune_pos := clamp(pos, 0, max_pos)

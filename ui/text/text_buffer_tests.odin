@@ -295,3 +295,29 @@ test_text_buffer_prev_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, -100), 0)
 	testing.expect_value(t, text_buffer_prev_word_rune_pos(buf, 999), 3)
 }
+
+@(test)
+test_text_buffer_copy_into_copies_full_text_without_allocation :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("A©B", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	dst := make([]u8, 8)
+	defer delete(dst)
+
+	written := text_buffer_copy_into(buf, dst)
+	testing.expect_value(t, written, 4)
+	testing.expect_value(t, string(dst[:written]), "A©B")
+}
+
+@(test)
+test_text_buffer_copy_into_truncates_to_destination_capacity :: proc(t: ^testing.T) {
+	buf := text_buffer_init_with_content("abcdef", context.allocator)
+	defer text_buffer_deinit(&buf)
+
+	dst := make([]u8, 3)
+	defer delete(dst)
+
+	written := text_buffer_copy_into(buf, dst)
+	testing.expect_value(t, written, 3)
+	testing.expect_value(t, string(dst[:written]), "abc")
+}
