@@ -70,7 +70,17 @@ text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	}
 }
 
-text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {}
+text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
+	switch translation {
+	case .Left:
+		state.selection.active -= 1
+	case .Right:
+	case .Next_Word:
+	case .Prev_Word:
+	case .Start:
+	case .End:
+	}
+}
 
 text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {}
 
@@ -80,12 +90,23 @@ text_edit_handle_click :: proc(state: ^Text_Edit_State, layout: ^Text_Layout_Cac
 text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {}
 
 @(private)
-set_caret :: proc(state: ^Text_Edit_State, rune_pos: int) {
-	max_pos := text_buffer_rune_len(state.buffer)
+clamp_rune_pos_to_text_buffer_range :: proc(buffer: Text_Buffer, rune_pos: int) -> int {
+	max_pos := text_buffer_rune_len(buffer)
 	clamped := max(0, min(rune_pos, max_pos))
+	return clamped
+}
 
+@(private)
+set_caret :: proc(state: ^Text_Edit_State, rune_pos: int) {
+	clamped := clamp_rune_pos_to_text_buffer_range(state.buffer, rune_pos)
 	state.selection.active = clamped
 	state.selection.anchor = clamped
+}
+
+@(private)
+set_active :: proc(state: ^Text_Edit_State, rune_pos: int) {
+	clamped := clamp_rune_pos_to_text_buffer_range(state.buffer, rune_pos)
+	state.selection.active = clamped
 }
 
 @(private)

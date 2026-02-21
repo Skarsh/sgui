@@ -224,3 +224,20 @@ test_text_edit_move_prev_word_from_inside_word_moves_to_that_word_start :: proc(
 	testing.expect_value(t, state.selection.active, 6)
 	testing.expect_value(t, state.selection.anchor, 6)
 }
+
+@(test)
+test_text_edit_select_left_from_collapsed_caret_extends_selection_left :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 2,
+		anchor = 2,
+	}
+
+	text_edit_select_to(&state, .Left)
+
+	testing.expect_value(t, state.selection.active, 1)
+	testing.expect_value(t, state.selection.anchor, 2)
+}
