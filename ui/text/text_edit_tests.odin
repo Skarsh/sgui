@@ -1,7 +1,7 @@
 package text
 
-import "core:testing"
 import "../../base"
+import "core:testing"
 
 @(test)
 test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one :: proc(t: ^testing.T) {
@@ -680,6 +680,71 @@ test_text_edit_handle_key_ctrl_backspace_deletes_prev_word :: proc(t: ^testing.T
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab ef")
+	testing.expect_value(t, state.selection.active, 3)
+	testing.expect_value(t, state.selection.anchor, 3)
+}
+
+@(test)
+test_text_edit_insert_at_collapsed_caret_inserts_text_and_advances_caret :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 1,
+		anchor = 1,
+	}
+
+	text_edit_insert(&state, "XY")
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "aXYbc")
+	testing.expect_value(t, state.selection.active, 3)
+	testing.expect_value(t, state.selection.anchor, 3)
+}
+
+@(test)
+test_text_edit_insert_with_non_collapsed_selection_replaces_selected_range :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abcdef")
+	state.selection = Selection {
+		active = 4,
+		anchor = 1,
+	}
+
+	text_edit_insert(&state, "Z")
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "aZef")
+	testing.expect_value(t, state.selection.active, 2)
+	testing.expect_value(t, state.selection.anchor, 2)
+}
+
+@(test)
+test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_insert :: proc(
+	t: ^testing.T,
+) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abcdef")
+	state.selection = Selection {
+		active = 1,
+		anchor = 4,
+	}
+
+	text_edit_insert(&state, "世x")
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "a世xef")
 	testing.expect_value(t, state.selection.active, 3)
 	testing.expect_value(t, state.selection.anchor, 3)
 }

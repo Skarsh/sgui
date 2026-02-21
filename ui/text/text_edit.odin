@@ -2,6 +2,7 @@ package text
 
 import "core:log"
 import "core:mem"
+import "core:unicode/utf8"
 
 import "../../base"
 
@@ -106,7 +107,18 @@ text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 // TOOD(Thomas): Add handling of drag and double/triple click
 text_edit_handle_click :: proc(state: ^Text_Edit_State, layout: ^Text_Layout_Cache) {}
 
-text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {}
+text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
+	insert_at := state.selection.active
+	if !is_selection_collapsed(state.selection) {
+		start := selection_start(state.selection)
+		end := selection_end(state.selection)
+		text_buffer_delete_range(&state.buffer, start, end - start)
+		insert_at = start
+	}
+
+	text_buffer_insert_at(&state.buffer, insert_at, text)
+	set_caret(state, insert_at + utf8.rune_count_in_string(text))
+}
 
 @(private)
 translated_rune_pos :: proc(
