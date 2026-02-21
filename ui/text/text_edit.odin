@@ -46,53 +46,73 @@ text_edit_handle_key :: proc(state: ^Text_Edit_State, key: base.Key) {
 }
 
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
-	switch translation {
-	case .Left:
-		if !is_selection_collapsed(state.selection) {
-			set_caret(state, selection_start(state.selection))
-		} else {
-			set_caret(state, state.selection.active - 1)
-		}
-	case .Right:
-		if !is_selection_collapsed(state.selection) {
-			set_caret(state, selection_end(state.selection))
-		} else {
-			set_caret(state, state.selection.active + 1)
-		}
-	case .Next_Word:
-		set_caret(state, text_buffer_next_word_rune_pos(state.buffer, state.selection.active))
-	case .Prev_Word:
-		set_caret(state, text_buffer_prev_word_rune_pos(state.buffer, state.selection.active))
-	case .Start:
-		set_caret(state, 0)
-	case .End:
-		set_caret(state, text_buffer_rune_len(state.buffer))
-	}
+	target := translated_rune_pos(state, translation, true)
+	set_caret(state, target)
 }
 
 text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
-	switch translation {
-	case .Left:
-		set_active(state, state.selection.active - 1)
-	case .Right:
-		set_active(state, state.selection.active + 1)
-	case .Next_Word:
-		set_active(state, text_buffer_next_word_rune_pos(state.buffer, state.selection.active))
-	case .Prev_Word:
-		set_active(state, text_buffer_prev_word_rune_pos(state.buffer, state.selection.active))
-	case .Start:
-		set_active(state, 0)
-	case .End:
-		set_active(state, text_buffer_rune_len(state.buffer))
-	}
+	target := translated_rune_pos(state, translation, false)
+	set_active(state, target)
 }
 
-text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {}
+text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
+	if !is_selection_collapsed(state.selection) {
+		start := selection_start(state.selection)
+		end := selection_end(state.selection)
+		text_buffer_delete_range(&state.buffer, start, end - start)
+		set_caret(state, start)
+		return
+	}
+
+	from := state.selection.active
+	to := translated_rune_pos(state, translation, false)
+	start := min(from, to)
+	end := max(from, to)
+	if start == end {
+		return
+	}
+
+	text_buffer_delete_range(&state.buffer, start, end - start)
+	set_caret(state, start)
+}
 
 // TOOD(Thomas): Add handling of drag and double/triple click
 text_edit_handle_click :: proc(state: ^Text_Edit_State, layout: ^Text_Layout_Cache) {}
 
 text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {}
+
+@(private)
+translated_rune_pos :: proc(
+	state: ^Text_Edit_State,
+	translation: Translation,
+	collapse_selection_lr: bool,
+) -> int {
+	// `collapse_selection_lr` affects only .Left/.Right with a non-collapsed selection:
+	// true  = collapse to selection boundary first (used by text_edit_move_to)
+	// false = translate from current active position (used by text_edit_select_to/delete_to)
+	switch translation {
+	case .Left:
+		if collapse_selection_lr && !is_selection_collapsed(state.selection) {
+			return selection_start(state.selection)
+		}
+		return state.selection.active - 1
+	case .Right:
+		if collapse_selection_lr && !is_selection_collapsed(state.selection) {
+			return selection_end(state.selection)
+		}
+		return state.selection.active + 1
+	case .Next_Word:
+		return text_buffer_next_word_rune_pos(state.buffer, state.selection.active)
+	case .Prev_Word:
+		return text_buffer_prev_word_rune_pos(state.buffer, state.selection.active)
+	case .Start:
+		return 0
+	case .End:
+		return text_buffer_rune_len(state.buffer)
+	}
+
+	return state.selection.active
+}
 
 @(private)
 clamp_rune_pos_to_text_buffer_range :: proc(buffer: Text_Buffer, rune_pos: int) -> int {

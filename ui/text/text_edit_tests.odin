@@ -332,3 +332,91 @@ test_text_edit_select_end_from_collapsed_caret_extends_selection_to_end :: proc(
 	testing.expect_value(t, state.selection.active, 3)
 	testing.expect_value(t, state.selection.anchor, 1)
 }
+
+@(test)
+test_text_edit_delete_left_from_collapsed_caret_deletes_rune_before_caret :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 2,
+		anchor = 2,
+	}
+
+	text_edit_delete_to(&state, .Left)
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "ac")
+	testing.expect_value(t, state.selection.active, 1)
+	testing.expect_value(t, state.selection.anchor, 1)
+}
+
+@(test)
+test_text_edit_delete_right_from_collapsed_caret_deletes_rune_after_caret :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 1,
+		anchor = 1,
+	}
+
+	text_edit_delete_to(&state, .Right)
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "ac")
+	testing.expect_value(t, state.selection.active, 1)
+	testing.expect_value(t, state.selection.anchor, 1)
+}
+
+@(test)
+test_text_edit_delete_next_word_from_collapsed_caret_deletes_to_next_word_start :: proc(
+	t: ^testing.T,
+) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "ab cd ef")
+	state.selection = Selection {
+		active = 0,
+		anchor = 0,
+	}
+
+	text_edit_delete_to(&state, .Next_Word)
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "cd ef")
+	testing.expect_value(t, state.selection.active, 0)
+	testing.expect_value(t, state.selection.anchor, 0)
+}
+
+@(test)
+test_text_edit_delete_to_with_non_collapsed_selection_deletes_selection_range :: proc(
+	t: ^testing.T,
+) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abcdef")
+	state.selection = Selection {
+		active = 4,
+		anchor = 1,
+	}
+
+	text_edit_delete_to(&state, .Right)
+
+	actual := text_buffer_text(state.buffer)
+	defer delete(actual)
+
+	testing.expect_value(t, actual, "aef")
+	testing.expect_value(t, state.selection.active, 1)
+	testing.expect_value(t, state.selection.anchor, 1)
+}
