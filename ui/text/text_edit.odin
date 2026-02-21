@@ -34,14 +34,41 @@ text_edit_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Edi
 	return Text_Edit_State{buffer = text_buf, selection = {active = 0, anchor = 0}}
 }
 
-// TODO(Thomas): Hardcoded Rune movement for now
-text_edit_handle_key :: proc(state: ^Text_Edit_State, key: base.Key) {
+// TODO(Thomas): Expand command wiring for more shortcuts (select-all, clipboard, undo/redo).
+text_edit_handle_key :: proc(
+	state: ^Text_Edit_State,
+	key: base.Key,
+	keymod: base.Keymod_Set = base.KMOD_NONE,
+) {
+	shift_down := keymod_has_shift(keymod)
+	word_mod_down := keymod_has_word_move_mod(keymod)
+	line_mod_down := keymod_has_line_move_mod(keymod)
+
 	#partial switch key {
 	case .Left:
-		text_edit_move_to(state, .Left)
+		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
+		apply_move_or_select(state, translation, shift_down)
 	case .Right:
+		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
+		apply_move_or_select(state, translation, shift_down)
+	case .Home:
+		apply_move_or_select(state, .Start, shift_down)
+	case .End:
+		apply_move_or_select(state, .End, shift_down)
+	case .Backspace:
+		translation: Translation = .Left
+		if word_mod_down {
+			translation = .Prev_Word
+		}
+		text_edit_delete_to(state, translation)
+	case .Delete:
+		translation: Translation = .Right
+		if word_mod_down {
+			translation = .Next_Word
+		}
+		text_edit_delete_to(state, translation)
 	case:
-		log.error("Illegal key")
+		log.error("Unhandled text edit key: %v", key)
 	}
 }
 
@@ -147,4 +174,52 @@ selection_start :: proc(selection: Selection) -> int {
 @(private)
 selection_end :: proc(selection: Selection) -> int {
 	return max(selection.active, selection.anchor)
+}
+
+@(private)
+keymod_has_shift :: proc(keymod: base.Keymod_Set) -> bool {
+	return .LSHIFT in keymod || .RSHIFT in keymod
+}
+
+@(private)
+keymod_has_word_move_mod :: proc(keymod: base.Keymod_Set) -> bool {
+	return .LCTRL in keymod || .RCTRL in keymod || .LALT in keymod || .RALT in keymod
+}
+
+@(private)
+keymod_has_line_move_mod :: proc(keymod: base.Keymod_Set) -> bool {
+	return .LGUI in keymod || .RGUI in keymod
+}
+
+@(private)
+translation_for_horizontal_key :: proc(
+	key: base.Key,
+	word_mod_down, line_mod_down: bool,
+) -> Translation {
+	is_left := key == .Left
+	if line_mod_down {
+		if is_left {
+			return .Start
+		}
+		return .End
+	}
+	if word_mod_down {
+		if is_left {
+			return .Prev_Word
+		}
+		return .Next_Word
+	}
+	if is_left {
+		return .Left
+	}
+	return .Right
+}
+
+@(private)
+apply_move_or_select :: proc(state: ^Text_Edit_State, translation: Translation, select: bool) {
+	if select {
+		text_edit_select_to(state, translation)
+	} else {
+		text_edit_move_to(state, translation)
+	}
 }
