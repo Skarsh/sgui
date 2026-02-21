@@ -296,3 +296,39 @@ test_text_edit_select_prev_word_from_collapsed_caret_extends_selection_to_prev_w
 	testing.expect_value(t, state.selection.active, 6)
 	testing.expect_value(t, state.selection.anchor, 8)
 }
+
+@(test)
+test_text_edit_select_start_from_collapsed_caret_extends_selection_to_start :: proc(
+	t: ^testing.T,
+) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 2,
+		anchor = 2,
+	}
+
+	text_edit_select_to(&state, .Start)
+
+	testing.expect_value(t, state.selection.active, 0)
+	testing.expect_value(t, state.selection.anchor, 2)
+}
+
+@(test)
+test_text_edit_select_end_from_collapsed_caret_extends_selection_to_end :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 1,
+		anchor = 1,
+	}
+
+	text_edit_select_to(&state, .End)
+
+	testing.expect_value(t, state.selection.active, 3)
+	testing.expect_value(t, state.selection.anchor, 1)
+}
