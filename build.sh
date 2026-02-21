@@ -1,6 +1,19 @@
 #!/bin/bash
 set -eo pipefail
 
+usage() {
+    echo "Usage: $0 [all|test]"
+    echo ""
+    echo "  all   Run tests, build main app, and build examples (default)"
+    echo "  test  Run tests only"
+}
+
+mode="${1:-all}"
+if [[ "$mode" != "all" && "$mode" != "test" ]]; then
+    usage
+    exit 1
+fi
+
 # Clean and recreate the build output directory
 rm -rf build
 mkdir -p build
@@ -10,24 +23,12 @@ mkdir -p build
 
 echo ""
 echo "--- Running tests ---"
-if ! odin test ui -vet -strict-style -vet-tabs -warnings-as-errors -all-packages; then
-    echo "Ui tests failed! Cannot successfully build."
-    exit 1
-fi
+./test.sh
 
-if ! odin test ui/text -vet -strict-style -vet-tabs -warnings-as-errors; then
-    echo "Ui/text tests failed! Cannot successfully build."
-    exit 1
-fi
-
-if ! odin test base -vet -strict-style -vet-tabs -warnings-as-errors; then
-    echo "Base tests failed! Cannot successfully build."
-    exit 1
-fi
-
-if ! odin test gap_buffer -vet -strict-style -vet-tabs -warnings-as-errors; then
-    echo "Gap buffer tests failed! Cannot successfully build."
-    exit 1
+if [[ "$mode" == "test" ]]; then
+    echo ""
+    echo "Tests completed successfully."
+    exit 0
 fi
 
 echo ""
