@@ -79,6 +79,7 @@ text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	case .Next_Word:
 		set_active(state, text_buffer_next_word_rune_pos(state.buffer, state.selection.active))
 	case .Prev_Word:
+		set_active(state, text_buffer_prev_word_rune_pos(state.buffer, state.selection.active))
 	case .Start:
 	case .End:
 	}

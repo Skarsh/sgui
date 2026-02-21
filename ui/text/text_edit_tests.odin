@@ -277,3 +277,22 @@ test_text_edit_select_next_word_from_collapsed_caret_extends_selection_to_next_w
 	testing.expect_value(t, state.selection.active, 3)
 	testing.expect_value(t, state.selection.anchor, 0)
 }
+
+@(test)
+test_text_edit_select_prev_word_from_collapsed_caret_extends_selection_to_prev_word_start :: proc(
+	t: ^testing.T,
+) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "ab cd ef")
+	state.selection = Selection {
+		active = 8,
+		anchor = 8,
+	}
+
+	text_edit_select_to(&state, .Prev_Word)
+
+	testing.expect_value(t, state.selection.active, 6)
+	testing.expect_value(t, state.selection.anchor, 8)
+}
