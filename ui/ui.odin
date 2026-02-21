@@ -548,43 +548,30 @@ process_interactions :: proc(ctx: ^Context) {
 			key := ui_key_hash(ctx.active_element.id_string)
 			state, state_ok := &ctx.text_input_states[key]
 
-			if state_ok {
-				if ctx.input.text_input.len > 0 {
-					text := string(ctx.input.text_input.data[:ctx.input.text_input.len])
-					textpkg.text_edit_insert(&state.state, text)
-				}
-
-				if base.is_key_pressed(ctx.input^, .Backspace) {
-					translation: textpkg.Translation
-					if base.is_key_down(ctx.input^, .Left_Shift) {
-						translation = textpkg.Translation.Prev_Word
-					} else {
-						translation = textpkg.Translation.Left
-					}
-					textpkg.text_edit_delete_to(&state.state, translation)
-				} else if base.is_key_pressed(ctx.input^, .Left) {
-					translation: textpkg.Translation
-					if base.is_key_down(ctx.input^, .Left_Shift) {
-						translation = textpkg.Translation.Prev_Word
-					} else {
-						translation = textpkg.Translation.Left
+				if state_ok {
+					if ctx.input.text_input.len > 0 {
+						text := string(ctx.input.text_input.data[:ctx.input.text_input.len])
+						textpkg.text_edit_insert(&state.state, text)
 					}
 
-					textpkg.text_edit_move_to(&state.state, translation)
-
-				} else if base.is_key_pressed(ctx.input^, .Right) {
-					translation: textpkg.Translation
-					if base.is_key_down(ctx.input^, .Left_Shift) {
-						translation = textpkg.Translation.Next_Word
-					} else {
-						translation = textpkg.Translation.Right
+					keymod := ctx.input.keymod_down_bits
+					if base.is_key_pressed(ctx.input^, .Left) {
+						textpkg.text_edit_handle_key(&state.state, .Left, keymod)
+					} else if base.is_key_pressed(ctx.input^, .Right) {
+						textpkg.text_edit_handle_key(&state.state, .Right, keymod)
+					} else if base.is_key_pressed(ctx.input^, .Home) {
+						textpkg.text_edit_handle_key(&state.state, .Home, keymod)
+					} else if base.is_key_pressed(ctx.input^, .End) {
+						textpkg.text_edit_handle_key(&state.state, .End, keymod)
+					} else if base.is_key_pressed(ctx.input^, .Backspace) {
+						textpkg.text_edit_handle_key(&state.state, .Backspace, keymod)
+					} else if base.is_key_pressed(ctx.input^, .Delete) {
+						textpkg.text_edit_handle_key(&state.state, .Delete, keymod)
+					} else if base.is_key_pressed(ctx.input^, .Tab) {
+						textpkg.text_edit_insert(&state.state, "\t")
 					}
-					textpkg.text_edit_move_to(&state.state, translation)
-				} else if base.is_key_pressed(ctx.input^, .Tab) {
-					textpkg.text_edit_insert(&state.state, "\t")
 				}
 			}
-		}
 
 		element.last_comm = comm
 	}

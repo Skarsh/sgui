@@ -96,6 +96,18 @@ sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
 		key = base.Key.Tab
 	case .RETURN:
 		key = base.Key.Return
+	case .HOME:
+		key = base.Key.Home
+	case .END:
+		key = base.Key.End
+	case .PAGEUP:
+		key = base.Key.Page_Up
+	case .PAGEDOWN:
+		key = base.Key.Page_Down
+	case .DELETE:
+		key = base.Key.Delete
+	case .INSERT:
+		key = base.Key.Insert
 	case .UP:
 		key = base.Key.Up
 	case .DOWN:
