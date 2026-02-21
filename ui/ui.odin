@@ -240,6 +240,11 @@ set_ctx_font_id :: proc(ctx: ^Context, font_id: u16) {
 // this can become better / cleaner.
 deinit :: proc(ctx: ^Context) {
 	delete(ctx.interactive_elements)
+
+	for key in ctx.text_input_states {
+		state := &ctx.text_input_states[key]
+		textpkg.text_buffer_deinit(&state.state.buffer)
+	}
 	delete(ctx.text_input_states)
 
 	free_list := make([dynamic]^UI_Element, context.temp_allocator)
