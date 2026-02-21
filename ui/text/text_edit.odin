@@ -73,7 +73,7 @@ text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	switch translation {
 	case .Left:
-		state.selection.active -= 1
+		set_active(state, state.selection.active - 1)
 	case .Right:
 	case .Next_Word:
 	case .Prev_Word:
