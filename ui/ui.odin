@@ -4,8 +4,7 @@ import "core:container/queue"
 import "core:log"
 import "core:math"
 import "core:mem"
-import "core:strings"
-import textedit "core:text/edit"
+import textpkg "text"
 
 import base "../base"
 
@@ -115,8 +114,7 @@ Measure_Text_Proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text
 Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> Glyph_Metrics
 
 UI_Element_Text_Input_State :: struct {
-	builder:           strings.Builder,
-	state:             textedit.State,
+	state:             textpkg.Text_Edit_State,
 	caret_blink_timer: f32,
 }
 
@@ -548,37 +546,37 @@ process_interactions :: proc(ctx: ^Context) {
 			if state_ok {
 				if ctx.input.text_input.len > 0 {
 					text := string(ctx.input.text_input.data[:ctx.input.text_input.len])
-					textedit.input_text(&state.state, text)
+					textpkg.text_edit_insert(&state.state, text)
 				}
 
 				if base.is_key_pressed(ctx.input^, .Backspace) {
-					translation: textedit.Translation
+					translation: textpkg.Translation
 					if base.is_key_down(ctx.input^, .Left_Shift) {
-						translation = textedit.Translation.Word_Left
+						translation = textpkg.Translation.Prev_Word
 					} else {
-						translation = textedit.Translation.Left
+						translation = textpkg.Translation.Left
 					}
-					textedit.delete_to(&state.state, translation)
+					textpkg.text_edit_delete_to(&state.state, translation)
 				} else if base.is_key_pressed(ctx.input^, .Left) {
-					translation: textedit.Translation
+					translation: textpkg.Translation
 					if base.is_key_down(ctx.input^, .Left_Shift) {
-						translation = textedit.Translation.Word_Left
+						translation = textpkg.Translation.Prev_Word
 					} else {
-						translation = textedit.Translation.Left
+						translation = textpkg.Translation.Left
 					}
 
-					textedit.move_to(&state.state, translation)
+					textpkg.text_edit_move_to(&state.state, translation)
 
 				} else if base.is_key_pressed(ctx.input^, .Right) {
-					translation: textedit.Translation
+					translation: textpkg.Translation
 					if base.is_key_down(ctx.input^, .Left_Shift) {
-						translation = textedit.Translation.Word_Right
+						translation = textpkg.Translation.Next_Word
 					} else {
-						translation = textedit.Translation.Right
+						translation = textpkg.Translation.Right
 					}
-					textedit.move_to(&state.state, translation)
+					textpkg.text_edit_move_to(&state.state, translation)
 				} else if base.is_key_pressed(ctx.input^, .Tab) {
-					textedit.input_text(&state.state, "\t")
+					textpkg.text_edit_insert(&state.state, "\t")
 				}
 			}
 		}

@@ -2,8 +2,7 @@ package ui
 
 import "core:fmt"
 import "core:math"
-import "core:strings"
-import textedit "core:text/edit"
+import textpkg "text"
 
 import base "../base"
 
@@ -207,27 +206,32 @@ text_input :: proc(
 
 		if !state_exists {
 			new_state := UI_Element_Text_Input_State{}
+			new_state.state = textpkg.text_edit_init(ctx.persistent_allocator)
+
 			// TODO(Thomas): Review which allocator to use here for the textedit.init()
-			textedit.init(&new_state.state, ctx.persistent_allocator, ctx.persistent_allocator)
-			new_state.builder = strings.builder_from_bytes(buf)
+			//textedit.init(&new_state.state, ctx.persistent_allocator, ctx.persistent_allocator)
+			//new_state.builder = strings.builder_from_bytes(buf)
 
-			if buf_len^ > 0 {
-				// Sanity check to prevent reading past the buffer's capacity
-				initial_len := min(buf_len^, len(buf))
-				strings.write_bytes(&new_state.builder, buf[:initial_len])
-			}
+			//if buf_len^ > 0 {
+			//	// Sanity check to prevent reading past the buffer's capacity
+			//	initial_len := min(buf_len^, len(buf))
+			//	strings.write_bytes(&new_state.builder, buf[:initial_len])
+			//}
 
-			new_state.state.builder = &new_state.builder
+			//new_state.state.builder = &new_state.builder
 
 			ctx.text_input_states[key] = new_state
 			state = &ctx.text_input_states[key]
 
-			textedit.setup_once(&state.state, &state.builder)
+			//textedit.setup_once(&state.state, &state.builder)
 		}
 
-		text_content := strings.to_string(state.builder)
+		//text_content := strings.to_string(state.builder)
 
-		buf_len^ = strings.builder_len(state.builder)
+		//buf_len^ = strings.builder_len(state.builder)
+
+		// TODO(Thomas): What about the ownership of the string here?
+		text_content := textpkg.text_buffer_text(state.state.buffer)
 
 		element_equip_text(ctx, element, text_content)
 
@@ -235,7 +239,8 @@ text_input :: proc(
 			state.caret_blink_timer += ctx.dt
 			CARET_BLINK_PERIOD :: 1.0
 			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
-				cursor_pos := state.state.selection[0]
+				//cursor_pos := state.state.selection[0]
+				cursor_pos := state.state.selection.active
 				text_before_cursor := text_content[:cursor_pos]
 
 				metrics := ctx.measure_text_proc(
