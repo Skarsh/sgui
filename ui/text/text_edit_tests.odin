@@ -241,3 +241,20 @@ test_text_edit_select_left_from_collapsed_caret_extends_selection_left :: proc(t
 	testing.expect_value(t, state.selection.active, 1)
 	testing.expect_value(t, state.selection.anchor, 2)
 }
+
+@(test)
+test_text_edit_select_right_from_collapsed_caret_extends_selection_right :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abc")
+	state.selection = Selection {
+		active = 0,
+		anchor = 0,
+	}
+
+	text_edit_select_to(&state, .Right)
+
+	testing.expect_value(t, state.selection.active, 1)
+	testing.expect_value(t, state.selection.anchor, 0)
+}
