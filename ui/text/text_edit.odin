@@ -130,7 +130,7 @@ translated_pos :: proc(
 	// `collapse_selection_lr` affects only .Left/.Right with a non-collapsed selection:
 	// true  = collapse to selection boundary first (used by text_edit_move_to)
 	// false = translate from current active position (used by text_edit_select_to/delete_to)
-	#partial switch translation {
+	switch translation {
 	case .Left:
 		if collapse_selection_lr && !is_selection_collapsed(state.selection) {
 			return selection_start(state.selection)
