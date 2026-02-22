@@ -2,14 +2,13 @@ package text
 
 import "core:log"
 import "core:mem"
-import "core:unicode/utf8"
 
 import "../../base"
 
 // Base on this RXI article
 // https://rxi.github.io/textbox_behaviour.html
 
-// Rune indexes
+// Byte indexes
 Selection :: struct {
 	active: int,
 	anchor: int,
@@ -74,16 +73,17 @@ text_edit_handle_key :: proc(
 }
 
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
-	target := translated_rune_pos(state, translation, true)
+	target := translated_pos(state, translation, true)
 	set_caret(state, target)
 }
 
 text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
-	target := translated_rune_pos(state, translation, false)
+	target := translated_pos(state, translation, false)
 	set_active(state, target)
 }
 
 text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
+
 	if !is_selection_collapsed(state.selection) {
 		start := selection_start(state.selection)
 		end := selection_end(state.selection)
@@ -93,7 +93,7 @@ text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	}
 
 	from := state.selection.active
-	to := translated_rune_pos(state, translation, false)
+	to := translated_pos(state, translation, false)
 	start := min(from, to)
 	end := max(from, to)
 	if start == end {
@@ -117,11 +117,12 @@ text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
 	}
 
 	text_buffer_insert_at(&state.buffer, insert_at, text)
-	set_caret(state, insert_at + utf8.rune_count_in_string(text))
+	set_caret(state, insert_at + len(text))
 }
 
+// NOTE(Thomas): We are translating by runes here, later probably grapheme clusters.
 @(private)
-translated_rune_pos :: proc(
+translated_pos :: proc(
 	state: ^Text_Edit_State,
 	translation: Translation,
 	collapse_selection_lr: bool,
@@ -129,47 +130,49 @@ translated_rune_pos :: proc(
 	// `collapse_selection_lr` affects only .Left/.Right with a non-collapsed selection:
 	// true  = collapse to selection boundary first (used by text_edit_move_to)
 	// false = translate from current active position (used by text_edit_select_to/delete_to)
-	switch translation {
+	#partial switch translation {
 	case .Left:
 		if collapse_selection_lr && !is_selection_collapsed(state.selection) {
 			return selection_start(state.selection)
 		}
-		return state.selection.active - 1
+		_, width := get_prev_rune(state.buffer, state.selection.active)
+		return state.selection.active - width
 	case .Right:
 		if collapse_selection_lr && !is_selection_collapsed(state.selection) {
-			return selection_end(state.selection)
+			return selection_start(state.selection)
 		}
-		return state.selection.active + 1
+		_, width := peek_rune_at_byte_offset(state.buffer, state.selection.active)
+		return state.selection.active + width
 	case .Next_Word:
-		return text_buffer_next_word_rune_pos(state.buffer, state.selection.active)
+		return text_buffer_next_word_byte_pos(state.buffer, state.selection.active)
 	case .Prev_Word:
-		return text_buffer_prev_word_rune_pos(state.buffer, state.selection.active)
+		return text_buffer_prev_word_byte_pos(state.buffer, state.selection.active)
 	case .Start:
 		return 0
 	case .End:
-		return text_buffer_rune_len(state.buffer)
+		return text_buffer_byte_length(state.buffer)
 	}
 
 	return state.selection.active
 }
 
 @(private)
-clamp_rune_pos_to_text_buffer_range :: proc(buffer: Text_Buffer, rune_pos: int) -> int {
-	max_pos := text_buffer_rune_len(buffer)
-	clamped := max(0, min(rune_pos, max_pos))
+clamp_byte_pos_to_text_buffer_range :: proc(buffer: Text_Buffer, byte_pos: int) -> int {
+	max_pos := text_buffer_byte_length(buffer)
+	clamped := clamp(byte_pos, 0, max_pos)
 	return clamped
 }
 
 @(private)
-set_caret :: proc(state: ^Text_Edit_State, rune_pos: int) {
-	clamped := clamp_rune_pos_to_text_buffer_range(state.buffer, rune_pos)
+set_caret :: proc(state: ^Text_Edit_State, byte_pos: int) {
+	clamped := clamp_byte_pos_to_text_buffer_range(state.buffer, byte_pos)
 	state.selection.active = clamped
 	state.selection.anchor = clamped
 }
 
 @(private)
-set_active :: proc(state: ^Text_Edit_State, rune_pos: int) {
-	clamped := clamp_rune_pos_to_text_buffer_range(state.buffer, rune_pos)
+set_active :: proc(state: ^Text_Edit_State, byte_pos: int) {
+	clamped := clamp_byte_pos_to_text_buffer_range(state.buffer, byte_pos)
 	state.selection.active = clamped
 }
 

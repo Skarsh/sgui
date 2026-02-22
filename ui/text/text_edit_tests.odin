@@ -4,7 +4,7 @@ import "../../base"
 import "core:testing"
 
 @(test)
-test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one :: proc(t: ^testing.T) {
+test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one_rune :: proc(t: ^testing.T) {
 	state := text_edit_init(context.allocator)
 	defer text_buffer_deinit(&state.buffer)
 
@@ -43,9 +43,10 @@ test_text_edit_move_left_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 	defer text_buffer_deinit(&state.buffer)
 
 	text_buffer_insert_at(&state.buffer, 0, "a世b")
+	// a + 世 = 1 + 3 = 4 bytes
 	state.selection = Selection {
-		active = 2,
-		anchor = 2,
+		active = 4,
+		anchor = 4,
 	}
 
 	text_edit_move_to(&state, .Left)
@@ -55,7 +56,9 @@ test_text_edit_move_left_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one :: proc(t: ^testing.T) {
+test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one_rune :: proc(
+	t: ^testing.T,
+) {
 	state := text_edit_init(context.allocator)
 	defer text_buffer_deinit(&state.buffer)
 
@@ -101,8 +104,9 @@ test_text_edit_move_right_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 
 	text_edit_move_to(&state, .Right)
 
-	testing.expect_value(t, state.selection.active, 2)
-	testing.expect_value(t, state.selection.anchor, 2)
+	// a + 世 = 1 + 3 = 4 bytes
+	testing.expect_value(t, state.selection.active, 4)
+	testing.expect_value(t, state.selection.anchor, 4)
 }
 
 @(test)
@@ -145,6 +149,7 @@ test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 	defer text_buffer_deinit(&state.buffer)
 
 	// "hé<NBSP><SPACE>世界"
+	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
 	text_buffer_insert_at(&state.buffer, 0, "hé  世界")
 	state.selection = Selection {
 		active = 0,
@@ -153,8 +158,9 @@ test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 
 	text_edit_move_to(&state, .Next_Word)
 
-	testing.expect_value(t, state.selection.active, 4)
-	testing.expect_value(t, state.selection.anchor, 4)
+	// h + é + <NBSP> + Space = 1 + 2 + 2 + 1 = 6 bytes
+	testing.expect_value(t, state.selection.active, 6)
+	testing.expect_value(t, state.selection.anchor, 6)
 }
 
 @(test)
@@ -197,16 +203,19 @@ test_text_edit_move_prev_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 	defer text_buffer_deinit(&state.buffer)
 
 	// "hé<NBSP><SPACE>世界"
+	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
 	text_buffer_insert_at(&state.buffer, 0, "hé  世界")
+
+	// At the end - 1 + 2 + 2 + 1 + 3 + 3 = 12
 	state.selection = Selection {
-		active = 6,
-		anchor = 6,
+		active = 12,
+		anchor = 12,
 	}
 
 	text_edit_move_to(&state, .Prev_Word)
-
-	testing.expect_value(t, state.selection.active, 4)
-	testing.expect_value(t, state.selection.anchor, 4)
+	// h + é + <NBSP> + <SPACE> = 1 + 2 + 2 + 1 = 6
+	testing.expect_value(t, state.selection.active, 6)
+	testing.expect_value(t, state.selection.anchor, 6)
 }
 
 @(test)
@@ -215,6 +224,7 @@ test_text_edit_move_prev_word_from_inside_word_moves_to_that_word_start :: proc(
 	defer text_buffer_deinit(&state.buffer)
 
 	text_buffer_insert_at(&state.buffer, 0, "ab cd ef")
+	// Between e and f
 	state.selection = Selection {
 		active = 7,
 		anchor = 7,
@@ -615,8 +625,8 @@ test_text_edit_handle_key_ctrl_left_moves_to_prev_word :: proc(t: ^testing.T) {
 
 	text_buffer_insert_at(&state.buffer, 0, "ab cd ef")
 	state.selection = Selection {
-		active = 7,
-		anchor = 7,
+		active = 8,
+		anchor = 8,
 	}
 
 	text_edit_handle_key(&state, .Left, base.KMOD_CTRL)
@@ -738,13 +748,13 @@ test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_inser
 		active = 1,
 		anchor = 4,
 	}
-
+	// 世 = 3 bytes, x = 1 byte, 3 + 1 = 4 bytes
 	text_edit_insert(&state, "世x")
 
 	actual := text_buffer_text(state.buffer)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "a世xef")
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
+	testing.expect_value(t, state.selection.active, 5)
+	testing.expect_value(t, state.selection.anchor, 5)
 }
