@@ -139,7 +139,7 @@ translated_pos :: proc(
 		return state.selection.active - width
 	case .Right:
 		if collapse_selection_lr && !is_selection_collapsed(state.selection) {
-			return selection_start(state.selection)
+			return selection_end(state.selection)
 		}
 		_, width := peek_rune_at_byte_offset(state.buffer, state.selection.active)
 		return state.selection.active + width

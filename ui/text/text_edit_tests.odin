@@ -75,6 +75,23 @@ test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one_rune :: p
 }
 
 @(test)
+test_text_edit_move_right_with_selection_collapses_to_selection_end :: proc(t: ^testing.T) {
+	state := text_edit_init(context.allocator)
+	defer text_buffer_deinit(&state.buffer)
+
+	text_buffer_insert_at(&state.buffer, 0, "abcdef")
+	state.selection = Selection {
+		active = 2,
+		anchor = 5,
+	}
+
+	text_edit_move_to(&state, .Right)
+
+	testing.expect_value(t, state.selection.active, 5)
+	testing.expect_value(t, state.selection.anchor, 5)
+}
+
+@(test)
 test_text_edit_move_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 	state := text_edit_init(context.allocator)
 	defer text_buffer_deinit(&state.buffer)
