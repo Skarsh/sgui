@@ -41,6 +41,7 @@
         - respect soft-wrapped line boundaries for line-start/line-end
     - [ ] Expand `text_edit_tests.odin` to command-level parity tests (not only operation-level tests), including modifier paths and mouse-driven selection transitions.
 
+* Don't use f32 for time, should be something like nanoseconds instead.
 * Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
     as `Pool_Allocator` or some other type of allocator for several benefits (simplicity, perf?).
