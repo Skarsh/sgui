@@ -115,6 +115,12 @@ init_ctx :: proc(
 		&ctx.stb_font_ctx,
 	)
 
+	ui.set_clipboard_callbacks(
+		ui_ctx,
+		platform_api.get_clipboard_text,
+		platform_api.set_clipboard_text,
+	)
+
 	render_ctx := Render_Context{}
 	render_ctx_ok := init_render_ctx(
 		&render_ctx,

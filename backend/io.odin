@@ -15,9 +15,11 @@ Frame_Time :: struct {
 }
 
 Platform_API :: struct {
-	get_perf_counter: proc() -> u64,
-	get_perf_freq:    proc() -> u64,
-	poll_events:      proc(
+	get_perf_counter:   proc() -> u64,
+	get_perf_freq:      proc() -> u64,
+	get_clipboard_text: base.Get_Clipboard_Text_Proc,
+	set_clipboard_text: base.Set_Clipboard_Text_Proc,
+	poll_events:        proc(
 		user_data: rawptr,
 		on_event: proc(user_data: rawptr, event: base.Event),
 	),

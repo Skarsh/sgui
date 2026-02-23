@@ -1,5 +1,8 @@
 package base
 
+Get_Clipboard_Text_Proc :: proc() -> string
+Set_Clipboard_Text_Proc :: proc(text: string)
+
 Event :: union {
 	Mouse_Motion_Event,
 	Mouse_Button_Event,

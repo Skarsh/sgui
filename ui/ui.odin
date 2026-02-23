@@ -121,34 +121,36 @@ UI_Element_Text_Input_State :: struct {
 THEME_STACK_SIZE :: #config(SUI_THEME_STACK_SIZE, 8)
 
 Context :: struct {
-	persistent_allocator: mem.Allocator,
-	frame_allocator:      mem.Allocator,
-	draw_cmd_allocator:   mem.Allocator,
-	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	persistent_allocator:    mem.Allocator,
+	frame_allocator:         mem.Allocator,
+	draw_cmd_allocator:      mem.Allocator,
+	element_stack:           Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// Style stack for cascading styles. Use push_style/pop_style.
-	style_stack:          Stack(Style, STYLE_STACK_SIZE),
-	command_queue:        [dynamic]Draw_Command,
-	render_state:         Render_State,
-	current_parent:       ^UI_Element,
-	root_element:         ^UI_Element,
+	style_stack:             Stack(Style, STYLE_STACK_SIZE),
+	command_queue:           [dynamic]Draw_Command,
+	render_state:            Render_State,
+	current_parent:          ^UI_Element,
+	root_element:            ^UI_Element,
 	// input is owned by app
-	input:                ^base.Input,
-	element_cache:        map[UI_Key]^UI_Element,
-	text_input_states:    map[UI_Key]UI_Element_Text_Input_State,
-	interactive_elements: [dynamic]^UI_Element,
-	measure_text_proc:    Measure_Text_Proc,
-	measure_glyph_proc:   Measure_Glyph_Proc,
-	font_user_data:       rawptr,
-	frame_idx:            u64,
-	dt:                   f32,
+	input:                   ^base.Input,
+	element_cache:           map[UI_Key]^UI_Element,
+	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
+	interactive_elements:    [dynamic]^UI_Element,
+	measure_text_proc:       Measure_Text_Proc,
+	measure_glyph_proc:      Measure_Glyph_Proc,
+	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
+	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
+	font_user_data:          rawptr,
+	frame_idx:               u64,
+	dt:                      f32,
 	// TODO(Thomas): Does font size and font id belong here??
-	font_size:            f32,
-	font_id:              u16,
-	window_size:          [2]i32,
-	active_element:       ^UI_Element,
+	font_size:               f32,
+	font_id:                 u16,
+	window_size:             [2]i32,
+	active_element:          ^UI_Element,
 	// Theme support
-	theme:                Theme,
-	theme_stack:          Stack(Theme, THEME_STACK_SIZE),
+	theme:                   Theme,
+	theme_stack:             Stack(Theme, THEME_STACK_SIZE),
 }
 
 Capability :: enum {
@@ -184,6 +186,15 @@ set_text_measurement_callbacks :: proc(
 	ctx.measure_text_proc = measure_text
 	ctx.measure_glyph_proc = measure_glyph
 	ctx.font_user_data = user_data
+}
+
+set_clipboard_callbacks :: proc(
+	ctx: ^Context,
+	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
+	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
+) {
+	ctx.get_clipboard_text_proc = get_clipboard_text_proc
+	ctx.set_clipboard_text_proc = set_clipboard_text_proc
 }
 
 default_color_style := Color_Style {

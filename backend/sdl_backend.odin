@@ -12,6 +12,14 @@ sdl_get_perf_freq :: proc() -> u64 {
 	return sdl.GetPerformanceFrequency()
 }
 
+sdl_get_clipboard_text :: proc() -> string {
+	return ""
+}
+
+sdl_set_clipboard_text :: proc(text: string) {
+
+}
+
 // Window API implementations
 sdl_window_init :: proc() -> bool {
 	return sdl.Init(sdl.INIT_VIDEO) >= 0

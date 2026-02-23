@@ -847,6 +847,8 @@ main :: proc() {
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,
+			get_clipboard_text = backend.sdl_get_clipboard_text,
+			set_clipboard_text = backend.sdl_set_clipboard_text,
 			poll_events = backend.sdl_poll_events,
 		},
 		window_api = backend.create_sdl_window_api(),
