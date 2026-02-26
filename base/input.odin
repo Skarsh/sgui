@@ -315,24 +315,24 @@ is_key_pressed :: proc(input: Input, key: Key) -> bool {
 	return key in input.key_pressed_bits
 }
 
-is_keymod_down :: proc(input: Input, keymod: Keymod_Flag) -> bool {
-	return keymod in input.keymod_down_bits
+is_keymod_down :: proc(keymod_set: Keymod_Set, keymod: Keymod_Flag) -> bool {
+	return keymod in keymod_set
 }
 
-is_shift_down :: proc(input: Input) -> bool {
-	return is_keymod_down(input, .LSHIFT) || is_keymod_down(input, .RSHIFT)
+is_shift_down :: proc(keymod_set: Keymod_Set) -> bool {
+	return is_keymod_down(keymod_set, .LSHIFT) || is_keymod_down(keymod_set, .RSHIFT)
 }
 
-is_ctrl_down :: proc(input: Input) -> bool {
-	return is_keymod_down(input, .LCTRL) || is_keymod_down(input, .RCTRL)
+is_ctrl_down :: proc(keymod_set: Keymod_Set) -> bool {
+	return is_keymod_down(keymod_set, .LCTRL) || is_keymod_down(keymod_set, .RCTRL)
 }
 
-is_alt_down :: proc(input: Input) -> bool {
-	return is_keymod_down(input, .LALT) || is_keymod_down(input, .RALT)
+is_alt_down :: proc(keymod_set: Keymod_Set) -> bool {
+	return is_keymod_down(keymod_set, .LALT) || is_keymod_down(keymod_set, .RALT)
 }
 
-is_gui_down :: proc(input: Input) -> bool {
-	return is_keymod_down(input, .LGUI) || is_keymod_down(input, .RGUI)
+is_gui_down :: proc(keymod_set: Keymod_Set) -> bool {
+	return is_keymod_down(keymod_set, .LGUI) || is_keymod_down(keymod_set, .RGUI)
 }
 
 clear_input :: proc(input: ^Input) {

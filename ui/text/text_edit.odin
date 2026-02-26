@@ -1,6 +1,5 @@
 package text
 
-import "core:log"
 import "core:mem"
 
 import "../../base"
@@ -46,14 +45,20 @@ text_edit_handle_keys :: proc(
 	keys: base.Key_Set,
 	keymod: base.Keymod_Set = base.KMOD_NONE,
 ) {
-	shift_down := keymod_has_shift(keymod)
+	ctrl_down := base.is_ctrl_down(keymod)
+	shift_down := base.is_shift_down(keymod)
 	word_mod_down := keymod_has_word_move_mod(keymod)
 	line_mod_down := keymod_has_line_move_mod(keymod)
 
 	for key in keys {
 		#partial switch key {
 		case .A:
-		// TODO(Thomas): Select-all
+			if ctrl_down {
+				start := 0
+				end := text_buffer_byte_length(state.buffer)
+				state.selection.anchor = start
+				state.selection.active = end
+			}
 		case .C:
 		// TODO(Thomas): Copy selection
 		case .V:
@@ -210,11 +215,6 @@ selection_start :: proc(selection: Selection) -> int {
 @(private)
 selection_end :: proc(selection: Selection) -> int {
 	return max(selection.active, selection.anchor)
-}
-
-@(private)
-keymod_has_shift :: proc(keymod: base.Keymod_Set) -> bool {
-	return .LSHIFT in keymod || .RSHIFT in keymod
 }
 
 @(private)
