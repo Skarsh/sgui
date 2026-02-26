@@ -566,21 +566,8 @@ process_interactions :: proc(ctx: ^Context) {
 				}
 
 				keymod := ctx.input.keymod_down_bits
-				if base.is_key_pressed(ctx.input^, .Left) {
-					textpkg.text_edit_handle_key(&state.state, .Left, keymod)
-				} else if base.is_key_pressed(ctx.input^, .Right) {
-					textpkg.text_edit_handle_key(&state.state, .Right, keymod)
-				} else if base.is_key_pressed(ctx.input^, .Home) {
-					textpkg.text_edit_handle_key(&state.state, .Home, keymod)
-				} else if base.is_key_pressed(ctx.input^, .End) {
-					textpkg.text_edit_handle_key(&state.state, .End, keymod)
-				} else if base.is_key_pressed(ctx.input^, .Backspace) {
-					textpkg.text_edit_handle_key(&state.state, .Backspace, keymod)
-				} else if base.is_key_pressed(ctx.input^, .Delete) {
-					textpkg.text_edit_handle_key(&state.state, .Delete, keymod)
-				} else if base.is_key_pressed(ctx.input^, .Tab) {
-					textpkg.text_edit_insert(&state.state, "\t")
-				}
+				keys := ctx.input.key_pressed_bits
+				textpkg.text_edit_handle_keys(&state.state, keys, keymod)
 			}
 		}
 

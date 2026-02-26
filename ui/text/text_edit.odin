@@ -28,6 +28,12 @@ Translation :: enum {
 	End,
 }
 
+Text_Edit_Clipboard_Command :: enum {
+	None,
+	Copy,
+	Paste,
+	Cut,
+}
 
 text_edit_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Edit_State {
 	text_buf := text_buffer_init(allocator)
@@ -35,41 +41,56 @@ text_edit_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Edi
 }
 
 // TODO(Thomas): Expand command wiring for more shortcuts (select-all, clipboard, undo/redo).
-text_edit_handle_key :: proc(
+text_edit_handle_keys :: proc(
 	state: ^Text_Edit_State,
-	key: base.Key,
+	keys: base.Key_Set,
 	keymod: base.Keymod_Set = base.KMOD_NONE,
 ) {
 	shift_down := keymod_has_shift(keymod)
 	word_mod_down := keymod_has_word_move_mod(keymod)
 	line_mod_down := keymod_has_line_move_mod(keymod)
 
-	#partial switch key {
-	case .Left:
-		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
-		apply_move_or_select(state, translation, shift_down)
-	case .Right:
-		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
-		apply_move_or_select(state, translation, shift_down)
-	case .Home:
-		apply_move_or_select(state, .Start, shift_down)
-	case .End:
-		apply_move_or_select(state, .End, shift_down)
-	case .Backspace:
-		translation: Translation = .Left
-		if word_mod_down {
-			translation = .Prev_Word
+	for key in keys {
+		#partial switch key {
+		case .A:
+		// TODO(Thomas): Select-all
+		case .C:
+		// TODO(Thomas): Copy selection
+		case .V:
+		// TODO(Thomas): Paste selection
+		case .X:
+		// TODO(Thomas): Cut selection
+		case .Y:
+		// TODO(Thomas): Redo
+		case .Z:
+		// TODO(Thomas): Undo
+		case .Left:
+			translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
+			apply_move_or_select(state, translation, shift_down)
+		case .Right:
+			translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
+			apply_move_or_select(state, translation, shift_down)
+		case .Home:
+			apply_move_or_select(state, .Start, shift_down)
+		case .End:
+			apply_move_or_select(state, .End, shift_down)
+		case .Backspace:
+			translation: Translation = .Left
+			if word_mod_down {
+				translation = .Prev_Word
+			}
+			text_edit_delete_to(state, translation)
+		case .Delete:
+			translation: Translation = .Right
+			if word_mod_down {
+				translation = .Next_Word
+			}
+			text_edit_delete_to(state, translation)
+		case .Tab:
+			text_edit_insert(state, "\t")
 		}
-		text_edit_delete_to(state, translation)
-	case .Delete:
-		translation: Translation = .Right
-		if word_mod_down {
-			translation = .Next_Word
-		}
-		text_edit_delete_to(state, translation)
-	case:
-		log.error("Unhandled text edit key: %v", key)
 	}
+
 }
 
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
