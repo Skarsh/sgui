@@ -97,6 +97,7 @@ create_sdl_window_api :: proc() -> Window_API {
 sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
 	key := base.Key.Unknown
 	// TODO(Thomas): Complete more of this switch
+	// TODO(Thomas): What about a table instead of a giant switch like this?
 	#partial switch sdl_key {
 	case .ESCAPE:
 		key = base.Key.Escape
@@ -130,6 +131,58 @@ sdl_key_to_ui_key :: proc(sdl_key: sdl.Keycode) -> base.Key {
 		key = base.Key.Right_Shift
 	case .BACKSPACE:
 		key = base.Key.Backspace
+	case .A:
+		key = base.Key.A
+	case .B:
+		key = base.Key.B
+	case .C:
+		key = base.Key.C
+	case .D:
+		key = base.Key.D
+	case .E:
+		key = base.Key.E
+	case .F:
+		key = base.Key.F
+	case .G:
+		key = base.Key.G
+	case .H:
+		key = base.Key.H
+	case .I:
+		key = base.Key.I
+	case .J:
+		key = base.Key.J
+	case .K:
+		key = base.Key.K
+	case .L:
+		key = base.Key.L
+	case .M:
+		key = base.Key.M
+	case .N:
+		key = base.Key.N
+	case .O:
+		key = base.Key.O
+	case .P:
+		key = base.Key.P
+	case .Q:
+		key = base.Key.Q
+	case .R:
+		key = base.Key.R
+	case .S:
+		key = base.Key.S
+	case .T:
+		key = base.Key.T
+	case .U:
+		key = base.Key.U
+	case .V:
+		key = base.Key.V
+	case .W:
+		key = base.Key.W
+	case .X:
+		key = base.Key.X
+	case .Y:
+		key = base.Key.Y
+	case .Z:
+		key = base.Key.Z
 	}
 	return key
 }
