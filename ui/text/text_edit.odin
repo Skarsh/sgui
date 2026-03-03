@@ -44,12 +44,13 @@ text_edit_handle_keys :: proc(
 	state: ^Text_Edit_State,
 	keys: base.Key_Set,
 	keymod: base.Keymod_Set = base.KMOD_NONE,
-) {
+) -> Text_Edit_Clipboard_Command {
 	ctrl_down := base.is_ctrl_down(keymod)
 	shift_down := base.is_shift_down(keymod)
 	word_mod_down := keymod_has_word_move_mod(keymod)
 	line_mod_down := keymod_has_line_move_mod(keymod)
 
+	clipboard_command: Text_Edit_Clipboard_Command = .None
 	for key in keys {
 		#partial switch key {
 		case .A:
@@ -60,11 +61,16 @@ text_edit_handle_keys :: proc(
 				state.selection.active = end
 			}
 		case .C:
-		// TODO(Thomas): Copy selection
+			// TODO(Thomas): Copy selection
+			clipboard_command = .Copy
 		case .V:
-		// TODO(Thomas): Paste selection
+			// TODO(Thomas): Paste selection
+			clipboard_command = .Paste
 		case .X:
-		// TODO(Thomas): Cut selection
+			// TODO(Thomas): Cut selection
+			// TODO(Thomas): Does this really need its own clipboard command??
+			// In practice its just copy but, but the selection is deleted?
+			clipboard_command = .Cut
 		case .Y:
 		// TODO(Thomas): Redo
 		case .Z:
@@ -96,6 +102,7 @@ text_edit_handle_keys :: proc(
 		}
 	}
 
+	return clipboard_command
 }
 
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {

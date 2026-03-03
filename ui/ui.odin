@@ -567,7 +567,19 @@ process_interactions :: proc(ctx: ^Context) {
 
 				keymod := ctx.input.keymod_down_bits
 				keys := ctx.input.key_pressed_bits
-				textpkg.text_edit_handle_keys(&state.state, keys, keymod)
+				clipboard_command := textpkg.text_edit_handle_keys(&state.state, keys, keymod)
+
+				switch clipboard_command {
+				case .None:
+				case .Copy:
+					log.info("Copy clipboard command")
+				case .Paste:
+					log.info("Paste clipboard command")
+				case .Cut:
+					// TODO(Thomas): Does this really need to be its own thing?
+					// Isn't this just a copy selection but where the selection is deleted / removed before return??
+					log.info("Cut clipboard command")
+				}
 			}
 		}
 
