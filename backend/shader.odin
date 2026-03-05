@@ -25,10 +25,13 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 
 	shader_program := gl.CreateProgram()
 
-	vertex_data, vertex_ok := os.read_entire_file(config.vertex_path, context.temp_allocator)
+	vertex_data, vertex_err := os.read_entire_file_from_path(
+		config.vertex_path,
+		context.temp_allocator,
+	)
 	defer free_all(context.temp_allocator)
-	if !vertex_ok {
-		log.error("Failed to read vertex shader file")
+	if vertex_err != nil {
+		log.error("Failed to read vertex shader file with error: ", vertex_err)
 		return {}, false
 	}
 
@@ -41,9 +44,13 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 	check_shader_compile_status(Shader_Type.Vertex, vertex_shader)
 	gl.AttachShader(shader_program, vertex_shader)
 
-	fragment_data, fragment_ok := os.read_entire_file(config.fragment_path, context.temp_allocator)
-	if !fragment_ok {
-		log.error("Failed to read fragment shader file")
+	fragment_data, fragment_err := os.read_entire_file_from_path(
+		config.fragment_path,
+		context.temp_allocator,
+	)
+	if fragment_err != nil {
+		log.error("Failed to read fragment shader file with error: ", fragment_err)
+		return {}, false
 	}
 
 	fragment_source := transmute(string)fragment_data

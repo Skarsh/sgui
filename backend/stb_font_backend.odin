@@ -11,9 +11,10 @@ import ui "../ui"
 Font_Info :: stbtt.fontinfo
 
 init_stb_font_ctx :: proc(ctx: ^STB_Font_Context, path: string, font_size: f32) -> bool {
-	font_data, font_ok := os.read_entire_file_from_filename(path)
-	if !font_ok {
-		log.error("Failed to load font file")
+	font_data, err := os.read_entire_file_from_path(path, context.allocator)
+
+	if err != nil {
+		log.error("Error when loading font file: ", err)
 		return false
 	}
 
