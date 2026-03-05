@@ -226,12 +226,12 @@ selection_end :: proc(selection: Selection) -> int {
 
 @(private)
 keymod_has_word_move_mod :: proc(keymod: base.Keymod_Set) -> bool {
-	return .LCTRL in keymod || .RCTRL in keymod || .LALT in keymod || .RALT in keymod
+	return base.is_ctrl_down(keymod) || base.is_alt_down(keymod)
 }
 
 @(private)
 keymod_has_line_move_mod :: proc(keymod: base.Keymod_Set) -> bool {
-	return .LGUI in keymod || .RGUI in keymod
+	return base.is_gui_down(keymod)
 }
 
 @(private)
