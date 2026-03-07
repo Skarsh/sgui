@@ -138,7 +138,7 @@ text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 }
 
 // TOOD(Thomas): Add handling of drag and double/triple click
-text_edit_handle_click :: proc(state: ^Text_Edit_State, layout: ^Text_Layout_Cache) {}
+text_edit_handle_click :: proc(state: ^Text_Edit_State) {}
 
 text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
 	insert_at := state.selection.active
