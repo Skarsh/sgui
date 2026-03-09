@@ -56,7 +56,7 @@ Text_Token :: struct {
 }
 
 
-tokenize_text :: proc(text: string, font_id: u16, text_units: ^[dynamic]Text_Token) {
+tokenize_text :: proc(text: string, font_id: u16, text_tokens: ^[dynamic]Text_Token) {
 	if len(text) == 0 {
 		return
 	}
@@ -73,14 +73,14 @@ tokenize_text :: proc(text: string, font_id: u16, text_units: ^[dynamic]Text_Tok
 			if r == '\n' {
 				rune_pos += 1
 				append(
-					text_units,
+					text_tokens,
 					Text_Token{kind = .Newline, range = {start = start_pos, end = rune_pos}},
 				)
 
 			} else {
 				rune_pos += 1
 				append(
-					text_units,
+					text_tokens,
 					Text_Token{kind = .Whitespace, range = {start = start_pos, end = rune_pos}},
 				)
 			}
@@ -99,7 +99,7 @@ tokenize_text :: proc(text: string, font_id: u16, text_units: ^[dynamic]Text_Tok
 
 			// This ensures that append even when the word is going to the end of the rune count.
 			append(
-				text_units,
+				text_tokens,
 				Text_Token{kind = .Word, range = {start = start_pos, end = rune_pos}},
 			)
 		}
