@@ -1,6 +1,7 @@
 package text
 
 import "core:strings"
+import "core:testing"
 import "core:unicode"
 import "core:unicode/utf8"
 
@@ -37,23 +38,25 @@ Direction :: enum {
 	Right_To_Left,
 }
 
-Text_Unit_Kind :: enum u8 {
+Text_Token_Kind :: enum u8 {
 	Word,
 	Whitespace,
 	Newline,
 }
 
-Text_Unit_Range :: struct {
+// TODO(Thomas): Bytes or runes????
+Text_Token_Range :: struct {
 	start: int,
 	end:   int,
 }
 
-Text_Unit :: struct {
-	kind:  Text_Unit_Kind,
-	range: Text_Unit_Range,
+Text_Token :: struct {
+	kind:  Text_Token_Kind,
+	range: Text_Token_Range,
 }
 
-tokenize_text :: proc(text: string, text_units: ^[dynamic]Text_Unit) {
+
+tokenize_text :: proc(text: string, font_id: u16, text_units: ^[dynamic]Text_Token) {
 	if len(text) == 0 {
 		return
 	}
@@ -71,22 +74,98 @@ tokenize_text :: proc(text: string, text_units: ^[dynamic]Text_Unit) {
 				rune_pos += 1
 				append(
 					text_units,
-					Text_Unit{kind = .Newline, range = {start = start_pos, end = rune_pos}},
+					Text_Token{kind = .Newline, range = {start = start_pos, end = rune_pos}},
 				)
 
 			} else {
-				// TODO(Thomas): What to do with multiple whitespace in a row?
-				// Accumulate them into a single Text_Unit?
-				// What about tabs? Make them into spaces probably?
-				// TODO(Thomas): Or go the easy route that will produce more Text_Unit
-				// instances, but will make the tokenization simpler.
+				rune_pos += 1
+				append(
+					text_units,
+					Text_Token{kind = .Whitespace, range = {start = start_pos, end = rune_pos}},
+				)
 			}
 
 		} else {
 			// This is part of a word, keep eating runes until we reach newline or whitespace
+			for rune_pos < rune_count {
+				peek_r := utf8.rune_at_pos(text, rune_pos)
+				if !unicode.is_space(peek_r) {
+					rune_pos += 1
+				} else {
+					// We've reached whitespace, the word is over.
+					break
+				}
+			}
 
+			// This ensures that append even when the word is going to the end of the rune count.
+			append(
+				text_units,
+				Text_Token{kind = .Word, range = {start = start_pos, end = rune_pos}},
+			)
 		}
 	}
+}
 
+// ------------ TESTS -------------
 
+expect_tokens :: proc(t: ^testing.T, tokens: []Text_Token, expected_tokens: []Text_Token) {
+	testing.expect_value(t, len(tokens), len(expected_tokens))
+	for token, idx in tokens {
+		testing.expect_value(t, token, expected_tokens[idx])
+	}
+}
+
+@(test)
+test_tokenize_text :: proc(t: ^testing.T) {
+	text := "Hello\n"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{kind = .Word, range = {start = 0, end = 5}},
+		Text_Token{kind = .Newline, range = {start = 5, end = 6}},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+}
+
+@(test)
+test_tokenize_text_word_after_newline :: proc(t: ^testing.T) {
+	text := "Hello\nWorld"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{kind = .Word, range = {start = 0, end = 5}},
+		Text_Token{kind = .Newline, range = {start = 5, end = 6}},
+		Text_Token{kind = .Word, range = {start = 6, end = 11}},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+}
+
+@(test)
+test_tokenize_unicode_glyph :: proc(t: ^testing.T) {
+	text := "©"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(text, 0, &tokens)
+	expected_tokens := []Text_Token{Text_Token{kind = .Word, range = {start = 0, end = 1}}}
+	expect_tokens(t, tokens[:], expected_tokens)
+}
+
+@(test)
+test_tokenize_with_whitespace :: proc(t: ^testing.T) {
+	text := "Hello World"
+
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+	tokenize_text(text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{kind = .Word, range = {start = 0, end = 5}},
+		Text_Token{kind = .Whitespace, range = {start = 5, end = 6}},
+		Text_Token{kind = .Word, range = {start = 6, end = 11}},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
 }
