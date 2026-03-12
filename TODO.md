@@ -1,6 +1,7 @@
 # TODOs
 
 ## Active
+* Need a better Glyph type, probably should live in base package.
 * Implement basic rendering of text selection
     * There is a bug here with trimming of the whitespace in text.odin for line processing
         Can we make a simple fix where we stop trimming that, so we can use selection rendering for debugging?
