@@ -5,33 +5,6 @@ import "core:testing"
 import "core:unicode"
 import "core:unicode/utf8"
 
-// Text Layout algorithm
-// The layout algorithms will be split into several phases.
-// Step 1: Tokenize text
-// Convert the input string into a sequence of tokens:
-// * Word
-// * Whitespace (space, tab etc)
-// * Newline
-//
-// This is similar to how the old version did it.
-// Step 2: Shaping
-// for each token:
-//  * if newline, no glyphs
-//  * otherwise map codepoints to glyphs
-//  * measure advances
-//  * build a Glyph_Run
-//
-// No advanced shaping required at first, Harbuzz possible later.
-// Step 3: Layout lines
-// We'll go for a greedy approach for laying out lines.
-// Look at existing implementation, can probably be imrpoved.
-//
-// Step 4: Compute line metrics
-// TODO
-//
-// Step 5: Position glyphs
-// TODO
-
 // BiDi related
 Direction :: enum {
 	Left_To_Right,
@@ -54,7 +27,6 @@ Text_Token :: struct {
 	kind:  Text_Token_Kind,
 	range: Text_Token_Range,
 }
-
 
 tokenize_text :: proc(text: string, font_id: u16, text_tokens: ^[dynamic]Text_Token) {
 	if len(text) == 0 {
