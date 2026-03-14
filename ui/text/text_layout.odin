@@ -144,3 +144,30 @@ test_tokenize_with_whitespace :: proc(t: ^testing.T) {
 	}
 	expect_tokens(t, tokens[:], expected_tokens)
 }
+
+@(test)
+test_tokenize_with_multiple_single_sequential_whitespace :: proc(t: ^testing.T) {
+	text := "Hello  World"
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	tokenize_text(text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{kind = .Word, range = {start = 0, end = 5}},
+		Text_Token{kind = .Whitespace, range = {start = 5, end = 6}},
+		Text_Token{kind = .Whitespace, range = {start = 6, end = 7}},
+		Text_Token{kind = .Word, range = {start = 7, end = 12}},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+}
+
+@(test)
+test_tokenize_with_tab_whitespace :: proc(t: ^testing.T) {
+	text := "Hello\tWorld"
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	tokenize_text(text, 0, &tokens)
+	expected_tokens := []Text_Token {
+		Text_Token{kind = .Word, range = {start = 0, end = 5}},
+		Text_Token{kind = .Whitespace, range = {start = 5, end = 6}},
+		Text_Token{kind = .Word, range = {start = 6, end = 11}},
+	}
+	expect_tokens(t, tokens[:], expected_tokens)
+}
