@@ -17,7 +17,6 @@ Text_Token_Kind :: enum u8 {
 	Newline,
 }
 
-// TODO(Thomas): Bytes or runes????
 Text_Range :: struct {
 	start: int,
 	end:   int,
