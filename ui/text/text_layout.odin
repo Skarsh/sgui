@@ -1,6 +1,5 @@
 package text
 
-import "core:strings"
 import "core:testing"
 import "core:unicode"
 import "core:unicode/utf8"
@@ -13,9 +12,11 @@ Text_Token_Kind :: enum u8 {
 	Newline,
 }
 
+Byte_Idx :: int
+
 Text_Range :: struct {
-	start: int,
-	end:   int,
+	start: Byte_Idx,
+	end:   Byte_Idx,
 }
 
 Text_Token :: struct {
@@ -36,83 +37,65 @@ tokenize_text :: proc(text: string, text_tokens: ^[dynamic]Text_Token) {
 		return
 	}
 
-	rune_pos := 0
-	start_pos := 0
-	rune_count := strings.rune_count(text)
+	byte_pos := 0
+	for byte_pos < len(text) {
+		start := byte_pos
 
-	for rune_pos < rune_count {
-		start_pos = rune_pos
-		r := utf8.rune_at_pos(text, rune_pos)
+		r, width := utf8.decode_rune_in_string(text[byte_pos:])
+		assert(width > 0)
 
 		if unicode.is_space(r) {
+			byte_pos += width
+
+			kind: Text_Token_Kind = .Whitespace
 			if r == '\n' {
-				rune_pos += 1
-				append(
-					text_tokens,
-					Text_Token{kind = .Newline, range = {start = start_pos, end = rune_pos}},
-				)
-
-			} else {
-				rune_pos += 1
-				append(
-					text_tokens,
-					Text_Token{kind = .Whitespace, range = {start = start_pos, end = rune_pos}},
-				)
+				kind = .Newline
 			}
 
-		} else {
-			// This is part of a word, keep eating runes until we reach newline or whitespace
-			for rune_pos < rune_count {
-				peek_r := utf8.rune_at_pos(text, rune_pos)
-				if !unicode.is_space(peek_r) {
-					rune_pos += 1
-				} else {
-					// We've reached whitespace, the word is over.
-					break
-				}
-			}
-
-			// This ensures that append even when the word is going to the end of the rune count.
 			append(
 				text_tokens,
-				Text_Token{kind = .Word, range = {start = start_pos, end = rune_pos}},
+				Text_Token{kind = kind, range = Text_Range{start = start, end = byte_pos}},
+			)
+		} else {
+			// Eat whole word
+			for byte_pos < len(text) {
+				peek_r, peek_width := utf8.decode_rune_in_string(text[byte_pos:])
+				assert(peek_width > 0)
+
+				// Found end of word due to whitespace, break the eat loop
+				if unicode.is_space(peek_r) {
+					break
+				}
+
+				byte_pos += peek_width
+			}
+			append(
+				text_tokens,
+				Text_Token{kind = .Word, range = Text_Range{start = start, end = byte_pos}},
 			)
 		}
 	}
 }
 
-// TODO(Thomas): Not sure if I like having to pass in pointer for both
-// these two dynamic arrays, might be better to pass in allocator
 paragraph_segmentation :: proc(
 	text: string,
 	tokens: ^[dynamic]Text_Token,
 	paragraphs: ^[dynamic]Text_Range,
 ) {
-	// split into tokens
-	// break into lines based on newlines
-	// output something like []Text_Range,
-	// or maybe Text_Span which holds []runes.
-	// Text_Span needs another processing step though
-
 	tokenize_text(text, tokens)
 
 	paragraph_start := 0
-	paragraph_end := 0
 
 	for token in tokens {
 		if token.kind == .Newline {
-			append(paragraphs, Text_Range{start = paragraph_start, end = paragraph_end})
-			paragraph_start = paragraph_end
-		} else {
-			paragraph_end = token.range.end
+			append(paragraphs, Text_Range{start = paragraph_start, end = token.range.end})
+			paragraph_start = token.range.end
 		}
 	}
 
-	// Append the remaining paragraph, this happens when the text ends on
-	// a word or whitespace
-	if paragraph_end != paragraph_start {
-		append(paragraphs, Text_Range{start = paragraph_start, end = paragraph_end})
-	}
+	// TODO(Thomas): Is this correct??
+	// Always append trailing paragraph, even if empty
+	append(paragraphs, Text_Range{start = paragraph_start, end = len(text)})
 }
 
 // TODO(Thomas): Better name?
@@ -178,7 +161,7 @@ test_tokenize_unicode_glyph :: proc(t: ^testing.T) {
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 	tokenize_text(text, &tokens)
-	expected_tokens := []Text_Token{Text_Token{kind = .Word, range = {start = 0, end = 1}}}
+	expected_tokens := []Text_Token{Text_Token{kind = .Word, range = {start = 0, end = 2}}}
 	expect_tokens(t, tokens[:], expected_tokens)
 }
 
@@ -235,8 +218,24 @@ test_paragraph_segmentation :: proc(t: ^testing.T) {
 
 	paragraph_segmentation(text, &tokens, &paragraphs)
 	expected_paragraphs := []Text_Range {
-		Text_Range{start = 0, end = 5},
-		Text_Range{start = 5, end = 11},
+		Text_Range{start = 0, end = 6},
+		Text_Range{start = 6, end = 11},
+	}
+	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
+}
+
+@(test)
+test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
+	text := "Hello\n\nWorld"
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	paragraphs := make([dynamic]Text_Range, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	paragraph_segmentation(text, &tokens, &paragraphs)
+	expected_paragraphs := []Text_Range {
+		Text_Range{start = 0, end = 6},
+		Text_Range{start = 6, end = 7},
+		Text_Range{start = 7, end = 12},
 	}
 	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
 }
