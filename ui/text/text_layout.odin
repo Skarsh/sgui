@@ -5,11 +5,7 @@ import "core:testing"
 import "core:unicode"
 import "core:unicode/utf8"
 
-// BiDi related
-Direction :: enum {
-	Left_To_Right,
-	Right_To_Left,
-}
+import base "../../base"
 
 Text_Token_Kind :: enum u8 {
 	Word,
@@ -25,6 +21,14 @@ Text_Range :: struct {
 Text_Token :: struct {
 	kind:  Text_Token_Kind,
 	range: Text_Range,
+}
+
+Style_Run :: struct {
+	font_id:    u16,
+	font_size:  f32,
+	color:      base.Color,
+	bidi_level: u8,
+	runes:      []rune,
 }
 
 tokenize_text :: proc(text: string, font_id: u16, text_tokens: ^[dynamic]Text_Token) {
