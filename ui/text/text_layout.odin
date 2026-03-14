@@ -18,14 +18,14 @@ Text_Token_Kind :: enum u8 {
 }
 
 // TODO(Thomas): Bytes or runes????
-Text_Token_Range :: struct {
+Text_Range :: struct {
 	start: int,
 	end:   int,
 }
 
 Text_Token :: struct {
 	kind:  Text_Token_Kind,
-	range: Text_Token_Range,
+	range: Text_Range,
 }
 
 tokenize_text :: proc(text: string, font_id: u16, text_tokens: ^[dynamic]Text_Token) {
