@@ -31,7 +31,7 @@ Style_Run :: struct {
 	runes:      []rune,
 }
 
-tokenize_text :: proc(text: string, font_id: u16, text_tokens: ^[dynamic]Text_Token) {
+tokenize_text :: proc(text: string, text_tokens: ^[dynamic]Text_Token) {
 	if len(text) == 0 {
 		return
 	}
@@ -81,6 +81,47 @@ tokenize_text :: proc(text: string, font_id: u16, text_tokens: ^[dynamic]Text_To
 	}
 }
 
+// TODO(Thomas): Not sure if I like having to pass in pointer for both
+// these two dynamic arrays, might be better to pass in allocator
+paragraph_segmentation :: proc(
+	text: string,
+	tokens: ^[dynamic]Text_Token,
+	paragraphs: ^[dynamic]Text_Range,
+) {
+	// split into tokens
+	// break into lines based on newlines
+	// output something like []Text_Range,
+	// or maybe Text_Span which holds []runes.
+	// Text_Span needs another processing step though
+
+	tokenize_text(text, tokens)
+
+	paragraph_start := 0
+	paragraph_end := 0
+
+	for token in tokens {
+		if token.kind == .Newline {
+			append(paragraphs, Text_Range{start = paragraph_start, end = paragraph_end})
+			paragraph_start = paragraph_end
+		} else {
+			paragraph_end = token.range.end
+		}
+	}
+
+	// Append the remaining paragraph, this happens when the text ends on
+	// a word or whitespace
+	if paragraph_end != paragraph_start {
+		append(paragraphs, Text_Range{start = paragraph_start, end = paragraph_end})
+	}
+}
+
+// TODO(Thomas): Better name?
+style_analysis :: proc() {}
+
+bidi_analysis :: proc() {}
+
+shaping :: proc() {}
+
 // ------------ TESTS -------------
 
 expect_tokens :: proc(t: ^testing.T, tokens: []Text_Token, expected_tokens: []Text_Token) {
@@ -90,13 +131,24 @@ expect_tokens :: proc(t: ^testing.T, tokens: []Text_Token, expected_tokens: []Te
 	}
 }
 
+expect_paragraphs :: proc(
+	t: ^testing.T,
+	paragraphs: []Text_Range,
+	expected_paragraphs: []Text_Range,
+) {
+	testing.expect_value(t, len(paragraphs), len(expected_paragraphs))
+	for paragraph, idx in paragraphs {
+		testing.expect_value(t, paragraph, expected_paragraphs[idx])
+	}
+}
+
 @(test)
 test_tokenize_text :: proc(t: ^testing.T) {
 	text := "Hello\n"
 
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
 	defer free_all(context.temp_allocator)
-	tokenize_text(text, 0, &tokens)
+	tokenize_text(text, &tokens)
 	expected_tokens := []Text_Token {
 		Text_Token{kind = .Word, range = {start = 0, end = 5}},
 		Text_Token{kind = .Newline, range = {start = 5, end = 6}},
@@ -110,7 +162,7 @@ test_tokenize_text_word_after_newline :: proc(t: ^testing.T) {
 
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
 	defer free_all(context.temp_allocator)
-	tokenize_text(text, 0, &tokens)
+	tokenize_text(text, &tokens)
 	expected_tokens := []Text_Token {
 		Text_Token{kind = .Word, range = {start = 0, end = 5}},
 		Text_Token{kind = .Newline, range = {start = 5, end = 6}},
@@ -125,7 +177,7 @@ test_tokenize_unicode_glyph :: proc(t: ^testing.T) {
 
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
 	defer free_all(context.temp_allocator)
-	tokenize_text(text, 0, &tokens)
+	tokenize_text(text, &tokens)
 	expected_tokens := []Text_Token{Text_Token{kind = .Word, range = {start = 0, end = 1}}}
 	expect_tokens(t, tokens[:], expected_tokens)
 }
@@ -136,7 +188,7 @@ test_tokenize_with_whitespace :: proc(t: ^testing.T) {
 
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
 	defer free_all(context.temp_allocator)
-	tokenize_text(text, 0, &tokens)
+	tokenize_text(text, &tokens)
 	expected_tokens := []Text_Token {
 		Text_Token{kind = .Word, range = {start = 0, end = 5}},
 		Text_Token{kind = .Whitespace, range = {start = 5, end = 6}},
@@ -149,7 +201,8 @@ test_tokenize_with_whitespace :: proc(t: ^testing.T) {
 test_tokenize_with_multiple_single_sequential_whitespace :: proc(t: ^testing.T) {
 	text := "Hello  World"
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
-	tokenize_text(text, 0, &tokens)
+	defer free_all(context.temp_allocator)
+	tokenize_text(text, &tokens)
 	expected_tokens := []Text_Token {
 		Text_Token{kind = .Word, range = {start = 0, end = 5}},
 		Text_Token{kind = .Whitespace, range = {start = 5, end = 6}},
@@ -163,11 +216,27 @@ test_tokenize_with_multiple_single_sequential_whitespace :: proc(t: ^testing.T) 
 test_tokenize_with_tab_whitespace :: proc(t: ^testing.T) {
 	text := "Hello\tWorld"
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
-	tokenize_text(text, 0, &tokens)
+	defer free_all(context.temp_allocator)
+	tokenize_text(text, &tokens)
 	expected_tokens := []Text_Token {
 		Text_Token{kind = .Word, range = {start = 0, end = 5}},
 		Text_Token{kind = .Whitespace, range = {start = 5, end = 6}},
 		Text_Token{kind = .Word, range = {start = 6, end = 11}},
 	}
 	expect_tokens(t, tokens[:], expected_tokens)
+}
+
+@(test)
+test_paragraph_segmentation :: proc(t: ^testing.T) {
+	text := "Hello\nWorld"
+	tokens := make([dynamic]Text_Token, context.temp_allocator)
+	paragraphs := make([dynamic]Text_Range, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	paragraph_segmentation(text, &tokens, &paragraphs)
+	expected_paragraphs := []Text_Range {
+		Text_Range{start = 0, end = 5},
+		Text_Range{start = 5, end = 11},
+	}
+	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
 }
