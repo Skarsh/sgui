@@ -24,12 +24,16 @@ Text_Token :: struct {
 	range: Text_Range,
 }
 
-Style_Run :: struct {
-	font_id:    u16,
-	font_size:  f32,
-	color:      base.Color,
-	bidi_level: u8,
-	runes:      []rune,
+Text_Style :: struct {
+	font_id:   base.Font_Handle,
+	font_size: f32,
+	color:     base.Color,
+}
+
+// TODO(Thomas): Is Style_Span or Style_Run a better name?
+Style_Range :: struct {
+	style: Text_Style,
+	range: Text_Range,
 }
 
 tokenize_text :: proc(text: string, text_tokens: ^[dynamic]Text_Token) {
@@ -101,9 +105,16 @@ paragraph_segmentation :: proc(
 // TODO(Thomas): Better name?
 style_analysis :: proc() {}
 
+// TODO(Thomas): We won't really do anything here to begin with I think.
+// We'll stub this one out so we
 bidi_analysis :: proc() {}
 
+// TODO(Thomas): What do we actually do here?
 shaping :: proc() {}
+
+layout_text :: proc(text: string, style_ranges: []Style_Range, available_width: f32) {
+
+}
 
 // ------------ TESTS -------------
 
