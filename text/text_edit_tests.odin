@@ -1,7 +1,8 @@
 package text
 
-import "../../base"
 import "core:testing"
+
+import base "../base"
 
 @(test)
 test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one_rune :: proc(t: ^testing.T) {

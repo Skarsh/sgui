@@ -4,9 +4,9 @@ import "core:container/queue"
 import "core:log"
 import "core:math"
 import "core:mem"
-import textpkg "text"
 
 import base "../base"
+import textpkg "../text"
 
 ELEMENT_STACK_SIZE :: #config(SUI_ELEMENT_STACK_SIZE, 64)
 PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)

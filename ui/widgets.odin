@@ -2,9 +2,9 @@ package ui
 
 import "core:fmt"
 import "core:math"
-import textpkg "text"
 
 import base "../base"
+import textpkg "../text"
 
 spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
 	_, open_ok := open_element(ctx, id, style, default_theme().spacer)

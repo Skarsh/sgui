@@ -6,8 +6,8 @@ if ! odin test ui -vet -strict-style -vet-tabs -warnings-as-errors -all-packages
     exit 1
 fi
 
-if ! odin test ui/text -vet -strict-style -vet-tabs -warnings-as-errors; then
-    echo "Ui/text tests failed! Cannot successfully build."
+if ! odin test text -vet -strict-style -vet-tabs -warnings-as-errors; then
+    echo "text tests failed! Cannot successfully build."
     exit 1
 fi
 

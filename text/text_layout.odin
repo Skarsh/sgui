@@ -4,7 +4,7 @@ import "core:testing"
 import "core:unicode"
 import "core:unicode/utf8"
 
-import base "../../base"
+import base "../base"
 
 Text_Token_Kind :: enum u8 {
 	Word,
