@@ -108,10 +108,18 @@ Glyph_Metrics :: struct {
 }
 
 // Function pointer types for text measurement
-Measure_Text_Proc :: proc(text: string, font_id: u16, user_data: rawptr) -> Text_Metrics
+Measure_Text_Proc :: proc(
+	text: string,
+	font_id: base.Font_Handle,
+	user_data: rawptr,
+) -> Text_Metrics
 
 // Function pointer for glyph measurement
-Measure_Glyph_Proc :: proc(codepoint: rune, font_id: u16, user_data: rawptr) -> Glyph_Metrics
+Measure_Glyph_Proc :: proc(
+	codepoint: rune,
+	font_id: base.Font_Handle,
+	user_data: rawptr,
+) -> Glyph_Metrics
 
 UI_Element_Text_Input_State :: struct {
 	state:             textpkg.Text_Edit_State,
@@ -145,7 +153,7 @@ Context :: struct {
 	dt:                      f32,
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:               f32,
-	font_id:                 u16,
+	font_id:                 base.Font_Handle,
 	window_size:             [2]i32,
 	active_element:          ^UI_Element,
 	// Theme support
@@ -214,7 +222,7 @@ init :: proc(
 	frame_allocator: mem.Allocator,
 	draw_cmd_allocator: mem.Allocator,
 	screen_size: [2]i32,
-	font_id: u16,
+	font_id: base.Font_Handle,
 	font_size: f32,
 ) {
 	ctx^ = {} // zero memory
@@ -243,7 +251,7 @@ set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
 	ctx.font_size = font_size
 }
 
-set_ctx_font_id :: proc(ctx: ^Context, font_id: u16) {
+set_ctx_font_id :: proc(ctx: ^Context, font_id: base.Font_Handle) {
 	ctx.font_id = font_id
 }
 
