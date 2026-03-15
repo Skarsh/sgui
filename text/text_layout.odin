@@ -83,11 +83,9 @@ tokenize_text :: proc(text: string, text_tokens: ^[dynamic]Text_Token) {
 
 paragraph_segmentation :: proc(
 	text: string,
-	tokens: ^[dynamic]Text_Token,
+	tokens: []Text_Token,
 	paragraphs: ^[dynamic]Text_Range,
 ) {
-	tokenize_text(text, tokens)
-
 	paragraph_start := 0
 
 	for token in tokens {
@@ -227,7 +225,8 @@ test_paragraph_segmentation :: proc(t: ^testing.T) {
 	paragraphs := make([dynamic]Text_Range, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
-	paragraph_segmentation(text, &tokens, &paragraphs)
+	tokenize_text(text, &tokens)
+	paragraph_segmentation(text, tokens[:], &paragraphs)
 	expected_paragraphs := []Text_Range {
 		Text_Range{start = 0, end = 6},
 		Text_Range{start = 6, end = 11},
@@ -242,7 +241,8 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 	paragraphs := make([dynamic]Text_Range, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
-	paragraph_segmentation(text, &tokens, &paragraphs)
+	tokenize_text(text, &tokens)
+	paragraph_segmentation(text, tokens[:], &paragraphs)
 	expected_paragraphs := []Text_Range {
 		Text_Range{start = 0, end = 6},
 		Text_Range{start = 6, end = 7},
