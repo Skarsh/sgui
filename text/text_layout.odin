@@ -36,6 +36,13 @@ Style_Range :: struct {
 	range: Text_Range,
 }
 
+Glyph :: struct {}
+
+Positioned_Glyph :: struct {
+	pos:   base.Vec2,
+	glyph: Glyph,
+}
+
 tokenize_text :: proc(text: string, text_tokens: ^[dynamic]Text_Token) {
 	if len(text) == 0 {
 		return
@@ -110,8 +117,10 @@ bidi_analysis :: proc() {}
 // TODO(Thomas): What do we actually do here?
 shaping :: proc() {}
 
-layout_text :: proc(text: string, style_ranges: []Style_Range, available_width: f32) {
-
+// TODO(Thomas): Implement this, not sure about the Positioned_Glyph type
+layout_text :: proc(text: string, available_width: f32) -> []Positioned_Glyph {
+	// TODO(Thomas): Is tokenization really the right thing to do???
+	return nil
 }
 
 // ------------ TESTS -------------
