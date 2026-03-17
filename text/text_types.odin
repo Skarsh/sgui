@@ -21,7 +21,7 @@ Codepoint_Metrics :: struct {
 Measure_Text_Proc :: proc(text: string, font_id: Font_Handle, user_data: rawptr) -> Text_Metrics
 
 // Function pointer for glyph measurement
-Measure_Code_Point_Proc :: proc(
+Measure_Codepoint_Proc :: proc(
 	codepoint: rune,
 	font_id: Font_Handle,
 	user_data: rawptr,

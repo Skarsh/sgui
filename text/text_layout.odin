@@ -90,7 +90,7 @@ shaping :: proc(
 	text: string,
 	run: Text_Run,
 	glyphs: ^[dynamic]Glyph,
-	measure_codepoint_proc: Measure_Code_Point_Proc,
+	measure_codepoint_proc: Measure_Codepoint_Proc,
 ) {
 	// TODO(Thomas): Doing a very simple version here now
 	// Thinking about just calling a simple measure_width procedure or
@@ -119,7 +119,7 @@ layout_lines :: proc(glyphs: []Glyph, max_width: f32) -> []Line {
 layout_text :: proc(
 	text: string,
 	available_width: f32,
-	measure_codepoint_proc: Measure_Code_Point_Proc,
+	measure_codepoint_proc: Measure_Codepoint_Proc,
 ) -> []Positioned_Glyph {
 
 	// Minimal pipeline for now
