@@ -1,5 +1,6 @@
 package text
 
+import "core:log"
 import "core:testing"
 import "core:unicode/utf8"
 
@@ -75,33 +76,64 @@ paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
 
 
 // TODO(Thomas): Better name?
-style_analysis :: proc() {}
+style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
+	for paragraph in paragraphs {
+		append(text_runs, Text_Run{range = paragraph.range})
+	}
+}
 
 // TODO(Thomas): We won't really do anything here to begin with I think.
 // We'll stub this one out so we
 bidi_analysis :: proc() {}
 
-shaping :: proc(text: string, run: Text_Run) -> []Glyph {
+shaping :: proc(
+	text: string,
+	run: Text_Run,
+	glyphs: ^[dynamic]Glyph,
+	measure_codepoint_proc: Measure_Code_Point_Proc,
+) {
 	// TODO(Thomas): Doing a very simple version here now
 	// Thinking about just calling a simple measure_width procedure or
 	// something for the text that the Text_Run represents, just something
 	// that is good enough for making simple glyphs for ASCII text.
 	// Should aim for having actual correct clusters though, but might prove
 	// hard without actual shaping library.
-	return nil
+
+	// iterate over each
+	sub := text[run.range.start:run.range.end]
+	// TODO(Thomas): font_id Font_Handle is hardcoded here for now, this should come
+	// in with other contextual stuff that we need, probably / maybe stored on the Text_Run?
+	font_id :: 0
+	for r in sub {
+		codepoint_metrics := measure_codepoint_proc(r, font_id, nil)
+		log.info("codepoint_metrics: ", codepoint_metrics)
+	}
 }
 
 layout_lines :: proc(glyphs: []Glyph, max_width: f32) -> []Line {
 	return nil
 }
 
-layout_text :: proc(text: string, available_width: f32) -> []Positioned_Glyph {
+// TODO(Thomas): Hardcoded use of context.allocator here. We need to think about
+// good allocation strategies here, can we get away with an arena, e.g. the frame arena?
+layout_text :: proc(
+	text: string,
+	available_width: f32,
+	measure_codepoint_proc: Measure_Code_Point_Proc,
+) -> []Positioned_Glyph {
 
 	// Minimal pipeline for now
+	paragraphs := make([dynamic]Paragraph, context.allocator)
+	paragraph_segmentation(text, &paragraphs)
 
-	shaping("", Text_Run{})
+	text_runs := make([dynamic]Text_Run, context.allocator)
+	style_analysis(paragraphs[:], &text_runs)
 
-	glyphs: [10]Glyph = {}
+	glyphs := make([dynamic]Glyph, context.allocator)
+	for text_run in text_runs {
+		shaping("", text_run, &glyphs, measure_codepoint_proc)
+	}
+
 	_ = layout_lines(glyphs[:], 0)
 
 	// TODO(Thomas: Step for producing Positioned_Glyphs from lines is missing
@@ -110,6 +142,23 @@ layout_text :: proc(text: string, available_width: f32) -> []Positioned_Glyph {
 }
 
 // ------------ TESTS -------------
+
+
+// TODO(Thomas): Mock procedures and constants here are duplicates from ui/test_harness.odin.
+// Should we provide this from this package?? Or is it actually reasonable that usage code that needs to
+// mock it does that by themselves?
+MOCK_CHAR_WIDTH :: 10
+MOCK_LINE_HEIGHT :: 10
+
+mock_measure_codepoint_proc :: proc(
+	codepoint: rune,
+	font_id: Font_Handle,
+	user_data: rawptr,
+) -> Codepoint_Metrics {
+	width: f32 = MOCK_CHAR_WIDTH
+	left_bearing: f32 = MOCK_CHAR_WIDTH
+	return Codepoint_Metrics{width = width, left_bearing = left_bearing}
+}
 
 expect_paragraphs :: proc(
 	t: ^testing.T,
@@ -151,4 +200,21 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 		Paragraph{Text_Range{start = 7, end = 12}},
 	}
 	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
+}
+
+@(test)
+test_shaping :: proc(t: ^testing.T) {
+	text := "Hello\nWorld"
+	paragraphs := make([dynamic]Paragraph, context.temp_allocator)
+	defer free_all(context.temp_allocator)
+
+	paragraph_segmentation(text, &paragraphs)
+
+	text_runs := make([dynamic]Text_Run, context.temp_allocator)
+	style_analysis(paragraphs[:], &text_runs)
+
+	glyphs := make([dynamic]Glyph, context.temp_allocator)
+	for text_run in text_runs {
+		shaping(text, text_run, &glyphs, mock_measure_codepoint_proc)
+	}
 }
