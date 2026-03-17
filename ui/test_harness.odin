@@ -87,7 +87,7 @@ run_ui_test :: proc(
 
 	ctx := &test_env.ctx
 
-	set_text_measurement_callbacks(ctx, mock_measure_text_proc, mock_measure_glyph_proc, nil)
+	set_text_measurement_callbacks(ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
 
 	begin(ctx)
 	build_ui(ctx, data)
@@ -170,7 +170,7 @@ mock_measure_text_proc :: proc(
 	return textpkg.Text_Metrics{width = width, line_height = line_height}
 }
 
-mock_measure_glyph_proc :: proc(
+mock_measure_codepoint_proc :: proc(
 	codepoint: rune,
 	font_id: textpkg.Font_Handle,
 	user_data: rawptr,
