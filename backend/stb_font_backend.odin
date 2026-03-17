@@ -44,7 +44,7 @@ STB_Font_Context :: struct {
 
 stb_measure_text :: proc(
 	text: string,
-	font_id: base.Font_Handle,
+	font_id: textpkg.Font_Handle,
 	user_data: rawptr,
 ) -> textpkg.Text_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
@@ -83,7 +83,7 @@ stb_measure_text :: proc(
 
 stb_measure_codepoint :: proc(
 	codepoint: rune,
-	font_id: base.Font_Handle,
+	font_id: textpkg.Font_Handle,
 	user_data: rawptr,
 ) -> textpkg.Codepoint_Metrics {
 	ctx := cast(^STB_Font_Context)user_data

@@ -125,7 +125,7 @@ Context :: struct {
 	dt:                      f32,
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:               f32,
-	font_id:                 base.Font_Handle,
+	font_id:                 textpkg.Font_Handle,
 	window_size:             [2]i32,
 	active_element:          ^UI_Element,
 	// Theme support
@@ -194,7 +194,7 @@ init :: proc(
 	frame_allocator: mem.Allocator,
 	draw_cmd_allocator: mem.Allocator,
 	screen_size: [2]i32,
-	font_id: base.Font_Handle,
+	font_id: textpkg.Font_Handle,
 	font_size: f32,
 ) {
 	ctx^ = {} // zero memory
@@ -223,7 +223,7 @@ set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
 	ctx.font_size = font_size
 }
 
-set_ctx_font_id :: proc(ctx: ^Context, font_id: base.Font_Handle) {
+set_ctx_font_id :: proc(ctx: ^Context, font_id: textpkg.Font_Handle) {
 	ctx.font_id = font_id
 }
 

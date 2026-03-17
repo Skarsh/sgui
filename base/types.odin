@@ -80,6 +80,3 @@ Vector3i32 :: [3]i32
 
 Vec4 :: [4]f32
 Vector4i32 :: [4]i32
-
-// TODO(Thomas): Not sure if it belongs in here
-Font_Handle :: int

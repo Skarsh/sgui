@@ -1,7 +1,5 @@
 package text
 
-import "../base"
-
 Font_Handle :: int
 
 // Font-agnostic text measurement result
@@ -20,15 +18,11 @@ Codepoint_Metrics :: struct {
 }
 
 // Function pointer types for text measurement
-Measure_Text_Proc :: proc(
-	text: string,
-	font_id: base.Font_Handle,
-	user_data: rawptr,
-) -> Text_Metrics
+Measure_Text_Proc :: proc(text: string, font_id: Font_Handle, user_data: rawptr) -> Text_Metrics
 
 // Function pointer for glyph measurement
 Measure_Code_Point_Proc :: proc(
 	codepoint: rune,
-	font_id: base.Font_Handle,
+	font_id: Font_Handle,
 	user_data: rawptr,
 ) -> Codepoint_Metrics

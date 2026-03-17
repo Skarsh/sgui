@@ -6,6 +6,7 @@ import "core:mem/virtual"
 
 import "../backend"
 import "../base"
+import "../text"
 import "../ui"
 
 _on_quit_callback :: proc(user_data: rawptr) {
@@ -36,7 +37,7 @@ App_Config :: struct {
 	title:        cstring,
 	window_size:  base.Vector2i32,
 	font_path:    string,
-	font_id:      base.Font_Handle,
+	font_id:      text.Font_Handle,
 	font_size:    f32,
 	platform_api: backend.Platform_API,
 	window_api:   backend.Window_API,

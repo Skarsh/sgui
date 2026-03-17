@@ -9,6 +9,7 @@ import "core:unicode"
 import "core:unicode/utf8"
 
 import base "../base"
+import textpkg "../text"
 
 Token_Kind :: enum u8 {
 	Word,
@@ -40,7 +41,7 @@ Text_Line :: struct {
 tokenize_text :: proc(
 	ctx: ^Context,
 	text: string,
-	font_id: base.Font_Handle,
+	font_id: textpkg.Font_Handle,
 	tokens: ^[dynamic]Text_Token,
 ) {
 	if len(text) == 0 {
@@ -323,7 +324,7 @@ measure_text_content :: proc(
 	return
 }
 
-measure_string_width :: proc(ctx: ^Context, text: string, font_id: base.Font_Handle) -> f32 {
+measure_string_width :: proc(ctx: ^Context, text: string, font_id: textpkg.Font_Handle) -> f32 {
 	assert(ctx.measure_text_proc != nil)
 	if ctx.measure_text_proc != nil {
 		metrics := ctx.measure_text_proc(text, font_id, ctx.font_user_data)
@@ -334,7 +335,11 @@ measure_string_width :: proc(ctx: ^Context, text: string, font_id: base.Font_Han
 	}
 }
 
-measure_string_line_height :: proc(ctx: ^Context, text: string, font_id: base.Font_Handle) -> f32 {
+measure_string_line_height :: proc(
+	ctx: ^Context,
+	text: string,
+	font_id: textpkg.Font_Handle,
+) -> f32 {
 	assert(ctx.measure_text_proc != nil)
 	if ctx.measure_text_proc != nil {
 		metrics := ctx.measure_text_proc(text, font_id, ctx.font_user_data)
@@ -345,7 +350,7 @@ measure_string_line_height :: proc(ctx: ^Context, text: string, font_id: base.Fo
 	}
 }
 
-measure_glyph_width :: proc(ctx: ^Context, codepoint: rune, font_id: base.Font_Handle) -> f32 {
+measure_glyph_width :: proc(ctx: ^Context, codepoint: rune, font_id: textpkg.Font_Handle) -> f32 {
 	assert(ctx.measure_glyph_proc != nil)
 	if ctx.measure_glyph_proc != nil {
 		metrics := ctx.measure_glyph_proc(codepoint, font_id, ctx.font_user_data)

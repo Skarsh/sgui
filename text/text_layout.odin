@@ -21,7 +21,7 @@ Paragraph :: struct {
 }
 
 Text_Style :: struct {
-	font_id:   base.Font_Handle,
+	font_id:   Font_Handle,
 	font_size: f32,
 	color:     base.Color,
 }

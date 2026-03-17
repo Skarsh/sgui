@@ -161,7 +161,7 @@ MOCK_LINE_HEIGHT :: 10
 
 mock_measure_text_proc :: proc(
 	text: string,
-	font_id: base.Font_Handle,
+	font_id: textpkg.Font_Handle,
 	user_data: rawptr,
 ) -> textpkg.Text_Metrics {
 	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
@@ -172,7 +172,7 @@ mock_measure_text_proc :: proc(
 
 mock_measure_glyph_proc :: proc(
 	codepoint: rune,
-	font_id: base.Font_Handle,
+	font_id: textpkg.Font_Handle,
 	user_data: rawptr,
 ) -> textpkg.Codepoint_Metrics {
 	width: f32 = MOCK_CHAR_WIDTH
