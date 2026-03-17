@@ -81,11 +81,11 @@ stb_measure_text :: proc(
 	}
 }
 
-stb_measure_glyph :: proc(
+stb_measure_codepoint :: proc(
 	codepoint: rune,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> ui.Glyph_Metrics {
+) -> ui.Codepoint_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_metrics := ctx.font_metrics
 	scale := font_metrics.scale
@@ -94,5 +94,5 @@ stb_measure_glyph :: proc(
 	stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
 	width := i32(f32(advance_width) * scale)
 
-	return ui.Glyph_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
+	return ui.Codepoint_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
 }

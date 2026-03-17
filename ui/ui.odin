@@ -102,7 +102,7 @@ Text_Metrics :: struct {
 }
 
 // Font-agnostic glyph metrics
-Glyph_Metrics :: struct {
+Codepoint_Metrics :: struct {
 	width:        f32,
 	left_bearing: f32,
 }
@@ -115,11 +115,11 @@ Measure_Text_Proc :: proc(
 ) -> Text_Metrics
 
 // Function pointer for glyph measurement
-Measure_Glyph_Proc :: proc(
+Measure_Code_Point_Proc :: proc(
 	codepoint: rune,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> Glyph_Metrics
+) -> Codepoint_Metrics
 
 UI_Element_Text_Input_State :: struct {
 	state:             textpkg.Text_Edit_State,
@@ -145,7 +145,7 @@ Context :: struct {
 	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
 	interactive_elements:    [dynamic]^UI_Element,
 	measure_text_proc:       Measure_Text_Proc,
-	measure_glyph_proc:      Measure_Glyph_Proc,
+	measure_glyph_proc:      Measure_Code_Point_Proc,
 	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
 	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
 	font_user_data:          rawptr,
@@ -188,7 +188,7 @@ Comm :: struct {
 set_text_measurement_callbacks :: proc(
 	ctx: ^Context,
 	measure_text: Measure_Text_Proc,
-	measure_glyph: Measure_Glyph_Proc,
+	measure_glyph: Measure_Code_Point_Proc,
 	user_data: rawptr,
 ) {
 	ctx.measure_text_proc = measure_text

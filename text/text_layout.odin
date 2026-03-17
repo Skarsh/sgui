@@ -32,6 +32,8 @@ Style_Range :: struct {
 	range: Text_Range,
 }
 
+// TODO(Thomas): codepoint isn't really a rune, this should probably be something else.
+// Not sure what yet though.
 Glyph :: struct {
 	codepoint: rune,
 	advance:   f32,

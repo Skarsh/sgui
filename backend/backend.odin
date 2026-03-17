@@ -111,7 +111,7 @@ init_ctx :: proc(
 	ui.set_text_measurement_callbacks(
 		ui_ctx,
 		stb_measure_text,
-		stb_measure_glyph,
+		stb_measure_codepoint,
 		&ctx.stb_font_ctx,
 	)
 

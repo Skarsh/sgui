@@ -173,8 +173,8 @@ mock_measure_glyph_proc :: proc(
 	codepoint: rune,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> Glyph_Metrics {
+) -> Codepoint_Metrics {
 	width: f32 = MOCK_CHAR_WIDTH
 	left_bearing: f32 = MOCK_CHAR_WIDTH
-	return Glyph_Metrics{width = width, left_bearing = left_bearing}
+	return Codepoint_Metrics{width = width, left_bearing = left_bearing}
 }
