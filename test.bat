@@ -7,7 +7,7 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-odin test ui\text -vet -strict-style -vet-tabs -warnings-as-errors
+odin test text -vet -strict-style -vet-tabs -warnings-as-errors
 IF %ERRORLEVEL% NEQ 0 (
     echo Ui/text tests failed! Cannot successfully build.
     exit /b 1
