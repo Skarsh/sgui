@@ -202,6 +202,8 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
 }
 
+// TODO(Thomas): This isn't testing anything, it's only to have a simple way to
+// see output from the different stages easily.
 @(test)
 test_shaping :: proc(t: ^testing.T) {
 	text := "Hello\nWorld"
