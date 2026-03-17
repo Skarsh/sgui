@@ -93,34 +93,6 @@ Command_Shape :: struct {
 
 Color_Style :: [Color_Type]base.Color
 
-// Font-agnostic text measurement result
-Text_Metrics :: struct {
-	width:       f32,
-	ascent:      f32,
-	descent:     f32,
-	line_height: f32,
-}
-
-// Font-agnostic glyph metrics
-Codepoint_Metrics :: struct {
-	width:        f32,
-	left_bearing: f32,
-}
-
-// Function pointer types for text measurement
-Measure_Text_Proc :: proc(
-	text: string,
-	font_id: base.Font_Handle,
-	user_data: rawptr,
-) -> Text_Metrics
-
-// Function pointer for glyph measurement
-Measure_Code_Point_Proc :: proc(
-	codepoint: rune,
-	font_id: base.Font_Handle,
-	user_data: rawptr,
-) -> Codepoint_Metrics
-
 UI_Element_Text_Input_State :: struct {
 	state:             textpkg.Text_Edit_State,
 	caret_blink_timer: f32,
@@ -144,8 +116,8 @@ Context :: struct {
 	element_cache:           map[UI_Key]^UI_Element,
 	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
 	interactive_elements:    [dynamic]^UI_Element,
-	measure_text_proc:       Measure_Text_Proc,
-	measure_glyph_proc:      Measure_Code_Point_Proc,
+	measure_text_proc:       textpkg.Measure_Text_Proc,
+	measure_glyph_proc:      textpkg.Measure_Code_Point_Proc,
 	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
 	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
 	font_user_data:          rawptr,
@@ -187,8 +159,8 @@ Comm :: struct {
 
 set_text_measurement_callbacks :: proc(
 	ctx: ^Context,
-	measure_text: Measure_Text_Proc,
-	measure_glyph: Measure_Code_Point_Proc,
+	measure_text: textpkg.Measure_Text_Proc,
+	measure_glyph: textpkg.Measure_Code_Point_Proc,
 	user_data: rawptr,
 ) {
 	ctx.measure_text_proc = measure_text

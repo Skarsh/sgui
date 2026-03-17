@@ -7,6 +7,7 @@ import "core:strings"
 import "core:testing"
 
 import base "../base"
+import textpkg "../text"
 
 // TODO(Thomas): Update with the allocators that the library uses, e.g. if we settle on
 // Pool_Allocator etc.
@@ -162,19 +163,19 @@ mock_measure_text_proc :: proc(
 	text: string,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> Text_Metrics {
+) -> textpkg.Text_Metrics {
 	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
 	line_height: f32 = MOCK_LINE_HEIGHT
 
-	return Text_Metrics{width = width, line_height = line_height}
+	return textpkg.Text_Metrics{width = width, line_height = line_height}
 }
 
 mock_measure_glyph_proc :: proc(
 	codepoint: rune,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> Codepoint_Metrics {
+) -> textpkg.Codepoint_Metrics {
 	width: f32 = MOCK_CHAR_WIDTH
 	left_bearing: f32 = MOCK_CHAR_WIDTH
-	return Codepoint_Metrics{width = width, left_bearing = left_bearing}
+	return textpkg.Codepoint_Metrics{width = width, left_bearing = left_bearing}
 }

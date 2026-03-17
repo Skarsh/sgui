@@ -6,7 +6,7 @@ import "core:os"
 import stbtt "vendor:stb/truetype"
 
 import base "../base"
-import ui "../ui"
+import textpkg "../text"
 
 Font_Info :: stbtt.fontinfo
 
@@ -46,7 +46,7 @@ stb_measure_text :: proc(
 	text: string,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> ui.Text_Metrics {
+) -> textpkg.Text_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_metrics := ctx.font_metrics
 	scale := font_metrics.scale
@@ -73,7 +73,7 @@ stb_measure_text :: proc(
 		width += f32(advance_width) * scale
 	}
 
-	return ui.Text_Metrics {
+	return textpkg.Text_Metrics {
 		width = width,
 		ascent = ascent,
 		descent = descent,
@@ -85,7 +85,7 @@ stb_measure_codepoint :: proc(
 	codepoint: rune,
 	font_id: base.Font_Handle,
 	user_data: rawptr,
-) -> ui.Codepoint_Metrics {
+) -> textpkg.Codepoint_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_metrics := ctx.font_metrics
 	scale := font_metrics.scale
@@ -94,5 +94,5 @@ stb_measure_codepoint :: proc(
 	stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
 	width := i32(f32(advance_width) * scale)
 
-	return ui.Codepoint_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
+	return textpkg.Codepoint_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
 }
