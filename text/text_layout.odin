@@ -12,8 +12,9 @@ Text_Run :: struct {
 }
 
 Paragraph :: struct {
-	text_range:  base.Range,
-	glyph_range: base.Range,
+	text_range:     base.Range,
+	text_run_range: base.Range,
+	glyph_range:    base.Range,
 }
 
 Text_Style :: struct {
@@ -69,8 +70,18 @@ paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
 
 // TODO(Thomas): Better name?
 style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
-	for paragraph in paragraphs {
+	// TODO(Thomas): This looks a little dumb right now, but sets us up for being able
+	// to deal with multiple Text_Runs in a single paragraph later.
+	text_run_start := 0
+	text_run_end := 0
+	for &paragraph in paragraphs {
+		text_run_end += 1
 		append(text_runs, Text_Run{range = paragraph.text_range})
+		paragraph.text_run_range = base.Range {
+			start = text_run_start,
+			end   = text_run_end,
+		}
+		text_run_start = text_run_end
 	}
 }
 
@@ -78,27 +89,38 @@ style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
 // We'll stub this one out so we
 bidi_analysis :: proc() {}
 
+// TODO(Thomas): Should aim for having actual correct clusters even for simple v0 version,
+// but might prove hard without actual shaping library.
 shaping :: proc(
 	text: string,
-	run: Text_Run,
+	paragraphs: []Paragraph,
+	text_runs: []Text_Run,
 	glyphs: ^[dynamic]Glyph,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
 ) {
-	// TODO(Thomas): Doing a very simple version here now
-	// Thinking about just calling a simple measure_width procedure or
-	// something for the text that the Text_Run represents, just something
-	// that is good enough for making simple glyphs for ASCII text.
-	// Should aim for having actual correct clusters though, but might prove
-	// hard without actual shaping library.
-
-	// iterate over each
-	sub := text[run.range.start:run.range.end]
 	// TODO(Thomas): font_id Font_Handle is hardcoded here for now, this should come
 	// in with other contextual stuff that we need, probably / maybe stored on the Text_Run?
-	font_id :: 0
-	for r in sub {
-		codepoint_metrics := measure_codepoint_proc(r, font_id, nil)
-		append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
+	FONT_ID :: 0
+	glyph_start := 0
+	glyph_end := 0
+	for &paragraph in paragraphs {
+		runs := text_runs[paragraph.text_run_range.start:paragraph.text_run_range.end]
+		for run in runs {
+			sub := text[run.range.start:run.range.end]
+			// TODO(Thomas): BIG HACK - Glyph end idx using byte idx in the sub here is VERY temporary
+			// just to make something work for ASCII to have the pipeline up and running.
+			// Not sure how we should deal with this, but this is probably where the meat of the shaping is coming in
+			for r in sub {
+				glyph_end += 1
+				codepoint_metrics := measure_codepoint_proc(r, FONT_ID, nil)
+				append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
+			}
+		}
+		paragraph.glyph_range = base.Range {
+			start = glyph_start,
+			end   = glyph_end,
+		}
+		glyph_start = glyph_end
 	}
 }
 
@@ -142,13 +164,9 @@ layout_text :: proc(
 	text_runs := make([dynamic]Text_Run, context.allocator)
 	style_analysis(paragraphs[:], &text_runs)
 
-	// TODO(Thomas): We're losing the paragraph segmentation newline break here.
-	// What about [dynamic][]Glyph?
 	glyphs := make([dynamic]Glyph, context.allocator)
-	for text_run in text_runs {
-		shaping("", text_run, &glyphs, measure_codepoint_proc)
-	}
 
+	shaping(text, paragraphs[:], text_runs[:], &glyphs, measure_codepoint_proc)
 
 	lines := make([dynamic]Line, context.allocator)
 	layout_lines(glyphs[:], &lines, 0)
@@ -159,10 +177,6 @@ layout_text :: proc(
 
 // ------------ TESTS -------------
 
-
-// TODO(Thomas): Mock procedures and constants here are duplicates from ui/test_harness.odin.
-// Should we provide this from this package?? Or is it actually reasonable that usage code that needs to
-// mock it does that by themselves?
 MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
 
@@ -232,11 +246,14 @@ test_shaping :: proc(t: ^testing.T) {
 	style_analysis(paragraphs[:], &text_runs)
 
 	glyphs := make([dynamic]Glyph, context.temp_allocator)
-	for text_run in text_runs {
-		shaping(text, text_run, &glyphs, mock_measure_codepoint_proc)
-	}
+
+	shaping(text, paragraphs[:], text_runs[:], &glyphs, mock_measure_codepoint_proc)
 
 	for glyph in glyphs {
 		log.info("glyph: ", glyph)
+	}
+
+	for paragraph in paragraphs {
+		log.info("paragraph: ", paragraph)
 	}
 }
