@@ -6,19 +6,14 @@ import "core:unicode/utf8"
 
 import base "../base"
 
-Byte_Idx :: int
-
-Text_Range :: struct {
-	start: Byte_Idx,
-	end:   Byte_Idx,
-}
-
+// Range is in bytes
 Text_Run :: struct {
-	range: Text_Range,
+	range: base.Range,
 }
 
 Paragraph :: struct {
-	range: Text_Range,
+	text_range:  base.Range,
+	glyph_range: base.Range,
 }
 
 Text_Style :: struct {
@@ -29,15 +24,15 @@ Text_Style :: struct {
 
 // TODO(Thomas): Is Style_Span or Style_Run a better name?
 Style_Range :: struct {
-	style: Text_Style,
-	range: Text_Range,
+	style:      Text_Style,
+	text_range: base.Range,
 }
 
 // TODO(Thomas): codepoint isn't really a rune, this should probably be something else.
 // Not sure what yet though.
 Glyph :: struct {
 	codepoint: rune,
-	advance:   f32,
+	metrics:   Codepoint_Metrics,
 }
 
 Positioned_Glyph :: struct {
@@ -45,11 +40,8 @@ Positioned_Glyph :: struct {
 	glyph: Glyph,
 }
 
-Glyph_Idx :: int
-
 Line :: struct {
-	start: Glyph_Idx,
-	end:   Glyph_Idx,
+	glyph_range: base.Range,
 }
 
 paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
@@ -66,19 +58,19 @@ paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
 		byte_pos += width
 
 		if r == '\n' {
-			append(paragraphs, Paragraph{range = {start = start, end = byte_pos}})
+			append(paragraphs, Paragraph{text_range = {start = start, end = byte_pos}})
 			start = byte_pos
 		}
 	}
 
-	append(paragraphs, Paragraph{range = {start = start, end = len(text)}})
+	append(paragraphs, Paragraph{text_range = {start = start, end = len(text)}})
 }
 
 
 // TODO(Thomas): Better name?
 style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
 	for paragraph in paragraphs {
-		append(text_runs, Text_Run{range = paragraph.range})
+		append(text_runs, Text_Run{range = paragraph.text_range})
 	}
 }
 
@@ -106,16 +98,37 @@ shaping :: proc(
 	font_id :: 0
 	for r in sub {
 		codepoint_metrics := measure_codepoint_proc(r, font_id, nil)
-		log.info("codepoint_metrics: ", codepoint_metrics)
+		append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
 	}
 }
 
-layout_lines :: proc(glyphs: []Glyph, max_width: f32) -> []Line {
-	return nil
+layout_lines :: proc(glyphs: []Glyph, lines: ^[dynamic]Line, max_width: f32) {
+	// TODO(Thomas): Need to break on good line break opporunity here, e.g.
+	// the last whitespace before overflowing.
+	// Greedy approach, keep accumulating glyphs into the line until it can't fit anymore.
+	line_width: f32 = 0
+	start_idx := 0
+	for glyph, idx in glyphs {
+		if line_width + glyph.metrics.width >= max_width {
+			append(lines, Line{glyph_range = {start = start_idx, end = idx}})
+			start_idx = idx
+			line_width = 0
+		}
+
+		line_width += glyph.metrics.width
+	}
+
+	if line_width > 0 {
+		append(lines, Line{glyph_range = {start = start_idx, end = len(glyphs)}})
+	}
 }
 
 // TODO(Thomas): Hardcoded use of context.allocator here. We need to think about
 // good allocation strategies here, can we get away with an arena, e.g. the frame arena?
+// TODO(Thomas): Maybe the output type here should be some Row or Line type instead,
+// containing Positioned_Glyphs, so that their position is relative to the line baseline.
+// Alternatively, if this knows the line height, all the positional information can be stored
+// in the Positioned_Glyph instead, but that's a future imrpovement I think.
 layout_text :: proc(
 	text: string,
 	available_width: f32,
@@ -129,15 +142,18 @@ layout_text :: proc(
 	text_runs := make([dynamic]Text_Run, context.allocator)
 	style_analysis(paragraphs[:], &text_runs)
 
+	// TODO(Thomas): We're losing the paragraph segmentation newline break here.
+	// What about [dynamic][]Glyph?
 	glyphs := make([dynamic]Glyph, context.allocator)
 	for text_run in text_runs {
 		shaping("", text_run, &glyphs, measure_codepoint_proc)
 	}
 
-	_ = layout_lines(glyphs[:], 0)
+
+	lines := make([dynamic]Line, context.allocator)
+	layout_lines(glyphs[:], &lines, 0)
 
 	// TODO(Thomas: Step for producing Positioned_Glyphs from lines is missing
-
 	return nil
 }
 
@@ -180,8 +196,8 @@ test_paragraph_segmentation :: proc(t: ^testing.T) {
 
 	paragraph_segmentation(text, &paragraphs)
 	expected_paragraphs := []Paragraph {
-		Paragraph{Text_Range{start = 0, end = 6}},
-		Paragraph{Text_Range{start = 6, end = 11}},
+		Paragraph{text_range = base.Range{start = 0, end = 6}},
+		Paragraph{text_range = base.Range{start = 6, end = 11}},
 	}
 	expect_paragraphs(t, paragraphs[:], expected_paragraphs)
 }
@@ -195,9 +211,9 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 
 	paragraph_segmentation(text, &paragraphs)
 	expected_paragraphs := []Paragraph {
-		Paragraph{Text_Range{start = 0, end = 6}},
-		Paragraph{Text_Range{start = 6, end = 7}},
-		Paragraph{Text_Range{start = 7, end = 12}},
+		Paragraph{text_range = base.Range{start = 0, end = 6}},
+		Paragraph{text_range = base.Range{start = 6, end = 7}},
+		Paragraph{text_range = base.Range{start = 7, end = 12}},
 	}
 	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
 }
@@ -218,5 +234,9 @@ test_shaping :: proc(t: ^testing.T) {
 	glyphs := make([dynamic]Glyph, context.temp_allocator)
 	for text_run in text_runs {
 		shaping(text, text_run, &glyphs, mock_measure_codepoint_proc)
+	}
+
+	for glyph in glyphs {
+		log.info("glyph: ", glyph)
 	}
 }
