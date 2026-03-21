@@ -39,6 +39,7 @@ text_edit_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Edi
 	return Text_Edit_State{buffer = text_buf, selection = {active = 0, anchor = 0}}
 }
 
+// TODO(Thomas): Pretty sure this can be simplified in a good way.
 // TODO(Thomas): Expand command wiring for more shortcuts (select-all, clipboard, undo/redo).
 text_edit_handle_keys :: proc(
 	state: ^Text_Edit_State,
@@ -61,20 +62,30 @@ text_edit_handle_keys :: proc(
 				state.selection.active = end
 			}
 		case .C:
-			// TODO(Thomas): Copy selection
-			clipboard_command = .Copy
+			if ctrl_down {
+				// TODO(Thomas): Copy selection
+				clipboard_command = .Copy
+			}
 		case .V:
-			// TODO(Thomas): Paste selection
-			clipboard_command = .Paste
+			if ctrl_down {
+				// TODO(Thomas): Paste selection
+				clipboard_command = .Paste
+			}
 		case .X:
-			// TODO(Thomas): Cut selection
-			// TODO(Thomas): Does this really need its own clipboard command??
-			// In practice its just copy but, but the selection is deleted?
-			clipboard_command = .Cut
+			if ctrl_down {
+				// TODO(Thomas): Cut selection
+				// TODO(Thomas): Does this really need its own clipboard command??
+				// In practice its just copy but, but the selection is deleted?
+				clipboard_command = .Cut
+			}
 		case .Y:
-		// TODO(Thomas): Redo
+			if ctrl_down {
+				// TODO(Thomas): Redo
+			}
 		case .Z:
-		// TODO(Thomas): Undo
+			if ctrl_down {
+				// TODO(Thomas): Undo
+			}
 		case .Left:
 			translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
 			apply_move_or_select(state, translation, shift_down)
