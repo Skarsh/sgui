@@ -1,6 +1,7 @@
 package text
 
-import "core:log"
+import "core:mem"
+import "core:strings"
 import "core:testing"
 import "core:unicode/utf8"
 
@@ -88,7 +89,7 @@ style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
 }
 
 // TODO(Thomas): We won't really do anything here to begin with I think.
-// We'll stub this one out so we
+// We'll try to stub it out though, so the pipeline and data types is right.
 bidi_analysis :: proc() {}
 
 // TODO(Thomas): Should aim for having actual correct clusters even for simple v0 version,
@@ -136,11 +137,11 @@ layout_rows :: proc(
 ) {
 
 	line_height_offset: f32 = 0
+	start_idx := 0
+	end_idx := 0
 
 	for paragraph in paragraphs {
 		row_width: f32 = 0
-		start_idx := 0
-		end_idx := 0
 
 		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
 		glyph_offset := paragraph.glyph_range.start
@@ -167,44 +168,55 @@ layout_rows :: proc(
 			row_width += glyph.metrics.width
 		}
 
-		append(
-			rows,
-			Positioned_Row {
-				pos = base.Vec2{0, line_height_offset},
-				size = base.Vec2{row_width, line_height},
-				glyph_range = {start = start_idx, end = paragraph.glyph_range.end},
-			},
-		)
-		line_height_offset += line_height
+		if row_width > 0 {
+			end_idx = paragraph.glyph_range.end
+			append(
+				rows,
+				Positioned_Row {
+					pos = base.Vec2{0, line_height_offset},
+					size = base.Vec2{row_width, line_height},
+					glyph_range = {start = start_idx, end = end_idx},
+				},
+			)
+			start_idx = end_idx
+			line_height_offset += line_height
+
+		}
 	}
 }
 
 // TODO(Thomas): Hardcoded use of context.allocator here. We need to think about
 // good allocation strategies here, can we get away with an arena, e.g. the frame arena?
 // Don't return an instance of Text_Layout here? Take in ^Text_Layout instead?
+// It holds a slice into the rows, which is allocated by the passed in allocator,
+// so that lifetime needs to be made explicit and obvious at least.
 layout_text :: proc(
 	text: string,
 	available_width: f32,
 	font_handle: Font_Handle,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
 	measure_text_proc: Measure_Text_Proc,
+	allocator: mem.Allocator,
 ) -> Text_Layout {
 
 	// TODO(Thomas): This should be cached of course.
 	text_metrics := measure_text_proc(text, font_handle, nil)
 
 	// Minimal pipeline for now
-	paragraphs := make([dynamic]Paragraph, context.allocator)
+	paragraphs := make([dynamic]Paragraph, allocator)
 	paragraph_segmentation(text, &paragraphs)
 
-	text_runs := make([dynamic]Text_Run, context.allocator)
+	text_runs := make([dynamic]Text_Run, allocator)
 	style_analysis(paragraphs[:], &text_runs)
 
-	glyphs := make([dynamic]Glyph, context.allocator)
+	glyphs := make([dynamic]Glyph, allocator)
+
+	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
+	bidi_analysis()
 
 	shaping(text, paragraphs[:], text_runs[:], &glyphs, measure_codepoint_proc)
 
-	rows := make([dynamic]Positioned_Row, context.allocator)
+	rows := make([dynamic]Positioned_Row, allocator)
 	layout_rows(paragraphs[:], glyphs[:], &rows, available_width, text_metrics.line_height)
 
 	// TODO(Thomas): This could be done in layout_rows instead so we don't have
@@ -212,7 +224,7 @@ layout_text :: proc(
 	layout_size := base.Vec2{}
 	for row in rows {
 		layout_size.x = max(layout_size.x, row.size.x)
-		layout_size.y += layout_size.y
+		layout_size.y += row.size.y
 	}
 	return Text_Layout{size = layout_size, rows = rows[:]}
 }
@@ -227,9 +239,24 @@ mock_measure_codepoint_proc :: proc(
 	font_id: Font_Handle,
 	user_data: rawptr,
 ) -> Codepoint_Metrics {
-	width: f32 = MOCK_CHAR_WIDTH
-	left_bearing: f32 = MOCK_CHAR_WIDTH
+	width: f32 = 0
+	left_bearing: f32 = 0
+	if codepoint != '\n' {
+		width = MOCK_CHAR_WIDTH
+		left_bearing = MOCK_CHAR_WIDTH
+	}
 	return Codepoint_Metrics{width = width, left_bearing = left_bearing}
+}
+
+mock_measure_text_proc :: proc(
+	text: string,
+	font_id: Font_Handle,
+	user_data: rawptr,
+) -> Text_Metrics {
+	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
+	line_height: f32 = MOCK_LINE_HEIGHT
+
+	return Text_Metrics{width = width, line_height = line_height}
 }
 
 expect_paragraphs :: proc(
@@ -243,6 +270,28 @@ expect_paragraphs :: proc(
 	}
 }
 
+expect_positioned_rows :: proc(
+	t: ^testing.T,
+	positioned_rows: []Positioned_Row,
+	expected_positioned_rows: []Positioned_Row,
+) {
+	testing.expect_value(t, len(positioned_rows), len(expected_positioned_rows))
+	for row, idx in positioned_rows {
+		testing.expect_value(t, row, expected_positioned_rows[idx])
+	}
+}
+
+expect_text_layout :: proc(
+	t: ^testing.T,
+	text_layout: Text_Layout,
+	expected_text_layout: Text_Layout,
+) {
+	testing.expect_value(t, text_layout.size, expected_text_layout.size)
+	expect_positioned_rows(t, text_layout.rows, expected_text_layout.rows)
+}
+
+// TODO(Thomas): Remove this test when proper layout_text testing is done
+// it will catch what this is testing at a pubic interface level
 @(test)
 test_paragraph_segmentation :: proc(t: ^testing.T) {
 	text := "Hello\nWorld"
@@ -259,6 +308,8 @@ test_paragraph_segmentation :: proc(t: ^testing.T) {
 }
 
 
+// TODO(Thomas): Remove this test when proper layout_text testing is done
+// it will catch what this is testing at a pubic interface level
 @(test)
 test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 	text := "Hello\n\nWorld"
@@ -274,36 +325,37 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
 }
 
-// TODO(Thomas): This isn't testing anything, it's only to have a simple way to
-// see output from the different stages easily.
 @(test)
-test_layout_rows :: proc(t: ^testing.T) {
+test_layout_text :: proc(t: ^testing.T) {
 	text := "Hello\nWorld"
-	paragraphs := make([dynamic]Paragraph, context.temp_allocator)
+
+	font_handle :: 0
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{5 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{0, 0},
+				size = base.Vec2{5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 6},
+			},
+			Positioned_Row {
+				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
+				size = base.Vec2{5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 6, end = 11},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100,
+		font_handle,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
 	defer free_all(context.temp_allocator)
 
-	paragraph_segmentation(text, &paragraphs)
-
-	text_runs := make([dynamic]Text_Run, context.temp_allocator)
-	style_analysis(paragraphs[:], &text_runs)
-
-	glyphs := make([dynamic]Glyph, context.temp_allocator)
-
-	shaping(text, paragraphs[:], text_runs[:], &glyphs, mock_measure_codepoint_proc)
-
-	for glyph in glyphs {
-		log.info("glyph: ", glyph)
-	}
-
-	for paragraph in paragraphs {
-		log.info("paragraph: ", paragraph)
-	}
-
-	rows := make([dynamic]Positioned_Row, context.temp_allocator)
-
-	layout_rows(paragraphs[:], glyphs[:], &rows, 100.0, MOCK_LINE_HEIGHT)
-
-	for row in rows {
-		log.info("row: ", row)
-	}
+	expect_text_layout(t, text_layout, expected_text_layout)
 }
