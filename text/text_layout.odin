@@ -108,6 +108,7 @@ shaping :: proc(
 			// Not sure how we should deal with this, but this is probably where the meat of the shaping is coming in
 			for r in sub {
 				glyph_end += 1
+				// TODO(Thomas): This will have to be cached of course.
 				codepoint_metrics := measure_codepoint_proc(r, FONT_ID, nil)
 				append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
 			}
@@ -125,7 +126,10 @@ layout_rows :: proc(
 	glyphs: []Glyph,
 	rows: ^[dynamic]Positioned_Row,
 	max_width: f32,
+	line_height: f32,
 ) {
+
+	line_height_offset: f32 = 0
 
 	for paragraph in paragraphs {
 		row_width: f32 = 0
@@ -145,39 +149,40 @@ layout_rows :: proc(
 				append(
 					rows,
 					Positioned_Row {
-						pos = base.Vec2{},
+						pos = base.Vec2{0, line_height_offset},
 						glyph_range = {start = start_idx, end = end_idx},
 					},
 				)
 				start_idx = end_idx
 				row_width = 0
+				line_height_offset += line_height
 			}
 			row_width += glyph.metrics.width
 		}
 
-		if row_width > 0 {
-			append(
-				rows,
-				Positioned_Row {
-					pos = base.Vec2{},
-					glyph_range = {start = start_idx, end = paragraph.glyph_range.end},
-				},
-			)
-		}
+		append(
+			rows,
+			Positioned_Row {
+				pos = base.Vec2{0, line_height_offset},
+				glyph_range = {start = start_idx, end = paragraph.glyph_range.end},
+			},
+		)
+		line_height_offset += line_height
 	}
 }
 
 // TODO(Thomas): Hardcoded use of context.allocator here. We need to think about
 // good allocation strategies here, can we get away with an arena, e.g. the frame arena?
-// TODO(Thomas): Maybe the output type here should be some Row or Line type instead,
-// containing Positioned_Glyphs, so that their position is relative to the line baseline.
-// Alternatively, if this knows the line height, all the positional information can be stored
-// in the Positioned_Glyph instead, but that's a future imrpovement I think.
 layout_text :: proc(
 	text: string,
 	available_width: f32,
+	font_handle: Font_Handle,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
+	measure_text_proc: Measure_Text_Proc,
 ) {
+
+	// TODO(Thomas): This should be cached of course.
+	text_metrics := measure_text_proc(text, font_handle, nil)
 
 	// Minimal pipeline for now
 	paragraphs := make([dynamic]Paragraph, context.allocator)
@@ -191,7 +196,7 @@ layout_text :: proc(
 	shaping(text, paragraphs[:], text_runs[:], &glyphs, measure_codepoint_proc)
 
 	rows := make([dynamic]Positioned_Row, context.allocator)
-	layout_rows(paragraphs[:], glyphs[:], &rows, available_width)
+	layout_rows(paragraphs[:], glyphs[:], &rows, available_width, text_metrics.line_height)
 }
 
 // ------------ TESTS -------------
@@ -278,7 +283,7 @@ test_layout_rows :: proc(t: ^testing.T) {
 
 	rows := make([dynamic]Positioned_Row, context.temp_allocator)
 
-	layout_rows(paragraphs[:], glyphs[:], &rows, 100.0)
+	layout_rows(paragraphs[:], glyphs[:], &rows, 100.0, MOCK_LINE_HEIGHT)
 
 	for row in rows {
 		log.info("row: ", row)
