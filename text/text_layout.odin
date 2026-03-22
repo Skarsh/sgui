@@ -138,6 +138,8 @@ layout_rows :: proc(
 	line_height: f32,
 ) {
 
+	EPSILON :: 0.001
+
 	line_height_offset: f32 = 0
 	start_idx := 0
 	end_idx := 0
@@ -153,7 +155,7 @@ layout_rows :: proc(
 		// Greedy approach, keep accumulating glyphs into the line until it can't fit anymore.
 
 		for glyph, idx in paragraph_glyphs {
-			if row_width + glyph.metrics.width >= max_width {
+			if row_width + glyph.metrics.width > max_width + EPSILON {
 				end_idx = glyph_offset + idx
 				append(
 					rows,
@@ -381,6 +383,35 @@ test_layout_text_single_newline_char :: proc(t: ^testing.T) {
 		mock_measure_text_proc,
 		context.temp_allocator,
 	)
+	defer free_all(context.temp_allocator)
+
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
+
+@(test)
+test_layout_text_exactly_fits :: proc(t: ^testing.T) {
+	text := "0123456789"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{},
+				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 10},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+
 	defer free_all(context.temp_allocator)
 
 	expect_text_layout(t, text_layout, expected_text_layout)
