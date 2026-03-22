@@ -261,17 +261,6 @@ mock_measure_text_proc :: proc(
 	return Text_Metrics{width = width, line_height = line_height}
 }
 
-expect_paragraphs :: proc(
-	t: ^testing.T,
-	paragraphs: []Paragraph,
-	expected_paragraphs: []Paragraph,
-) {
-	testing.expect_value(t, len(paragraphs), len(expected_paragraphs))
-	for paragraph, idx in paragraphs {
-		testing.expect_value(t, paragraph, expected_paragraphs[idx])
-	}
-}
-
 expect_positioned_rows :: proc(
 	t: ^testing.T,
 	positioned_rows: []Positioned_Row,
@@ -290,41 +279,6 @@ expect_text_layout :: proc(
 ) {
 	testing.expect_value(t, text_layout.size, expected_text_layout.size)
 	expect_positioned_rows(t, text_layout.rows, expected_text_layout.rows)
-}
-
-// TODO(Thomas): Remove this test when proper layout_text testing is done
-// it will catch what this is testing at a pubic interface level
-@(test)
-test_paragraph_segmentation :: proc(t: ^testing.T) {
-	text := "Hello\nWorld"
-
-	paragraphs := make([dynamic]Paragraph, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-
-	paragraph_segmentation(text, &paragraphs)
-	expected_paragraphs := []Paragraph {
-		Paragraph{text_range = base.Range{start = 0, end = 6}},
-		Paragraph{text_range = base.Range{start = 6, end = 11}},
-	}
-	expect_paragraphs(t, paragraphs[:], expected_paragraphs)
-}
-
-
-// TODO(Thomas): Remove this test when proper layout_text testing is done
-// it will catch what this is testing at a pubic interface level
-@(test)
-test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
-	text := "Hello\n\nWorld"
-	paragraphs := make([dynamic]Paragraph, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-
-	paragraph_segmentation(text, &paragraphs)
-	expected_paragraphs := []Paragraph {
-		Paragraph{text_range = base.Range{start = 0, end = 6}},
-		Paragraph{text_range = base.Range{start = 6, end = 7}},
-		Paragraph{text_range = base.Range{start = 7, end = 12}},
-	}
-	expect_paragraphs(t, paragraphs[:], expected_paragraphs[:])
 }
 
 @(test)
