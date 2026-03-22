@@ -67,7 +67,9 @@ paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
 		}
 	}
 
-	append(paragraphs, Paragraph{text_range = {start = start, end = len(text)}})
+	if start < byte_pos {
+		append(paragraphs, Paragraph{text_range = {start = start, end = len(text)}})
+	}
 }
 
 
@@ -168,20 +170,17 @@ layout_rows :: proc(
 			row_width += glyph.metrics.width
 		}
 
-		if row_width > 0 {
-			end_idx = paragraph.glyph_range.end
-			append(
-				rows,
-				Positioned_Row {
-					pos = base.Vec2{0, line_height_offset},
-					size = base.Vec2{row_width, line_height},
-					glyph_range = {start = start_idx, end = end_idx},
-				},
-			)
-			start_idx = end_idx
-			line_height_offset += line_height
-
-		}
+		end_idx = paragraph.glyph_range.end
+		append(
+			rows,
+			Positioned_Row {
+				pos = base.Vec2{0, line_height_offset},
+				size = base.Vec2{row_width, line_height},
+				glyph_range = {start = start_idx, end = end_idx},
+			},
+		)
+		start_idx = end_idx
+		line_height_offset += line_height
 	}
 }
 
@@ -233,6 +232,7 @@ layout_text :: proc(
 
 MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
+MOCK_FONT_HANDLE :: 0
 
 mock_measure_codepoint_proc :: proc(
 	codepoint: rune,
@@ -329,13 +329,11 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 test_layout_text :: proc(t: ^testing.T) {
 	text := "Hello\nWorld"
 
-	font_handle :: 0
-
 	expected_text_layout := Text_Layout {
 		size = base.Vec2{5 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
 		rows = {
 			Positioned_Row {
-				pos = base.Vec2{0, 0},
+				pos = base.Vec2{},
 				size = base.Vec2{5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
 				glyph_range = base.Range{start = 0, end = 6},
 			},
@@ -349,8 +347,36 @@ test_layout_text :: proc(t: ^testing.T) {
 
 	text_layout := layout_text(
 		text,
-		100,
-		font_handle,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+	defer free_all(context.temp_allocator)
+
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
+
+@(test)
+test_layout_text_single_newline_char :: proc(t: ^testing.T) {
+	text := "\n"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{0, MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{},
+				size = base.Vec2{0, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 1},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
