@@ -186,8 +186,7 @@ layout_rows :: proc(
 	}
 }
 
-// TODO(Thomas): Hardcoded use of context.allocator here. We need to think about
-// good allocation strategies here, can we get away with an arena, e.g. the frame arena?
+// TODO(Thomas): We need to think about good allocation strategies here, can we get away with an arena, e.g. the frame arena?
 // Don't return an instance of Text_Layout here? Take in ^Text_Layout instead?
 // It holds a slice into the rows, which is allocated by the passed in allocator,
 // so that lifetime needs to be made explicit and obvious at least.
