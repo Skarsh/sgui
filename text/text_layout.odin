@@ -36,12 +36,8 @@ Glyph :: struct {
 	metrics:   Codepoint_Metrics,
 }
 
-Positioned_Glyph :: struct {
-	pos:   base.Vec2,
-	glyph: Glyph,
-}
-
-Line :: struct {
+Positioned_Row :: struct {
+	pos:         base.Vec2,
 	glyph_range: base.Range,
 }
 
@@ -124,24 +120,50 @@ shaping :: proc(
 	}
 }
 
-layout_lines :: proc(glyphs: []Glyph, lines: ^[dynamic]Line, max_width: f32) {
-	// TODO(Thomas): Need to break on good line break opporunity here, e.g.
-	// the last whitespace before overflowing.
-	// Greedy approach, keep accumulating glyphs into the line until it can't fit anymore.
-	line_width: f32 = 0
-	start_idx := 0
-	for glyph, idx in glyphs {
-		if line_width + glyph.metrics.width >= max_width {
-			append(lines, Line{glyph_range = {start = start_idx, end = idx}})
-			start_idx = idx
-			line_width = 0
+layout_rows :: proc(
+	paragraphs: []Paragraph,
+	glyphs: []Glyph,
+	rows: ^[dynamic]Positioned_Row,
+	max_width: f32,
+) {
+
+	for paragraph in paragraphs {
+		row_width: f32 = 0
+		start_idx := 0
+		end_idx := 0
+
+		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
+		glyph_offset := paragraph.glyph_range.start
+
+		// TODO(Thomas): Need to break on good line break opporunity here, e.g.
+		// the last whitespace before overflowing.
+		// Greedy approach, keep accumulating glyphs into the line until it can't fit anymore.
+
+		for glyph, idx in paragraph_glyphs {
+			if row_width + glyph.metrics.width >= max_width {
+				end_idx = glyph_offset + idx
+				append(
+					rows,
+					Positioned_Row {
+						pos = base.Vec2{},
+						glyph_range = {start = start_idx, end = end_idx},
+					},
+				)
+				start_idx = end_idx
+				row_width = 0
+			}
+			row_width += glyph.metrics.width
 		}
 
-		line_width += glyph.metrics.width
-	}
-
-	if line_width > 0 {
-		append(lines, Line{glyph_range = {start = start_idx, end = len(glyphs)}})
+		if row_width > 0 {
+			append(
+				rows,
+				Positioned_Row {
+					pos = base.Vec2{},
+					glyph_range = {start = start_idx, end = paragraph.glyph_range.end},
+				},
+			)
+		}
 	}
 }
 
@@ -155,7 +177,7 @@ layout_text :: proc(
 	text: string,
 	available_width: f32,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
-) -> []Positioned_Glyph {
+) {
 
 	// Minimal pipeline for now
 	paragraphs := make([dynamic]Paragraph, context.allocator)
@@ -168,11 +190,8 @@ layout_text :: proc(
 
 	shaping(text, paragraphs[:], text_runs[:], &glyphs, measure_codepoint_proc)
 
-	lines := make([dynamic]Line, context.allocator)
-	layout_lines(glyphs[:], &lines, 0)
-
-	// TODO(Thomas: Step for producing Positioned_Glyphs from lines is missing
-	return nil
+	rows := make([dynamic]Positioned_Row, context.allocator)
+	layout_rows(paragraphs[:], glyphs[:], &rows, available_width)
 }
 
 // ------------ TESTS -------------
@@ -235,7 +254,7 @@ test_paragraph_segmentation_empty_paragraph_between :: proc(t: ^testing.T) {
 // TODO(Thomas): This isn't testing anything, it's only to have a simple way to
 // see output from the different stages easily.
 @(test)
-test_shaping :: proc(t: ^testing.T) {
+test_layout_rows :: proc(t: ^testing.T) {
 	text := "Hello\nWorld"
 	paragraphs := make([dynamic]Paragraph, context.temp_allocator)
 	defer free_all(context.temp_allocator)
@@ -255,5 +274,13 @@ test_shaping :: proc(t: ^testing.T) {
 
 	for paragraph in paragraphs {
 		log.info("paragraph: ", paragraph)
+	}
+
+	rows := make([dynamic]Positioned_Row, context.temp_allocator)
+
+	layout_rows(paragraphs[:], glyphs[:], &rows, 100.0)
+
+	for row in rows {
+		log.info("row: ", row)
 	}
 }
