@@ -150,9 +150,10 @@ layout_rows :: proc(
 		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
 		glyph_offset := paragraph.glyph_range.start
 
-		// TODO(Thomas): Need to break on good line break opporunity here, e.g.
-		// the last whitespace before overflowing.
-		// Greedy approach, keep accumulating glyphs into the line until it can't fit anymore.
+		// Algorithm outline:
+		// Greedily accumulate glyphs until we overflow the max width or run out of glyphs.
+		// If we overflow, we look for the previous line break opportunity
+		// These are last whitespace before new word e.g. word wrapping, hyphens or grapheme cluster boundaries.
 
 		for glyph, idx in paragraph_glyphs {
 			if row_width + glyph.metrics.width > max_width + EPSILON {
