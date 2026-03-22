@@ -38,7 +38,13 @@ Glyph :: struct {
 
 Positioned_Row :: struct {
 	pos:         base.Vec2,
+	size:        base.Vec2,
 	glyph_range: base.Range,
+}
+
+Text_Layout :: struct {
+	size: base.Vec2,
+	rows: []Positioned_Row,
 }
 
 paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
@@ -150,6 +156,7 @@ layout_rows :: proc(
 					rows,
 					Positioned_Row {
 						pos = base.Vec2{0, line_height_offset},
+						size = base.Vec2{row_width, line_height},
 						glyph_range = {start = start_idx, end = end_idx},
 					},
 				)
@@ -164,6 +171,7 @@ layout_rows :: proc(
 			rows,
 			Positioned_Row {
 				pos = base.Vec2{0, line_height_offset},
+				size = base.Vec2{row_width, line_height},
 				glyph_range = {start = start_idx, end = paragraph.glyph_range.end},
 			},
 		)
@@ -173,13 +181,14 @@ layout_rows :: proc(
 
 // TODO(Thomas): Hardcoded use of context.allocator here. We need to think about
 // good allocation strategies here, can we get away with an arena, e.g. the frame arena?
+// Don't return an instance of Text_Layout here? Take in ^Text_Layout instead?
 layout_text :: proc(
 	text: string,
 	available_width: f32,
 	font_handle: Font_Handle,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
 	measure_text_proc: Measure_Text_Proc,
-) {
+) -> Text_Layout {
 
 	// TODO(Thomas): This should be cached of course.
 	text_metrics := measure_text_proc(text, font_handle, nil)
@@ -197,6 +206,15 @@ layout_text :: proc(
 
 	rows := make([dynamic]Positioned_Row, context.allocator)
 	layout_rows(paragraphs[:], glyphs[:], &rows, available_width, text_metrics.line_height)
+
+	// TODO(Thomas): This could be done in layout_rows instead so we don't have
+	// to iteratte over the rows again here.
+	layout_size := base.Vec2{}
+	for row in rows {
+		layout_size.x = max(layout_size.x, row.size.x)
+		layout_size.y += layout_size.y
+	}
+	return Text_Layout{size = layout_size, rows = rows[:]}
 }
 
 // ------------ TESTS -------------
