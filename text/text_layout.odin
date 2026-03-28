@@ -3,6 +3,7 @@ package text
 import "core:mem"
 import "core:strings"
 import "core:testing"
+import "core:unicode"
 import "core:unicode/utf8"
 
 import base "../base"
@@ -35,6 +36,18 @@ Style_Range :: struct {
 Glyph :: struct {
 	codepoint: rune,
 	metrics:   Codepoint_Metrics,
+}
+
+Linebreak_Kind :: enum {
+	Word,
+	Hyphen,
+	Grapheme_Cluster,
+}
+
+// TODO(Thomas): Should this be a byte range instead, e.g. for Grapheme_Cluster in the future.
+Linebreak_Candidate :: struct {
+	kind:      Linebreak_Kind,
+	glyph_idx: int,
 }
 
 Positioned_Row :: struct {
@@ -130,9 +143,37 @@ shaping :: proc(
 	}
 }
 
+// TODO(Thomas): Implement other linbreak kinds too.
+// TODO(Thomas): Think about whether Glyph is the right level here,
+// grapheme clusters are the more correct version. This means that
+// could / should happen before shaping, where we produce the Glyphs.
+// Using glyph here now just makes it easy to have a pipeline setup
+// that can replace the old text setup
+find_linebreak_candidates :: proc(
+	paragraphs: []Paragraph,
+	glyphs: []Glyph,
+	linebreak_candidates: ^[dynamic]Linebreak_Candidate,
+) {
+
+	glyph_idx := 0
+	for paragraph in paragraphs {
+		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
+		for glyph in paragraph_glyphs {
+			if unicode.is_white_space(glyph.codepoint) {
+				append(
+					linebreak_candidates,
+					Linebreak_Candidate{kind = .Word, glyph_idx = glyph_idx},
+				)
+			}
+			glyph_idx += 1
+		}
+	}
+}
+
 layout_rows :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
+	linebreak_candidates: []Linebreak_Candidate,
 	rows: ^[dynamic]Positioned_Row,
 	max_width: f32,
 	line_height: f32,
@@ -148,16 +189,16 @@ layout_rows :: proc(
 		row_width: f32 = 0
 
 		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
-		glyph_offset := paragraph.glyph_range.start
 
 		// Algorithm outline:
 		// Greedily accumulate glyphs until we overflow the max width or run out of glyphs.
-		// If we overflow, we look for the previous line break opportunity
+		// If we overflow, we look for the previous line break candidate
 		// These are last whitespace before new word e.g. word wrapping, hyphens or grapheme cluster boundaries.
 
-		for glyph, idx in paragraph_glyphs {
+		// Current implementation will break a line in the middle of a word if the next glyph overflows
+
+		for glyph in paragraph_glyphs {
 			if row_width + glyph.metrics.width > max_width + EPSILON {
-				end_idx = glyph_offset + idx
 				append(
 					rows,
 					Positioned_Row {
@@ -170,10 +211,11 @@ layout_rows :: proc(
 				row_width = 0
 				line_height_offset += line_height
 			}
+
 			row_width += glyph.metrics.width
+			end_idx += 1
 		}
 
-		end_idx = paragraph.glyph_range.end
 		append(
 			rows,
 			Positioned_Row {
@@ -217,8 +259,20 @@ layout_text :: proc(
 
 	shaping(text, paragraphs[:], text_runs[:], &glyphs, measure_codepoint_proc)
 
+	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
+	// and not on glyphs
+	linebreak_candidates := make([dynamic]Linebreak_Candidate, allocator)
+	find_linebreak_candidates(paragraphs[:], glyphs[:], &linebreak_candidates)
+
 	rows := make([dynamic]Positioned_Row, allocator)
-	layout_rows(paragraphs[:], glyphs[:], &rows, available_width, text_metrics.line_height)
+	layout_rows(
+		paragraphs[:],
+		glyphs[:],
+		linebreak_candidates[:],
+		&rows,
+		available_width,
+		text_metrics.line_height,
+	)
 
 	// TODO(Thomas): This could be done in layout_rows instead so we don't have
 	// to iteratte over the rows again here.
@@ -370,3 +424,37 @@ test_layout_text_exactly_fits :: proc(t: ^testing.T) {
 
 	expect_text_layout(t, text_layout, expected_text_layout)
 }
+
+//@(test)
+//test_layout_break_on_word :: proc(t: ^testing.T) {
+//	text := "strawberry accomplish"
+//
+//	expected_text_layout := Text_Layout {
+//		size = base.Vec2{10 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+//		rows = {
+//			Positioned_Row {
+//				pos = base.Vec2{},
+//				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+//				glyph_range = base.Range{start = 0, end = 10},
+//			},
+//			Positioned_Row {
+//				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
+//				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+//				glyph_range = base.Range{start = 10, end = 20},
+//			},
+//		},
+//	}
+//
+//	text_layout := layout_text(
+//		text,
+//		100.0,
+//		MOCK_FONT_HANDLE,
+//		mock_measure_codepoint_proc,
+//		mock_measure_text_proc,
+//		context.temp_allocator,
+//	)
+//
+//	defer free_all(context.temp_allocator)
+//
+//	expect_text_layout(t, text_layout, expected_text_layout)
+//}
