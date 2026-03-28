@@ -183,7 +183,7 @@ layout_rows :: proc(
 
 	line_height_offset: f32 = 0
 	start_idx := 0
-	end_idx := 0
+	current_idx := 0
 
 	for paragraph in paragraphs {
 		row_width: f32 = 0
@@ -195,25 +195,47 @@ layout_rows :: proc(
 		// If we overflow, we look for the previous line break candidate
 		// These are last whitespace before new word e.g. word wrapping, hyphens or grapheme cluster boundaries.
 
+
 		// Current implementation will break a line in the middle of a word if the next glyph overflows
 
 		for glyph in paragraph_glyphs {
 			if row_width + glyph.metrics.width > max_width + EPSILON {
+
+
+				// TODO(Thomas): We need to handle the trailing whitespace somehow.
+				// There are some different options here, and I think we need to have something that will work
+				// for several different applications, e.g. text label vs text area.
+
+				// TODO(Thomas): Find best line break candidate, and use that glyph idx for the Positioned_Row
+				closest_glyph_idx := 0
+				for candidate in linebreak_candidates {
+					if candidate.glyph_idx <= current_idx &&
+					   closest_glyph_idx <= candidate.glyph_idx {
+						closest_glyph_idx = candidate.glyph_idx
+					} else {
+						break
+					}
+				}
+
 				append(
 					rows,
 					Positioned_Row {
 						pos = base.Vec2{0, line_height_offset},
 						size = base.Vec2{row_width, line_height},
-						glyph_range = {start = start_idx, end = end_idx},
+						glyph_range = {start = start_idx, end = current_idx},
 					},
 				)
-				start_idx = end_idx
+
+				// TODO(Thomas): start_idx needs to be set to the where the line break actually happend from the candidate.
+				// And end_idx is now really more like a `current_idx`.
+
+				start_idx = current_idx
 				row_width = 0
 				line_height_offset += line_height
 			}
 
 			row_width += glyph.metrics.width
-			end_idx += 1
+			current_idx += 1
 		}
 
 		append(
@@ -221,10 +243,10 @@ layout_rows :: proc(
 			Positioned_Row {
 				pos = base.Vec2{0, line_height_offset},
 				size = base.Vec2{row_width, line_height},
-				glyph_range = {start = start_idx, end = end_idx},
+				glyph_range = {start = start_idx, end = current_idx},
 			},
 		)
-		start_idx = end_idx
+		start_idx = current_idx
 		line_height_offset += line_height
 	}
 }
