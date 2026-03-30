@@ -226,7 +226,8 @@ layout_rows :: proc(
 					},
 				)
 
-				// TODO(Thomas): start_idx needs to be set to the where the line break actually happend from the candidate.
+				// TODO(Thomas): start_idx needs to be set to the where the line break
+				// actually happend from the candidate.
 				// And end_idx is now really more like a `current_idx`.
 
 				start_idx = current_idx
@@ -251,7 +252,8 @@ layout_rows :: proc(
 	}
 }
 
-// TODO(Thomas): We need to think about good allocation strategies here, can we get away with an arena, e.g. the frame arena?
+// TODO(Thomas): We need to think about good allocation strategies here,
+// can we get away with an arena, e.g. the frame arena?
 // Don't return an instance of Text_Layout here? Take in ^Text_Layout instead?
 // It holds a slice into the rows, which is allocated by the passed in allocator,
 // so that lifetime needs to be made explicit and obvious at least.
