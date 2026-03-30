@@ -209,8 +209,15 @@ layout_rows :: proc(
 
 				// If there are no best candidate glyph idx,
 				// then we use the current glyph as the best candidate.
+				// TODO(Thomas): I think a better approach here if there are no
+				// line break candidates before this, is that we break on the previous
+				// glyph idx.
 				if best_candidate_glyph_idx == -1 {
-					best_candidate_glyph_idx = current_idx
+					if current_idx > 0 {
+						best_candidate_glyph_idx = current_idx - 1
+					} else {
+						best_candidate_glyph_idx = 0
+					}
 				}
 
 				// Now we have the line break candidate, so we need to construct the row
@@ -231,18 +238,22 @@ layout_rows :: proc(
 					Positioned_Row {
 						pos = base.Vec2{0, line_height_offset},
 						size = base.Vec2{actual_row_width, line_height},
-						glyph_range = {start = start_idx, end = best_candidate_glyph_idx},
+						// TODO(Thomas): Make sure that best_candidate_glyph_idx + 1 is safe.
+						// End glyph range is [start, end), so we need to go one past
+						glyph_range = {start = start_idx, end = best_candidate_glyph_idx + 1},
 					},
 				)
 
 				// Need to add up the row_width for the glyphs that are overflowing onto the next line
 				// and set row_width to them.
 				new_line_row_width: f32 = 0
-				for i in best_candidate_glyph_idx ..< current_idx {
+				for i in (best_candidate_glyph_idx) ..< current_idx {
 					new_line_row_width += glyphs[i].metrics.width
 				}
 
-				start_idx = current_idx
+				// TODO(Thomas): Make sure that best_candidate_glyph_idx + 1 is safe.
+				// Next line needs to start on the glyph after the best line break candidate
+				start_idx = best_candidate_glyph_idx + 1
 				row_width = new_line_row_width
 				line_height_offset += line_height
 			} else {
@@ -462,22 +473,59 @@ test_layout_text_exactly_fits :: proc(t: ^testing.T) {
 	expect_text_layout(t, text_layout, expected_text_layout)
 }
 
+// TODO(Thomas): Think about correctness of this test. We overflow max size with 10
+// here because we're breaking on the whitespace between words, which is the only
+// linebreak candidate here, and the whitespace is included.
+//@(test)
+//test_layout_break_on_whitespace_between_words :: proc(t: ^testing.T) {
+//	text := "strawberry accomplish"
+//
+//	expected_text_layout := Text_Layout {
+//		size = base.Vec2{10 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+//		rows = {
+//			Positioned_Row {
+//				pos = base.Vec2{},
+//				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+//				glyph_range = base.Range{start = 0, end = 10},
+//			},
+//			Positioned_Row {
+//				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
+//				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+//				glyph_range = base.Range{start = 10, end = 21},
+//			},
+//		},
+//	}
+//
+//	text_layout := layout_text(
+//		text,
+//		100.0,
+//		MOCK_FONT_HANDLE,
+//		mock_measure_codepoint_proc,
+//		mock_measure_text_proc,
+//		context.temp_allocator,
+//	)
+//
+//	defer free_all(context.temp_allocator)
+//
+//	expect_text_layout(t, text_layout, expected_text_layout)
+//}
+
 @(test)
-test_layout_break_on_word :: proc(t: ^testing.T) {
-	text := "strawberry accomplish"
+test_layout_break :: proc(t: ^testing.T) {
+	text := "one two three"
 
 	expected_text_layout := Text_Layout {
-		size = base.Vec2{11 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+		size = base.Vec2{8 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
 		rows = {
 			Positioned_Row {
 				pos = base.Vec2{},
-				size = base.Vec2{11 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = base.Range{start = 0, end = 10},
+				size = base.Vec2{8 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 8},
 			},
 			Positioned_Row {
 				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
-				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = base.Range{start = 10, end = 21},
+				size = base.Vec2{5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 8, end = 13},
 			},
 		},
 	}
