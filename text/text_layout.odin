@@ -50,6 +50,7 @@ Linebreak_Candidate :: struct {
 	glyph_idx: int,
 }
 
+// TODO(Thomas): Add field to track size that's without trailing whitespace
 Positioned_Row :: struct {
 	pos:         base.Vec2,
 	size:        base.Vec2,
@@ -169,6 +170,38 @@ find_linebreak_candidates :: proc(
 		}
 	}
 }
+
+//layout_rows_2 :: proc(
+//	paragraphs: []Paragraph,
+//	glyphs: []Glyph,
+//	linebreak_candidates: []Linebreak_Candidate,
+//	rows: ^[dynamic]Positioned_Row,
+//	max_width: f32,
+//	line_height: f32,
+//) {
+//
+//	EPSILON :: 0.001
+//	candidate_cursor := 0
+//
+//	for paragraph in paragraphs {
+//		start_idx := paragraph.glyph_range.start
+//		row_width: f32 = 0
+//		candidate_glyph_idx := -1
+//
+//		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
+//			glyph := glyphs[i]
+//
+//			// Keep track of the latest line break candidate
+//			for candidate_cursor < len(linebreak_candidates) && candidate_glyph_idx <= i {
+//				candidate := linebreak_candidates[candidate_cursor]
+//				if candidate.glyph_idx == i {
+//					candidate_glyph_idx = i
+//				}
+//				candidate_cursor += 1
+//			}
+//		}
+//	}
+//}
 
 layout_rows :: proc(
 	paragraphs: []Paragraph,
@@ -481,17 +514,17 @@ test_layout_text_exactly_fits :: proc(t: ^testing.T) {
 //	text := "strawberry accomplish"
 //
 //	expected_text_layout := Text_Layout {
-//		size = base.Vec2{10 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+//		size = base.Vec2{11 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
 //		rows = {
 //			Positioned_Row {
 //				pos = base.Vec2{},
-//				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-//				glyph_range = base.Range{start = 0, end = 10},
+//				size = base.Vec2{11 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+//				glyph_range = base.Range{start = 0, end = 11},
 //			},
 //			Positioned_Row {
 //				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
 //				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-//				glyph_range = base.Range{start = 10, end = 21},
+//				glyph_range = base.Range{start = 11, end = 21},
 //			},
 //		},
 //	}
