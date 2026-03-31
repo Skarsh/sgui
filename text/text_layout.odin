@@ -537,7 +537,7 @@ test_layout_text_empty_string :: proc(t: ^testing.T) {
 	text := ""
 
 	expected_text_layout := Text_Layout {
-		size = base.Vec2{0, 0},
+		size = base.Vec2{},
 		rows = {},
 	}
 
@@ -562,7 +562,7 @@ test_layout_text_single_char :: proc(t: ^testing.T) {
 		size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
 		rows = {
 			Positioned_Row {
-				pos = base.Vec2{0, 0},
+				pos = base.Vec2{},
 				size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
 				glyph_range = base.Range{start = 0, end = 1},
 			},
@@ -590,7 +590,7 @@ test_layout_text_consecutive_newlines :: proc(t: ^testing.T) {
 		size = base.Vec2{MOCK_CHAR_WIDTH, 3 * MOCK_LINE_HEIGHT},
 		rows = {
 			Positioned_Row {
-				pos = base.Vec2{0, 0},
+				pos = base.Vec2{},
 				size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
 				glyph_range = base.Range{start = 0, end = 2},
 			},
@@ -603,6 +603,45 @@ test_layout_text_consecutive_newlines :: proc(t: ^testing.T) {
 				pos = base.Vec2{0, 2 * MOCK_LINE_HEIGHT},
 				size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
 				glyph_range = base.Range{start = 3, end = 4},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+
+	defer free_all(context.temp_allocator)
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
+
+@(test)
+test_layout_text_multiple_wraps :: proc(t: ^testing.T) {
+	// Wraps across three rows  "abc def " | "ghi jkl " | "mno"
+	text := "abc def ghi jkl mno"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{8 * MOCK_CHAR_WIDTH, 3 * MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{},
+				size = base.Vec2{8 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 8},
+			},
+			Positioned_Row {
+				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
+				size = base.Vec2{8 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 8, end = 16},
+			},
+			Positioned_Row {
+				pos = base.Vec2{0, 2 * MOCK_LINE_HEIGHT},
+				size = base.Vec2{3 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 16, end = 19},
 			},
 		},
 	}
