@@ -461,6 +461,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
+// TODO(Thomas): This is not in use, just remove it?
 calculate_size_to_distribute :: proc(
 	is_growing: bool,
 	resizables: []^UI_Element,
