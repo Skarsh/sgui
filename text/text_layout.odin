@@ -531,3 +531,91 @@ test_layout_text_break_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 
 	expect_text_layout(t, text_layout, expected_text_layout)
 }
+
+@(test)
+test_layout_text_empty_string :: proc(t: ^testing.T) {
+	text := ""
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{0, 0},
+		rows = {},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+
+	defer free_all(context.temp_allocator)
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
+
+@(test)
+test_layout_text_single_char :: proc(t: ^testing.T) {
+	text := "a"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{0, 0},
+				size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 1},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+
+	defer free_all(context.temp_allocator)
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
+
+@(test)
+test_layout_text_consecutive_newlines :: proc(t: ^testing.T) {
+	text := "a\n\nb"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{MOCK_CHAR_WIDTH, 3 * MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{0, 0},
+				size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 2},
+			},
+			Positioned_Row {
+				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
+				size = base.Vec2{0, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 2, end = 3},
+			},
+			Positioned_Row {
+				pos = base.Vec2{0, 2 * MOCK_LINE_HEIGHT},
+				size = base.Vec2{MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 3, end = 4},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+
+	defer free_all(context.temp_allocator)
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
