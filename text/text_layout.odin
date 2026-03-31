@@ -144,7 +144,7 @@ shaping :: proc(
 	}
 }
 
-// TODO(Thomas): Implement other linbreak kinds too.
+// TODO(Thomas): Implement other linebreak kinds too.
 // TODO(Thomas): Think about whether Glyph is the right level here,
 // grapheme clusters are the more correct version. This means that
 // could / should happen before shaping, where we produce the Glyphs.
@@ -171,38 +171,6 @@ find_linebreak_candidates :: proc(
 	}
 }
 
-//layout_rows_2 :: proc(
-//	paragraphs: []Paragraph,
-//	glyphs: []Glyph,
-//	linebreak_candidates: []Linebreak_Candidate,
-//	rows: ^[dynamic]Positioned_Row,
-//	max_width: f32,
-//	line_height: f32,
-//) {
-//
-//	EPSILON :: 0.001
-//	candidate_cursor := 0
-//
-//	for paragraph in paragraphs {
-//		start_idx := paragraph.glyph_range.start
-//		row_width: f32 = 0
-//		candidate_glyph_idx := -1
-//
-//		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
-//			glyph := glyphs[i]
-//
-//			// Keep track of the latest line break candidate
-//			for candidate_cursor < len(linebreak_candidates) && candidate_glyph_idx <= i {
-//				candidate := linebreak_candidates[candidate_cursor]
-//				if candidate.glyph_idx == i {
-//					candidate_glyph_idx = i
-//				}
-//				candidate_cursor += 1
-//			}
-//		}
-//	}
-//}
-
 layout_rows :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
@@ -213,101 +181,88 @@ layout_rows :: proc(
 ) {
 
 	EPSILON :: 0.001
-
+	candidate_cursor := 0
 	line_height_offset: f32 = 0
-	start_idx := 0
-	current_idx := 0
 
 	for paragraph in paragraphs {
+		row_start := paragraph.glyph_range.start
 		row_width: f32 = 0
-		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
+		break_candidate_idx := -1
 
 		// Algorithm outline:
 		// Greedily accumulate glyphs until we overflow the max width or run out of glyphs.
 		// If we overflow, we look for the previous line break candidate
 		// These are last whitespace before new word e.g. word wrapping, hyphens or grapheme cluster boundaries.
 
-		for glyph in paragraph_glyphs {
+		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
+			glyph := glyphs[i]
+
+			// Keep track of the latest line break candidate
+			for candidate_cursor < len(linebreak_candidates) &&
+			    linebreak_candidates[candidate_cursor].glyph_idx <= i {
+				candidate := linebreak_candidates[candidate_cursor]
+				if candidate.glyph_idx == i {
+					break_candidate_idx = i
+				}
+				candidate_cursor += 1
+			}
+
 			if row_width + glyph.metrics.width > max_width + EPSILON {
-				// Find best line break candidate
-				best_candidate_glyph_idx := -1
-				for candidate in linebreak_candidates {
-					// NOTE(Thomas): This works because candidate glyph idx is sorted.
-					if candidate.glyph_idx < current_idx {
-						best_candidate_glyph_idx = candidate.glyph_idx
-					} else {
-						break
-					}
+
+				break_at_idx: int
+				if break_candidate_idx >= row_start {
+					break_at_idx = break_candidate_idx
+				} else {
+					break_at_idx = max(i - 1, row_start)
 				}
 
-				// If there are no best candidate glyph idx,
-				// then we use the current glyph as the best candidate.
-				// TODO(Thomas): I think a better approach here if there are no
-				// line break candidates before this, is that we break on the previous
-				// glyph idx.
-				if best_candidate_glyph_idx == -1 {
-					if current_idx > 0 {
-						best_candidate_glyph_idx = current_idx - 1
-					} else {
-						best_candidate_glyph_idx = 0
-					}
-				}
-
-				// Now we have the line break candidate, so we need to construct the row
-				// and append it. There might be several glyphs between the candidate and the
-				// current glyph idx, so we need to calculate row width in a different way.
-				// We iterate through glyphs from start_idx to inclusive best_candidate_glyph_idx
-				// and add up to find the actual row width.
+				// Find the row width from the start of the current row to
+				// break candidate, inclusive.
 				actual_row_width: f32 = 0
-				for i in start_idx ..= best_candidate_glyph_idx {
-					actual_row_width += glyphs[i].metrics.width
+				for j in row_start ..= break_candidate_idx {
+					actual_row_width += glyphs[j].metrics.width
 				}
 
 				// TODO(Thomas): What to do with trailing whitespace here?
 				// We have cases where we overflow on whitespace, meaning that width of the
 				// row then will be larger than the max size.
+				// We should probably have two different sizes here, one that is the size including the
+				// trailing whitespace for calculating hit tests etc, and one for the content width which
+				// would be used in cases where you don't want to show trailling whitespace.
 				append(
 					rows,
 					Positioned_Row {
-						pos = base.Vec2{0, line_height_offset},
-						size = base.Vec2{actual_row_width, line_height},
-						// TODO(Thomas): Make sure that best_candidate_glyph_idx + 1 is safe.
-						// End glyph range is [start, end), so we need to go one past
-						glyph_range = {start = start_idx, end = best_candidate_glyph_idx + 1},
+						pos = {0, line_height_offset},
+						size = {actual_row_width, line_height},
+						glyph_range = {start = row_start, end = break_at_idx + 1},
 					},
 				)
 
-				// Need to add up the row_width for the glyphs that are overflowing onto the next line
-				// and set row_width to them.
-				new_line_row_width: f32 = 0
-				for i in (best_candidate_glyph_idx) ..< current_idx {
-					new_line_row_width += glyphs[i].metrics.width
+				row_start = break_at_idx + 1
+				line_height_offset += line_height
+
+				row_width = 0
+				for j in row_start ..= i {
+					row_width += glyphs[j].metrics.width
 				}
 
-				// TODO(Thomas): Make sure that best_candidate_glyph_idx + 1 is safe.
-				// Next line needs to start on the glyph after the best line break candidate
-				start_idx = best_candidate_glyph_idx + 1
-				row_width = new_line_row_width
-				line_height_offset += line_height
 			} else {
-				row_width += glyph.metrics.width
+				row_width += glyphs[i].metrics.width
 			}
-
-			current_idx += 1
 		}
 
 		append(
 			rows,
 			Positioned_Row {
-				pos = base.Vec2{0, line_height_offset},
-				size = base.Vec2{row_width, line_height},
-				glyph_range = {start = start_idx, end = current_idx},
+				pos = {0, line_height_offset},
+				size = {row_width, line_height},
+				glyph_range = {start = row_start, end = paragraph.glyph_range.end},
 			},
 		)
-		start_idx = current_idx
 		line_height_offset += line_height
 	}
 }
+
 
 // TODO(Thomas): We need to think about good allocation strategies here,
 // can we get away with an arena, e.g. the frame arena?
@@ -509,42 +464,42 @@ test_layout_text_exactly_fits :: proc(t: ^testing.T) {
 // TODO(Thomas): Think about correctness of this test. We overflow max size with 10
 // here because we're breaking on the whitespace between words, which is the only
 // linebreak candidate here, and the whitespace is included.
-//@(test)
-//test_layout_break_on_whitespace_between_words :: proc(t: ^testing.T) {
-//	text := "strawberry accomplish"
-//
-//	expected_text_layout := Text_Layout {
-//		size = base.Vec2{11 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
-//		rows = {
-//			Positioned_Row {
-//				pos = base.Vec2{},
-//				size = base.Vec2{11 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-//				glyph_range = base.Range{start = 0, end = 11},
-//			},
-//			Positioned_Row {
-//				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
-//				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-//				glyph_range = base.Range{start = 11, end = 21},
-//			},
-//		},
-//	}
-//
-//	text_layout := layout_text(
-//		text,
-//		100.0,
-//		MOCK_FONT_HANDLE,
-//		mock_measure_codepoint_proc,
-//		mock_measure_text_proc,
-//		context.temp_allocator,
-//	)
-//
-//	defer free_all(context.temp_allocator)
-//
-//	expect_text_layout(t, text_layout, expected_text_layout)
-//}
+@(test)
+test_layout_text_break_on_whitespace_between_words :: proc(t: ^testing.T) {
+	text := "strawberry accomplish"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{11 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{},
+				size = base.Vec2{11 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 11},
+			},
+			Positioned_Row {
+				pos = base.Vec2{0, MOCK_LINE_HEIGHT},
+				size = base.Vec2{10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 11, end = 21},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+	)
+
+	defer free_all(context.temp_allocator)
+
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
 
 @(test)
-test_layout_break :: proc(t: ^testing.T) {
+test_layout_text_break_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 	text := "one two three"
 
 	expected_text_layout := Text_Layout {
