@@ -8,6 +8,12 @@ import "core:unicode/utf8"
 
 import base "../base"
 
+Text_Wrap_Mode :: enum {
+	Extend,
+	Wrap,
+	Truncate,
+}
+
 // Range is in bytes
 Text_Run :: struct {
 	range: base.Range,
@@ -170,6 +176,77 @@ find_linebreak_candidates :: proc(
 		}
 	}
 }
+
+//layout_rows_2 :: proc(
+//	paragraphs: []Paragraph,
+//	glyphs: []Glyph,
+//	linebreak_candidates: []Linebreak_Candidate,
+//	rows: ^[dynamic]Positioned_Row,
+//	max_width: f32,
+//	line_height: f32,
+//	wrap_mode: Text_Wrap_Mode,
+//) {
+//
+//	emit_row :: proc(
+//		rows: ^[dynamic]Positioned_Row,
+//		glyphs: []Glyph,
+//		start, end: int,
+//		line_height, line_height_offset: f32,
+//	) {
+//		width: f32 = 0
+//		for i in start ..< end {
+//			width += glyphs[i].metrics.width
+//		}
+//		append(
+//			rows,
+//			Positioned_Row {
+//				pos = {0, line_height_offset},
+//				size = {width, line_height},
+//				glyph_range = {start = start, end = end},
+//			},
+//		)
+//	}
+//
+//	EPSILON :: 0.001
+//	candidate_cursor := 0
+//	line_height_offset: f32 = 0
+//
+//	for paragraph in paragraphs {
+//		row_start := paragraph.glyph_range.start
+//		row_width: f32 = 0
+//		break_candidate_idx := -1
+//
+//		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
+//			glyph := glyphs[i]
+//
+//			// Keep track of the latest line break candidate
+//			for candidate_cursor < len(linebreak_candidates) &&
+//			    linebreak_candidates[candidate_cursor].glyph_idx <= i {
+//				candidate := linebreak_candidates[candidate_cursor]
+//				if candidate.glyph_idx == i {
+//					break_candidate_idx = i
+//				}
+//				candidate_cursor += 1
+//			}
+//
+//			if row_width + glyph.metrics.width > max_width + EPSILON {
+//				// Overflow
+//
+//				switch wrap_mode {
+//				case .Extend:
+//				case .Wrap:
+//				case .Truncate:
+//				}
+//
+//			} else {
+//
+//			}
+//
+//
+//		}
+//	}
+//}
+
 
 layout_rows :: proc(
 	paragraphs: []Paragraph,
