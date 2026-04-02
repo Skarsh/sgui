@@ -161,7 +161,6 @@ find_linebreak_candidates :: proc(
 	glyphs: []Glyph,
 	linebreak_candidates: ^[dynamic]Linebreak_Candidate,
 ) {
-
 	glyph_idx := 0
 	for paragraph in paragraphs {
 		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
@@ -177,77 +176,6 @@ find_linebreak_candidates :: proc(
 	}
 }
 
-//layout_rows_2 :: proc(
-//	paragraphs: []Paragraph,
-//	glyphs: []Glyph,
-//	linebreak_candidates: []Linebreak_Candidate,
-//	rows: ^[dynamic]Positioned_Row,
-//	max_width: f32,
-//	line_height: f32,
-//	wrap_mode: Text_Wrap_Mode,
-//) {
-//
-//	emit_row :: proc(
-//		rows: ^[dynamic]Positioned_Row,
-//		glyphs: []Glyph,
-//		start, end: int,
-//		line_height, line_height_offset: f32,
-//	) {
-//		width: f32 = 0
-//		for i in start ..< end {
-//			width += glyphs[i].metrics.width
-//		}
-//		append(
-//			rows,
-//			Positioned_Row {
-//				pos = {0, line_height_offset},
-//				size = {width, line_height},
-//				glyph_range = {start = start, end = end},
-//			},
-//		)
-//	}
-//
-//	EPSILON :: 0.001
-//	candidate_cursor := 0
-//	line_height_offset: f32 = 0
-//
-//	for paragraph in paragraphs {
-//		row_start := paragraph.glyph_range.start
-//		row_width: f32 = 0
-//		break_candidate_idx := -1
-//
-//		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
-//			glyph := glyphs[i]
-//
-//			// Keep track of the latest line break candidate
-//			for candidate_cursor < len(linebreak_candidates) &&
-//			    linebreak_candidates[candidate_cursor].glyph_idx <= i {
-//				candidate := linebreak_candidates[candidate_cursor]
-//				if candidate.glyph_idx == i {
-//					break_candidate_idx = i
-//				}
-//				candidate_cursor += 1
-//			}
-//
-//			if row_width + glyph.metrics.width > max_width + EPSILON {
-//				// Overflow
-//
-//				switch wrap_mode {
-//				case .Extend:
-//				case .Wrap:
-//				case .Truncate:
-//				}
-//
-//			} else {
-//
-//			}
-//
-//
-//		}
-//	}
-//}
-
-
 layout_rows :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
@@ -255,6 +183,7 @@ layout_rows :: proc(
 	rows: ^[dynamic]Positioned_Row,
 	max_width: f32,
 	line_height: f32,
+	text_wrap_mode: Text_Wrap_Mode,
 ) {
 
 	EPSILON :: 0.001
@@ -285,44 +214,50 @@ layout_rows :: proc(
 			}
 
 			if row_width + glyph.metrics.width > max_width + EPSILON {
+				switch text_wrap_mode {
+				case .Extend:
+					row_width += glyph.metrics.width
+				case .Wrap:
+					break_at_idx: int
+					if break_candidate_idx >= row_start {
+						break_at_idx = break_candidate_idx
+					} else {
+						break_at_idx = max(i - 1, row_start)
+					}
 
-				break_at_idx: int
-				if break_candidate_idx >= row_start {
-					break_at_idx = break_candidate_idx
-				} else {
-					break_at_idx = max(i - 1, row_start)
+					// Find the row width from the start of the current row to
+					// break candidate, inclusive.
+					actual_row_width: f32 = 0
+					for j in row_start ..= break_candidate_idx {
+						actual_row_width += glyphs[j].metrics.width
+					}
+
+					// TODO(Thomas): What to do with trailing whitespace here?
+					// We have cases where we overflow on whitespace, meaning that width of the
+					// row then will be larger than the max size.
+					// We should probably have two different sizes here, one that is the size including the
+					// trailing whitespace for calculating hit tests etc, and one for the content width which
+					// would be used in cases where you don't want to show trailling whitespace.
+					append(
+						rows,
+						Positioned_Row {
+							pos = {0, line_height_offset},
+							size = {actual_row_width, line_height},
+							glyph_range = {start = row_start, end = break_at_idx + 1},
+						},
+					)
+
+					row_start = break_at_idx + 1
+					line_height_offset += line_height
+
+					row_width = 0
+					for j in row_start ..= i {
+						row_width += glyphs[j].metrics.width
+					}
+				case .Truncate:
+					// TODO(Thomas): Implement
+					panic("Missing implementation")
 				}
-
-				// Find the row width from the start of the current row to
-				// break candidate, inclusive.
-				actual_row_width: f32 = 0
-				for j in row_start ..= break_candidate_idx {
-					actual_row_width += glyphs[j].metrics.width
-				}
-
-				// TODO(Thomas): What to do with trailing whitespace here?
-				// We have cases where we overflow on whitespace, meaning that width of the
-				// row then will be larger than the max size.
-				// We should probably have two different sizes here, one that is the size including the
-				// trailing whitespace for calculating hit tests etc, and one for the content width which
-				// would be used in cases where you don't want to show trailling whitespace.
-				append(
-					rows,
-					Positioned_Row {
-						pos = {0, line_height_offset},
-						size = {actual_row_width, line_height},
-						glyph_range = {start = row_start, end = break_at_idx + 1},
-					},
-				)
-
-				row_start = break_at_idx + 1
-				line_height_offset += line_height
-
-				row_width = 0
-				for j in row_start ..= i {
-					row_width += glyphs[j].metrics.width
-				}
-
 			} else {
 				row_width += glyphs[i].metrics.width
 			}
@@ -353,6 +288,7 @@ layout_text :: proc(
 	measure_codepoint_proc: Measure_Codepoint_Proc,
 	measure_text_proc: Measure_Text_Proc,
 	allocator: mem.Allocator,
+	text_wrap_mode: Text_Wrap_Mode,
 ) -> Text_Layout {
 
 	// TODO(Thomas): This should be cached of course.
@@ -385,6 +321,7 @@ layout_text :: proc(
 		&rows,
 		available_width,
 		text_metrics.line_height,
+		text_wrap_mode,
 	)
 
 	// TODO(Thomas): This could be done in layout_rows instead so we don't have
@@ -449,7 +386,7 @@ expect_text_layout :: proc(
 }
 
 @(test)
-test_layout_text :: proc(t: ^testing.T) {
+test_layout_text_newline_between_words_wraps :: proc(t: ^testing.T) {
 	text := "Hello\nWorld"
 
 	expected_text_layout := Text_Layout {
@@ -475,6 +412,7 @@ test_layout_text :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 	defer free_all(context.temp_allocator)
 
@@ -482,7 +420,7 @@ test_layout_text :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_layout_text_single_newline_char :: proc(t: ^testing.T) {
+test_layout_text_single_newline_char_wraps :: proc(t: ^testing.T) {
 	text := "\n"
 
 	expected_text_layout := Text_Layout {
@@ -503,6 +441,7 @@ test_layout_text_single_newline_char :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 	defer free_all(context.temp_allocator)
 
@@ -510,7 +449,7 @@ test_layout_text_single_newline_char :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_layout_text_exactly_fits :: proc(t: ^testing.T) {
+test_layout_text_exactly_fits_no_wrap :: proc(t: ^testing.T) {
 	text := "0123456789"
 
 	expected_text_layout := Text_Layout {
@@ -531,6 +470,7 @@ test_layout_text_exactly_fits :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 
 	defer free_all(context.temp_allocator)
@@ -541,8 +481,10 @@ test_layout_text_exactly_fits :: proc(t: ^testing.T) {
 // TODO(Thomas): Think about correctness of this test. We overflow max size with 10
 // here because we're breaking on the whitespace between words, which is the only
 // linebreak candidate here, and the whitespace is included.
+// TODO(Thomas): The proper solution here is to separate content size and element size
+// somehow.
 @(test)
-test_layout_text_break_on_whitespace_between_words :: proc(t: ^testing.T) {
+test_layout_text_wrap_on_whitespace_between_words :: proc(t: ^testing.T) {
 	text := "strawberry accomplish"
 
 	expected_text_layout := Text_Layout {
@@ -568,6 +510,7 @@ test_layout_text_break_on_whitespace_between_words :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 
 	defer free_all(context.temp_allocator)
@@ -576,7 +519,7 @@ test_layout_text_break_on_whitespace_between_words :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_layout_text_break_overflow_in_middle_of_word :: proc(t: ^testing.T) {
+test_layout_text_wrap_when_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 	text := "one two three"
 
 	expected_text_layout := Text_Layout {
@@ -602,6 +545,7 @@ test_layout_text_break_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 
 	defer free_all(context.temp_allocator)
@@ -610,7 +554,7 @@ test_layout_text_break_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_layout_text_empty_string :: proc(t: ^testing.T) {
+test_layout_text_empty_string_no_wrap :: proc(t: ^testing.T) {
 	text := ""
 
 	expected_text_layout := Text_Layout {
@@ -625,6 +569,7 @@ test_layout_text_empty_string :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 
 	defer free_all(context.temp_allocator)
@@ -632,7 +577,7 @@ test_layout_text_empty_string :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_layout_text_single_char :: proc(t: ^testing.T) {
+test_layout_text_single_char_no_wrap :: proc(t: ^testing.T) {
 	text := "a"
 
 	expected_text_layout := Text_Layout {
@@ -653,6 +598,7 @@ test_layout_text_single_char :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 
 	defer free_all(context.temp_allocator)
@@ -660,7 +606,7 @@ test_layout_text_single_char :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_layout_text_consecutive_newlines :: proc(t: ^testing.T) {
+test_layout_text_wrap_on_consecutive_newlines :: proc(t: ^testing.T) {
 	text := "a\n\nb"
 
 	expected_text_layout := Text_Layout {
@@ -691,6 +637,7 @@ test_layout_text_consecutive_newlines :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 
 	defer free_all(context.temp_allocator)
@@ -730,6 +677,37 @@ test_layout_text_multiple_wraps :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
+	)
+
+	defer free_all(context.temp_allocator)
+	expect_text_layout(t, text_layout, expected_text_layout)
+}
+
+@(test)
+test_layout_text_single_long_word_extends :: proc(t: ^testing.T) {
+	// 20 chars long, will overflow
+	text := "01234567890123456789"
+
+	expected_text_layout := Text_Layout {
+		size = base.Vec2{20 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+		rows = {
+			Positioned_Row {
+				pos = base.Vec2{},
+				size = base.Vec2{20 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = base.Range{start = 0, end = 20},
+			},
+		},
+	}
+
+	text_layout := layout_text(
+		text,
+		100.0,
+		MOCK_FONT_HANDLE,
+		mock_measure_codepoint_proc,
+		mock_measure_text_proc,
+		context.temp_allocator,
+		.Extend,
 	)
 
 	defer free_all(context.temp_allocator)
