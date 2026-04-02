@@ -733,20 +733,28 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		// Iterate through each line and draw it with the correct X and Y
 		current_y := start_y
 
-		for line in element.config.content.text_data.lines {
+		// TODO(Thomas): HACK HACK HACK, this is only to verify that Positioned_Row does the same thing
+		// as the old Line data structure. Eventually we need to go over to use glyphs for rendering instead
+		// of the text.
+		lines := element.config.content.text_data.lines
+		rows := element.config.content.text_data.rows
+		assert(len(lines) == len(rows))
+		for i in 0 ..< len(lines) {
+			line := lines[i]
+			row := rows[i]
 			start_x: f32 = content_area_x
 			switch element.config.layout.text_alignment_x {
 			case .Left:
 				// Default, no change
 				start_x = content_area_x
 			case .Center:
-				start_x = content_area_x + (content_area_w - line.width) / 2
+				start_x = content_area_x + (content_area_w - row.size.x) / 2
 			case .Right:
-				start_x = content_area_x + (content_area_w - line.width)
+				start_x = content_area_x + (content_area_w - row.size.x)
 			}
 
 			draw_text(ctx, start_x, current_y, line.text, element.config.text_fill, z_offset = 0)
-			current_y += line.height
+			current_y += row.size.y
 		}
 	}
 
