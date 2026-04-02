@@ -108,6 +108,7 @@ init_ctx :: proc(
 	}
 
 	ctx.stb_font_ctx = stb_font_ctx
+	// TODO(Thomas): Setting the callbacks on the ui library context like this is not nice
 	ui.set_text_measurement_callbacks(
 		ui_ctx,
 		stb_measure_text,
@@ -115,6 +116,7 @@ init_ctx :: proc(
 		&ctx.stb_font_ctx,
 	)
 
+	// TODO(Thomas): Setting the callbacks on the ui library context like this is not nice
 	ui.set_clipboard_callbacks(
 		ui_ctx,
 		platform_api.get_clipboard_text,
