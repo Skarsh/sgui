@@ -484,7 +484,12 @@ test_single_whitespace_token :: proc(t: ^testing.T) {
 test_tokenize_text :: proc(t: ^testing.T) {
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello\n"
 
@@ -503,7 +508,12 @@ test_tokenize_text :: proc(t: ^testing.T) {
 test_tokenize_text_word_after_newline :: proc(t: ^testing.T) {
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello\nWorld"
 
@@ -522,7 +532,12 @@ test_tokenize_text_word_after_newline :: proc(t: ^testing.T) {
 test_tokenize_unicode_glyph :: proc(t: ^testing.T) {
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "©"
 
@@ -539,7 +554,12 @@ test_tokenize_unicode_glyph :: proc(t: ^testing.T) {
 test_layout_lines_single_word_no_newline :: proc(t: ^testing.T) {
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello"
 
@@ -572,7 +592,12 @@ test_layout_lines_single_word_and_newline :: proc(t: ^testing.T) {
 
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello\n"
 
@@ -607,7 +632,12 @@ test_layout_lines_word_after_newline :: proc(t: ^testing.T) {
 
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello\nWorld"
 
@@ -650,7 +680,12 @@ test_layout_lines_two_word_no_overflow :: proc(t: ^testing.T) {
 
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hel lo"
 
@@ -686,7 +721,12 @@ test_layout_lines_two_word_overflowing_ends_with_newline :: proc(t: ^testing.T) 
 
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello world\n"
 
@@ -729,7 +769,12 @@ test_layout_lines_two_words_with_newline_and_whitespace_inbetween :: proc(t: ^te
 
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Hello\n world\n"
 
@@ -772,7 +817,12 @@ test_layout_lines_two_words_with_newline_and_whitespace_inbetween :: proc(t: ^te
 test_layout_lines_one_word_matches_max_width_exact :: proc(t: ^testing.T) {
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "0123456789"
 
@@ -805,7 +855,12 @@ test_layout_lines_single_word_overflows_max_width :: proc(t: ^testing.T) {
 
 	ctx := Context{}
 
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "01234567890"
 
@@ -843,7 +898,12 @@ test_layout_lines_single_word_overflows_max_width :: proc(t: ^testing.T) {
 @(test)
 test_layout_lines_two_words_splits_on_whitespace :: proc(t: ^testing.T) {
 	ctx := Context{}
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "Button 1"
 	tokens := make([dynamic]Text_Token, context.temp_allocator)
@@ -885,7 +945,12 @@ test_layout_lines_two_words_splits_on_whitespace :: proc(t: ^testing.T) {
 @(test)
 test_layout_lines_multiple_consecutive_newlines :: proc(t: ^testing.T) {
 	ctx := Context{}
-	set_text_measurement_callbacks(&ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		&ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	text := "A line\n\n\n"
 	tokens := make([dynamic]Text_Token, context.temp_allocator)

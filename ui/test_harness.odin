@@ -3,7 +3,6 @@ package ui
 import "core:fmt"
 import "core:mem"
 import "core:mem/virtual"
-import "core:strings"
 import "core:testing"
 
 import base "../base"
@@ -75,6 +74,9 @@ Expected_Element :: struct {
 
 DEFAULT_TESTING_WINDOW_SIZE :: [2]i32{480, 360}
 
+MOCK_CHAR_WIDTH :: 10
+MOCK_LINE_HEIGHT :: 10
+
 run_ui_test :: proc(
 	t: ^testing.T,
 	build_ui: proc(ctx: ^Context, data: ^$T),
@@ -87,7 +89,12 @@ run_ui_test :: proc(
 
 	ctx := &test_env.ctx
 
-	set_text_measurement_callbacks(ctx, mock_measure_text_proc, mock_measure_codepoint_proc, nil)
+	set_text_measurement_callbacks(
+		ctx,
+		textpkg.mock_measure_text_proc,
+		textpkg.mock_measure_codepoint_proc,
+		nil,
+	)
 
 	begin(ctx)
 	build_ui(ctx, data)
@@ -154,28 +161,4 @@ expect_layout :: proc(
 	for child in expected.children {
 		expect_layout(t, ctx, element_to_check, child, epsilon)
 	}
-}
-
-MOCK_CHAR_WIDTH :: 10
-MOCK_LINE_HEIGHT :: 10
-
-mock_measure_text_proc :: proc(
-	text: string,
-	font_id: textpkg.Font_Handle,
-	user_data: rawptr,
-) -> textpkg.Text_Metrics {
-	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
-	line_height: f32 = MOCK_LINE_HEIGHT
-
-	return textpkg.Text_Metrics{width = width, line_height = line_height}
-}
-
-mock_measure_codepoint_proc :: proc(
-	codepoint: rune,
-	font_id: textpkg.Font_Handle,
-	user_data: rawptr,
-) -> textpkg.Codepoint_Metrics {
-	width: f32 = MOCK_CHAR_WIDTH
-	left_bearing: f32 = MOCK_CHAR_WIDTH
-	return textpkg.Codepoint_Metrics{width = width, left_bearing = left_bearing}
 }

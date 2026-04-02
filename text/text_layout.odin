@@ -329,7 +329,7 @@ layout_text :: proc(
 	)
 
 	// TODO(Thomas): This could be done in layout_rows instead so we don't have
-	// to iteratte over the rows again here.
+	// to iterate over the rows again here.
 	layout_size := base.Vec2{}
 	for row in rows {
 		layout_size.x = max(layout_size.x, row.size.x)
