@@ -117,7 +117,7 @@ Context :: struct {
 	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
 	interactive_elements:    [dynamic]^UI_Element,
 	measure_text_proc:       textpkg.Measure_Text_Proc,
-	measure_glyph_proc:      textpkg.Measure_Codepoint_Proc,
+	measure_codepoint_proc:  textpkg.Measure_Codepoint_Proc,
 	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
 	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
 	font_user_data:          rawptr,
@@ -160,11 +160,11 @@ Comm :: struct {
 set_text_measurement_callbacks :: proc(
 	ctx: ^Context,
 	measure_text: textpkg.Measure_Text_Proc,
-	measure_glyph: textpkg.Measure_Codepoint_Proc,
+	measure_codepoint: textpkg.Measure_Codepoint_Proc,
 	user_data: rawptr,
 ) {
 	ctx.measure_text_proc = measure_text
-	ctx.measure_glyph_proc = measure_glyph
+	ctx.measure_codepoint_proc = measure_codepoint
 	ctx.font_user_data = user_data
 }
 

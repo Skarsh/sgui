@@ -350,13 +350,17 @@ measure_string_line_height :: proc(
 	}
 }
 
-measure_glyph_width :: proc(ctx: ^Context, codepoint: rune, font_id: textpkg.Font_Handle) -> f32 {
-	assert(ctx.measure_glyph_proc != nil)
-	if ctx.measure_glyph_proc != nil {
-		metrics := ctx.measure_glyph_proc(codepoint, font_id, ctx.font_user_data)
+measure_codepoint_width :: proc(
+	ctx: ^Context,
+	codepoint: rune,
+	font_id: textpkg.Font_Handle,
+) -> f32 {
+	assert(ctx.measure_codepoint_proc != nil)
+	if ctx.measure_codepoint_proc != nil {
+		metrics := ctx.measure_codepoint_proc(codepoint, font_id, ctx.font_user_data)
 		return metrics.width
 	} else {
-		log.error("measure_glyph_proc is nil")
+		log.error("measure_codepoint_proc is nil")
 		return 0
 	}
 }
