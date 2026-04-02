@@ -92,7 +92,7 @@ stb_measure_codepoint :: proc(
 
 	advance_width, left_side_bearing: i32
 	stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
-	width := i32(f32(advance_width) * scale)
+	width := f32(advance_width) * scale
 
 	return textpkg.Codepoint_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
 }
