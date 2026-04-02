@@ -6,6 +6,7 @@ import "core:mem"
 import "core:strings"
 
 import base "../base"
+import textpkg "../text"
 
 EPSILON :: 0.001
 
@@ -166,20 +167,25 @@ element_equip_text :: proc(
 	}
 
 	// Measure text to record intrinsic content size
-	largest_line_width, text_height, _ := measure_text_content(
-		ctx,
+	text_layout := textpkg.layout_text(
 		text,
 		math.F32_MAX,
+		ctx.font_id,
+		ctx.font_user_data,
+		ctx.measure_codepoint_proc,
+		ctx.measure_text_proc,
 		context.temp_allocator,
+		.Wrap,
 	)
 	defer free_all(context.temp_allocator)
 
 	// Calculate total content size including padding and border
 	padding := element.config.layout.padding
 	border := element.config.layout.border
+
 	element.text_content_size = base.Vec2 {
-		largest_line_width + padding.left + padding.right + border.left + border.right,
-		text_height + padding.top + padding.bottom + border.top + border.bottom,
+		text_layout.size.x + padding.left + padding.right + border.left + border.right,
+		text_layout.size.y + padding.top + padding.bottom + border.top + border.bottom,
 	}
 
 	// Set initial element size based on text content (for Fit/Grow sizing)
