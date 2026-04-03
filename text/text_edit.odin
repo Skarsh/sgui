@@ -164,6 +164,14 @@ text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
 	set_caret(state, insert_at + len(text))
 }
 
+selection_start :: proc(selection: Selection) -> int {
+	return min(selection.active, selection.anchor)
+}
+
+selection_end :: proc(selection: Selection) -> int {
+	return max(selection.active, selection.anchor)
+}
+
 // NOTE(Thomas): We are translating by runes here, later probably grapheme clusters.
 @(private)
 translated_pos :: proc(
@@ -223,16 +231,6 @@ set_active :: proc(state: ^Text_Edit_State, byte_pos: int) {
 @(private)
 is_selection_collapsed :: proc(selection: Selection) -> bool {
 	return selection.active == selection.anchor
-}
-
-@(private)
-selection_start :: proc(selection: Selection) -> int {
-	return min(selection.active, selection.anchor)
-}
-
-@(private)
-selection_end :: proc(selection: Selection) -> int {
-	return max(selection.active, selection.anchor)
 }
 
 @(private)
