@@ -164,7 +164,7 @@ scrollbar :: proc(
 
 	// Merge user style with default transparent background
 	sb_style := style
-	if sb_style.background_fill.kind == .Not_Set {
+	if sb_style.background_fill == nil {
 		sb_style.background_fill = base.fill_color(0, 0, 0, 0)
 	}
 
@@ -253,7 +253,7 @@ text_input :: proc(
 						alignment_x = .Left,
 						alignment_y = .Center,
 						relative_position = base.Vec2{caret_x_offset, -caret_height / 2},
-						background_fill = base.fill(default_color_style[.Text]),
+						background_fill = default_color_style[.Text],
 						capability_flags = Capability_Flags{.Background},
 					},
 				)

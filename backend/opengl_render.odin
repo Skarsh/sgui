@@ -138,18 +138,16 @@ Fill_Colors :: struct {
 
 // Converts a Fill to color values suitable for the GPU
 fill_to_colors :: proc(fill: base.Fill) -> Fill_Colors {
-	switch fill.kind {
-	case .Solid:
-		color := base.color_to_vec4(fill.color)
+	switch v in fill {
+	case base.Color:
+		color := base.color_to_vec4(v)
 		return Fill_Colors{color, color, {0, 0}}
-	case .Gradient:
+	case base.Gradient:
 		return Fill_Colors {
-			base.color_to_vec4(fill.gradient.color_start),
-			base.color_to_vec4(fill.gradient.color_end),
-			fill.gradient.direction,
+			base.color_to_vec4(v.color_start),
+			base.color_to_vec4(v.color_end),
+			v.direction,
 		}
-	case .Not_Set, .None:
-		return Fill_Colors{{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0}}
 	}
 	return {}
 }
@@ -432,9 +430,10 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			start_x := x
 			start_y := y + render_data.font_atlas.metrics.ascent
 
-			if val.fill.kind == .Gradient {
+			if type_of(val.fill) == base.Gradient {
 				panic("TODO: Implement gradient text")
 			}
+
 			fill_colors := fill_to_colors(val.fill)
 
 			// Measure space width once for tab character handling

@@ -174,14 +174,17 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
 	config.layout.border = s.border.? or_else Border{}
 
+
 	// Visual properties (Fill) - use value if set, otherwise empty
-	if s.background_fill.kind != .Not_Set {
+	if s.background_fill != nil {
 		config.background_fill = s.background_fill
 	}
-	if s.text_fill.kind != .Not_Set {
+
+	if s.text_fill != nil {
 		config.text_fill = s.text_fill
 	}
-	if s.border_fill.kind != .Not_Set {
+
+	if s.border_fill != nil {
 		config.border_fill = s.border_fill
 	}
 
@@ -337,9 +340,9 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
 
 	// Visual properties - override if b is set
-	if b.background_fill.kind != .Not_Set do result.background_fill = b.background_fill
-	if b.text_fill.kind != .Not_Set do result.text_fill = b.text_fill
-	if b.border_fill.kind != .Not_Set do result.border_fill = b.border_fill
+	if b.background_fill != nil do result.background_fill = b.background_fill
+	if b.text_fill != nil do result.text_fill = b.text_fill
+	if b.border_fill != nil do result.border_fill = b.border_fill
 
 	// Other
 	if b.clip != nil do result.clip = b.clip

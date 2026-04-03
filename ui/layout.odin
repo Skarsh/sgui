@@ -154,8 +154,8 @@ element_equip_text :: proc(
 ) {
 	element.config.capability_flags |= {.Text}
 
-	if element.config.text_fill.kind == .Not_Set {
-		if text_fill.kind == .Not_Set {
+	if element.config.text_fill == nil {
+		if text_fill == nil {
 			element.config.text_fill = base.fill_color(255, 255, 255)
 		} else {
 			element.config.text_fill = text_fill

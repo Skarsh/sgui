@@ -85,9 +85,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_style(
 			ctx,
 			ui.Style {
-				background_fill = base.fill(WINDOW_BG),
+				background_fill = WINDOW_BG,
 				capability_flags = ui.Capability_Flags{.Background},
-				text_fill = base.fill(TEXT_COLOR),
+				text_fill = TEXT_COLOR,
 			},
 		)
 		defer ui.pop_style(ctx)
@@ -115,7 +115,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					border_radius = ui.border_radius_all(10),
 					layout_direction = ui.Layout_Direction.Top_To_Bottom,
 					child_gap = 15,
-					background_fill = base.fill(PANEL_BG),
+					background_fill = PANEL_BG,
 				},
 			) {
 				// --- Title ---
@@ -166,7 +166,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						for &task, i in data.tasks {
 
 							// --- Task Row ---
-							ui.push_style(ctx, ui.Style{background_fill = base.fill(ROW_BG)})
+							ui.push_style(ctx, ui.Style{background_fill = ROW_BG})
 							defer ui.pop_style(ctx)
 
 							if ui.begin_container(
@@ -200,7 +200,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 									ui.Style {
 										sizing_x = ui.sizing_fixed(36),
 										sizing_y = ui.sizing_fixed(36),
-										background_fill = base.fill(current_checkbox_color),
+										background_fill = current_checkbox_color,
 									},
 								)
 
@@ -220,7 +220,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 										sizing_x = ui.sizing_grow(),
 										alignment_y = ui.Alignment_Y.Center,
 										text_alignment_y = ui.Alignment_Y.Center,
-										text_fill = base.fill(task_text_color),
+										text_fill = task_text_color,
 									},
 								)
 
@@ -234,7 +234,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 										sizing_x = ui.sizing_fit(),
 										sizing_y = ui.sizing_fit(),
 										border_radius = ui.border_radius_all(3.0),
-										background_fill = base.fill(DELETE_BUTTON_COLOR),
+										background_fill = DELETE_BUTTON_COLOR,
 									},
 								)
 								if delete_comm.clicked {
@@ -285,7 +285,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						"new_task_input",
 						data.new_task_buf,
 						&data.new_task_buf_len,
-						ui.Style{background_fill = base.fill(ITEM_BG)},
+						ui.Style{background_fill = ITEM_BG},
 					)
 
 					// --- Add Button ---
@@ -293,7 +293,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						ctx,
 						"add_task_button",
 						"Add",
-						ui.Style{background_fill = base.fill(ADD_BUTTON_COLOR)},
+						ui.Style{background_fill = ADD_BUTTON_COLOR},
 					)
 
 					if add_button_comm.clicked {

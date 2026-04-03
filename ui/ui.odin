@@ -609,12 +609,13 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	last_comm := element.last_comm
 
+
 	// TODO(Thomas): Click could have an embossed / debossed animation effect instead.
 	// There's lots left to figure out for hot and active too, it could be highlighted with
 	// a border instead or many other things. This is a temporary a solution.
-	switch final_bg_fill.kind {
-	case .Solid:
-		color := final_bg_fill.color
+	switch fill in final_bg_fill {
+	case base.Color:
+		color := fill
 		if .Hot_Animation in cap_flags {
 			hot_color := default_color_style[.Hot]
 			color = base.lerp_color(color, hot_color, element.hot)
@@ -630,10 +631,9 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				color = default_color_style[.Click]
 			}
 		}
-		final_bg_fill = base.fill(color)
-
-	case .Gradient:
-		gradient := final_bg_fill.gradient
+		final_bg_fill = color
+	case base.Gradient:
+		gradient := fill
 
 		if .Hot_Animation in cap_flags {
 			hot_color := default_color_style[.Hot]
@@ -654,7 +654,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		if .Clickable in cap_flags {
 			if last_comm.held {
 				click_color := default_color_style[.Click]
-				final_bg_fill = base.fill(click_color)
+				final_bg_fill = click_color
 			} else {
 				final_bg_fill = base.fill_gradient(
 					gradient.color_start,
@@ -669,11 +669,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				gradient.direction,
 			)
 		}
-
-	case .Not_Set, .None:
-	// No fill, nothing to do
 	}
-
 
 	if .Background in element.config.capability_flags {
 		draw_rect(

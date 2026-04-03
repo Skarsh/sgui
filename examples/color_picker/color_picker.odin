@@ -62,11 +62,7 @@ make_slider_row :: proc(
 			ctx,
 			fmt.tprintf("%s_label", id_suffix),
 			label,
-			ui.Style {
-				sizing_x = ui.sizing_fit(),
-				sizing_y = ui.sizing_fit(),
-				text_fill = base.fill(color),
-			},
+			ui.Style{sizing_x = ui.sizing_fit(), sizing_y = ui.sizing_fit(), text_fill = color},
 		)
 
 		comm = ui.slider(
@@ -80,7 +76,7 @@ make_slider_row :: proc(
 			ui.Style {
 				sizing_x = ui.sizing_fixed(20),
 				sizing_y = ui.sizing_fixed(20),
-				background_fill = base.fill(color),
+				background_fill = color,
 				border = ui.border_all(2),
 			},
 		)
@@ -107,10 +103,7 @@ make_slider_row :: proc(
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	if ui.begin(ctx) {
 		// --- Global Style Scope ---
-		ui.push_style(
-			ctx,
-			ui.Style{background_fill = base.fill(WINDOW_BG), text_fill = base.fill(TEXT_COLOR)},
-		)
+		ui.push_style(ctx, ui.Style{background_fill = WINDOW_BG, text_fill = TEXT_COLOR})
 		defer ui.pop_style(ctx)
 
 		// --- Main Panel (centered) ---
@@ -135,7 +128,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					padding = ui.padding_all(15),
 					child_gap = 10,
 					border_radius = ui.border_radius_all(10),
-					background_fill = base.fill(PANEL_BG),
+					background_fill = PANEL_BG,
 					capability_flags = ui.Capability_Flags{.Background},
 				},
 			) {
@@ -157,14 +150,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							u8(data.b * 255),
 							u8(data.a * 255),
 						),
-						border_fill = base.fill(
-							base.Color {
-								u8(data.r * 200),
-								u8(data.g * 200),
-								u8(data.b * 200),
-								u8(data.a * 200),
-							},
-						),
+						border_fill = base.Color {
+							u8(data.r * 200),
+							u8(data.g * 200),
+							u8(data.b * 200),
+							u8(data.a * 200),
+						},
 						capability_flags = ui.Capability_Flags{.Background},
 					},
 				)
@@ -216,7 +207,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						padding = ui.padding_xy(5, 10),
 						border_radius = ui.border_radius_all(5),
 						child_gap = 10,
-						background_fill = base.fill(ITEM_BG),
+						background_fill = ITEM_BG,
 						capability_flags = ui.Capability_Flags{.Background},
 					},
 				) {

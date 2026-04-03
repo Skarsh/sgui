@@ -99,7 +99,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			ui.Style {
 				sizing_x = ui.sizing_percent(1.0),
 				sizing_y = ui.sizing_percent(1.0),
-				background_fill = base.fill(theme.bg_main),
+				background_fill = theme.bg_main,
 				capability_flags = ui.Capability_Flags{.Background},
 				layout_direction = .Left_To_Right,
 			},
@@ -128,7 +128,7 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.Style {
 			sizing_x = ui.sizing_grow_weighted(1, min = 180, max = 250),
 			sizing_y = ui.sizing_grow(),
-			background_fill = base.fill(theme.bg_sidebar),
+			background_fill = theme.bg_sidebar,
 			capability_flags = ui.Capability_Flags{.Background},
 			layout_direction = .Top_To_Bottom,
 			padding = ui.padding_all(16),
@@ -142,7 +142,7 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			"Dashboard",
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
-				text_fill = base.fill(theme.text_primary),
+				text_fill = theme.text_primary,
 				text_alignment_x = .Center,
 			},
 		)
@@ -164,8 +164,8 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(40),
-					background_fill = base.fill(bg_color),
-					text_fill = base.fill(text_color),
+					background_fill = bg_color,
+					text_fill = text_color,
 					border_radius = ui.border_radius_all(6),
 					text_alignment_x = .Left,
 					padding = ui.padding_xy(0, 12),
@@ -189,7 +189,7 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 				layout_direction = .Left_To_Right,
 				child_gap = 12,
 				padding = ui.padding_all(12),
-				background_fill = base.fill(theme.bg_card),
+				background_fill = theme.bg_card,
 				capability_flags = ui.Capability_Flags{.Background},
 				border_radius = ui.border_radius_all(8),
 				alignment_y = .Center,
@@ -202,7 +202,7 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 				ui.Style {
 					sizing_x = ui.sizing_fixed(36),
 					sizing_y = ui.sizing_fixed(36),
-					background_fill = base.fill(theme.accent_primary),
+					background_fill = theme.accent_primary,
 					capability_flags = ui.Capability_Flags{.Background},
 					border_radius = ui.border_radius_all(18),
 				},
@@ -218,18 +218,8 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 					child_gap = 2,
 				},
 			) {
-				ui.text(
-					ctx,
-					"user_name",
-					"John Doe",
-					ui.Style{text_fill = base.fill(theme.text_primary)},
-				)
-				ui.text(
-					ctx,
-					"user_role",
-					"Admin",
-					ui.Style{text_fill = base.fill(theme.text_muted)},
-				)
+				ui.text(ctx, "user_name", "John Doe", ui.Style{text_fill = theme.text_primary})
+				ui.text(ctx, "user_role", "Admin", ui.Style{text_fill = theme.text_muted})
 				ui.end_container(ctx)
 			}
 			ui.end_container(ctx)
@@ -298,7 +288,7 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			ctx,
 			"page_title",
 			"Welcome back, John!",
-			ui.Style{sizing_x = ui.sizing_fit(), text_fill = base.fill(theme.text_primary)},
+			ui.Style{sizing_x = ui.sizing_fit(), text_fill = theme.text_primary},
 		)
 
 		// Spacer - push search and buttons to right
@@ -313,9 +303,9 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			ui.Style {
 				sizing_x = ui.sizing_grow(min = 200, max = 300),
 				sizing_y = ui.sizing_fixed(40),
-				background_fill = base.fill(theme.bg_input),
+				background_fill = theme.bg_input,
 				border_radius = ui.border_radius_all(8),
-				text_fill = base.fill(theme.text_primary),
+				text_fill = theme.text_primary,
 			},
 		)
 
@@ -327,8 +317,8 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			ui.Style {
 				sizing_x = ui.sizing_fit(),
 				sizing_y = ui.sizing_fixed(40),
-				background_fill = base.fill(theme.bg_card),
-				text_fill = base.fill(theme.text_primary),
+				background_fill = theme.bg_card,
+				text_fill = theme.text_primary,
 				border_radius = ui.border_radius_all(8),
 			},
 		)
@@ -339,7 +329,7 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			ui.Style {
 				sizing_x = ui.sizing_fit(),
 				sizing_y = ui.sizing_fixed(40),
-				background_fill = base.fill(theme.accent_primary),
+				background_fill = theme.accent_primary,
 				border_radius = ui.border_radius_all(8),
 			},
 		)
@@ -419,11 +409,11 @@ stat_card :: proc(
 		layout_direction = .Top_To_Bottom,
 		padding          = ui.padding_all(20),
 		child_gap        = 8,
-		background_fill  = base.fill(theme.bg_card),
+		background_fill  = theme.bg_card,
 		capability_flags = ui.Capability_Flags{.Background},
 		border_radius    = ui.border_radius_all(12),
 		border           = ui.border_all(1),
-		border_fill      = base.fill(theme.border),
+		border_fill      = theme.border,
 	},
 	) {
 		fa := ctx.frame_allocator
@@ -434,7 +424,7 @@ stat_card :: proc(
 			ui.Style {
 				sizing_x = ui.sizing_fixed(40),
 				sizing_y = ui.sizing_fixed(4),
-				background_fill = base.fill(accent),
+				background_fill = accent,
 				capability_flags = ui.Capability_Flags{.Background},
 				border_radius = ui.border_radius_all(2),
 			},
@@ -443,13 +433,13 @@ stat_card :: proc(
 			ctx,
 			fmt.aprintf("%s_label", id, allocator = fa),
 			label,
-			ui.Style{text_fill = base.fill(theme.text_secondary)},
+			ui.Style{text_fill = theme.text_secondary},
 		)
 		ui.text(
 			ctx,
 			fmt.aprintf("%s_value", id, allocator = fa),
 			value,
-			ui.Style{text_fill = base.fill(theme.text_primary)},
+			ui.Style{text_fill = theme.text_primary},
 		)
 
 		ui.end_container(ctx)
@@ -469,30 +459,20 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			layout_direction = .Top_To_Bottom,
 			padding = ui.padding_all(24),
 			child_gap = 20,
-			background_fill = base.fill(theme.bg_card),
+			background_fill = theme.bg_card,
 			capability_flags = ui.Capability_Flags{.Background},
 			border_radius = ui.border_radius_all(12),
 		},
 	) {
 		// Panel header
-		ui.text(
-			ctx,
-			"form_title",
-			"User Profile",
-			ui.Style{text_fill = base.fill(theme.text_primary)},
-		)
+		ui.text(ctx, "form_title", "User Profile", ui.Style{text_fill = theme.text_primary})
 
 		// Form fields
 		form_field(ctx, "username_field", "Username", data.username_buf, &data.username_len, theme)
 		form_field(ctx, "email_field", "Email", data.email_buf, &data.email_len, theme)
 
 		// Sliders section
-		ui.text(
-			ctx,
-			"sliders_title",
-			"Preferences",
-			ui.Style{text_fill = base.fill(theme.text_secondary)},
-		)
+		ui.text(ctx, "sliders_title", "Preferences", ui.Style{text_fill = theme.text_secondary})
 
 		slider_field(ctx, "volume_field", "Volume", &data.volume, theme)
 		slider_field(ctx, "brightness_field", "Brightness", &data.brightness, theme)
@@ -520,8 +500,8 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(44),
-					background_fill = base.fill(theme.bg_input),
-					text_fill = base.fill(theme.text_primary),
+					background_fill = theme.bg_input,
+					text_fill = theme.text_primary,
 					border_radius = ui.border_radius_all(8),
 				},
 			)
@@ -532,7 +512,7 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(44),
-					background_fill = base.fill(theme.accent_primary),
+					background_fill = theme.accent_primary,
 					border_radius = ui.border_radius_all(8),
 				},
 			)
@@ -567,7 +547,7 @@ form_field :: proc(
 			ctx,
 			fmt.aprintf("%s_label", id, allocator = fa),
 			label,
-			ui.Style{text_fill = base.fill(theme.text_secondary)},
+			ui.Style{text_fill = theme.text_secondary},
 		)
 		ui.text_input(
 			ctx,
@@ -577,11 +557,11 @@ form_field :: proc(
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_fixed(44),
-				background_fill = base.fill(theme.bg_input),
+				background_fill = theme.bg_input,
 				border_radius = ui.border_radius_all(8),
 				border = ui.border_all(1),
-				border_fill = base.fill(theme.border),
-				text_fill = base.fill(theme.text_primary),
+				border_fill = theme.border,
+				text_fill = theme.text_primary,
 			},
 		)
 
@@ -607,10 +587,7 @@ slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, t
 			ctx,
 			fmt.aprintf("%s_label", id, allocator = fa),
 			label,
-			ui.Style {
-				sizing_x = ui.sizing_grow_weighted(1),
-				text_fill = base.fill(theme.text_secondary),
-			},
+			ui.Style{sizing_x = ui.sizing_grow_weighted(1), text_fill = theme.text_secondary},
 		)
 		// Slider - grows with weight 3
 		ui.slider(
@@ -622,7 +599,7 @@ slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, t
 			style = ui.Style {
 				sizing_x = ui.sizing_grow_weighted(3),
 				sizing_y = ui.sizing_fixed(8),
-				background_fill = base.fill(theme.bg_input),
+				background_fill = theme.bg_input,
 				border_radius = ui.border_radius_all(4),
 			},
 		)
@@ -633,7 +610,7 @@ slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, t
 			fmt.aprintf("%.0f%%", value^ * 100, allocator = fa),
 			ui.Style {
 				sizing_x = ui.sizing_grow_weighted(0.5),
-				text_fill = base.fill(theme.text_muted),
+				text_fill = theme.text_muted,
 				text_alignment_x = .Right,
 			},
 		)
@@ -656,17 +633,12 @@ build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			layout_direction = .Top_To_Bottom,
 			padding = ui.padding_all(24),
 			child_gap = 16,
-			background_fill = base.fill(theme.bg_card),
+			background_fill = theme.bg_card,
 			capability_flags = ui.Capability_Flags{.Background},
 			border_radius = ui.border_radius_all(12),
 		},
 	) {
-		ui.text(
-			ctx,
-			"settings_title",
-			"Quick Settings",
-			ui.Style{text_fill = base.fill(theme.text_primary)},
-		)
+		ui.text(ctx, "settings_title", "Quick Settings", ui.Style{text_fill = theme.text_primary})
 
 		// Toggle settings
 		toggle_setting(ctx, "toggle_notifications", "Notifications", &data.notifications, theme)
@@ -676,12 +648,7 @@ build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.spacer(ctx)
 
 		// Status indicators - demonstrates 1:1:1 equal distribution
-		ui.text(
-			ctx,
-			"status_title",
-			"System Status",
-			ui.Style{text_fill = base.fill(theme.text_secondary)},
-		)
+		ui.text(ctx, "status_title", "System Status", ui.Style{text_fill = theme.text_secondary})
 
 		if ui.begin_container(
 			ctx,
@@ -703,12 +670,7 @@ build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.spacer(ctx)
 
 		// Danger zone
-		ui.text(
-			ctx,
-			"danger_title",
-			"Danger Zone",
-			ui.Style{text_fill = base.fill(theme.accent_danger)},
-		)
+		ui.text(ctx, "danger_title", "Danger Zone", ui.Style{text_fill = theme.accent_danger})
 		ui.button(
 			ctx,
 			"btn_reset",
@@ -716,7 +678,7 @@ build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_fixed(40),
-				background_fill = base.fill(theme.accent_danger),
+				background_fill = theme.accent_danger,
 				border_radius = ui.border_radius_all(8),
 			},
 		)
@@ -744,7 +706,7 @@ toggle_setting :: proc(ctx: ^ui.Context, id: string, label: string, value: ^bool
 			ctx,
 			fmt.aprintf("%s_label", id, allocator = fa),
 			label,
-			ui.Style{sizing_x = ui.sizing_grow(), text_fill = base.fill(theme.text_primary)},
+			ui.Style{sizing_x = ui.sizing_grow(), text_fill = theme.text_primary},
 		)
 		checkbox_color := theme.accent_success if value^ else theme.bg_input
 		ui.checkbox(
@@ -755,7 +717,7 @@ toggle_setting :: proc(ctx: ^ui.Context, id: string, label: string, value: ^bool
 			ui.Style {
 				sizing_x = ui.sizing_fixed(24),
 				sizing_y = ui.sizing_fixed(24),
-				background_fill = base.fill(checkbox_color),
+				background_fill = checkbox_color,
 				border_radius = ui.border_radius_all(4),
 			},
 		)
@@ -781,7 +743,7 @@ status_indicator :: proc(
 			layout_direction = .Top_To_Bottom,
 			child_gap = 4,
 			padding = ui.padding_all(8),
-			background_fill = base.fill(theme.bg_input),
+			background_fill = theme.bg_input,
 			capability_flags = ui.Capability_Flags{.Background},
 			border_radius = ui.border_radius_all(6),
 			alignment_x = .Center,
@@ -795,7 +757,7 @@ status_indicator :: proc(
 			ui.Style {
 				sizing_x = ui.sizing_fixed(8),
 				sizing_y = ui.sizing_fixed(8),
-				background_fill = base.fill(color),
+				background_fill = color,
 				capability_flags = ui.Capability_Flags{.Background},
 				border_radius = ui.border_radius_all(4),
 			},
@@ -804,7 +766,7 @@ status_indicator :: proc(
 			ctx,
 			fmt.aprintf("%s_label", id, allocator = fa),
 			label,
-			ui.Style{text_fill = base.fill(theme.text_muted)},
+			ui.Style{text_fill = theme.text_muted},
 		)
 
 		ui.end_container(ctx)
