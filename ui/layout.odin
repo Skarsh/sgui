@@ -58,9 +58,8 @@ Border :: distinct Box
 Margin :: distinct Box
 
 Text_Data :: struct {
-	text:  string,
-	lines: []Text_Line,
-	rows:  []textpkg.Positioned_Row,
+	text:        string,
+	text_layout: textpkg.Text_Layout,
 }
 
 Shape_Data :: struct {
@@ -673,12 +672,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			}
 		}
 
-		// TODO(Thomas): Remove lines stuff from measure_text_content and old text.odin
-		// when we have verified that the positioned rows from the does the equivalent thing for us
-		_, _, lines := measure_text_content(ctx, text, wrap_width, allocator)
-
-		element.config.content.text_data.lines = lines[:]
-
 		text_layout := textpkg.layout_text(
 			text,
 			wrap_width,
@@ -690,7 +683,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			.Wrap,
 		)
 
-		element.config.content.text_data.rows = text_layout.rows
+		element.config.content.text_data.text_layout = text_layout
 
 		// Update text_content_size.y based on wrapped height
 		final_height :=

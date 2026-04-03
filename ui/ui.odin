@@ -76,9 +76,9 @@ Command_Rect :: struct {
 }
 
 Command_Text :: struct {
-	x, y: f32,
-	str:  string,
-	fill: base.Fill,
+	x, y:   f32,
+	glyphs: []textpkg.Glyph,
+	fill:   base.Fill,
 }
 
 Command_Image :: struct {
@@ -712,11 +712,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		content_area_w := element.size.x - padding.left - padding.right
 		content_area_h := element.size.y - padding.top - padding.bottom
 
-		// Calculate the total height of the entire text block
-		total_text_height: f32 = 0
-		for line in element.config.content.text_data.lines {
-			total_text_height += line.height
-		}
+		text_layout := element.config.content.text_data.text_layout
 
 		// Calculate the initial vertical offset for the whole block based on Aligment_Y
 		start_y: f32 = content_area_y
@@ -725,23 +721,15 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			// Default, no change
 			start_y = content_area_y
 		case .Center:
-			start_y = content_area_y + (content_area_h - total_text_height) / 2
+			start_y = content_area_y + (content_area_h - text_layout.size.y) / 2
 		case .Bottom:
-			start_y = content_area_y + (content_area_h - total_text_height)
+			start_y = content_area_y + (content_area_h - text_layout.size.y)
 		}
 
 		// Iterate through each line and draw it with the correct X and Y
 		current_y := start_y
 
-		// TODO(Thomas): HACK HACK HACK, this is only to verify that Positioned_Row does the same thing
-		// as the old Line data structure. Eventually we need to go over to use glyphs for rendering instead
-		// of the text.
-		lines := element.config.content.text_data.lines
-		rows := element.config.content.text_data.rows
-		assert(len(lines) == len(rows))
-		for i in 0 ..< len(lines) {
-			line := lines[i]
-			row := rows[i]
+		for row in text_layout.rows {
 			start_x: f32 = content_area_x
 			switch element.config.layout.text_alignment_x {
 			case .Left:
@@ -753,7 +741,14 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				start_x = content_area_x + (content_area_w - row.size.x)
 			}
 
-			draw_text(ctx, start_x, current_y, line.text, element.config.text_fill, z_offset = 0)
+			draw_text(
+				ctx,
+				start_x,
+				current_y,
+				text_layout.glyphs[row.glyph_range.start:row.glyph_range.end],
+				element.config.text_fill,
+				z_offset = 0,
+			)
 			current_y += row.size.y
 		}
 	}
@@ -816,8 +811,14 @@ draw_rect :: proc(
 	push_draw_command(ctx, cmd, z_offset)
 }
 
-draw_text :: proc(ctx: ^Context, x, y: f32, str: string, color: base.Fill, z_offset: i32 = 0) {
-	cmd := Command_Text{x, y, str, color}
+draw_text :: proc(
+	ctx: ^Context,
+	x, y: f32,
+	glyphs: []textpkg.Glyph,
+	color: base.Fill,
+	z_offset: i32 = 0,
+) {
+	cmd := Command_Text{x, y, glyphs, color}
 	push_draw_command(ctx, cmd, z_offset)
 }
 

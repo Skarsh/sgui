@@ -64,8 +64,9 @@ Positioned_Row :: struct {
 }
 
 Text_Layout :: struct {
-	size: base.Vec2,
-	rows: []Positioned_Row,
+	size:   base.Vec2,
+	rows:   []Positioned_Row,
+	glyphs: []Glyph,
 }
 
 paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
@@ -335,7 +336,7 @@ layout_text :: proc(
 		layout_size.x = max(layout_size.x, row.size.x)
 		layout_size.y += row.size.y
 	}
-	return Text_Layout{size = layout_size, rows = rows[:]}
+	return Text_Layout{size = layout_size, rows = rows[:], glyphs = glyphs[:]}
 }
 
 // ------------ TESTS -------------

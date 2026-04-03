@@ -342,6 +342,7 @@ opengl_render_begin :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 }
 
+// TODO(Thomas): Draw_Command type should probably not live in the ui package
 opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.Draw_Command) {
 
 	if len(command_queue) == 0 {
@@ -450,20 +451,29 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				space_width = space_quad.x_advance
 			}
 
-			for r in val.str {
-				if r == '\n' {
+			// TODO(Thomas): This is not how it should be eventually.
+			// There should be enough information in the glyph for the renderer
+			// to do as little work as possible I think.
+			for glyph in val.glyphs {
+				if glyph.codepoint == '\n' {
 					continue
 				}
 
 				// Handle tab character by advancing cursor without rendering
-				if r == '\t' {
+				if glyph.codepoint == '\t' {
 					start_x += base.calculate_tab_width(space_width)
 					continue
 				}
 
-				glyph_quad, found := get_glyph_quad(&render_data.font_atlas, r, &start_x, &start_y)
-				if !found && r != ' ' {
-					log.error("Glyph not found for rune: ", r)
+				glyph_quad, found := get_glyph_quad(
+					&render_data.font_atlas,
+					glyph.codepoint,
+					&start_x,
+					&start_y,
+				)
+
+				if !found && glyph.codepoint != ' ' {
+					log.error("Glyph not found for rune: ", glyph.codepoint)
 				}
 
 				if batch.quad_idx >= MAX_QUADS {
@@ -493,7 +503,10 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				}
 
 				batch.quad_idx += 1
+
 			}
+
+
 		case ui.Command_Image:
 			data := val.data
 			tex_id := (cast(^i32)data)^
