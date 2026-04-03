@@ -751,50 +751,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			)
 			current_y += row.size.y
 		}
-
-		// Draw text selection
-		// TODO(Thomas): HACK! Getting the text like this and having to measure is trash
-		// This needs to come from the text layout / text edit somehow
-		key := ui_key_hash(element.id_string)
-		text_edit_state := ctx.text_input_states[key].state
-		selection := text_edit_state.selection
-
-		// TODO(Thomas): HACK! This allocates using the internal text buffer allocator
-		// This delete works because this for now is context.allocator.
-		// This doesn't feel very good, and that we're getting the internal text here at all
-		// is a BIG sign that this is not very good.
-		all_text := textpkg.text_buffer_text(text_edit_state.buffer)
-		defer delete(all_text)
-
-		start := textpkg.selection_start(selection)
-		end := textpkg.selection_end(selection)
-
-		// TODO(Thomas): BIG HACK, this will only work for ASCII text
-		selected_text := all_text[start:end]
-		offset_text := all_text[:start]
-
-		// TODO(Thomas): HACK HACK HACK, this shouldn't be necessary when the proper text layout and
-		// text caching system is done. All this selection drawing stuff is just to have something visible.
-		offset_metrics := ctx.measure_text_proc(offset_text, ctx.font_id, ctx.font_user_data)
-		selected_metrics := ctx.measure_text_proc(selected_text, ctx.font_id, ctx.font_user_data)
-
-		selection_rect := base.Rect {
-			i32(content_area_x + offset_metrics.width),
-			i32(content_area_y),
-			i32(selected_metrics.width),
-			i32(selected_metrics.line_height),
-		}
-
-		// TODO(Thomas): Selection rect styling should be configurable somehow
-		draw_rect(
-			ctx,
-			selection_rect,
-			base.fill_color(255, 255, 255, 128),
-			2,
-			border = Border{},
-			border_fill = base.fill_color(0, 0, 0, 0),
-			z_offset = 0,
-		)
 	}
 
 	if .Shape in cap_flags {
