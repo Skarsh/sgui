@@ -58,14 +58,12 @@ make_slider_row :: proc(
 			child_gap = 10,
 		},
 	) {
-		// TODO(Thomas): @Perf string font size caching
-		label_string_width := ui.measure_string_width(ctx, label, ctx.font_id)
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_label", id_suffix),
 			label,
 			ui.Style {
-				sizing_x = ui.sizing_grow(max = label_string_width),
+				sizing_x = ui.sizing_fit(),
 				sizing_y = ui.sizing_fit(),
 				text_fill = base.fill(color),
 			},
@@ -89,14 +87,12 @@ make_slider_row :: proc(
 
 		// Format hex value directly into the provided buffer
 		value_str := fmt.bprintf(value_buf, "%x", u8(value^ * 255))
-		// TODO(Thomas): @Perf string font size caching
-		value_string_width := ui.measure_string_width(ctx, value_str, ctx.font_id)
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_value", id_suffix),
 			value_str,
 			ui.Style {
-				sizing_x = ui.sizing_grow(max = value_string_width),
+				sizing_x = ui.sizing_fit(),
 				sizing_y = ui.sizing_fit(),
 				text_alignment_x = .Right,
 			},
@@ -225,20 +221,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				) {
 					hex_label_str := "#"
-					// TODO(Thomas): @Perf string font size caching
-					hex_label_string_width := ui.measure_string_width(
-						ctx,
-						hex_label_str,
-						ctx.font_id,
-					)
 					ui.text(
 						ctx,
 						"hex_label",
 						hex_label_str,
-						ui.Style {
-							sizing_x = ui.sizing_grow(max = hex_label_string_width),
-							sizing_y = ui.sizing_fit(),
-						},
+						ui.Style{sizing_x = ui.sizing_fit(), sizing_y = ui.sizing_fit()},
 					)
 					hex_comm = ui.text_input(
 						ctx,
