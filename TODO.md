@@ -16,6 +16,7 @@
 
 ## Bugs
 * `color_picker` example doesn't update hex text when using slider, and it crashes when writing in more 2 * 4 = 8 chars in the text field.
+* `dashboard` example crashes when typing more then 128 ascii characters into a input field.
 
 ## Backlog
 
