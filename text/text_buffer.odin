@@ -39,13 +39,7 @@ text_buffer_insert_at :: proc(buf: ^Text_Buffer, byte_pos: int, str: string) {
 	gap_buffer.insert_at(&buf.gb, byte_idx, str)
 }
 
-// TODO(Thomas): Do we need to check if the amount of bytes to delete is legal, or does
-// the gap_buffer deal with that properly
 text_buffer_delete_range :: proc(buf: ^Text_Buffer, byte_pos: int, byte_count: int) {
-	if byte_count <= 0 || byte_pos < 0 || byte_pos >= gap_buffer.byte_length(buf.gb) {
-		return
-	}
-
 	gap_buffer.delete_range(&buf.gb, byte_pos, byte_count)
 }
 
