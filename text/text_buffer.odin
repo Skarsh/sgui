@@ -51,7 +51,7 @@ text_buffer_capacity :: proc(buf: Text_Buffer) -> (byte_length: int) {
 	return gap_buffer.capacity(buf.gb)
 }
 
-// NOTE - This allocates using Text_Buffer owned allocator,
+// Allocated using the passed in allocator
 text_buffer_text :: proc(buf: Text_Buffer, allocator: mem.Allocator) -> string {
 	return gap_buffer.get_text(buf.gb, allocator)
 }
