@@ -17,7 +17,7 @@ test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
 
 	text_buffer_insert_at(&buf, 0, "Hello ")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hello World")
@@ -32,7 +32,7 @@ test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
 	len_bytes := text_buffer_byte_length(buf)
 	text_buffer_insert_at(&buf, len_bytes, " World")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hello World")
@@ -47,7 +47,7 @@ test_text_buffer_insert_utf8_mid_insertion :: proc(t: ^testing.T) {
 	// Insert '世' (3 bytes) at byte index 2 (before '!')
 	text_buffer_insert_at(&buf, 2, "世")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hi世!")
@@ -69,7 +69,7 @@ test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 	// We insert "★" (3 bytes)
 	text_buffer_insert_at(&buf, 3, "★")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "A©★B")
@@ -89,7 +89,7 @@ test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
 	// Insert empty string in middle
 	text_buffer_insert_at(&buf, 1, "")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ABC")
@@ -105,7 +105,7 @@ test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) 
 	// Expectation: Appends to the end
 	text_buffer_insert_at(&buf, 100, "End")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "StartEnd")
@@ -120,7 +120,7 @@ test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
 	// Expectation: Prepends at 0
 	text_buffer_insert_at(&buf, -5, "Hello ")
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hello World")
@@ -133,7 +133,7 @@ test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&buf, 3, 3)
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -147,7 +147,7 @@ test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
 	// é is 2 bytes
 	text_buffer_delete_range(&buf, 1, 2)
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	// Should be "Hllo"
@@ -166,7 +166,7 @@ test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&buf, 2, 0)
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -187,7 +187,7 @@ test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing
 	// Way past end
 	text_buffer_delete_range(&buf, 7, 2)
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -202,7 +202,7 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 	// Start at rune 4 ('e'), try to delete 999 runes
 	text_buffer_delete_range(&buf, 4, 999)
 
-	actual := text_buffer_text(buf)
+	actual := text_buffer_text(buf, context.allocator)
 	defer delete(actual)
 
 	// Should remove 'e' and 'f'

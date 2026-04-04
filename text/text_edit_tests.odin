@@ -443,7 +443,7 @@ test_text_edit_delete_left_from_collapsed_caret_deletes_rune_before_caret :: pro
 
 	text_edit_delete_to(&state, .Left)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ac")
@@ -464,7 +464,7 @@ test_text_edit_delete_right_from_collapsed_caret_deletes_rune_after_caret :: pro
 
 	text_edit_delete_to(&state, .Right)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ac")
@@ -487,7 +487,7 @@ test_text_edit_delete_next_word_from_collapsed_caret_deletes_to_next_word_start 
 
 	text_edit_delete_to(&state, .Next_Word)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "cd ef")
@@ -510,7 +510,7 @@ test_text_edit_delete_to_with_non_collapsed_selection_deletes_selection_range ::
 
 	text_edit_delete_to(&state, .Right)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "aef")
@@ -531,7 +531,7 @@ test_text_edit_delete_left_at_start_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Left)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abc")
@@ -552,7 +552,7 @@ test_text_edit_delete_right_at_end_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Right)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abc")
@@ -573,7 +573,7 @@ test_text_edit_delete_prev_word_at_start_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Prev_Word)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab cd")
@@ -594,7 +594,7 @@ test_text_edit_delete_next_word_at_end_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Next_Word)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab cd")
@@ -615,7 +615,7 @@ test_text_edit_insert_at_collapsed_caret_inserts_text_and_advances_caret :: proc
 
 	text_edit_insert(&state, "XY")
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "aXYbc")
@@ -636,7 +636,7 @@ test_text_edit_insert_with_non_collapsed_selection_replaces_selected_range :: pr
 
 	text_edit_insert(&state, "Z")
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "aZef")
@@ -659,7 +659,7 @@ test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_inser
 	// 世 = 3 bytes, x = 1 byte, 3 + 1 = 4 bytes
 	text_edit_insert(&state, "世x")
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "a世xef")
@@ -749,7 +749,7 @@ test_text_edit_handle_key_backspace_deletes_left :: proc(t: ^testing.T) {
 
 	text_edit_handle_keys(&state, base.Key_Set{.Backspace})
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ac")
@@ -770,7 +770,7 @@ test_text_edit_handle_key_ctrl_backspace_deletes_prev_word :: proc(t: ^testing.T
 
 	text_edit_handle_keys(&state, base.Key_Set{.Backspace}, base.KMOD_CTRL)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab ef")
@@ -791,7 +791,7 @@ test_text_edit_handle_key_shift_a_selects_all :: proc(t: ^testing.T) {
 
 	text_edit_handle_keys(&state, base.Key_Set{.A}, base.KMOD_CTRL)
 
-	actual := text_buffer_text(state.buffer)
+	actual := text_buffer_text(state.buffer, context.allocator)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab cd ef")
