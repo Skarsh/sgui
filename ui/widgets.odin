@@ -191,6 +191,39 @@ scrollbar :: proc(
 	}
 }
 
+// CONTINUE HERE!!
+text_input_2 :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
+
+	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
+	if open_ok {
+
+
+		key := ui_key_hash(element.id_string)
+		state, state_exists := &ctx.text_input_states[key]
+
+		if !state_exists {
+			new_state := UI_Element_Text_Input_State{}
+			new_state.state = textpkg.text_edit_init(ctx.persistent_allocator)
+
+			ctx.text_input_states[key] = new_state
+			state = &ctx.text_input_states[key]
+		}
+
+		//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
+		// which will free at the beginning of the next frame.
+		text_view := textpkg.text_buffer_text(state.state.buffer, ctx.frame_allocator)
+
+		element_equip_text(ctx, element, text_view)
+
+
+		element.last_comm.text = text_view
+		close_element(ctx)
+	}
+
+	append(&ctx.interactive_elements, element)
+	return element.last_comm
+}
+
 text_input :: proc(
 	ctx: ^Context,
 	id: string,
