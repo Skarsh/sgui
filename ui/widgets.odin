@@ -191,7 +191,6 @@ scrollbar :: proc(
 	}
 }
 
-// CONTINUE HERE!!
 text_input_2 :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
 
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
@@ -215,6 +214,82 @@ text_input_2 :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
 
 		element_equip_text(ctx, element, text_view)
 
+		if element == ctx.active_element {
+			state.caret_blink_timer += ctx.dt
+			CARET_BLINK_PERIOD :: 1.0
+
+			cursor_pos := state.state.selection.active
+			text_before_cursor := text_view[:cursor_pos]
+
+			// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
+			// use cached sizes from the text layout system.
+			metrics := ctx.measure_text_proc(text_before_cursor, ctx.font_id, ctx.font_user_data)
+			line_metrics := ctx.measure_text_proc("", ctx.font_id, ctx.font_user_data)
+			caret_x_offset := metrics.width
+			caret_height := line_metrics.line_height
+
+
+			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
+				// TODO(Thomas): Caret should be stylable
+				CARET_WIDTH :: 2.0
+				caret_id := fmt.tprintf("%s_caret", id)
+
+				// Caret container
+				container(
+					ctx,
+					caret_id,
+					Style {
+						sizing_x = sizing_fixed(CARET_WIDTH),
+						sizing_y = sizing_fixed(caret_height),
+						alignment_x = .Left,
+						alignment_y = .Center,
+						relative_position = base.Vec2{caret_x_offset, -caret_height / 2},
+						background_fill = default_color_style[.Text],
+						capability_flags = Capability_Flags{.Background},
+					},
+				)
+			}
+
+			// Selection container
+			selection_id := fmt.tprintf("%s_selection", id)
+			selection := state.state.selection
+			selection_start := textpkg.selection_start(selection)
+			selection_end := textpkg.selection_end(selection)
+
+			selection_offset_text := text_view[:selection_start]
+			// TODO(Thomas): HACK - Same measurement argument as above
+			selection_offset_metrics := ctx.measure_text_proc(
+				selection_offset_text,
+				ctx.font_id,
+				ctx.font_user_data,
+			)
+
+			selected_text := text_view[selection_start:selection_end]
+			// TODO(Thomas): HACK - Same measurement argument as above
+			selection_metrics := ctx.measure_text_proc(
+				selected_text,
+				ctx.font_id,
+				ctx.font_user_data,
+			)
+
+			// TODO(Thomas): Selection should be stylable
+			container(
+				ctx,
+				selection_id,
+				Style {
+					sizing_x = sizing_fixed(selection_metrics.width),
+					sizing_y = sizing_fixed(caret_height),
+					alignment_x = .Left,
+					alignment_y = .Center,
+					relative_position = base.Vec2 {
+						selection_offset_metrics.width,
+						-caret_height / 2,
+					},
+					background_fill = base.fill_color(255, 255, 255, 128),
+					capability_flags = Capability_Flags{.Background},
+				},
+			)
+		}
 
 		element.last_comm.text = text_view
 		close_element(ctx)

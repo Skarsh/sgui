@@ -63,19 +63,9 @@ ADD_BUTTON_COLOR :: base.Color{152, 151, 26, 255}
 CHECKBOX_EMPTY_BG :: base.Color{56, 50, 48, 255}
 CHECKBOX_DONE_BG :: base.Color{184, 187, 38, 255}
 
-
-add_new_task :: proc(data: ^Data) {
-	if data.new_task_buf_len == 0 {
-		return
-	}
-
-	new_task_text, alloc_err := strings.clone_from_bytes(
-		data.new_task_buf[0:data.new_task_buf_len],
-		data.allocator,
-	)
-
+add_new_task :: proc(data: ^Data, text: string) {
+	new_task_text, alloc_err := strings.clone(text, data.allocator)
 	assert(alloc_err == .None)
-
 	append(&data.tasks, Task{text = new_task_text, completed = false})
 }
 
@@ -280,11 +270,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				) {
 					// --- Text Input field ---
-					input_comm = ui.text_input(
+					input_comm = ui.text_input_2(
 						ctx,
 						"new_task_input",
-						data.new_task_buf,
-						&data.new_task_buf_len,
 						ui.Style{background_fill = ITEM_BG},
 					)
 
@@ -297,12 +285,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					)
 
 					if add_button_comm.clicked {
-						add_new_task(data)
+						add_new_task(data, input_comm.text)
 					}
 
 					ui.end_container(ctx)
 				}
-
 
 				ui.end_container(ctx)
 			}
