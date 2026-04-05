@@ -11,6 +11,7 @@ import "../../app"
 import "../../backend"
 import "../../base"
 import "../../diagnostics"
+import textpkg "../../text"
 import "../../ui"
 
 Data :: struct {
@@ -18,8 +19,6 @@ Data :: struct {
 	g:          f32,
 	b:          f32,
 	a:          f32,
-	buf:        []u8,
-	buf_len:    int,
 	// Small fixed buffers for hex value display (max 2 chars each)
 	value_bufs: [4][3]u8,
 }
@@ -218,11 +217,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						hex_label_str,
 						ui.Style{sizing_x = ui.sizing_fit(), sizing_y = ui.sizing_fit()},
 					)
-					hex_comm = ui.text_input(
+
+					hex_comm = ui.text_input_2(
 						ctx,
 						"hex_field",
-						data.buf,
-						&data.buf_len,
+						8,
 						ui.Style{background_fill = base.fill_color(0, 0, 0, 0)},
 					)
 
@@ -243,8 +242,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 				if is_dragging_slider {
 					// Sliders are source of truth, update text field
-					n := copy(data.buf, transmute([]u8)hex_from_sliders)
-					data.buf_len = n
+
+					//n := copy(data.buf, transmute([]u8)hex_from_sliders)
+					//data.buf_len = n
 				} else if hex_from_input != hex_from_sliders && len(hex_from_input) >= 8 {
 					// Text field is source of truth, update sliders
 					if r, r_ok := hex.decode_sequence(hex_from_input[0:2]); r_ok {
@@ -325,12 +325,10 @@ main :: proc() {
 	defer delete(buf)
 
 	my_data := Data {
-		r       = 0.5,
-		g       = 0.5,
-		b       = 0.5,
-		a       = 1.0,
-		buf     = buf,
-		buf_len = 0,
+		r = 0.5,
+		g = 0.5,
+		b = 0.5,
+		a = 1.0,
 		// value_bufs is zero-initialized automatically as a fixed array in the struct
 	}
 

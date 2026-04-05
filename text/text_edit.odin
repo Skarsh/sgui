@@ -16,6 +16,7 @@ Selection :: struct {
 Text_Edit_State :: struct {
 	buffer:    Text_Buffer,
 	selection: Selection,
+	max_len:   int,
 }
 
 Translation :: enum {
@@ -34,9 +35,16 @@ Text_Edit_Clipboard_Command :: enum {
 	Cut,
 }
 
-text_edit_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Edit_State {
+text_edit_init :: proc(
+	max_len: int = max(int),
+	allocator: mem.Allocator = context.allocator,
+) -> Text_Edit_State {
 	text_buf := text_buffer_init(allocator)
-	return Text_Edit_State{buffer = text_buf, selection = {active = 0, anchor = 0}}
+	return Text_Edit_State {
+		buffer = text_buf,
+		selection = {active = 0, anchor = 0},
+		max_len = max_len,
+	}
 }
 
 // TODO(Thomas): Pretty sure this can be simplified in a good way.
@@ -160,8 +168,11 @@ text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
 		insert_at = start
 	}
 
-	text_buffer_insert_at(&state.buffer, insert_at, text)
-	set_caret(state, insert_at + len(text))
+	current_len := text_buffer_byte_length(state.buffer)
+	if current_len + len(text) <= state.max_len {
+		text_buffer_insert_at(&state.buffer, insert_at, text)
+		set_caret(state, insert_at + len(text))
+	}
 }
 
 selection_start :: proc(selection: Selection) -> int {

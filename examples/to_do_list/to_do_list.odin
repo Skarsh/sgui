@@ -273,7 +273,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					input_comm = ui.text_input_2(
 						ctx,
 						"new_task_input",
-						ui.Style{background_fill = ITEM_BG},
+						style = ui.Style{background_fill = ITEM_BG},
 					)
 
 					// --- Add Button ---

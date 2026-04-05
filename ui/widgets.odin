@@ -191,18 +191,22 @@ scrollbar :: proc(
 	}
 }
 
-text_input_2 :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
+text_input_2 :: proc(
+	ctx: ^Context,
+	id: string,
+	max_len: int = max(int),
+	style: Style = {},
+) -> Comm {
 
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 	if open_ok {
-
 
 		key := ui_key_hash(element.id_string)
 		state, state_exists := &ctx.text_input_states[key]
 
 		if !state_exists {
 			new_state := UI_Element_Text_Input_State{}
-			new_state.state = textpkg.text_edit_init(ctx.persistent_allocator)
+			new_state.state = textpkg.text_edit_init(max_len, ctx.persistent_allocator)
 
 			ctx.text_input_states[key] = new_state
 			state = &ctx.text_input_states[key]
@@ -314,7 +318,7 @@ text_input :: proc(
 
 		if !state_exists {
 			new_state := UI_Element_Text_Input_State{}
-			new_state.state = textpkg.text_edit_init(ctx.persistent_allocator)
+			new_state.state = textpkg.text_edit_init(max(int), ctx.persistent_allocator)
 
 			if buf_len^ > 0 {
 				initial_len := min(buf_len^, len(buf))
