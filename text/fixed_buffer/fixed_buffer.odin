@@ -1,6 +1,7 @@
 package fixed_buffer
 
 import "core:testing"
+import "core:unicode/utf8"
 
 Fixed_Buffer :: struct {
 	buf: []u8,
@@ -26,6 +27,7 @@ remaining :: proc(fb: Fixed_Buffer) -> int {
 	return len(fb.buf) - fb.len
 }
 
+
 contents_slice :: proc(fb: Fixed_Buffer) -> []u8 {
 	return fb.buf[:fb.len]
 }
@@ -34,7 +36,14 @@ contents_string :: proc(fb: Fixed_Buffer) -> string {
 	return string(fb.buf[:fb.len])
 }
 
-insert_slice :: proc(fb: ^Fixed_Buffer, pos: int, bytes: []u8) -> bool {
+insert_at :: proc {
+	insert_slice_at,
+	insert_byte_at,
+	insert_rune_at,
+	insert_string_at,
+}
+
+insert_slice_at :: proc(fb: ^Fixed_Buffer, pos: int, bytes: []u8) -> bool {
 	if pos < 0 || pos > fb.len do return false
 	if len(bytes) > remaining(fb^) do return false
 
@@ -49,7 +58,16 @@ insert_slice :: proc(fb: ^Fixed_Buffer, pos: int, bytes: []u8) -> bool {
 }
 
 insert_byte_at :: proc(fb: ^Fixed_Buffer, pos: int, b: u8) -> bool {
-	return insert_slice(fb, pos, {b})
+	return insert_slice_at(fb, pos, {b})
+}
+
+insert_rune_at :: proc(fb: ^Fixed_Buffer, pos: int, r: rune) -> bool {
+	bytes, width := utf8.encode_rune(r)
+	return insert_slice_at(fb, pos, bytes[:width])
+}
+
+insert_string_at :: proc(fb: ^Fixed_Buffer, pos: int, str: string) -> bool {
+	return insert_slice_at(fb, pos, transmute([]u8)str)
 }
 
 delete :: proc(fb: ^Fixed_Buffer, pos: int, count: int) -> bool {
@@ -102,13 +120,13 @@ test_insert_slice :: proc(t: ^testing.T) {
 	backing: [N]u8
 	fb := init(backing[:])
 
-	testing.expect(t, insert_slice(&fb, 0, transmute([]u8)string("hello")))
+	testing.expect(t, insert_slice_at(&fb, 0, transmute([]u8)string("hello")))
 	testing.expect_value(t, contents_string(fb), "hello")
 
-	testing.expect(t, insert_slice(&fb, 5, transmute([]u8)string(" world")))
+	testing.expect(t, insert_slice_at(&fb, 5, transmute([]u8)string(" world")))
 	testing.expect_value(t, contents_string(fb), "hello world")
 
-	testing.expect(t, insert_slice(&fb, 5, transmute([]u8)string(",")))
+	testing.expect(t, insert_slice_at(&fb, 5, transmute([]u8)string(",")))
 	testing.expect_value(t, contents_string(fb), "hello, world")
 }
 
@@ -128,10 +146,10 @@ test_insert_out_of_bounds :: proc(t: ^testing.T) {
 	backing: [N]u8
 	fb := init(backing[:])
 
-	testing.expect(t, !insert_slice(&fb, -1, transmute([]u8)string("x")))
+	testing.expect(t, !insert_slice_at(&fb, -1, transmute([]u8)string("x")))
 
 	// The insert here will fail because the len(fb.buf) == 0
-	testing.expect(t, !insert_slice(&fb, 1, transmute([]u8)string("x")))
+	testing.expect(t, !insert_slice_at(&fb, 1, transmute([]u8)string("x")))
 }
 
 @(test)
@@ -142,6 +160,54 @@ test_insert_overflow :: proc(t: ^testing.T) {
 
 	testing.expect(t, !insert_byte_at(&fb, 0, 'x'))
 	testing.expect_value(t, fb.len, 4)
+}
+
+@(test)
+test_insert_rune_at :: proc(t: ^testing.T) {
+	N :: 16
+	backing: [N]u8
+	fb := init(backing[:])
+
+	testing.expect(t, insert_rune_at(&fb, 0, 'H'))
+	testing.expect_value(t, contents_string(fb), "H")
+
+	// Multi-byte rune
+	testing.expect(t, insert_rune_at(&fb, 1, 'é'))
+	testing.expect_value(t, fb.len, 3) // 1 + 2 bytes
+	testing.expect_value(t, contents_string(fb), "Hé")
+
+	// 3-byte rune
+	testing.expect(t, insert_rune_at(&fb, 3, '世'))
+	testing.expect_value(t, fb.len, 6) // 1 + 2 + 3
+	testing.expect_value(t, contents_string(fb), "Hé世")
+}
+
+@(test)
+test_insert_rune_overflow :: proc(t: ^testing.T) {
+	N :: 4
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+
+	// 'é' is 2 bytes, only 1 byte remaining
+	testing.expect(t, !insert_rune_at(&fb, 3, 'é'))
+	testing.expect_value(t, fb.len, 3)
+	testing.expect_value(t, remaining(fb), 1)
+}
+
+@(test)
+test_insert_string_at :: proc(t: ^testing.T) {
+	N :: 16
+	backing: [N]u8
+	fb := init(backing[:])
+
+	testing.expect(t, insert_string_at(&fb, 0, "hello"))
+	testing.expect_value(t, contents_string(fb), "hello")
+
+	testing.expect(t, insert_string_at(&fb, 5, " world"))
+	testing.expect_value(t, contents_string(fb), "hello world")
+
+	testing.expect(t, insert_string_at(&fb, 5, ","))
+	testing.expect_value(t, contents_string(fb), "hello, world")
 }
 
 @(test)
