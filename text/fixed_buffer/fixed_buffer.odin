@@ -90,6 +90,13 @@ get_byte_at :: proc(fb: Fixed_Buffer, pos: int) -> (u8, bool) {
 	return fb.buf[pos], true
 }
 
+peek_rune_at :: proc(fb: Fixed_Buffer, byte_idx: int) -> (r: rune, width: int) {
+	if byte_idx < 0 || byte_idx >= fb.len {
+		return utf8.RUNE_ERROR, 0
+	}
+	return utf8.decode_rune(fb.buf[byte_idx:fb.len])
+}
+
 
 // ----------------- Tests ----------------- //
 
