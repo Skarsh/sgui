@@ -125,6 +125,19 @@ get_byte_at :: proc(gb: Gap_Buffer, pos: int) -> (u8, bool) {
 	return gb.buf[pos + gap_sz], true
 }
 
+peek_rune_at :: proc(gb: Gap_Buffer, byte_idx: int) -> (r: rune, width: int) {
+	if byte_idx < gb.start {
+		return utf8.decode_rune(gb.buf[byte_idx:])
+	}
+	physical_idx := byte_idx + gap_size(gb)
+
+	if physical_idx < len(gb.buf) {
+		return utf8.decode_rune(gb.buf[physical_idx:])
+	}
+
+	return utf8.RUNE_ERROR, 0
+}
+
 // Helper procedure to get the left and right strings of the gap
 @(private)
 get_strings :: proc(gb: Gap_Buffer) -> (left: string, right: string) {

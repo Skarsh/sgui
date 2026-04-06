@@ -186,17 +186,5 @@ get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (r: rune, width: int) 
 
 @(private)
 peek_rune_at_byte_offset :: proc(buf: Text_Buffer, byte_idx: int) -> (r: rune, width: int) {
-
-	if byte_idx < buf.gb.start {
-		return utf8.decode_rune(buf.gb.buf[byte_idx:])
-	}
-
-	gap_sz := gap_buffer.gap_size(buf.gb)
-	physical_idx := byte_idx + gap_sz
-
-	if physical_idx < len(buf.gb.buf) {
-		return utf8.decode_rune(buf.gb.buf[physical_idx:])
-	}
-
-	return utf8.RUNE_ERROR, 0
+	return gap_buffer.peek_rune_at(buf.gb, byte_idx)
 }
