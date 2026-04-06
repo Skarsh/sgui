@@ -65,13 +65,6 @@ get_theme :: proc(dark_mode: bool) -> Theme {
 }
 
 Data :: struct {
-	// Form state
-	username_buf:    []u8,
-	username_len:    int,
-	email_buf:       []u8,
-	email_len:       int,
-	search_buf:      []u8,
-	search_len:      int,
 	// Settings
 	notifications:   bool,
 	dark_mode:       bool,
@@ -298,9 +291,7 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.text_input(
 			ctx,
 			"search",
-			data.search_buf,
-			&data.search_len,
-			ui.Style {
+			style = ui.Style {
 				sizing_x = ui.sizing_grow(min = 200, max = 300),
 				sizing_y = ui.sizing_fixed(40),
 				background_fill = theme.bg_input,
@@ -468,8 +459,8 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.text(ctx, "form_title", "User Profile", ui.Style{text_fill = theme.text_primary})
 
 		// Form fields
-		form_field(ctx, "username_field", "Username", data.username_buf, &data.username_len, theme)
-		form_field(ctx, "email_field", "Email", data.email_buf, &data.email_len, theme)
+		form_field(ctx, "username_field", "Username", theme)
+		form_field(ctx, "email_field", "Email", theme)
 
 		// Sliders section
 		ui.text(ctx, "sliders_title", "Preferences", ui.Style{text_fill = theme.text_secondary})
@@ -524,14 +515,7 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 	}
 }
 
-form_field :: proc(
-	ctx: ^ui.Context,
-	id: string,
-	label: string,
-	buf: []u8,
-	len: ^int,
-	theme: Theme,
-) {
+form_field :: proc(ctx: ^ui.Context, id: string, label: string, theme: Theme) {
 	if ui.begin_container(
 		ctx,
 		id,
@@ -552,9 +536,7 @@ form_field :: proc(
 		ui.text_input(
 			ctx,
 			fmt.aprintf("%s_input", id, allocator = fa),
-			buf,
-			len,
-			ui.Style {
+			style = ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_fixed(44),
 				background_fill = theme.bg_input,
@@ -833,12 +815,6 @@ main :: proc() {
 	defer delete(search_buf)
 
 	data := Data {
-		username_buf    = username_buf,
-		username_len    = 0,
-		email_buf       = email_buf,
-		email_len       = 0,
-		search_buf      = search_buf,
-		search_len      = 0,
 		notifications   = true,
 		dark_mode       = true,
 		auto_save       = false,

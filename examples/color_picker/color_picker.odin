@@ -217,7 +217,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						ui.Style{sizing_x = ui.sizing_fit(), sizing_y = ui.sizing_fit()},
 					)
 
-					hex_comm = ui.text_input_2(
+					hex_comm = ui.text_input(
 						ctx,
 						"hex_field",
 						8,

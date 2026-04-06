@@ -191,12 +191,7 @@ scrollbar :: proc(
 	}
 }
 
-text_input_2 :: proc(
-	ctx: ^Context,
-	id: string,
-	max_len: int = max(int),
-	style: Style = {},
-) -> Comm {
+text_input :: proc(ctx: ^Context, id: string, max_len: int = max(int), style: Style = {}) -> Comm {
 
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 	if open_ok {
@@ -296,122 +291,6 @@ text_input_2 :: proc(
 		}
 
 		element.last_comm.text = text_view
-		close_element(ctx)
-	}
-
-	append(&ctx.interactive_elements, element)
-	return element.last_comm
-}
-
-text_input :: proc(
-	ctx: ^Context,
-	id: string,
-	buf: []u8,
-	buf_len: ^int,
-	style: Style = {},
-) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
-	if open_ok {
-
-		key := ui_key_hash(element.id_string)
-		state, state_exists := &ctx.text_input_states[key]
-
-		if !state_exists {
-			new_state := UI_Element_Text_Input_State{}
-			new_state.state = textpkg.text_edit_init(max(int), ctx.persistent_allocator)
-
-			if buf_len^ > 0 {
-				initial_len := min(buf_len^, len(buf))
-				textpkg.text_edit_insert(&new_state.state, string(buf[:initial_len]))
-			}
-
-			ctx.text_input_states[key] = new_state
-			state = &ctx.text_input_states[key]
-		}
-
-		// TODO(Thomas): HACK - I don't like this, I'm pretty sure there's a way to make this much nicer,
-		// safer and better through the text layout and caching system eventually.
-		buf_len^ = textpkg.text_buffer_copy_into(state.state.buffer, buf)
-		text_view := string(buf[:buf_len^])
-
-		element_equip_text(ctx, element, text_view)
-
-		if element == ctx.active_element {
-			state.caret_blink_timer += ctx.dt
-			CARET_BLINK_PERIOD :: 1.0
-
-			cursor_pos := state.state.selection.active
-			text_before_cursor := text_view[:cursor_pos]
-
-			// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
-			// use cached sizes from the text layout system.
-			metrics := ctx.measure_text_proc(text_before_cursor, ctx.font_id, ctx.font_user_data)
-			line_metrics := ctx.measure_text_proc("", ctx.font_id, ctx.font_user_data)
-			caret_x_offset := metrics.width
-			caret_height := line_metrics.line_height
-
-			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
-				// TODO(Thomas): Caret should be stylable
-				CARET_WIDTH :: 2.0
-				caret_id := fmt.tprintf("%s_caret", id)
-
-				// Caret container
-				container(
-					ctx,
-					caret_id,
-					Style {
-						sizing_x = sizing_fixed(CARET_WIDTH),
-						sizing_y = sizing_fixed(caret_height),
-						alignment_x = .Left,
-						alignment_y = .Center,
-						relative_position = base.Vec2{caret_x_offset, -caret_height / 2},
-						background_fill = default_color_style[.Text],
-						capability_flags = Capability_Flags{.Background},
-					},
-				)
-			}
-
-			// Selection container
-			selection_id := fmt.tprintf("%s_selection", id)
-			selection := state.state.selection
-			selection_start := textpkg.selection_start(selection)
-			selection_end := textpkg.selection_end(selection)
-
-			selection_offset_text := text_view[:selection_start]
-			selection_offset_metrics := ctx.measure_text_proc(
-				selection_offset_text,
-				ctx.font_id,
-				ctx.font_user_data,
-			)
-
-			selected_text := text_view[selection_start:selection_end]
-			selection_metrics := ctx.measure_text_proc(
-				selected_text,
-				ctx.font_id,
-				ctx.font_user_data,
-			)
-
-			// TODO(Thomas): Selection should be stylable
-			container(
-				ctx,
-				selection_id,
-				Style {
-					sizing_x = sizing_fixed(selection_metrics.width),
-					sizing_y = sizing_fixed(caret_height),
-					alignment_x = .Left,
-					alignment_y = .Center,
-					relative_position = base.Vec2 {
-						selection_offset_metrics.width,
-						-caret_height / 2,
-					},
-					background_fill = base.fill_color(255, 255, 255, 128),
-					capability_flags = Capability_Flags{.Background},
-				},
-			)
-		}
-
-		element.last_comm.text = text_view
-
 		close_element(ctx)
 	}
 

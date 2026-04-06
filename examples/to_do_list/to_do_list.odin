@@ -270,7 +270,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					},
 				) {
 					// --- Text Input field ---
-					input_comm = ui.text_input_2(
+					input_comm = ui.text_input(
 						ctx,
 						"new_task_input",
 						style = ui.Style{background_fill = ITEM_BG},
