@@ -11,7 +11,6 @@ import "../../app"
 import "../../backend"
 import "../../base"
 import "../../diagnostics"
-import textpkg "../../text"
 import "../../ui"
 
 Data :: struct {
