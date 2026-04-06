@@ -30,6 +30,10 @@ contents :: proc(fb: Fixed_Buffer) -> []u8 {
 	return fb.buf[:fb.len]
 }
 
+contents_string :: proc(fb: Fixed_Buffer) -> string {
+	return string(fb.buf[:fb.len])
+}
+
 insert_slice :: proc(fb: ^Fixed_Buffer, pos: int, bytes: []u8) -> bool {
 	if pos < 0 || pos > fb.len do return false
 	if len(bytes) > remaining(fb^) do return false
@@ -68,6 +72,9 @@ byte_at :: proc(fb: Fixed_Buffer, pos: int) -> (u8, bool) {
 	return fb.buf[pos], true
 }
 
+
+// ----------------- Tests ----------------- //
+
 @(test)
 test_init :: proc(t: ^testing.T) {
 	N :: 16
@@ -86,7 +93,7 @@ test_init_with_content :: proc(t: ^testing.T) {
 	fb := init_with_content(backing[:], transmute([]u8)content)
 	testing.expect_value(t, fb.len, len(content))
 	testing.expect_value(t, capacity(fb), N)
-	testing.expect_value(t, string(contents(fb)), "hello")
+	testing.expect_value(t, contents_string(fb), "hello")
 }
 
 @(test)
@@ -96,11 +103,112 @@ test_insert_slice :: proc(t: ^testing.T) {
 	fb := init(backing[:])
 
 	testing.expect(t, insert_slice(&fb, 0, transmute([]u8)string("hello")))
-	testing.expect_value(t, string(contents(fb)), "hello")
+	testing.expect_value(t, contents_string(fb), "hello")
 
 	testing.expect(t, insert_slice(&fb, 5, transmute([]u8)string(" world")))
-	testing.expect_value(t, string(contents(fb)), "hello world")
+	testing.expect_value(t, contents_string(fb), "hello world")
 
 	testing.expect(t, insert_slice(&fb, 5, transmute([]u8)string(",")))
-	testing.expect_value(t, string(contents(fb)), "hello, world")
+	testing.expect_value(t, contents_string(fb), "hello, world")
+}
+
+@(test)
+test_insert_byte_at :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("ac"))
+
+	testing.expect(t, insert_byte_at(&fb, 1, 'b'))
+	testing.expect_value(t, contents_string(fb), "abc")
+}
+
+@(test)
+test_insert_out_of_bounds :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := init(backing[:])
+
+	testing.expect(t, !insert_slice(&fb, -1, transmute([]u8)string("x")))
+
+	// The insert here will fail because the len(fb.buf) == 0
+	testing.expect(t, !insert_slice(&fb, 1, transmute([]u8)string("x")))
+}
+
+@(test)
+test_insert_overflow :: proc(t: ^testing.T) {
+	N :: 4
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("abcd"))
+
+	testing.expect(t, !insert_byte_at(&fb, 0, 'x'))
+	testing.expect_value(t, fb.len, 4)
+}
+
+@(test)
+test_delete :: proc(t: ^testing.T) {
+	N :: 16
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("hello world"))
+
+	testing.expect(t, delete(&fb, 5, 6))
+	testing.expect_value(t, contents_string(fb), "hello")
+
+	testing.expect(t, delete(&fb, 0, 2))
+	testing.expect_value(t, contents_string(fb), "llo")
+}
+
+@(test)
+test_delete_invalid :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+
+	// Try to delete from negative pos
+	testing.expect(t, !delete(&fb, -1, 1))
+	// Try to delete with count >= fb.len
+	testing.expect(t, !delete(&fb, 0, 4))
+	// Try to delete with a pos and a count that will go past the fb.len
+	testing.expect(t, !delete(&fb, 2, 2))
+}
+
+@(test)
+test_delete_zero_count :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+
+	testing.expect(t, delete(&fb, 1, 0))
+}
+
+@(test)
+test_clear :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("hello"))
+
+	clear(&fb)
+	testing.expect_value(t, fb.len, 0)
+	testing.expect_value(t, capacity(fb), N)
+	testing.expect_value(t, remaining(fb), N)
+}
+
+@(test)
+test_byte_at :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+
+	b, ok := byte_at(fb, 0)
+	testing.expect(t, ok)
+	testing.expect_value(t, b, 'a')
+
+	b, ok = byte_at(fb, 2)
+	testing.expect(t, ok)
+	testing.expect_value(t, b, 'c')
+
+	_, ok = byte_at(fb, 3)
+	testing.expect(t, !ok)
+
+	_, ok = byte_at(fb, -1)
+	testing.expect(t, !ok)
 }
