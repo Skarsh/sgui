@@ -159,7 +159,7 @@ get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (r: rune, width: int) 
 	}
 
 	start := byte_idx - 1
-	for _ in 0 ..< 4 {
+	for _ in 0 ..< utf8.UTF_MAX {
 		if start < 0 {
 			break
 		}
