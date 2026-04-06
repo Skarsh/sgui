@@ -65,7 +65,7 @@ clear :: proc(fb: ^Fixed_Buffer) {
 	fb.len = 0
 }
 
-byte_at :: proc(fb: Fixed_Buffer, pos: int) -> (u8, bool) {
+get_byte_at :: proc(fb: Fixed_Buffer, pos: int) -> (u8, bool) {
 	if pos < 0 || pos >= fb.len {
 		return 0, false
 	}
@@ -198,17 +198,17 @@ test_byte_at :: proc(t: ^testing.T) {
 	backing: [N]u8
 	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
 
-	b, ok := byte_at(fb, 0)
+	b, ok := get_byte_at(fb, 0)
 	testing.expect(t, ok)
 	testing.expect_value(t, b, 'a')
 
-	b, ok = byte_at(fb, 2)
+	b, ok = get_byte_at(fb, 2)
 	testing.expect(t, ok)
 	testing.expect_value(t, b, 'c')
 
-	_, ok = byte_at(fb, 3)
+	_, ok = get_byte_at(fb, 3)
 	testing.expect(t, !ok)
 
-	_, ok = byte_at(fb, -1)
+	_, ok = get_byte_at(fb, -1)
 	testing.expect(t, !ok)
 }
