@@ -4,6 +4,12 @@ import "core:mem"
 import "core:unicode/utf8"
 
 import gap_buffer "../gap_buffer"
+import fixed_buffer "fixed_buffer"
+
+Backing_Store :: union {
+	gap_buffer.Gap_Buffer,
+	fixed_buffer.Fixed_Buffer,
+}
 
 // Text_Buffer is meant to be an abstraction providing a simple text manipulation
 // API on top of varying data structures e.g. Gap_Buffer, Rope etc.
