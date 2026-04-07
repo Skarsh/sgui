@@ -36,6 +36,11 @@ text_buffer_init_with_content :: proc(content: string, allocator: mem.Allocator)
 	return Text_Buffer{buf = gb}
 }
 
+text_buffer_init_fixed :: proc(buf: []u8) -> Text_Buffer {
+	fb := fixed_buffer.init(buf)
+	return Text_Buffer{buf = fb}
+}
+
 text_buffer_deinit :: proc(tb: ^Text_Buffer) {
 	switch &buf in tb.buf {
 	case gap_buffer.Gap_Buffer:

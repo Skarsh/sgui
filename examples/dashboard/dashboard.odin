@@ -79,6 +79,10 @@ Data :: struct {
 	conversion_rate: f32,
 	// Navigation
 	selected_nav:    int,
+	// Text input buffers
+	search_buf:      []u8,
+	username_buf:    []u8,
+	email_buf:       []u8,
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
@@ -291,6 +295,7 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.text_input(
 			ctx,
 			"search",
+			data.search_buf,
 			style = ui.Style {
 				sizing_x = ui.sizing_grow(min = 200, max = 300),
 				sizing_y = ui.sizing_fixed(40),
@@ -459,8 +464,8 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 		ui.text(ctx, "form_title", "User Profile", ui.Style{text_fill = theme.text_primary})
 
 		// Form fields
-		form_field(ctx, "username_field", "Username", theme)
-		form_field(ctx, "email_field", "Email", theme)
+		form_field(ctx, "username_field", "Username", data.username_buf, theme)
+		form_field(ctx, "email_field", "Email", data.email_buf, theme)
 
 		// Sliders section
 		ui.text(ctx, "sliders_title", "Preferences", ui.Style{text_fill = theme.text_secondary})
@@ -515,7 +520,7 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 	}
 }
 
-form_field :: proc(ctx: ^ui.Context, id: string, label: string, theme: Theme) {
+form_field :: proc(ctx: ^ui.Context, id: string, label: string, buf: []u8, theme: Theme) {
 	if ui.begin_container(
 		ctx,
 		id,
@@ -536,6 +541,7 @@ form_field :: proc(ctx: ^ui.Context, id: string, label: string, theme: Theme) {
 		ui.text_input(
 			ctx,
 			fmt.aprintf("%s_input", id, allocator = fa),
+			buf,
 			style = ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_fixed(44),
@@ -825,6 +831,9 @@ main :: proc() {
 		revenue         = 12345,
 		conversion_rate = 3.2,
 		selected_nav    = 0,
+		search_buf      = search_buf,
+		username_buf    = username_buf,
+		email_buf       = email_buf,
 	}
 
 	app.run(my_app, &data, update_and_draw)

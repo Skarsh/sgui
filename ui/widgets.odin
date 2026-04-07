@@ -191,8 +191,8 @@ scrollbar :: proc(
 	}
 }
 
-text_input :: proc(ctx: ^Context, id: string, max_len: int = max(int), style: Style = {}) -> Comm {
 
+text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 	if open_ok {
 
@@ -201,7 +201,7 @@ text_input :: proc(ctx: ^Context, id: string, max_len: int = max(int), style: St
 
 		if !state_exists {
 			new_state := UI_Element_Text_Input_State{}
-			new_state.state = textpkg.text_edit_init(max_len, ctx.persistent_allocator)
+			new_state.state = textpkg.text_edit_init_fixed(buf)
 
 			ctx.text_input_states[key] = new_state
 			state = &ctx.text_input_states[key]

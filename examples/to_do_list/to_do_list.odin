@@ -273,6 +273,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					input_comm = ui.text_input(
 						ctx,
 						"new_task_input",
+						data.new_task_buf,
 						style = ui.Style{background_fill = ITEM_BG},
 					)
 

@@ -47,6 +47,15 @@ text_edit_init :: proc(
 	}
 }
 
+text_edit_init_fixed :: proc(buf: []u8) -> Text_Edit_State {
+	text_buf := text_buffer_init_fixed(buf)
+	return Text_Edit_State {
+		buffer = text_buf,
+		selection = {active = 0, anchor = 0},
+		max_len = len(buf),
+	}
+}
+
 // TODO(Thomas): Pretty sure this can be simplified in a good way.
 // TODO(Thomas): Expand command wiring for more shortcuts (select-all, clipboard, undo/redo).
 text_edit_handle_keys :: proc(
