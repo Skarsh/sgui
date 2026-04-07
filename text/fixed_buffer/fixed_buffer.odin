@@ -19,6 +19,8 @@ init_with_content :: proc(buf: []u8, content: []u8) -> Fixed_Buffer {
 	return Fixed_Buffer{buf = buf, len = n}
 }
 
+deinit :: proc(fb: ^Fixed_Buffer) {}
+
 capacity :: proc(fb: Fixed_Buffer) -> int {
 	return len(fb.buf)
 }
@@ -70,7 +72,7 @@ insert_string_at :: proc(fb: ^Fixed_Buffer, pos: int, str: string) -> bool {
 	return insert_slice_at(fb, pos, transmute([]u8)str)
 }
 
-delete :: proc(fb: ^Fixed_Buffer, pos: int, count: int) -> bool {
+delete_range :: proc(fb: ^Fixed_Buffer, pos: int, count: int) -> bool {
 	if pos < 0 || count < 0 || pos + count > fb.len do return false
 
 	copy(fb.buf[pos:], fb.buf[pos + count:fb.len])
@@ -90,7 +92,7 @@ get_byte_at :: proc(fb: Fixed_Buffer, pos: int) -> (u8, bool) {
 	return fb.buf[pos], true
 }
 
-peek_rune_at :: proc(fb: Fixed_Buffer, byte_idx: int) -> (r: rune, width: int) {
+peek_rune_at :: proc(fb: Fixed_Buffer, byte_idx: int) -> (rune, int) {
 	if byte_idx < 0 || byte_idx >= fb.len {
 		return utf8.RUNE_ERROR, 0
 	}
@@ -223,10 +225,10 @@ test_delete :: proc(t: ^testing.T) {
 	backing: [N]u8
 	fb := init_with_content(backing[:], transmute([]u8)string("hello world"))
 
-	testing.expect(t, delete(&fb, 5, 6))
+	testing.expect(t, delete_range(&fb, 5, 6))
 	testing.expect_value(t, contents_string(fb), "hello")
 
-	testing.expect(t, delete(&fb, 0, 2))
+	testing.expect(t, delete_range(&fb, 0, 2))
 	testing.expect_value(t, contents_string(fb), "llo")
 }
 
@@ -237,11 +239,11 @@ test_delete_invalid :: proc(t: ^testing.T) {
 	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
 
 	// Try to delete from negative pos
-	testing.expect(t, !delete(&fb, -1, 1))
+	testing.expect(t, !delete_range(&fb, -1, 1))
 	// Try to delete with count >= fb.len
-	testing.expect(t, !delete(&fb, 0, 4))
+	testing.expect(t, !delete_range(&fb, 0, 4))
 	// Try to delete with a pos and a count that will go past the fb.len
-	testing.expect(t, !delete(&fb, 2, 2))
+	testing.expect(t, !delete_range(&fb, 2, 2))
 }
 
 @(test)
@@ -250,7 +252,7 @@ test_delete_zero_count :: proc(t: ^testing.T) {
 	backing: [N]u8
 	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
 
-	testing.expect(t, delete(&fb, 1, 0))
+	testing.expect(t, delete_range(&fb, 1, 0))
 }
 
 @(test)
