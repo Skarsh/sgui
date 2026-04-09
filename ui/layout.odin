@@ -70,7 +70,7 @@ Shape_Data :: struct {
 
 Element_Content :: struct {
 	text_data:  Text_Data,
-	image_data: rawptr,
+	texture_id: Maybe(Texture_Id),
 	shape_data: Shape_Data,
 }
 

@@ -80,9 +80,11 @@ Command_Text :: struct {
 	fill:   base.Fill,
 }
 
+Texture_Id :: distinct i32
+
 Command_Image :: struct {
 	x, y, w, h: f32,
-	data:       rawptr,
+	texture_id: Texture_Id,
 }
 
 Command_Shape :: struct {
@@ -688,16 +690,18 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	if .Image in cap_flags {
-		draw_image(
-			ctx,
-			element.position.x,
-			element.position.y,
-			element.size.x,
-			element.size.y,
-			element.config.content.image_data,
-			// Base layer
-			z_offset = 0,
-		)
+		if texture_id, has_texture := element.config.content.texture_id.?; has_texture {
+			draw_image(
+				ctx,
+				element.position.x,
+				element.position.y,
+				element.size.x,
+				element.size.y,
+				texture_id,
+				// Base layer
+				z_offset = 0,
+			)
+		}
 	}
 
 	if .Text in cap_flags {
@@ -817,8 +821,8 @@ draw_text :: proc(
 	push_draw_command(ctx, cmd, z_offset)
 }
 
-draw_image :: proc(ctx: ^Context, x, y, w, h: f32, data: rawptr, z_offset: i32 = 0) {
-	cmd := Command_Image{x, y, w, h, data}
+draw_image :: proc(ctx: ^Context, x, y, w, h: f32, texture_id: Texture_Id, z_offset: i32 = 0) {
+	cmd := Command_Image{x, y, w, h, texture_id}
 	push_draw_command(ctx, cmd, z_offset)
 }
 

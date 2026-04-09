@@ -12,18 +12,13 @@ import gl "vendor:OpenGL"
 import base "../base"
 import ui "../ui"
 
-Texture_Store :: struct {
-	idx_to_slot_map: map[i32]i32,
-	start_slot:      i32,
-	slot:            i32,
-	max_slots:       i32,
+Image_Texture_State :: struct {
+	current_id: i32,
 }
 
-reset_texture_store :: proc(store: ^Texture_Store) {
-	store.slot = store.start_slot
-	clear(&store.idx_to_slot_map)
+reset_image_texture_state :: proc(state: ^Image_Texture_State) {
+	state.current_id = -1
 }
-
 
 set_and_enable_vertex_attributes :: proc($T: typeid) {
 	ti := runtime.type_info_base(type_info_of(T))
@@ -112,10 +107,9 @@ Quad_Param :: struct #align (16) {
 	quad_size:           base.Vec2,
 	uv_offset:           base.Vec2,
 	uv_size:             base.Vec2,
-	tex_slot:            i32,
 	quad_type:           i32,
 	stroke_thickness:    f32,
-	_padding_3:          f32,
+	_padding_3:          [2]f32,
 	// Mapping: x=top, y=right, z=bottom, w=left
 	border:              base.Vec4,
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
@@ -160,18 +154,18 @@ reset_batch :: proc(batch: ^Batch) {
 }
 
 OpenGL_Render_Data :: struct {
-	window_size:   base.Vector2i32,
-	vao:           u32,
-	vbo:           u32,
-	ebo:           u32,
-	ssbo:          u32,
-	ssbo_data:     []Quad_Param,
-	shader:        Shader,
-	font_atlas:    Font_Atlas,
-	font_texture:  OpenGL_Texture,
-	proj:          linalg.Matrix4f32,
-	texture_store: Texture_Store,
-	scissor_stack: [dynamic]base.Rect,
+	window_size:         base.Vector2i32,
+	vao:                 u32,
+	vbo:                 u32,
+	ebo:                 u32,
+	ssbo:                u32,
+	ssbo_data:           []Quad_Param,
+	shader:              Shader,
+	font_atlas:          Font_Atlas,
+	font_texture:        OpenGL_Texture,
+	proj:                linalg.Matrix4f32,
+	image_texture_state: Image_Texture_State,
+	scissor_stack:       [dynamic]base.Rect,
 }
 
 MAX_QUADS :: 10_000
@@ -302,10 +296,9 @@ init_opengl :: proc(
 	}
 	data.font_texture = font_texture
 
-	MAX_TEXTURE_SLOTS :: 16
-	//NOTE(Thomas): The start slot is 1 since the 0th slot is taken by font texture
-	texture_store := Texture_Store{make(map[i32]i32, allocator), 1, 1, MAX_TEXTURE_SLOTS}
-	data.texture_store = texture_store
+	data.image_texture_state = Image_Texture_State {
+		current_id = -1,
+	}
 
 	data.scissor_stack = make([dynamic]base.Rect, allocator)
 
@@ -371,9 +364,8 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 	opengl_bind_texture(i32(render_data.font_texture.id))
 	shader_set_int(render_data.shader, "u_font_texture", 0)
 
-	// Reset the texture store each frame because the
-	// ids can have changed between the frames.
-	reset_texture_store(&render_data.texture_store)
+	// Reset the image texture state each frame
+	reset_image_texture_state(&render_data.image_texture_state)
 	reset_batch(&batch)
 
 	for command in command_queue {
@@ -418,7 +410,6 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				quad_size           = {f32(rect.w), f32(rect.h)},
 				uv_offset           = {-1, -1},
 				uv_size             = {0, 0},
-				tex_slot            = 0,
 				quad_type           = i32(Quad_Type.Rect),
 				border              = border_vec,
 				border_radius       = border_radius,
@@ -497,7 +488,6 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 					quad_size    = {width, height},
 					uv_offset    = {glyph_quad.s0, glyph_quad.t0},
 					uv_size      = {glyph_quad.s1 - glyph_quad.s0, glyph_quad.t1 - glyph_quad.t0},
-					tex_slot     = 0,
 					quad_type    = i32(Quad_Type.Text),
 				}
 
@@ -507,53 +497,24 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 
 
 		case ui.Command_Image:
-			data := val.data
-			tex_id := (cast(^i32)data)^
+			tex_id := i32(val.texture_id)
 
-			// TODO(Thomas): This works but obviously has issues.
-			// Move this stuff into its own procedure. When all the slots
-			// have been reached and there's a new texture id that needs a new slot
-			// we have to do a render call, reset and continue.
-			tex_slot, exists := render_data.texture_store.idx_to_slot_map[tex_id]
-			if !exists {
-				tex_slot = render_data.texture_store.slot
-				render_data.texture_store.idx_to_slot_map[tex_id] = tex_slot
+			// Flush and rebind if the texture_changed
+			if tex_id != render_data.image_texture_state.current_id {
+				flush_render(render_data, batch)
+				reset_batch(&batch)
 
-				switch tex_slot {
-				case 1:
-					opengl_active_texture(.Texture_1)
-					opengl_bind_texture(tex_id)
-					shader_set_int(render_data.shader, "u_image_texture_1", 1)
-				case 2:
-					opengl_active_texture(.Texture_2)
-					opengl_bind_texture(tex_id)
-					shader_set_int(render_data.shader, "u_image_texture_2", 2)
-				case 3:
-					opengl_active_texture(.Texture_3)
-					opengl_bind_texture(tex_id)
-					shader_set_int(render_data.shader, "u_image_texture_3", 3)
-				case 4:
-					opengl_active_texture(.Texture_4)
-					opengl_bind_texture(tex_id)
-					shader_set_int(render_data.shader, "u_image_texture_4", 4)
-				case 5:
-					opengl_active_texture(.Texture_5)
-					opengl_bind_texture(tex_id)
-					shader_set_int(render_data.shader, "u_image_texture_5", 5)
-				}
+				opengl_active_texture(.Texture_1)
+				opengl_bind_texture(tex_id)
 
-				render_data.texture_store.slot += 1
+				shader_set_int(render_data.shader, "u_image_texture", 1)
+				render_data.image_texture_state.current_id = tex_id
 			}
 
 			if batch.quad_idx >= MAX_QUADS {
 				flush_render(render_data, batch)
 				reset_batch(&batch)
 			}
-
-			x := val.x
-			y := val.y
-			w := val.w
-			h := val.h
 
 			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
 				color_start  = {1, 1, 1, 1},
@@ -565,11 +526,10 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 					f32(command.clip_rect.w),
 					f32(command.clip_rect.h),
 				},
-				quad_pos     = {x + w / 2, y + h / 2},
-				quad_size    = {w, h},
+				quad_pos     = {val.x + val.w / 2, val.y + val.h / 2},
+				quad_size    = {val.w, val.h},
 				uv_offset    = {0, 0},
 				uv_size      = {1, 1},
-				tex_slot     = tex_slot,
 				quad_type    = i32(Quad_Type.Image),
 			}
 
@@ -606,7 +566,6 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				quad_size        = {f32(rect.w), f32(rect.h)},
 				uv_offset        = {-1, -1},
 				uv_size          = {0, 0},
-				tex_slot         = 0,
 				quad_type        = i32(quad_type),
 				stroke_thickness = thickness,
 			}

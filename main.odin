@@ -27,8 +27,8 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
 
 	//build_simple_text_ui(ctx)
 	//build_nested_text_ui(ctx)
-	//build_complex_ui(ctx, &data.complex_ui_data)
-	build_interactive_button_ui(ctx)
+	build_complex_ui(ctx, &data.complex_ui_data)
+	//build_interactive_button_ui(ctx)
 	//build_styled_ui(ctx)
 	//build_percentage_of_parent_ui(ctx)
 	//build_grow_ui(ctx)
@@ -80,6 +80,7 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
+	// TODO(Thomas): Shouldn't this should at least be graphics backend agnostic
 	// Load textures (must be after app.init since OpenGL context is needed)
 	tex_1, tex_1_ok := backend.opengl_create_texture_from_file("data/textures/copy_icon.png")
 	assert(tex_1_ok)
@@ -102,25 +103,25 @@ main :: proc() {
 	defer backend.opengl_delete_texture(&tex_5.id)
 
 	image_data := Image_Data {
-		i32(tex_1.id),
-		i32(tex_2.id),
-		i32(tex_3.id),
-		i32(tex_4.id),
-		i32(tex_5.id),
+		ui.Texture_Id(tex_1.id),
+		ui.Texture_Id(tex_2.id),
+		ui.Texture_Id(tex_3.id),
+		ui.Texture_Id(tex_4.id),
+		ui.Texture_Id(tex_5.id),
 	}
 
 	// Data for the complex ui case
 	item_texts := [5]string{"Copy", "Paste", "Delete", "Comment", "Cut"}
-	item_texture_idxs := [5]int {
-		int(image_data.tex_1),
-		int(image_data.tex_2),
-		int(image_data.tex_3),
-		int(image_data.tex_4),
-		int(image_data.tex_5),
+	item_textures := [5]ui.Texture_Id {
+		image_data.tex_1,
+		image_data.tex_2,
+		image_data.tex_3,
+		image_data.tex_4,
+		image_data.tex_5,
 	}
 	complex_ui_data := Complex_UI_Data{}
 	complex_ui_data.items = item_texts
-	complex_ui_data.item_texture_idxs = item_texture_idxs
+	complex_ui_data.item_textures = item_textures
 
 	data := Data {
 		image_data      = image_data,
@@ -131,11 +132,11 @@ main :: proc() {
 }
 
 Image_Data :: struct {
-	tex_1: i32,
-	tex_2: i32,
-	tex_3: i32,
-	tex_4: i32,
-	tex_5: i32,
+	tex_1: ui.Texture_Id,
+	tex_2: ui.Texture_Id,
+	tex_3: ui.Texture_Id,
+	tex_4: ui.Texture_Id,
+	tex_5: ui.Texture_Id,
 }
 
 texts := []string{"yes", "nonnnnnnnnnnnnnnnnnnnnnn", "maybe"}
@@ -278,30 +279,28 @@ build_multiple_images_ui :: proc(ctx: ^ui.Context, image_data: ^Image_Data) {
 			)
 			defer ui.pop_style(ctx)
 
-
-			// Images use content, not style - set image_data after element creation
 			if elem_1, ok := ui.open_element(ctx, "image_1"); ok {
-				elem_1.config.content.image_data = rawptr(&data.tex_1)
+				elem_1.config.content.texture_id = data.tex_1
 				ui.close_element(ctx)
 			}
 
 			if elem_2, ok := ui.open_element(ctx, "image_2"); ok {
-				elem_2.config.content.image_data = rawptr(&data.tex_2)
+				elem_2.config.content.texture_id = data.tex_2
 				ui.close_element(ctx)
 			}
 
 			if elem_3, ok := ui.open_element(ctx, "image_3"); ok {
-				elem_3.config.content.image_data = rawptr(&data.tex_3)
+				elem_3.config.content.texture_id = data.tex_3
 				ui.close_element(ctx)
 			}
 
 			if elem_4, ok := ui.open_element(ctx, "image_4"); ok {
-				elem_4.config.content.image_data = rawptr(&data.tex_4)
+				elem_4.config.content.texture_id = data.tex_4
 				ui.close_element(ctx)
 			}
 
 			if elem_5, ok := ui.open_element(ctx, "image_5"); ok {
-				elem_5.config.content.image_data = rawptr(&data.tex_5)
+				elem_5.config.content.texture_id = data.tex_5
 				ui.close_element(ctx)
 			}
 		},
@@ -621,10 +620,10 @@ build_nested_text_ui :: proc(ctx: ^ui.Context) {
 
 
 Complex_UI_Data :: struct {
-	items:             [5]string,
-	item_texture_idxs: [5]int,
-	idx:               int,
-	builder:           strings.Builder,
+	items:         [5]string,
+	item_textures: [5]ui.Texture_Id,
+	idx:           int,
+	builder:       strings.Builder,
 }
 
 build_complex_ui :: proc(ctx: ^ui.Context, complex_ui_data: ^Complex_UI_Data) {
@@ -705,9 +704,7 @@ build_complex_ui :: proc(ctx: ^ui.Context, complex_ui_data: ^Complex_UI_Data) {
 								capability_flags = ui.Capability_Flags{.Image},
 							},
 						); ok {
-							img_elem.config.content.image_data = rawptr(
-								&data.item_texture_idxs[data.idx],
-							)
+							img_elem.config.content.texture_id = data.item_textures[data.idx]
 							ui.close_element(ctx)
 						}
 					},

@@ -16,7 +16,6 @@ in vec4 v_clip_rect;
 in vec2 v_quad_half_size;
 in vec2 v_local_pos;
 in vec2 v_tex_coords;
-flat in int v_tex_slot;
 flat in int v_quad_type;
 flat in float v_stroke_thickness;
 in vec4 v_border;
@@ -34,11 +33,7 @@ const int QUAD_TYPE_TEXT      = 1;
 const int QUAD_TYPE_IMAGE     = 2;
 const int QUAD_TYPE_CHECKMARK = 3;
 
-uniform sampler2D u_image_texture_1;
-uniform sampler2D u_image_texture_2;
-uniform sampler2D u_image_texture_3;
-uniform sampler2D u_image_texture_4;
-uniform sampler2D u_image_texture_5;
+uniform sampler2D u_image_texture;
 
 // p: The current fragment's position relative to the center
 // a: Start point of the line segment
@@ -183,23 +178,7 @@ void render_text() {
 }
 
 void render_image() {
-    switch (v_tex_slot) {
-        case 1:
-            o_color = texture(u_image_texture_1, v_tex_coords);
-            break;
-        case 2:
-            o_color = texture(u_image_texture_2, v_tex_coords);
-            break;
-        case 3:
-            o_color = texture(u_image_texture_3, v_tex_coords);
-            break;
-        case 4:
-            o_color = texture(u_image_texture_4, v_tex_coords);
-            break;
-        case 5:
-            o_color = texture(u_image_texture_5, v_tex_coords);
-            break;
-    }
+    o_color = texture(u_image_texture, v_tex_coords);
 }
 
 void render_checkmark() {
