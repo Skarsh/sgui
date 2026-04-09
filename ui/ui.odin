@@ -39,7 +39,6 @@ reset_render_state :: proc(render_state: ^Render_State, window_size: base.Vector
 	render_state.current_clip_rect = base.Rect{0, 0, window_size.x, window_size.y}
 }
 
-@(private)
 push_draw_command :: proc(ctx: ^Context, command: Command, z_offset: i32) {
 	ctx.render_state.command_counter += 1
 

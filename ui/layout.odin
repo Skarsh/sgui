@@ -507,7 +507,6 @@ calculate_size_to_distribute :: proc(
 
 // Target-based distribution: elements are sized to match their factor ratios
 // e.g., factors 1:2:1 in 400px → sizes 100:200:100
-@(private)
 RESIZE_ITER_MAX :: 32
 resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	if element.config.layout.layout_mode != .Flow {
@@ -608,7 +607,6 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
-@(private)
 resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) {
 	parent_padding := parent.config.layout.padding
 	parent_border := parent.config.layout.border
@@ -808,7 +806,6 @@ make_element :: proc(
 	return element, true
 }
 
-@(private)
 get_alignment_factor :: #force_inline proc(align: $E) -> f32 {
 	// NOTE(Thomas): This works because Alignment_X and Alignment_Y are both
 	// representing the positions (Start, Center, End) which have the values 0, 1, 2
