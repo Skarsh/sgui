@@ -132,8 +132,8 @@ opengl_delete_texture :: proc(id: ^u32) {
 	gl.DeleteTextures(1, id)
 }
 
-opengl_bind_texture :: proc(id: i32) {
-	gl.BindTexture(gl.TEXTURE_2D, u32(id))
+opengl_bind_texture :: proc(id: u32) {
+	gl.BindTexture(gl.TEXTURE_2D, id)
 }
 
 opengl_unbind_texture :: proc() {

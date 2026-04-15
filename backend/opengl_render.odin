@@ -361,7 +361,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 	// NOTE(Thomas): We're binding the font texture here by default
 	// for now, even though we might not have a draw command that requires it.
 	opengl_active_texture(.Texture_0)
-	opengl_bind_texture(i32(render_data.font_texture.id))
+	opengl_bind_texture(render_data.font_texture.id)
 	shader_set_int(render_data.shader, "u_font_texture", 0)
 
 	// Reset the image texture state each frame
@@ -505,7 +505,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				reset_batch(&batch)
 
 				opengl_active_texture(.Texture_1)
-				opengl_bind_texture(tex_id)
+				opengl_bind_texture(u32(tex_id))
 
 				shader_set_int(render_data.shader, "u_image_texture", 1)
 				render_data.image_texture_state.current_id = tex_id
