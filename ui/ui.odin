@@ -8,10 +8,11 @@ import "core:mem"
 import base "../base"
 import textpkg "../text"
 
-ELEMENT_STACK_SIZE :: #config(SUI_ELEMENT_STACK_SIZE, 64)
-PARENT_STACK_SIZE :: #config(SUI_PARENT_STACK_SIZE, 64)
-STYLE_STACK_SIZE :: #config(SUI_STYLE_STACK_SIZE, 64)
-CHILD_LAYOUT_AXIS_STACK_SIZE :: #config(SUI_CHILD_LAYOUT_AXIS_STACK_SIZE, 64)
+ELEMENT_STACK_SIZE :: 64
+PARENT_STACK_SIZE :: 64
+STYLE_STACK_SIZE :: 64
+CHILD_LAYOUT_AXIS_STACK_SIZE :: 64
+THEME_STACK_SIZE :: 8
 
 Color_Type :: enum u32 {
 	Text,
@@ -98,8 +99,6 @@ UI_Element_Text_Input_State :: struct {
 	state:             textpkg.Text_Edit_State,
 	caret_blink_timer: f32,
 }
-
-THEME_STACK_SIZE :: #config(SUI_THEME_STACK_SIZE, 8)
 
 Context :: struct {
 	persistent_allocator:    mem.Allocator,
