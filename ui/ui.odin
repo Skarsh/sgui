@@ -81,7 +81,7 @@ Command_Text :: struct {
 	fill:   base.Fill,
 }
 
-Texture_Id :: distinct i32
+Texture_Id :: distinct u64
 
 Command_Image :: struct {
 	x, y, w, h: f32,
