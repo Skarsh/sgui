@@ -215,6 +215,11 @@ element_equip_shape :: proc(element: ^UI_Element, shape_data: Shape_Data) {
 	element.config.content.shape_data = shape_data
 }
 
+element_equip_image :: proc(element: ^UI_Element, texture_id: Texture_Id) {
+	element.config.capability_flags |= {.Image}
+	element.config.content.texture_id = texture_id
+}
+
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 	if len(element.children) == 0 {
 		return 0

@@ -329,3 +329,15 @@ checkbox :: proc(
 	append(&ctx.interactive_elements, element)
 	return element.last_comm
 }
+
+image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = {}) -> Comm {
+	element, open_ok := open_element(ctx, id, style, default_theme().image)
+
+	if open_ok {
+		element_equip_image(element, texture_id)
+		close_element(ctx)
+	}
+
+	append(&ctx.interactive_elements, element)
+	return element.last_comm
+}
