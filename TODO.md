@@ -1,6 +1,9 @@
 # TODOs
 
 ## Active
+* `text_input` widget should only be one row, need to make it able to have that, without introducing
+    lots of new code paths. One possibility is adding some kind of desired numbers of row into the `text_edit`,
+    constraining it to only layout in one row. Or, potentially can it be done in a wrapping mode?
 * Need a better Glyph type, probably should live in base package.
 * Implement basic rendering of text selection
     * There is a bug here with trimming of the whitespace in text.odin for line processing
