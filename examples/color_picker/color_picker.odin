@@ -79,9 +79,8 @@ make_slider_row :: proc(
 				border = ui.border_all(2),
 			},
 		)
-
 		// Format hex value directly into the provided buffer
-		value_str := fmt.bprintf(value_buf, "%x", u8(value^ * 255))
+		value_str := fmt.bprintf(value_buf, "%02x", u8(value^ * 255))
 		ui.text(
 			ctx,
 			fmt.tprintf("%s_value", id_suffix),
@@ -228,7 +227,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					ui.end_container(ctx)
 				}
 
-				// --- Two-Way Data Binding Logic ---
+				// Update hex input field text to that of the sliders
+				// if sliders are dragged.
 				hex_from_sliders := fmt.tprintf(
 					"%02x%02x%02x%02x",
 					u8(data.r * 255),
@@ -258,7 +258,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 						data.a = f32(a) / 255
 					}
 				}
-
 
 				ui.end_container(ctx)
 			}
