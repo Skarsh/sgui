@@ -18,7 +18,7 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	element, open_ok := open_element(ctx, id, style, default_theme().text)
 	assert(open_ok)
 	if open_ok {
-		element_equip_text(ctx, element, text)
+		element_equip_text(ctx, element, text, .Wrap)
 		close_element(ctx)
 	}
 }
@@ -27,7 +27,7 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().button)
 
 	if open_ok {
-		element_equip_text(ctx, element, text)
+		element_equip_text(ctx, element, text, .Wrap)
 		close_element(ctx)
 	}
 	append(&ctx.interactive_elements, element)
@@ -211,7 +211,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		// which will free at the beginning of the next frame.
 		text_view := textpkg.text_buffer_text(state.state.buffer, ctx.frame_allocator)
 
-		element_equip_text(ctx, element, text_view)
+		element_equip_text(ctx, element, text_view, .Extend)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt

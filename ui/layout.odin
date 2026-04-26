@@ -58,8 +58,9 @@ Border :: distinct Box
 Margin :: distinct Box
 
 Text_Data :: struct {
-	text:        string,
-	text_layout: textpkg.Text_Layout,
+	text:           string,
+	text_wrap_mode: textpkg.Text_Wrap_Mode,
+	text_layout:    textpkg.Text_Layout,
 }
 
 Shape_Data :: struct {
@@ -86,6 +87,7 @@ Layout_Config :: struct {
 	alignment_y:       Alignment_Y,
 	text_alignment_x:  Alignment_X,
 	text_alignment_y:  Alignment_Y,
+	text_wrap_mode:    textpkg.Text_Wrap_Mode,
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
 	border_radius:     base.Vec4,
 	border:            Border,
@@ -150,6 +152,7 @@ element_equip_text :: proc(
 	ctx: ^Context,
 	element: ^UI_Element,
 	text: string,
+	text_wrap_mode: textpkg.Text_Wrap_Mode,
 	text_fill: base.Fill = {},
 ) {
 	element.config.capability_flags |= {.Text}
@@ -163,7 +166,8 @@ element_equip_text :: proc(
 	}
 
 	element.config.content.text_data = Text_Data {
-		text = text,
+		text           = text,
+		text_wrap_mode = text_wrap_mode,
 	}
 
 	// Measure text to record intrinsic content size
@@ -175,7 +179,7 @@ element_equip_text :: proc(
 		ctx.measure_codepoint_proc,
 		ctx.measure_text_proc,
 		context.temp_allocator,
-		.Wrap,
+		text_wrap_mode,
 	)
 	defer free_all(context.temp_allocator)
 
@@ -644,6 +648,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		border := element.config.layout.border
 		padding := element.config.layout.padding
 		text := element.config.content.text_data.text
+		text_wrap_mode := element.config.content.text_data.text_wrap_mode
 
 		// Determine available width for text wrapping
 		// Use parent's available space if it's more constrained than element's size
@@ -683,7 +688,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			ctx.measure_codepoint_proc,
 			ctx.measure_text_proc,
 			allocator,
-			.Wrap,
+			text_wrap_mode,
 		)
 
 		element.config.content.text_data.text_layout = text_layout
