@@ -211,7 +211,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		// which will free at the beginning of the next frame.
 		text_view := textpkg.text_buffer_text(state.state.buffer, ctx.frame_allocator)
 
-		element_equip_text(ctx, element, text_view, .Extend)
+		element_equip_text(ctx, element, text_view, element.config.layout.text_wrap_mode)
 
 		if element == ctx.active_element {
 			state.caret_blink_timer += ctx.dt

@@ -58,9 +58,8 @@ Border :: distinct Box
 Margin :: distinct Box
 
 Text_Data :: struct {
-	text:           string,
-	text_wrap_mode: textpkg.Text_Wrap_Mode,
-	text_layout:    textpkg.Text_Layout,
+	text:        string,
+	text_layout: textpkg.Text_Layout,
 }
 
 Shape_Data :: struct {
@@ -166,8 +165,7 @@ element_equip_text :: proc(
 	}
 
 	element.config.content.text_data = Text_Data {
-		text           = text,
-		text_wrap_mode = text_wrap_mode,
+		text = text,
 	}
 
 	// Measure text to record intrinsic content size
@@ -648,7 +646,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 		border := element.config.layout.border
 		padding := element.config.layout.padding
 		text := element.config.content.text_data.text
-		text_wrap_mode := element.config.content.text_data.text_wrap_mode
+		text_wrap_mode := element.config.layout.text_wrap_mode
 
 		// Determine available width for text wrapping
 		// Use parent's available space if it's more constrained than element's size

@@ -1,7 +1,9 @@
 package ui
 
-import base "../base"
 import "core:math"
+
+import base "../base"
+import textpkg "../text"
 
 // Uniform padding (all sides same)
 padding_all :: proc(value: f32) -> Padding {
@@ -123,6 +125,7 @@ Style :: struct {
 	alignment_y:       Maybe(Alignment_Y),
 	text_alignment_x:  Maybe(Alignment_X),
 	text_alignment_y:  Maybe(Alignment_Y),
+	text_wrap_mode:    Maybe(textpkg.Text_Wrap_Mode),
 
 	// Visual properties (uses tagged Fill - .Not_Set means "inherit")
 	background_fill:   base.Fill,
@@ -171,6 +174,7 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.alignment_y = s.alignment_y.? or_else Alignment_Y{}
 	config.layout.text_alignment_x = s.text_alignment_x.? or_else Alignment_X{}
 	config.layout.text_alignment_y = s.text_alignment_y.? or_else Alignment_Y{}
+	config.layout.text_wrap_mode = s.text_wrap_mode.? or_else .Wrap
 	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
 	config.layout.border = s.border.? or_else Border{}
 
@@ -245,6 +249,7 @@ default_theme :: proc() -> Theme {
 			sizing_y = sizing_fit(),
 			padding = padding_all(10),
 			text_alignment_x = .Center,
+			text_wrap_mode = .Wrap,
 			background_fill = base.fill_color(60, 60, 65),
 			text_fill = base.fill_color(230, 230, 230),
 			border_radius = border_radius_all(4),
@@ -298,6 +303,7 @@ default_theme :: proc() -> Theme {
 		text = Style {
 			text_alignment_x = .Left,
 			text_alignment_y = .Top,
+			text_wrap_mode = .Wrap,
 			text_fill = base.fill_color(255, 255, 255),
 			clip = Clip_Config{clip_axes = {true, true}},
 		},
@@ -305,6 +311,7 @@ default_theme :: proc() -> Theme {
 			alignment_x = .Left,
 			alignment_y = .Center,
 			text_alignment_y = .Center,
+			text_wrap_mode = .Extend,
 			sizing_x = sizing_grow(),
 			sizing_y = sizing_fixed(48),
 			padding = padding_xy(8, 12),
@@ -345,6 +352,7 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.alignment_y != nil do result.alignment_y = b.alignment_y
 	if b.text_alignment_x != nil do result.text_alignment_x = b.text_alignment_x
 	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
+	if b.text_wrap_mode != nil do result.text_wrap_mode = b.text_wrap_mode
 
 	// Visual properties - override if b is set
 	if b.background_fill != nil do result.background_fill = b.background_fill
