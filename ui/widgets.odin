@@ -18,7 +18,7 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	element, open_ok := open_element(ctx, id, style, default_theme().text)
 	assert(open_ok)
 	if open_ok {
-		element_equip_text(ctx, element, text, .Wrap)
+		element_equip_text(ctx, element, text, element.config.layout.text_wrap_mode)
 		close_element(ctx)
 	}
 }
@@ -27,7 +27,7 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().button)
 
 	if open_ok {
-		element_equip_text(ctx, element, text, .Wrap)
+		element_equip_text(ctx, element, text, element.config.layout.text_wrap_mode)
 		close_element(ctx)
 	}
 	append(&ctx.interactive_elements, element)

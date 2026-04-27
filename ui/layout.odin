@@ -678,6 +678,8 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			}
 		}
 
+		// TODO(Thomas): If the wrap mode is extend, this should probably grow the ui element.
+		// How should that work?
 		text_layout := textpkg.layout_text(
 			text,
 			wrap_width,

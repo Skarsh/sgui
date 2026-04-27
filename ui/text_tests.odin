@@ -289,7 +289,9 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 
 
 @(test)
-test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^testing.T) {
+test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapping :: proc(
+	t: ^testing.T,
+) {
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
 		container_id:      string,
@@ -317,7 +319,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 			},
 			data,
 			proc(ctx: ^Context, data: ^Test_Data) {
-				text(ctx, data.text_id, data.text)
+				text(ctx, data.text_id, data.text, Style{text_wrap_mode = .Wrap})
 			},
 		)
 	}
@@ -351,7 +353,6 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding :: proc(t: ^te
 	// --- 4. Run the Test ---
 	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
-
 
 // TODO(Thomas): This test has a text_fit_wrapper container
 // to make sure that it doesn't have to deal with the root's
