@@ -3,6 +3,11 @@
 ## Active
 * Figure out how Extend `Text_Wrap_Mode` should behave when it comes to extending the ui element, currently
     it doesn't actually extend the ui element?? It didn't seem so when I tested at least.
+* For proper `text_input` behaviour we need to dig deeper. Currently we've fixed the "on one line" issue
+    by using Extend `Text_Wrap_Mode`, that is not the right solution probably, for several reasons.
+    One being that we're not sure about the role Extend should have, in terms of actually extending the ui element.
+    In addition, wrapping mode is not enough information for the text layout to do the right thing here, it should
+    know that we want `text_input` to always have one row, no matter what, with scrollable horizontal axis.
 * Need a better Glyph type, probably should live in base package.
 * Implement basic rendering of text selection
     * There is a bug here with trimming of the whitespace in text.odin for line processing
