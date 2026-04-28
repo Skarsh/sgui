@@ -9,9 +9,9 @@ import "core:unicode/utf8"
 import base "../base"
 
 Text_Wrap_Mode :: enum {
-	Extend,
-	Wrap,
+	None,
 	Truncate,
+	Wrap,
 }
 
 // Range is in bytes
@@ -217,8 +217,12 @@ layout_rows :: proc(
 
 			if row_width + glyph.metrics.width > max_width + EPSILON {
 				switch text_wrap_mode {
-				case .Extend:
+				case .None:
 					row_width += glyph.metrics.width
+				case .Truncate:
+					if row_width + glyph.metrics.width < max_width {
+						row_width += glyph.metrics.width
+					}
 				case .Wrap:
 					break_at_idx: int
 					if break_candidate_idx >= row_start {
@@ -256,9 +260,6 @@ layout_rows :: proc(
 					for j in row_start ..= i {
 						row_width += glyphs[j].metrics.width
 					}
-				case .Truncate:
-					// TODO(Thomas): Implement
-					panic("Missing implementation")
 				}
 			} else {
 				row_width += glyphs[i].metrics.width
@@ -699,8 +700,9 @@ test_layout_text_multiple_wraps :: proc(t: ^testing.T) {
 	expect_text_layout(t, text_layout, expected_text_layout)
 }
 
+
 @(test)
-test_layout_text_single_long_word_extends :: proc(t: ^testing.T) {
+test_layout_text_single_long_word_overflows_when_none_wrapping :: proc(t: ^testing.T) {
 	// 20 chars long, will overflow
 	text := "01234567890123456789"
 
@@ -723,7 +725,7 @@ test_layout_text_single_long_word_extends :: proc(t: ^testing.T) {
 		mock_measure_codepoint_proc,
 		mock_measure_text_proc,
 		context.temp_allocator,
-		.Extend,
+		.None,
 	)
 
 	defer free_all(context.temp_allocator)

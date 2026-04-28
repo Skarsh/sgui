@@ -311,7 +311,7 @@ default_theme :: proc() -> Theme {
 			alignment_x = .Left,
 			alignment_y = .Center,
 			text_alignment_y = .Center,
-			text_wrap_mode = .Extend,
+			text_wrap_mode = .None,
 			sizing_x = sizing_grow(),
 			sizing_y = sizing_fixed(48),
 			padding = padding_xy(8, 12),
