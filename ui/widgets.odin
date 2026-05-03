@@ -137,6 +137,17 @@ scrollbar :: proc(
 		return
 	}
 
+	axis_sizes: [2]f32
+	cross_axis: Axis2
+
+	if axis == .X {
+		cross_axis = .Y
+	} else {
+		cross_axis = .X
+	}
+
+	axis_sizes[cross_axis] = 20
+
 	epsilon: f32 = 0.001
 
 	// Auto hide check
@@ -155,6 +166,7 @@ scrollbar :: proc(
 	view_ratio := viewport_len / content_len
 
 	calculated_thumb_size := max(20.0, viewport_len * view_ratio)
+	axis_sizes[axis] = calculated_thumb_size
 
 	// Configure slider
 	val := &target.scroll_region.offset[axis]
@@ -177,8 +189,8 @@ scrollbar :: proc(
 		axis,
 		sb_style,
 		Style {
-			sizing_x = sizing_fixed(20),
-			sizing_y = sizing_fixed(calculated_thumb_size),
+			sizing_x = sizing_fixed(axis_sizes[Axis2.X]),
+			sizing_y = sizing_fixed(axis_sizes[Axis2.Y]),
 			background_fill = base.fill_color(80, 80, 80),
 			border_fill = base.fill_color(0, 0, 0, 0),
 		},

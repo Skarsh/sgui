@@ -1,6 +1,10 @@
 # TODOs
 
 ## Active
+* Figure out proper scrollbar, should it be a proper stylable widget that can be overlayed, or should it just be a 
+    something that should be an integral part of elements with the .Scrollable capability?
+    The stylable option is more powerful, but would require a way to not have all siblings be relative,
+    when a parent has relative layout mode? Somthing like `own_layout_mode: Maybe(Layout_Mode)`?
 * Make horizontal scrollbar work.
 * For proper `text_input` behaviour we need to dig deeper.
     Even though wrap mode is None now, we will still split on paragraphs, will have to add something like `max_rows`
