@@ -28,7 +28,10 @@
 ## Bugs
 
 ## Backlog
-
+* Clearly document our "Box model"
+    It's getting clear that we need to make it very explicit how the box model works in the library, the different sizing
+    modes etc, example how margin, padding, border etc works. How Flow vs Relative Layout mode works.
+    - Very few / if any layout sizing tests really tests border and margin.
 * Don't use f32 for time, should be something like nanoseconds instead.
 * Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
