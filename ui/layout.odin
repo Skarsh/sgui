@@ -960,6 +960,7 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 		0,
 		max_offset_main,
 	)
+
 	parent.scroll_region.offset[cross_axis] = clamp(
 		parent.scroll_region.offset[cross_axis],
 		0,
@@ -978,7 +979,6 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 
 	// Adjust for scroll
 	main_pos -= parent.scroll_region.offset[main_axis]
-	floating_main_pos := main_pos
 
 	// Position children
 	for child in parent.children {
@@ -990,8 +990,8 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 		if !child.config.layout.floating {
 
 			// Main axis (apply start margin)
-			child.position[main_axis] = floating_main_pos + margin_main_start
-			floating_main_pos +=
+			child.position[main_axis] = main_pos + margin_main_start
+			main_pos +=
 				child.size[main_axis] +
 				margin_main_start +
 				margin_main_end +
@@ -1009,7 +1009,6 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 				margin_cross_start +
 				(remaining_space_cross * align_factors[cross_axis]) -
 				parent.scroll_region.offset[cross_axis]
-
 		}
 
 		// Floating children
@@ -1017,8 +1016,7 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 
 			// Floating children is just positoned relative to the parent's position,
 			// offset by its own margin.
-
-			child.position[main_axis] = main_pos + margin_main_start
+			child.position[main_axis] = start_pos_main + margin_main_start
 			child.position[cross_axis] = start_pos_cross + margin_cross_start
 		}
 	}
@@ -1131,7 +1129,7 @@ print_element_hierarchy :: proc(root: ^UI_Element) {
 		return
 	}
 
-	log.infof("id: %v, size: %v", root.id_string, root.size)
+	log.infof("id: %v, size: %v, pos: %v", root.id_string, root.size, root.position)
 
 	for child in root.children {
 		print_element_hierarchy(child)
