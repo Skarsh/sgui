@@ -35,7 +35,8 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
 	//build_multiple_images_ui(ctx, &data.image_data)
 	//build_relative_layout_ui(ctx)
 	//build_bug_repro(ctx)
-	build_floating_layout_ui(ctx)
+	//build_floating_layout_ui(ctx)
+	build_scrollbar_ui(ctx)
 
 	return true
 }
@@ -305,6 +306,88 @@ build_floating_layout_ui :: proc(ctx: ^ui.Context) {
 	}
 
 	ui.end(ctx)
+}
+
+build_scrollbar_ui :: proc(ctx: ^ui.Context) {
+	ui.begin(ctx)
+
+	ui.push_style(
+		ctx,
+		ui.Style {
+			capability_flags = ui.Capability_Flags{.Background},
+			background_fill = base.fill_color(10, 10, 10),
+		},
+	)
+	defer ui.pop_style(ctx)
+
+	if ui.begin_container(
+		ctx,
+		"main_container",
+		ui.Style {
+			sizing_x = ui.sizing_percent(0.9),
+			sizing_y = ui.sizing_percent(0.9),
+			padding = ui.padding_all(20),
+			margin = ui.margin_all(40),
+			layout_direction = .Top_To_Bottom,
+			capability_flags = ui.Capability_Flags{.Scrollable},
+			background_fill = base.fill_color(40, 80, 80),
+			clip = ui.Clip_Config{{true, true}},
+		},
+	) {
+
+		ui.container(
+			ctx,
+			"child_1",
+			ui.Style {
+				sizing_x = ui.sizing_percent(1.0),
+				sizing_y = ui.sizing_percent(0.5),
+				background_fill = base.fill_color(255, 0, 0),
+			},
+		)
+
+		ui.container(
+			ctx,
+			"child_2",
+			ui.Style {
+				sizing_x = ui.sizing_percent(1.0),
+				sizing_y = ui.sizing_percent(0.5),
+				background_fill = base.fill_color(0, 255, 0),
+			},
+		)
+
+		ui.container(
+			ctx,
+			"child_3",
+			ui.Style {
+				sizing_x = ui.sizing_percent(1.0),
+				sizing_y = ui.sizing_percent(0.5),
+				background_fill = base.fill_color(0, 0, 255),
+			},
+		)
+
+		// Starting with a simple element that is floating to sanity check,
+		// before adding scrollbar complexity
+
+		ui.scrollbar(ctx, "scrollbar", "main_container", .Y)
+
+		ui.container(
+			ctx,
+			"child_floating",
+			ui.Style {
+				sizing_x = ui.sizing_fixed(200),
+				sizing_y = ui.sizing_fixed(200),
+				background_fill = base.fill_color(200, 200, 200),
+				margin = ui.margin_all(10),
+				floating = true,
+			},
+		)
+
+		ui.end_container(ctx)
+	}
+
+	ui.end(ctx)
+
+	ui.print_element_hierarchy(ctx.root_element)
 }
 
 build_multiple_images_ui :: proc(ctx: ^ui.Context, image_data: ^Image_Data) {
