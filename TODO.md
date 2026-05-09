@@ -1,6 +1,10 @@
 # TODOs
 
 ## Active
+* Scrollbar / floating bug
+    - Figure out how to make scrollbar / a simple floating element stay in place when scrolling. 
+    Start with a simple floating element only, might be some weird scrollbar / slider ineractions going on.
+    - Next make a scrollbar be able to scroll for the content size target?
 * Figure out proper scrollbar, should it be a proper stylable widget that can be overlayed, or should it just be a 
     something that should be an integral part of elements with the .Scrollable capability?
     The stylable option is more powerful, but would require a way to not have all siblings be relative,
