@@ -126,8 +126,9 @@ Style :: struct {
 	text_alignment_x:  Maybe(Alignment_X),
 	text_alignment_y:  Maybe(Alignment_Y),
 	text_wrap_mode:    Maybe(textpkg.Text_Wrap_Mode),
+	floating:          Maybe(bool),
 
-	// Visual properties (uses tagged Fill - .Not_Set means "inherit")
+	// Visual properties
 	background_fill:   base.Fill,
 	text_fill:         base.Fill,
 	border_fill:       base.Fill,
@@ -177,6 +178,7 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.text_wrap_mode = s.text_wrap_mode.? or_else .Wrap
 	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
 	config.layout.border = s.border.? or_else Border{}
+	config.layout.floating = s.floating.? or_else false
 
 
 	// Visual properties (Fill) - use value if set, otherwise empty
@@ -353,6 +355,7 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.text_alignment_x != nil do result.text_alignment_x = b.text_alignment_x
 	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
 	if b.text_wrap_mode != nil do result.text_wrap_mode = b.text_wrap_mode
+	if b.floating != nil do result.floating = b.floating
 
 	// Visual properties - override if b is set
 	if b.background_fill != nil do result.background_fill = b.background_fill

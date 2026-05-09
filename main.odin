@@ -27,7 +27,7 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
 
 	//build_simple_text_ui(ctx)
 	//build_nested_text_ui(ctx)
-	build_complex_ui(ctx, &data.complex_ui_data)
+	//build_complex_ui(ctx, &data.complex_ui_data)
 	//build_interactive_button_ui(ctx)
 	//build_styled_ui(ctx)
 	//build_percentage_of_parent_ui(ctx)
@@ -35,6 +35,7 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
 	//build_multiple_images_ui(ctx, &data.image_data)
 	//build_relative_layout_ui(ctx)
 	//build_bug_repro(ctx)
+	build_floating_layout_ui(ctx)
 
 	return true
 }
@@ -250,6 +251,56 @@ build_relative_layout_ui :: proc(ctx: ^ui.Context) {
 				background_fill = base.fill_color(255, 0, 0),
 			},
 		)
+		ui.end_container(ctx)
+	}
+
+	ui.end(ctx)
+}
+
+build_floating_layout_ui :: proc(ctx: ^ui.Context) {
+	ui.begin(ctx)
+
+	ui.push_style(
+		ctx,
+		ui.Style {
+			capability_flags = ui.Capability_Flags{.Background},
+			background_fill = base.fill_color(128, 128, 128),
+		},
+	)
+	defer ui.pop_style(ctx)
+
+	if ui.begin_container(
+		ctx,
+		"main_container",
+		ui.Style {
+			sizing_x = ui.sizing_fit(),
+			sizing_y = ui.sizing_fit(),
+			padding = ui.padding_all(10),
+			child_gap = 10,
+			layout_direction = .Top_To_Bottom,
+		},
+	) {
+		ui.container(
+			ctx,
+			"child",
+			ui.Style {
+				sizing_x = ui.sizing_fixed(300),
+				sizing_y = ui.sizing_fixed(200),
+				background_fill = base.fill_color(255, 0, 0),
+			},
+		)
+
+		ui.container(
+			ctx,
+			"floating",
+			ui.Style {
+				sizing_x = ui.sizing_fixed(200),
+				sizing_y = ui.sizing_fixed(300),
+				background_fill = base.fill_color(0, 0, 255),
+				floating = true,
+			},
+		)
+
 		ui.end_container(ctx)
 	}
 

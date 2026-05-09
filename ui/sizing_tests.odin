@@ -3039,3 +3039,192 @@ test_weighted_grow_ttb :: proc(t: ^testing.T) {
 
 	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
+@(test)
+test_floating_fit_ltr :: proc(t: ^testing.T) {
+
+	Test_Data :: struct {
+		panel_padding:         Padding,
+		normal_child_size:     base.Vec2,
+		child_gap:             f32,
+		floating_child_size:   base.Vec2,
+		floating_child_margin: Margin,
+		layout_direction:      Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		panel_padding         = padding_all(10),
+		normal_child_size     = base.Vec2{200, 300},
+		child_gap             = 10,
+		floating_child_size   = base.Vec2{300, 200},
+		floating_child_margin = margin_trbl(7, 8, 9, 10),
+		layout_direction      = .Left_To_Right,
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
+				padding = data.panel_padding,
+				child_gap = data.child_gap,
+				layout_direction = data.layout_direction,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"normal",
+					Style {
+						sizing_x = sizing_fixed(data.normal_child_size.x),
+						sizing_y = sizing_fixed(data.normal_child_size.y),
+					},
+				)
+				container(
+					ctx,
+					"floating",
+					Style {
+						sizing_x = sizing_fixed(data.floating_child_size.x),
+						sizing_y = sizing_fixed(data.floating_child_size.y),
+						margin = data.floating_child_margin,
+						floating = true,
+					},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// Child gap has no effect because even though there are two children, only one of them
+		// is non-floating, meaning total child gap is 0
+		expected_panel_size := base.Vec2 {
+			data.normal_child_size.x + data.panel_padding.left + data.panel_padding.right,
+			data.normal_child_size.y + data.panel_padding.top + data.panel_padding.bottom,
+		}
+
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = expected_panel_size,
+				children = []Expected_Element {
+					{
+						id = "normal",
+						pos = {data.panel_padding.left, data.panel_padding.top},
+						size = data.normal_child_size,
+					},
+					{
+						id = "floating",
+						pos = {
+							data.panel_padding.left + data.floating_child_margin.left,
+							data.panel_padding.top + data.floating_child_margin.top,
+						},
+						size = data.floating_child_size,
+					},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+@(test)
+test_floating_fit_ttb :: proc(t: ^testing.T) {
+
+	Test_Data :: struct {
+		panel_padding:         Padding,
+		normal_child_size:     base.Vec2,
+		child_gap:             f32,
+		floating_child_size:   base.Vec2,
+		floating_child_margin: Margin,
+		layout_direction:      Layout_Direction,
+	}
+
+	test_data := Test_Data {
+		panel_padding         = padding_all(10),
+		normal_child_size     = base.Vec2{300, 200},
+		child_gap             = 10,
+		floating_child_size   = base.Vec2{200, 300},
+		floating_child_margin = margin_trbl(7, 8, 9, 10),
+		layout_direction      = .Top_To_Bottom,
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		container(
+			ctx,
+			"panel",
+			Style {
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
+				padding = data.panel_padding,
+				child_gap = data.child_gap,
+				layout_direction = data.layout_direction,
+			},
+			data,
+			proc(ctx: ^Context, data: ^Test_Data) {
+				container(
+					ctx,
+					"normal",
+					Style {
+						sizing_x = sizing_fixed(data.normal_child_size.x),
+						sizing_y = sizing_fixed(data.normal_child_size.y),
+					},
+				)
+				container(
+					ctx,
+					"floating",
+					Style {
+						sizing_x = sizing_fixed(data.floating_child_size.x),
+						sizing_y = sizing_fixed(data.floating_child_size.y),
+						margin = data.floating_child_margin,
+						floating = true,
+					},
+				)
+			},
+		)
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		// Child gap has no effect because even though there are two children, only one of them
+		// is non-floating, meaning total child gap is 0
+		expected_panel_size := base.Vec2 {
+			data.normal_child_size.x + data.panel_padding.left + data.panel_padding.right,
+			data.normal_child_size.y + data.panel_padding.top + data.panel_padding.bottom,
+		}
+		expect_layout(
+			t,
+			ctx,
+			root,
+			Expected_Element {
+				id = "panel",
+				pos = {0, 0},
+				size = expected_panel_size,
+				children = []Expected_Element {
+					{
+						id = "normal",
+						pos = {data.panel_padding.left, data.panel_padding.top},
+						size = data.normal_child_size,
+					},
+					{
+						id = "floating",
+						pos = {
+							data.panel_padding.left + data.floating_child_margin.left,
+							data.panel_padding.top + data.floating_child_margin.top,
+						},
+						size = data.floating_child_size,
+					},
+				},
+			},
+		)
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+
+}
