@@ -1026,31 +1026,28 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 // Floating is primarily to make a single specific child be able to position relatively.
 // While Relative Layout_Mode makes all children relative positioned.
 layout_children_relative :: proc(parent: ^UI_Element) {
-	// TODO(Thomas): Scrolling - Does it makes sense here?
 	padding := parent.config.layout.padding
 	border := parent.config.layout.border
 
 	// Content box start and size
-	content_pos := base.Vec2 {
+	content_origin := base.Vec2 {
 		parent.position.x + padding.left + border.left,
 		parent.position.y + padding.top + border.top,
 	}
-	available_content_size := get_available_size(parent.size, padding, border)
+
+	available := get_available_size(parent.size, padding, border)
 
 	for child in parent.children {
 		child_margin := child.config.layout.margin
+		relative_position := child.config.layout.relative_position
 
 		factors := get_alignment_factors(
 			child.config.layout.alignment_x,
 			child.config.layout.alignment_y,
 		)
 
-		// Apply margin to position
-		child.position =
-			content_pos +
-			base.Vec2{child_margin.left, child_margin.top} +
-			(available_content_size * factors) +
-			child.config.layout.relative_position
+		remaining := base.Vec2{child_margin.left, child_margin.top} + (available * factors)
+		child.position = content_origin + remaining + relative_position
 	}
 }
 
