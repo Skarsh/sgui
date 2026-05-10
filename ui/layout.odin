@@ -1031,7 +1031,10 @@ layout_children_relative :: proc(parent: ^UI_Element) {
 	border := parent.config.layout.border
 
 	// Content box start and size
-	content_pos := base.Vec2{parent.position.x + padding.left, parent.position.y + padding.top}
+	content_pos := base.Vec2 {
+		parent.position.x + padding.left + border.left,
+		parent.position.y + padding.top + border.top,
+	}
 	available_content_size := get_available_size(parent.size, padding, border)
 
 	for child in parent.children {

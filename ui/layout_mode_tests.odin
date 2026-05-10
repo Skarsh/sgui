@@ -475,13 +475,14 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 
 
 @(test)
-test_relative_layout_padding_influence :: proc(t: ^testing.T) {
+test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 
 	// --- 1. Define the Test-Specific Context Data ---
 	Test_Data :: struct {
 		root_size:   base.Vec2,
 		parent_size: base.Vec2,
 		padding:     Padding,
+		border:      Border,
 		child_size:  base.Vec2,
 	}
 
@@ -489,6 +490,7 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 		root_size = {500, 500},
 		parent_size = {100, 100},
 		padding = {left = 10, right = 20, top = 5, bottom = 15},
+		border = {left = 5, right = 7, top = 8, bottom = 10},
 		child_size = {20, 20},
 	}
 
@@ -502,6 +504,7 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 				sizing_y = sizing_fixed(data.parent_size.y),
 				layout_mode = .Relative,
 				padding = data.padding,
+				border = data.border,
 			},
 		) {
 
@@ -547,27 +550,48 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
 
 		// Content box size
-		content_width := data.parent_size.x - data.padding.left - data.padding.right
-		content_height := data.parent_size.y - data.padding.top - data.padding.bottom
+		content_width :=
+			data.parent_size.x -
+			data.padding.left -
+			data.padding.right -
+			data.border.left -
+			data.border.right
+
+		content_height :=
+			data.parent_size.y -
+			data.padding.top -
+			data.padding.bottom -
+			data.border.top -
+			data.border.bottom
 
 		parent_pos := base.Vec2{0, 0}
 
 		// Top-Left: Anchored to padding start
-		child_pos_tl := parent_pos + base.Vec2{data.padding.left, data.padding.top}
-
+		child_pos_tl :=
+			parent_pos +
+			base.Vec2{data.padding.left + data.border.left, data.padding.top + data.border.top}
 
 		// Top-Right
-		child_pos_tr := parent_pos + base.Vec2{data.padding.left + content_width, data.padding.top}
+		child_pos_tr :=
+			parent_pos +
+			base.Vec2 {
+					data.padding.left + data.border.left + content_width,
+					data.padding.top + data.border.top,
+				}
 
 		// Bottom-Right
 		child_pos_br :=
 			parent_pos +
-			base.Vec2{data.padding.left, data.padding.top} +
+			base.Vec2{data.padding.left + data.border.left, data.padding.top + data.border.top} +
 			base.Vec2{content_width, content_height}
 
 		// Bottom-Left
 		child_pos_bl :=
-			parent_pos + base.Vec2{data.padding.left, data.padding.top + content_height}
+			parent_pos +
+			base.Vec2 {
+					data.padding.left + data.border.left,
+					data.padding.top + data.border.top + content_height,
+				}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -601,6 +625,3 @@ test_relative_layout_padding_influence :: proc(t: ^testing.T) {
 		{i32(test_data.root_size.x), i32(test_data.root_size.y)},
 	)
 }
-// =============================================================================
-// MARGIN TESTS
-// =============================================================================
