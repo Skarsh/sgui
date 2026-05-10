@@ -35,7 +35,7 @@ update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {
 	//build_multiple_images_ui(ctx, &data.image_data)
 	//build_relative_layout_ui(ctx)
 	//build_bug_repro(ctx)
-	//build_floating_layout_ui(ctx)
+	//build_anchored_layout_ui(ctx)
 	build_scrollbar_ui(ctx)
 
 	return true
@@ -234,11 +234,7 @@ build_relative_layout_ui :: proc(ctx: ^ui.Context) {
 	if ui.begin_container(
 		ctx,
 		"main_container",
-		ui.Style {
-			sizing_x = ui.sizing_fixed(400),
-			sizing_y = ui.sizing_fixed(400),
-			layout_mode = .Relative,
-		},
+		ui.Style{sizing_x = ui.sizing_fixed(400), sizing_y = ui.sizing_fixed(400)},
 	) {
 		ui.container(
 			ctx,
@@ -250,6 +246,7 @@ build_relative_layout_ui :: proc(ctx: ^ui.Context) {
 				alignment_y = .Bottom,
 				relative_position = base.Vec2{-10, -10},
 				background_fill = base.fill_color(255, 0, 0),
+				position_mode = .Anchored,
 			},
 		)
 		ui.end_container(ctx)
@@ -258,7 +255,7 @@ build_relative_layout_ui :: proc(ctx: ^ui.Context) {
 	ui.end(ctx)
 }
 
-build_floating_layout_ui :: proc(ctx: ^ui.Context) {
+build_anchored_layout_ui :: proc(ctx: ^ui.Context) {
 	ui.begin(ctx)
 
 	ui.push_style(
@@ -293,12 +290,12 @@ build_floating_layout_ui :: proc(ctx: ^ui.Context) {
 
 		ui.container(
 			ctx,
-			"floating",
+			"anchored",
 			ui.Style {
 				sizing_x = ui.sizing_fixed(200),
 				sizing_y = ui.sizing_fixed(300),
 				background_fill = base.fill_color(0, 0, 255),
-				floating = true,
+				position_mode = .Anchored,
 			},
 		)
 
@@ -372,26 +369,26 @@ build_scrollbar_ui :: proc(ctx: ^ui.Context) {
 
 		ui.container(
 			ctx,
-			"child_floating_left",
+			"child_anchored_left",
 			ui.Style {
 				sizing_x = ui.sizing_fixed(200),
 				sizing_y = ui.sizing_fixed(200),
 				background_fill = base.fill_color(150, 150, 150),
 				margin = ui.margin_all(10),
-				floating = true,
+				position_mode = .Anchored,
 				alignment_x = .Left,
 			},
 		)
 
 		ui.container(
 			ctx,
-			"child_floating_right",
+			"child_anchored_right",
 			ui.Style {
 				sizing_x = ui.sizing_fixed(200),
 				sizing_y = ui.sizing_fixed(200),
 				background_fill = base.fill_color(200, 200, 200),
 				margin = ui.margin_all(10),
-				floating = true,
+				position_mode = .Anchored,
 				alignment_x = .Right,
 				relative_position = base.Vec2{-200, 0},
 			},

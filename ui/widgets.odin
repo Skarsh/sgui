@@ -257,6 +257,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 						relative_position = base.Vec2{caret_x_offset, -caret_height / 2},
 						background_fill = default_color_style[.Text],
 						capability_flags = Capability_Flags{.Background},
+						position_mode = .Anchored,
 					},
 				)
 			}
@@ -298,6 +299,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 					},
 					background_fill = base.fill_color(255, 255, 255, 128),
 					capability_flags = Capability_Flags{.Background},
+					position_mode = .Anchored,
 				},
 			)
 		}

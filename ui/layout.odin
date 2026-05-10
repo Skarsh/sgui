@@ -27,14 +27,14 @@ Alignment_Y :: enum {
 	Bottom,
 }
 
-Layout_Mode :: enum {
-	Flow,
-	Relative,
-}
-
 Layout_Direction :: enum {
 	Left_To_Right,
 	Top_To_Bottom,
+}
+
+Position_Mode :: enum {
+	Flow,
+	Anchored,
 }
 
 Size_Kind :: enum {
@@ -79,7 +79,6 @@ Layout_Config :: struct {
 	padding:           Padding,
 	margin:            Margin,
 	child_gap:         f32,
-	layout_mode:       Layout_Mode,
 	layout_direction:  Layout_Direction,
 	relative_position: base.Vec2,
 	alignment_x:       Alignment_X,
@@ -90,7 +89,7 @@ Layout_Config :: struct {
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
 	border_radius:     base.Vec4,
 	border:            Border,
-	floating:          bool,
+	position_mode:     Position_Mode,
 }
 
 Clip_Config :: struct {
@@ -224,17 +223,17 @@ element_equip_image :: proc(element: ^UI_Element, texture_id: Texture_Id) {
 }
 
 calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
-	// Floating children does not count towards child gap
 	if len(element.children) == 0 {
 		return 0
 	} else {
-		non_floating: int
+		// Only flow children counts towards the child_gap
+		flow_children: int
 		for child in element.children {
-			if !child.config.layout.floating {
-				non_floating += 1
+			if child.config.layout.position_mode == .Flow {
+				flow_children += 1
 			}
 		}
-		return f32(non_floating - 1) * element.config.layout.child_gap
+		return f32(flow_children - 1) * element.config.layout.child_gap
 	}
 }
 
@@ -252,7 +251,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 	if is_main_axis(element^, axis) {
 		// Main Axis: Accumulate size of all children plus gaps
 		for child in element.children {
-			if !child.config.layout.floating {
+			if child.config.layout.position_mode == .Flow {
 				content_size += child.size[axis]
 			}
 		}
@@ -260,7 +259,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 	} else {
 		// Cross Axis: The size is determined by the largest child
 		for child in element.children {
-			if !child.config.layout.floating {
+			if child.config.layout.position_mode == .Flow {
 				content_size = max(content_size, child.size[axis])
 			}
 		}
@@ -383,10 +382,6 @@ container_data_styled :: proc(
 }
 
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
-	if element.config.layout.layout_mode != .Flow {
-		return
-	}
-
 	for child in element.children {
 		fit_size_axis(child, axis)
 	}
@@ -407,8 +402,8 @@ update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis
 		return
 	}
 
-	// Floating elements should not contribute to parent sizes
-	if element.config.layout.floating {
+	// Anchored elements should not contribute to parent sizes
+	if element.config.layout.position_mode == .Anchored {
 		return
 	}
 
@@ -533,9 +528,11 @@ calculate_size_to_distribute :: proc(
 // e.g., factors 1:2:1 in 400px → sizes 100:200:100
 RESIZE_ITER_MAX :: 32
 resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
-	if element.config.layout.layout_mode != .Flow {
+
+	if !has_flow_children(element^) {
 		return
 	}
+
 	resizables := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 	main_axis := is_main_axis(element^, axis)
@@ -550,7 +547,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 		// Calculate space used by non-grow elements
 		fixed_space: f32 = padding_sum + border_sum + child_gap
 		for child in element.children {
-			if !child.config.layout.floating {
+			if child.config.layout.position_mode == .Flow {
 				if child.config.layout.sizing[axis].kind != .Grow {
 					fixed_space += child.size[axis]
 				}
@@ -562,7 +559,7 @@ resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
 
 		// Collect grow elements with positive factor
 		for child in element.children {
-			if !child.config.layout.floating {
+			if child.config.layout.position_mode == .Flow {
 				if child.config.layout.sizing[axis].kind == .Grow {
 					factor := child.config.layout.sizing[axis].grow_factor
 					if factor > 0 {
@@ -902,6 +899,15 @@ get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) ->
 	}
 }
 
+has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
+	for child in element.children {
+		if child.config.layout.position_mode == .Flow {
+			return true
+		}
+	}
+	return false
+}
+
 layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 	padding := parent.config.layout.padding
 	border := parent.config.layout.border
@@ -925,128 +931,118 @@ layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 	child.position = content_origin + remaining + relative_position
 }
 
-layout_children_flow :: proc(parent: ^UI_Element) {
-	padding := parent.config.layout.padding
-	border := parent.config.layout.border
-	dir := parent.config.layout.layout_direction
+layout_children_in_flow :: proc(parent: ^UI_Element) {
+	if has_flow_children(parent^) {
 
-	// Setup Axes
-	main_axis, cross_axis := get_main_and_cross_axis(dir)
+		padding := parent.config.layout.padding
+		border := parent.config.layout.border
+		dir := parent.config.layout.layout_direction
 
-	// Resolve padding for axes
-	pad_main_start, _ := get_padding_for_axis(padding, main_axis)
-	pad_cross_start, _ := get_padding_for_axis(padding, cross_axis)
+		// Setup Axes
+		main_axis, cross_axis := get_main_and_cross_axis(dir)
 
-	// Resolve border for axes
-	border_main_start, _ := get_border_for_axis(border, main_axis)
-	border_cross_start, _ := get_border_for_axis(border, cross_axis)
+		// Resolve padding for axes
+		pad_main_start, _ := get_padding_for_axis(padding, main_axis)
+		pad_cross_start, _ := get_padding_for_axis(padding, cross_axis)
 
-	// Calculate available content space
-	available_size := get_available_size(parent.size, padding, border)
+		// Resolve border for axes
+		border_main_start, _ := get_border_for_axis(border, main_axis)
+		border_cross_start, _ := get_border_for_axis(border, cross_axis)
 
-	start_pos_main := parent.position[main_axis] + pad_main_start + border_main_start
-	start_pos_cross := parent.position[cross_axis] + pad_cross_start + border_cross_start
+		// Calculate available content space
+		available_size := get_available_size(parent.size, padding, border)
 
-	// Measure children (including margins)
-	total_children_main: f32 = 0
-	max_children_cross: f32 = 0
+		start_pos_main := parent.position[main_axis] + pad_main_start + border_main_start
+		start_pos_cross := parent.position[cross_axis] + pad_cross_start + border_cross_start
 
-	for child in parent.children {
-		// Floating children doesn't add up to total size of the children
-		if !child.config.layout.floating {
-			child_margin := child.config.layout.margin
-			margin_main := get_margin_sum_for_axis(child_margin, main_axis)
-			margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
+		// Measure children (including margins)
+		total_children_main: f32 = 0
+		max_children_cross: f32 = 0
 
-			total_children_main += child.size[main_axis] + margin_main
-			max_children_cross = max(max_children_cross, child.size[cross_axis] + margin_cross)
-		}
-	}
+		for child in parent.children {
+			if child.config.layout.position_mode == .Flow {
+				child_margin := child.config.layout.margin
+				margin_main := get_margin_sum_for_axis(child_margin, main_axis)
+				margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
 
-	// Apply child gap
-	gap_size := calc_child_gap(parent^)
-	total_children_main += gap_size
-
-	// Update Scroll region and clamp offsets
-	// We always calculate bounds and clamp. If not scrollable, offset remain 0.
-	parent.scroll_region.content_size[main_axis] = total_children_main
-	parent.scroll_region.content_size[cross_axis] = max_children_cross
-
-	max_offset_main := max(0.0, total_children_main - available_size[main_axis])
-	max_offset_cross := max(0.0, max_children_cross - available_size[cross_axis])
-
-	parent.scroll_region.max_offset[main_axis] = max_offset_main
-	parent.scroll_region.max_offset[cross_axis] = max_offset_cross
-
-	parent.scroll_region.offset[main_axis] = clamp(
-		parent.scroll_region.offset[main_axis],
-		0,
-		max_offset_main,
-	)
-
-	parent.scroll_region.offset[cross_axis] = clamp(
-		parent.scroll_region.offset[cross_axis],
-		0,
-		max_offset_cross,
-	)
-
-	// Determine starting position
-	align_factors := get_alignment_factors(
-		parent.config.layout.alignment_x,
-		parent.config.layout.alignment_y,
-	)
-
-	remaining_space_main := available_size[main_axis] - total_children_main
-
-	main_pos := start_pos_main + (remaining_space_main * align_factors[main_axis])
-
-	// Adjust for scroll
-	main_pos -= parent.scroll_region.offset[main_axis]
-
-	// Position children
-	for child in parent.children {
-		child_margin := child.config.layout.margin
-		margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
-		margin_cross_start, margin_cross_end := get_margin_for_axis(child_margin, cross_axis)
-
-		// Non-floating children
-		if !child.config.layout.floating {
-
-			// Main axis (apply start margin)
-			child.position[main_axis] = main_pos + margin_main_start
-			main_pos +=
-				child.size[main_axis] +
-				margin_main_start +
-				margin_main_end +
-				parent.config.layout.child_gap
-
-			// Cross axis (apply start margin)
-			remaining_space_cross :=
-				available_size[cross_axis] -
-				child.size[cross_axis] -
-				margin_cross_start -
-				margin_cross_end
-
-			child.position[cross_axis] =
-				start_pos_cross +
-				margin_cross_start +
-				(remaining_space_cross * align_factors[cross_axis]) -
-				parent.scroll_region.offset[cross_axis]
+				total_children_main += child.size[main_axis] + margin_main
+				max_children_cross = max(max_children_cross, child.size[cross_axis] + margin_cross)
+			}
 		}
 
-		// Floating children
-		if child.config.layout.floating {
-			layout_child_anchored(parent, child)
-		}
-	}
-}
+		// Apply child gap
+		gap_size := calc_child_gap(parent^)
+		total_children_main += gap_size
 
-// TODO(Thomas): How should a floating relative element work? Does it even make sense?
-// Floating is primarily to make a single specific child be able to position relatively.
-// While Relative Layout_Mode makes all children relative positioned.
-layout_children_relative :: proc(parent: ^UI_Element) {
-	for child in parent.children {
-		layout_child_anchored(parent, child)
+		// Update Scroll region and clamp offsets
+		// We always calculate bounds and clamp. If not scrollable, offset remain 0.
+		parent.scroll_region.content_size[main_axis] = total_children_main
+		parent.scroll_region.content_size[cross_axis] = max_children_cross
+
+		max_offset_main := max(0.0, total_children_main - available_size[main_axis])
+		max_offset_cross := max(0.0, max_children_cross - available_size[cross_axis])
+
+		parent.scroll_region.max_offset[main_axis] = max_offset_main
+		parent.scroll_region.max_offset[cross_axis] = max_offset_cross
+
+		parent.scroll_region.offset[main_axis] = clamp(
+			parent.scroll_region.offset[main_axis],
+			0,
+			max_offset_main,
+		)
+
+		parent.scroll_region.offset[cross_axis] = clamp(
+			parent.scroll_region.offset[cross_axis],
+			0,
+			max_offset_cross,
+		)
+
+		// Determine starting position
+		align_factors := get_alignment_factors(
+			parent.config.layout.alignment_x,
+			parent.config.layout.alignment_y,
+		)
+
+		remaining_space_main := available_size[main_axis] - total_children_main
+
+		main_pos := start_pos_main + (remaining_space_main * align_factors[main_axis])
+
+		// Adjust for scroll
+		main_pos -= parent.scroll_region.offset[main_axis]
+
+		// Position children
+		for child in parent.children {
+			if child.config.layout.position_mode == .Flow {
+				child_margin := child.config.layout.margin
+				margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
+				margin_cross_start, margin_cross_end := get_margin_for_axis(
+					child_margin,
+					cross_axis,
+				)
+
+				// Main axis (apply start margin)
+				child.position[main_axis] = main_pos + margin_main_start
+				main_pos +=
+					child.size[main_axis] +
+					margin_main_start +
+					margin_main_end +
+					parent.config.layout.child_gap
+
+				// Cross axis (apply start margin)
+				remaining_space_cross :=
+					available_size[cross_axis] -
+					child.size[cross_axis] -
+					margin_cross_start -
+					margin_cross_end
+
+				child.position[cross_axis] =
+					start_pos_cross +
+					margin_cross_start +
+					(remaining_space_cross * align_factors[cross_axis]) -
+					parent.scroll_region.offset[cross_axis]
+
+			}
+		}
 	}
 }
 
@@ -1060,11 +1056,12 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 	// Reset scroll content size for this frame
 	parent.scroll_region.content_size = {}
 
-	switch parent.config.layout.layout_mode {
-	case .Flow:
-		layout_children_flow(parent)
-	case .Relative:
-		layout_children_relative(parent)
+	layout_children_in_flow(parent)
+
+	for child in parent.children {
+		if child.config.layout.position_mode == .Anchored {
+			layout_child_anchored(parent, child)
+		}
 	}
 
 	// Recursive step
@@ -1122,6 +1119,7 @@ find_element_in_hierarchy :: proc(root: ^UI_Element, id: string) -> ^UI_Element 
 
 	return nil
 }
+
 // Helper to print all the element_ids in the hierarchy
 print_element_hierarchy :: proc(root: ^UI_Element) {
 	if root == nil {

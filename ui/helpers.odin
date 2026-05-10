@@ -118,7 +118,6 @@ Style :: struct {
 	border:            Maybe(Border),
 	border_radius:     Maybe(base.Vec4),
 	child_gap:         Maybe(f32),
-	layout_mode:       Maybe(Layout_Mode),
 	layout_direction:  Maybe(Layout_Direction),
 	relative_position: Maybe(base.Vec2),
 	alignment_x:       Maybe(Alignment_X),
@@ -126,7 +125,7 @@ Style :: struct {
 	text_alignment_x:  Maybe(Alignment_X),
 	text_alignment_y:  Maybe(Alignment_Y),
 	text_wrap_mode:    Maybe(textpkg.Text_Wrap_Mode),
-	floating:          Maybe(bool),
+	position_mode:     Maybe(Position_Mode),
 
 	// Visual properties
 	background_fill:   base.Fill,
@@ -168,7 +167,6 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.padding = s.padding.? or_else Padding{}
 	config.layout.margin = s.margin.? or_else Margin{}
 	config.layout.child_gap = s.child_gap.? or_else 0
-	config.layout.layout_mode = s.layout_mode.? or_else Layout_Mode{}
 	config.layout.layout_direction = s.layout_direction.? or_else Layout_Direction{}
 	config.layout.relative_position = s.relative_position.? or_else base.Vec2{}
 	config.layout.alignment_x = s.alignment_x.? or_else Alignment_X{}
@@ -178,7 +176,7 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.text_wrap_mode = s.text_wrap_mode.? or_else .Wrap
 	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
 	config.layout.border = s.border.? or_else Border{}
-	config.layout.floating = s.floating.? or_else false
+	config.layout.position_mode = s.position_mode.? or_else .Flow
 
 
 	// Visual properties (Fill) - use value if set, otherwise empty
@@ -291,7 +289,6 @@ default_theme :: proc() -> Theme {
 				.Focusable,
 				.Hot_Animation,
 			},
-			layout_mode = .Relative,
 		},
 		slider_thumb = Style {
 			sizing_x = sizing_fixed(20),
@@ -300,6 +297,7 @@ default_theme :: proc() -> Theme {
 			border_fill = base.fill_color(240, 240, 240),
 			border_radius = border_radius_all(10),
 			capability_flags = Capability_Flags{.Background, .Clickable, .Focusable},
+			position_mode = .Anchored,
 		},
 		spacer = Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 		text = Style {
@@ -328,7 +326,6 @@ default_theme :: proc() -> Theme {
 				.Focusable,
 				.Hot_Animation,
 			},
-			layout_mode = .Relative,
 			clip = Clip_Config{clip_axes = {true, true}},
 		},
 	}
@@ -347,7 +344,6 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.border != nil do result.border = b.border
 	if b.border_radius != nil do result.border_radius = b.border_radius
 	if b.child_gap != nil do result.child_gap = b.child_gap
-	if b.layout_mode != nil do result.layout_mode = b.layout_mode
 	if b.layout_direction != nil do result.layout_direction = b.layout_direction
 	if b.relative_position != nil do result.relative_position = b.relative_position
 	if b.alignment_x != nil do result.alignment_x = b.alignment_x
@@ -355,7 +351,7 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.text_alignment_x != nil do result.text_alignment_x = b.text_alignment_x
 	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
 	if b.text_wrap_mode != nil do result.text_wrap_mode = b.text_wrap_mode
-	if b.floating != nil do result.floating = b.floating
+	if b.position_mode != nil do result.position_mode = b.position_mode
 
 	// Visual properties - override if b is set
 	if b.background_fill != nil do result.background_fill = b.background_fill

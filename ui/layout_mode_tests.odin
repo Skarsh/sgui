@@ -228,7 +228,6 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 			Style {
 				sizing_x = sizing_fixed(data.parent_size.x),
 				sizing_y = sizing_fixed(data.parent_size.y),
-				layout_mode = .Relative,
 			},
 		) {
 
@@ -249,6 +248,7 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 						sizing_y = sizing_fixed(child_size_y),
 						alignment_x = alignment_x,
 						alignment_y = alignment_y,
+						position_mode = .Anchored,
 					},
 				)
 			}
@@ -348,7 +348,6 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			Style {
 				sizing_x = sizing_fixed(data.parent_size.x),
 				sizing_y = sizing_fixed(data.parent_size.y),
-				layout_mode = .Relative,
 			},
 		) {
 
@@ -369,6 +368,7 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 						sizing_y = sizing_fixed(child_size_y),
 						alignment_x = align_x,
 						alignment_y = align_y,
+						position_mode = .Anchored,
 						relative_position = offset,
 					},
 				)
@@ -502,7 +502,6 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 			Style {
 				sizing_x = sizing_fixed(data.parent_size.x),
 				sizing_y = sizing_fixed(data.parent_size.y),
-				layout_mode = .Relative,
 				padding = data.padding,
 				border = data.border,
 			},
@@ -524,6 +523,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 						sizing_y = sizing_fixed(child_size_y),
 						alignment_x = align_x,
 						alignment_y = align_y,
+						position_mode = .Anchored,
 					},
 				)
 			}
