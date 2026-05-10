@@ -372,13 +372,28 @@ build_scrollbar_ui :: proc(ctx: ^ui.Context) {
 
 		ui.container(
 			ctx,
-			"child_floating",
+			"child_floating_left",
+			ui.Style {
+				sizing_x = ui.sizing_fixed(200),
+				sizing_y = ui.sizing_fixed(200),
+				background_fill = base.fill_color(150, 150, 150),
+				margin = ui.margin_all(10),
+				floating = true,
+				alignment_x = .Left,
+			},
+		)
+
+		ui.container(
+			ctx,
+			"child_floating_right",
 			ui.Style {
 				sizing_x = ui.sizing_fixed(200),
 				sizing_y = ui.sizing_fixed(200),
 				background_fill = base.fill_color(200, 200, 200),
 				margin = ui.margin_all(10),
 				floating = true,
+				alignment_x = .Right,
+				relative_position = base.Vec2{-200, 0},
 			},
 		)
 

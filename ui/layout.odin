@@ -902,6 +902,29 @@ get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) ->
 	}
 }
 
+layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
+	padding := parent.config.layout.padding
+	border := parent.config.layout.border
+
+	content_origin := base.Vec2 {
+		parent.position.x + padding.left + border.left,
+		parent.position.y + padding.top + border.top,
+	}
+
+	available := get_available_size(parent.size, padding, border)
+
+	child_margin := child.config.layout.margin
+	relative_position := child.config.layout.relative_position
+
+	factors := get_alignment_factors(
+		child.config.layout.alignment_x,
+		child.config.layout.alignment_y,
+	)
+
+	remaining := base.Vec2{child_margin.left, child_margin.top} + (available * factors)
+	child.position = content_origin + remaining + relative_position
+}
+
 layout_children_flow :: proc(parent: ^UI_Element) {
 	padding := parent.config.layout.padding
 	border := parent.config.layout.border
@@ -1013,41 +1036,17 @@ layout_children_flow :: proc(parent: ^UI_Element) {
 
 		// Floating children
 		if child.config.layout.floating {
-
-			// Floating children is just positoned relative to the parent's position,
-			// offset by its own margin.
-			child.position[main_axis] = start_pos_main + margin_main_start
-			child.position[cross_axis] = start_pos_cross + margin_cross_start
+			layout_child_anchored(parent, child)
 		}
 	}
 }
 
-// TODO(Thomas): How should a flaoting relative element work? Does it even make sense?
+// TODO(Thomas): How should a floating relative element work? Does it even make sense?
 // Floating is primarily to make a single specific child be able to position relatively.
 // While Relative Layout_Mode makes all children relative positioned.
 layout_children_relative :: proc(parent: ^UI_Element) {
-	padding := parent.config.layout.padding
-	border := parent.config.layout.border
-
-	// Content box start and size
-	content_origin := base.Vec2 {
-		parent.position.x + padding.left + border.left,
-		parent.position.y + padding.top + border.top,
-	}
-
-	available := get_available_size(parent.size, padding, border)
-
 	for child in parent.children {
-		child_margin := child.config.layout.margin
-		relative_position := child.config.layout.relative_position
-
-		factors := get_alignment_factors(
-			child.config.layout.alignment_x,
-			child.config.layout.alignment_y,
-		)
-
-		remaining := base.Vec2{child_margin.left, child_margin.top} + (available * factors)
-		child.position = content_origin + remaining + relative_position
+		layout_child_anchored(parent, child)
 	}
 }
 
