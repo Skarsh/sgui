@@ -104,9 +104,9 @@ slider :: proc(
 		offset := ratio * travel_len
 
 		if is_vert {
-			thumb.config.layout.relative_position = {-thumb_size.x * 0.5, offset}
+			thumb.config.layout.relative_position = {0, offset}
 		} else {
-			thumb.config.layout.relative_position = {offset, -thumb_size.y * 0.5}
+			thumb.config.layout.relative_position = {offset, 0}
 		}
 
 		// Merge interaction states
@@ -174,10 +174,20 @@ scrollbar :: proc(
 	// Safety clamp
 	val^ = clamp(val^, 0, target.scroll_region.max_offset[axis])
 
-	// Merge user style with default transparent background
-	sb_style := style
-	if sb_style.background_fill == nil {
-		sb_style.background_fill = base.fill_color(0, 0, 0, 0)
+	// Apply theme defaults, then overlay axis-dependent sizing and alignment.
+	sb_style := merge_styles(default_theme().scrollbar, style)
+	if mode, ok := sb_style.position_mode.?; ok && mode == .Anchored {
+		if axis == .Y {
+			sb_style.sizing_y = sizing_percent(1.0)
+			if sb_style.alignment_x == nil {
+				sb_style.alignment_x = .Right
+			}
+		} else {
+			sb_style.sizing_x = sizing_percent(1.0)
+			if sb_style.alignment_y == nil {
+				sb_style.alignment_y = .Bottom
+			}
+		}
 	}
 
 	comm := slider(
@@ -254,7 +264,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 						sizing_y = sizing_fixed(caret_height),
 						alignment_x = .Left,
 						alignment_y = .Center,
-						relative_position = base.Vec2{caret_x_offset, -caret_height / 2},
+						relative_position = base.Vec2{caret_x_offset, 0},
 						background_fill = default_color_style[.Text],
 						capability_flags = Capability_Flags{.Background},
 						position_mode = .Anchored,
@@ -293,10 +303,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 					sizing_y = sizing_fixed(caret_height),
 					alignment_x = .Left,
 					alignment_y = .Center,
-					relative_position = base.Vec2 {
-						selection_offset_metrics.width,
-						-caret_height / 2,
-					},
+					relative_position = base.Vec2{selection_offset_metrics.width, 0},
 					background_fill = base.fill_color(255, 255, 255, 128),
 					capability_flags = Capability_Flags{.Background},
 					position_mode = .Anchored,

@@ -362,37 +362,7 @@ build_scrollbar_ui :: proc(ctx: ^ui.Context) {
 			},
 		)
 
-		// Starting with a simple element that is floating to sanity check,
-		// before adding scrollbar complexity
-
 		ui.scrollbar(ctx, "scrollbar", "main_container", .Y)
-
-		ui.container(
-			ctx,
-			"child_anchored_left",
-			ui.Style {
-				sizing_x = ui.sizing_fixed(200),
-				sizing_y = ui.sizing_fixed(200),
-				background_fill = base.fill_color(150, 150, 150),
-				margin = ui.margin_all(10),
-				position_mode = .Anchored,
-				alignment_x = .Left,
-			},
-		)
-
-		ui.container(
-			ctx,
-			"child_anchored_right",
-			ui.Style {
-				sizing_x = ui.sizing_fixed(200),
-				sizing_y = ui.sizing_fixed(200),
-				background_fill = base.fill_color(200, 200, 200),
-				margin = ui.margin_all(10),
-				position_mode = .Anchored,
-				alignment_x = .Right,
-				relative_position = base.Vec2{-200, 0},
-			},
-		)
 
 		ui.end_container(ctx)
 	}

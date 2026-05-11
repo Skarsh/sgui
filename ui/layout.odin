@@ -927,7 +927,18 @@ layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 		child.config.layout.alignment_y,
 	)
 
-	remaining := base.Vec2{child_margin.left, child_margin.top} + (available * factors)
+	margin_size := base.Vec2 {
+		child_margin.left + child_margin.right,
+		child_margin.top + child_margin.bottom,
+	}
+
+	// Gives natural alignment, e.g. left side of child is aligned with left side of parent
+	// when .Left for alignment_x, and right side of child is aligned with right side of parent
+	// when .Right for alignment_x. Same for .Top and .Bottom for alignment_y.
+	remaining :=
+		base.Vec2{child_margin.left, child_margin.top} +
+		(available - child.size - margin_size) * factors
+
 	child.position = content_origin + remaining + relative_position
 }
 

@@ -274,15 +274,13 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 		tl_pos := parent_pos
 
 		// Top-Right
-		tr_pos := parent_pos
-		tr_pos.x += data.parent_size.x
+		tr_pos := base.Vec2{parent_pos.x + data.parent_size.x - data.child_size.x, parent_pos.y}
 
 		// Bottom-Right
-		br_pos := parent_pos + data.parent_size
+		br_pos := parent_pos + data.parent_size - data.child_size
 
 		// Bottom-Left
-		bl_pos := parent_pos
-		bl_pos.y += data.parent_size.y
+		bl_pos := base.Vec2{parent_pos.x, parent_pos.y + data.parent_size.y - data.child_size.y}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -430,16 +428,18 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 		// Child Top-Left: Anchored at (0, 0)
 		child_pos_tl := parent_pos + data.offset_tl
 
-		// Child Top-Right
-		child_pos_tr := parent_pos + data.offset_tr
-		child_pos_tr.x += data.parent_size.x
+		// Child Top-Right: right edge at parent right
+		child_pos_tr :=
+			base.Vec2{parent_pos.x + data.parent_size.x - data.child_size.x, parent_pos.y} +
+			data.offset_tr
 
-		// Child Bottom-Right
-		child_pos_br := parent_pos + data.parent_size + data.offset_br
+		// Child Bottom-Right: bottom-right at parent bottom-right
+		child_pos_br := parent_pos + data.parent_size - data.child_size + data.offset_br
 
-		// Child Bottom-Left
-		child_pos_bl := parent_pos + data.offset_bl
-		child_pos_bl.y += data.parent_size.y
+		// Child Bottom-Left: bottom edge at parent bottom
+		child_pos_bl :=
+			base.Vec2{parent_pos.x, parent_pos.y + data.parent_size.y - data.child_size.y} +
+			data.offset_bl
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",
@@ -566,32 +566,23 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 
 		parent_pos := base.Vec2{0, 0}
 
-		// Top-Left: Anchored to padding start
-		child_pos_tl :=
+		content_origin :=
 			parent_pos +
 			base.Vec2{data.padding.left + data.border.left, data.padding.top + data.border.top}
 
-		// Top-Right
-		child_pos_tr :=
-			parent_pos +
-			base.Vec2 {
-					data.padding.left + data.border.left + content_width,
-					data.padding.top + data.border.top,
-				}
+		// Top-Left: Anchored to content origin
+		child_pos_tl := content_origin
 
-		// Bottom-Right
+		// Top-Right: right edge at content right
+		child_pos_tr := content_origin + base.Vec2{content_width - data.child_size.x, 0}
+
+		// Bottom-Right: bottom-right at content bottom-right
 		child_pos_br :=
-			parent_pos +
-			base.Vec2{data.padding.left + data.border.left, data.padding.top + data.border.top} +
-			base.Vec2{content_width, content_height}
+			content_origin +
+			base.Vec2{content_width - data.child_size.x, content_height - data.child_size.y}
 
-		// Bottom-Left
-		child_pos_bl :=
-			parent_pos +
-			base.Vec2 {
-					data.padding.left + data.border.left,
-					data.padding.top + data.border.top + content_height,
-				}
+		// Bottom-Left: bottom edge at content bottom
+		child_pos_bl := content_origin + base.Vec2{0, content_height - data.child_size.y}
 
 		expected_layout_tree := Expected_Element {
 			id       = "root",

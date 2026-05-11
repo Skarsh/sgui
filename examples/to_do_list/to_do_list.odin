@@ -248,6 +248,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							sizing_y = ui.sizing_grow(),
 							border_radius = ui.border_radius_all(6.0),
 							background_fill = base.fill_color(0, 0, 0, 0),
+							position_mode = .Flow,
 						},
 					)
 

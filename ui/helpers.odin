@@ -235,6 +235,7 @@ Theme :: struct {
 	image:        Style,
 	label:        Style,
 	panel:        Style,
+	scrollbar:    Style,
 	slider:       Style,
 	slider_thumb: Style,
 	spacer:       Style,
@@ -277,6 +278,10 @@ default_theme :: proc() -> Theme {
 			background_fill = base.fill_color(35, 35, 40),
 			border_radius = border_radius_all(8),
 			capability_flags = Capability_Flags{.Background},
+		},
+		scrollbar = Style {
+			background_fill = base.fill_color(0, 0, 0, 0),
+			position_mode = .Anchored,
 		},
 		slider = Style {
 			sizing_x = sizing_grow(),
