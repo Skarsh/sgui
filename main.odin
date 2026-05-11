@@ -368,8 +368,6 @@ build_scrollbar_ui :: proc(ctx: ^ui.Context) {
 	}
 
 	ui.end(ctx)
-
-	ui.print_element_hierarchy(ctx.root_element)
 }
 
 build_multiple_images_ui :: proc(ctx: ^ui.Context, image_data: ^Image_Data) {
