@@ -31,14 +31,16 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(1.0),
-			layout_direction = .Top_To_Bottom,
+			padding = ui.padding_all(10),
+			child_gap = 10,
+			layout_direction = .Left_To_Right,
 		},
 	) {
 		if ui.begin_container(
 			ctx,
-			"boxes_wrapper",
+			"horizontal_boxes_wrapper",
 			ui.Style {
-				sizing_x = ui.sizing_percent(1.0),
+				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_grow(),
 				background_fill = base.Color{50, 50, 50, 255},
 				padding = ui.padding_all(10),
@@ -51,7 +53,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			ui.container(
 				ctx,
-				"box_1",
+				"horizontal_box_1",
 				ui.Style {
 					sizing_x = ui.sizing_percent(0.5),
 					sizing_y = ui.sizing_percent(1.0),
@@ -61,7 +63,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			ui.container(
 				ctx,
-				"box_2",
+				"horizontal_box_2",
 				ui.Style {
 					sizing_x = ui.sizing_percent(0.5),
 					sizing_y = ui.sizing_percent(1.0),
@@ -71,7 +73,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 			ui.container(
 				ctx,
-				"box_3",
+				"horizontal_box_3",
 				ui.Style {
 					sizing_x = ui.sizing_percent(0.5),
 					sizing_y = ui.sizing_percent(1.0),
@@ -79,10 +81,61 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				},
 			)
 
+			ui.scrollbar(ctx, "horizontal_scrollbar", "horizontal_boxes_wrapper", .X)
+
 			ui.end_container(ctx)
 		}
 
-		ui.scrollbar(ctx, "horizontal_scrollbar", "boxes_wrapper", .X)
+		if ui.begin_container(
+			ctx,
+			"vertical_boxes_wrapper",
+			ui.Style {
+				sizing_x = ui.sizing_grow(),
+				sizing_y = ui.sizing_grow(),
+				padding = ui.padding_all(10),
+				child_gap = 5,
+				background_fill = base.Color{50, 50, 50, 255},
+				layout_direction = .Top_To_Bottom,
+				capability_flags = ui.Capability_Flags{.Scrollable},
+				clip = ui.Clip_Config{{true, true}},
+			},
+		) {
+
+			ui.container(
+				ctx,
+				"vertical_box_1",
+				ui.Style {
+					sizing_x = ui.sizing_percent(1.0),
+					sizing_y = ui.sizing_percent(0.5),
+					background_fill = base.Color{255, 50, 50, 255},
+				},
+			)
+
+			ui.container(
+				ctx,
+				"vertical_box_2",
+				ui.Style {
+					sizing_x = ui.sizing_percent(1.0),
+					sizing_y = ui.sizing_percent(0.5),
+					background_fill = base.Color{50, 255, 50, 255},
+				},
+			)
+
+			ui.container(
+				ctx,
+				"vertical_box_3",
+				ui.Style {
+					sizing_x = ui.sizing_percent(1.0),
+					sizing_y = ui.sizing_percent(0.5),
+					background_fill = base.Color{50, 50, 255, 255},
+				},
+			)
+
+			ui.scrollbar(ctx, "vertical_scrollbar", "vertical_boxes_wrapper", .Y)
+
+			ui.end_container(ctx)
+		}
+
 
 		ui.end_container(ctx)
 	}
