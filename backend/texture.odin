@@ -1,5 +1,6 @@
 package backend
 
+import "core:c"
 import "core:log"
 import "core:strings"
 
@@ -53,12 +54,24 @@ OpenGL_Texture :: struct {
 	filter_mag:      gl.GL_Enum,
 }
 
-opengl_create_texture_from_file :: proc(path: string) -> (OpenGL_Texture, bool) {
+opengl_create_texture_from_file :: proc(
+	path: string,
+	desired_channels: int = 0,
+) -> (
+	OpenGL_Texture,
+	bool,
+) {
 	width, height, nr_channels: i32
 	filename := strings.clone_to_cstring(path, context.temp_allocator)
 	defer free_all(context.temp_allocator)
 
-	texture_data := stb_image.load(filename, &width, &height, &nr_channels, 0)
+	texture_data := stb_image.load(
+		filename,
+		&width,
+		&height,
+		&nr_channels,
+		c.int(desired_channels),
+	)
 	defer stb_image.image_free(texture_data)
 
 	return opengl_gen_texture(

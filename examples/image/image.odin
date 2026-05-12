@@ -113,7 +113,10 @@ main :: proc() {
 	// Load textures (must be after app.init since OpenGL context is needed)
 	// NOTE(Thomas): This uses the ui library opengl backend for creating a texture from a file.
 	// This should be replaced with your own backend, which for now has to be OpenGL.
-	tex, tex_ok := backend.opengl_create_texture_from_file("data/textures/copy_icon.png")
+	tex, tex_ok := backend.opengl_create_texture_from_file(
+		"data/textures/skarsh_logo_192x192.png",
+		4,
+	)
 	assert(tex_ok)
 	defer backend.opengl_delete_texture(&tex.id)
 
