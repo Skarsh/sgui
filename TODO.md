@@ -1,15 +1,6 @@
 # TODOs
 
 ## Active
-* Scrollbar / floating bug
-    - Figure out how to make scrollbar / a simple floating element stay in place when scrolling. 
-    Start with a simple floating element only, might be some weird scrollbar / slider ineractions going on.
-    - Next make a scrollbar be able to scroll for the content size target?
-* Figure out proper scrollbar, should it be a proper stylable widget that can be overlayed, or should it just be a 
-    something that should be an integral part of elements with the .Scrollable capability?
-    The stylable option is more powerful, but would require a way to not have all siblings be relative,
-    when a parent has relative layout mode? Somthing like `own_layout_mode: Maybe(Layout_Mode)`?
-* Make horizontal scrollbar work.
 * For proper `text_input` behaviour we need to dig deeper.
     Even though wrap mode is None now, we will still split on paragraphs, will have to add something like `max_rows`
     or something to tell the text layout system not to split no matter what.
@@ -17,16 +8,10 @@
     One thought is to add a horizontal invisible scrollbar to reuse functionality. Not sure if this is doable.
     Will start by making horizontal scrollbars a thing anyway.
 * Need a better Glyph type, probably should live in base package.
-* Implement basic rendering of text selection
-    * There is a bug here with trimming of the whitespace in text.odin for line processing
-        Can we make a simple fix where we stop trimming that, so we can use selection rendering for debugging?
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
-    - Implement a red line through the new text system
-        - Get a single word of text, no wrapping anything from a text() widget to render in a simple example
     - Font caching?
     - Layout caching?
-    - Clean up the old types and text implementation
 
 
 ## Bugs
