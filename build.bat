@@ -28,14 +28,6 @@ if "%mode%"=="test" (
 )
 
 echo.
-echo --- Building main application ---
-odin build . -vet -strict-style -vet-tabs -warnings-as-errors -debug -out:build\sgui.exe
-IF %ERRORLEVEL% NEQ 0 (
-    echo Build failed!
-    exit /b 1
-)
-
-echo.
 echo --- Building all examples ---
 FOR /D %%d IN (examples\*) DO (
     echo Building example: %%~nd
