@@ -677,14 +677,16 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			parent_border := parent.config.layout.border
 			parent_available := get_available_size(parent.size, parent_padding, parent_border)
 
-			// If parent has less space, use that and account for text's own padding/border
-			if parent_available.x < element.size.x {
+			// If parent has less space, use that and account for text's own padding/border,
+			// unless it's text_wrap_mode .None, then allow overflow
+			if parent_available.x < element.size.x && text_wrap_mode != .None {
 				wrap_width =
 					parent_available.x - padding.left - padding.right - border.left - border.right
 			}
 
 			// Constrain element width to parent's available space for Fit sizing
-			if sizing_x_kind == .Fit {
+			// unless it's text_wrap_mode .None
+			if sizing_x_kind == .Fit && text_wrap_mode != .None {
 				if parent_available.x < element.size.x {
 					element.size.x = math.clamp(
 						parent_available.x,

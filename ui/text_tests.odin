@@ -474,3 +474,55 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	// --- 4. Run the Test ---
 	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
 }
+
+@(test)
+test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
+	Test_Data :: struct {
+		parent_size: base.Vec2,
+		text:        string,
+	}
+
+	test_data := Test_Data {
+		parent_size = {4 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+		text        = "12345",
+	}
+
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		if begin_container(
+			ctx,
+			"parent",
+			Style {
+				sizing_x = sizing_fixed(4 * MOCK_CHAR_WIDTH),
+				sizing_y = sizing_fixed(MOCK_LINE_HEIGHT),
+			},
+		) {
+			text(ctx, "text", data.text, Style{text_wrap_mode = .None})
+			end_container(ctx)
+		}
+	}
+
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+
+		text_width: f32 = f32(len(data.text) * MOCK_CHAR_WIDTH)
+		text_height: f32 = MOCK_LINE_HEIGHT
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			children = []Expected_Element {
+				{
+					id = "parent",
+					pos = {0, 0},
+					size = {data.parent_size.x, data.parent_size.y},
+					children = []Expected_Element {
+						{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+					},
+				},
+			},
+		}
+
+		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+
+	}
+
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
