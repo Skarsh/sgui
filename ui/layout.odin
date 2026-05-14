@@ -151,7 +151,6 @@ element_equip_text :: proc(
 	ctx: ^Context,
 	element: ^UI_Element,
 	text: string,
-	text_wrap_mode: textpkg.Text_Wrap_Mode,
 	text_fill: base.Fill = {},
 ) {
 	element.config.capability_flags |= {.Text}
@@ -177,7 +176,7 @@ element_equip_text :: proc(
 		ctx.measure_codepoint_proc,
 		ctx.measure_text_proc,
 		context.temp_allocator,
-		text_wrap_mode,
+		element.config.layout.text_wrap_mode,
 	)
 	defer free_all(context.temp_allocator)
 
