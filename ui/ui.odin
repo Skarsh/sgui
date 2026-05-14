@@ -458,7 +458,7 @@ process_interactions :: proc(ctx: ^Context) {
 		}
 	}
 
-	// TODO(Thomas): Move this into input module or something?
+	// TODO(Thomas): This should probably be per element
 	SCROLL_SPEED: f32 : 30.0
 	// TODO(Thomas): Combine this iteratiion with the one for the .Clickable?
 	// TODO(Thomas): Horizontal scrolling (X-direction)?
