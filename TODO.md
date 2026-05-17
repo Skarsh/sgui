@@ -1,6 +1,8 @@
 # TODOs
 
 ## Active
+* Fix scrolling not being an interactive element bug.
+    - Document how scrolling works better.
 * For proper `text_input` behaviour we need to dig deeper.
     Even though wrap mode is None now, we will still split on paragraphs, will have to add something like `max_rows`
     or something to tell the text layout system not to split no matter what.
@@ -15,6 +17,12 @@
 
 
 ## Bugs
+* There's are several cases of us adding containers with scrollable capability, which also scrolls
+without it being an interactive element. This done thorugh, e.g. `begin_container` with a Style that
+has the scrollable capability. There are several problems with this, one being that if one wants to get the Comm from that element,
+that is not returned from the `begin_container`, and hence needs to be fetched in some other way.
+The second problem is one of consistency, we're not interacting with an element that is not registered
+as interactive.
 
 ## Backlog
 * Clearly document our "Box model"
@@ -34,8 +42,7 @@
     that lives on the App that gets reset for every frame. We don't wanna clone strings.
 * Embossing (gradient) effects
 * Upper Bound Limit Recursion
-    We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop 
-    and recursions.
+    We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop and recursions.
 * Adding new styles is a bit tedious and error prone.
 * Hotreloading - both ui layout / styling and shaders
 * Tests should probably use the outputted Command queue instad of using `find_element_by_id` to get hold of the 
