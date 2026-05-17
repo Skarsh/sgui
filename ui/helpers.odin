@@ -10,8 +10,8 @@ padding_all :: proc(value: f32) -> Padding {
 	return Padding{value, value, value, value}
 }
 
-// Symmetric padding (vertical, horizontal)
-padding_xy :: proc(vertical, horizontal: f32) -> Padding {
+// Symmetric padding (horizontal, vertical)
+padding_xy :: proc(horizontal, vertical: f32) -> Padding {
 	return Padding{vertical, horizontal, vertical, horizontal}
 }
 
@@ -25,8 +25,8 @@ margin_all :: proc(value: f32) -> Margin {
 	return Margin{value, value, value, value}
 }
 
-// Symmetric margin (vertical, horizontal)
-margin_xy :: proc(vertical, horizontal: f32) -> Margin {
+// Symmetric margin (horizontal, vertical)
+margin_xy :: proc(horizontal, vertical: f32) -> Margin {
 	return Margin{vertical, horizontal, vertical, horizontal}
 }
 
@@ -40,8 +40,8 @@ border_all :: proc(value: f32) -> Border {
 	return Border{value, value, value, value}
 }
 
-// Symmetric border (vertical, horizontal)
-border_xy :: proc(vertical, horizontal: f32) -> Border {
+// Symmetric border (horizontal, vertical)
+border_xy :: proc(horizontal, vertical: f32) -> Border {
 	return Border{vertical, horizontal, vertical, horizontal}
 }
 
