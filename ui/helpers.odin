@@ -139,10 +139,8 @@ Style :: struct {
 
 // Converts a Style struct to Element_Config by walking the style stack.
 // Resolution order: default -> style_stack (bottom to top) -> user style
-// Single-pass: walks the stack once and merges all styles together.
 resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) -> Element_Config {
 	// Start with default, merge stack styles, then user style
-	// Note: Stack uses 1-based indexing (items[1] to items[top])
 	resolved := default_style
 	for i: i32 = 1; i <= ctx.style_stack.top; i += 1 {
 		resolved = merge_styles(resolved, ctx.style_stack.items[i])
@@ -192,16 +190,13 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 		config.border_fill = s.border_fill
 	}
 
-	// Clip config
 	config.clip = s.clip.? or_else Clip_Config{}
 
-	// Capability flags (already computed additively)
 	config.capability_flags = capability_flags
 
 	return config
 }
 
-// Capability flags are additive - OR all set values together
 @(private)
 resolve_capability_flags :: proc(ctx: ^Context, style, default_style: Style) -> Capability_Flags {
 	result: Capability_Flags
@@ -211,8 +206,7 @@ resolve_capability_flags :: proc(ctx: ^Context, style, default_style: Style) -> 
 		result |= flags
 	}
 
-	// Add flags from style_stack (all levels, since they're additive)
-	// Note: Stack uses 1-based indexing (items[1] to items[top])
+	// Add flags from style_stack
 	for i: i32 = 1; i <= ctx.style_stack.top; i += 1 {
 		if flags, ok := ctx.style_stack.items[i].capability_flags.?; ok {
 			result |= flags
@@ -228,7 +222,6 @@ resolve_capability_flags :: proc(ctx: ^Context, style, default_style: Style) -> 
 }
 
 // Theme holds default Styles for each widget type.
-// Widgets use these as their default styles, which can be overridden per-call.
 Theme :: struct {
 	button:       Style,
 	checkbox:     Style,
@@ -337,11 +330,10 @@ default_theme :: proc() -> Theme {
 }
 
 
-// Merges two styles - style b overrides style a for any "set" fields
+// Merges two styles, style b overrides style a for any "set" fields
 merge_styles :: proc(a, b: Style) -> Style {
 	result := a
 
-	// Layout properties - override if b has value
 	if b.sizing_x != nil do result.sizing_x = b.sizing_x
 	if b.sizing_y != nil do result.sizing_y = b.sizing_y
 	if b.padding != nil do result.padding = b.padding
@@ -358,12 +350,10 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.text_wrap_mode != nil do result.text_wrap_mode = b.text_wrap_mode
 	if b.position_mode != nil do result.position_mode = b.position_mode
 
-	// Visual properties - override if b is set
 	if b.background_fill != nil do result.background_fill = b.background_fill
 	if b.text_fill != nil do result.text_fill = b.text_fill
 	if b.border_fill != nil do result.border_fill = b.border_fill
 
-	// Other
 	if b.clip != nil do result.clip = b.clip
 
 	if b.capability_flags != nil do result.capability_flags = b.capability_flags
@@ -373,7 +363,6 @@ merge_styles :: proc(a, b: Style) -> Style {
 
 // Push a Style onto the style stack.
 // Use with defer pop_style(ctx) to ensure proper cleanup.
-// Only fields that are explicitly set will affect style resolution.
 push_style :: proc(ctx: ^Context, style: Style) {
 	push(&ctx.style_stack, style)
 }
