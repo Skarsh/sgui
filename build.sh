@@ -32,13 +32,6 @@ if [[ "$mode" == "test" ]]; then
 fi
 
 echo ""
-echo "--- Building main application ---"
-if ! odin build . -vet -strict-style -vet-tabs -warnings-as-errors -debug -out:./build/sgui.bin; then
-    echo "Build failed!"
-    exit 1
-fi
-
-echo ""
 echo "--- Building all examples ---"
 for example_path in examples/*/; do
     # Remove the trailing slash and the 'examples/' prefix to get the name
