@@ -23,6 +23,9 @@ has the scrollable capability. There are several problems with this, one being t
 that is not returned from the `begin_container`, and hence needs to be fetched in some other way.
 The second problem is one of consistency, we're not interacting with an element that is not registered
 as interactive.
+Steps to start correcting this:
+    - The scrollable element must also be interactive to be scolled
+        - Restructure `process_interactions` for this.
 
 ## Backlog
 * Clearly document our "Box model"
