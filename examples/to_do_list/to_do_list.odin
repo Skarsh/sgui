@@ -24,32 +24,6 @@ Data :: struct {
 	new_task_buf_len: int,
 }
 
-// --- Style Palette: "Modern Dark" ---
-//WINDOW_BG :: base.Color{24, 24, 27, 255}
-//PANEL_BG :: base.Color{39, 39, 42, 255}
-//ROW_BG :: base.Color{63, 63, 70, 255}
-//ITEM_BG :: base.Color{82, 82, 91, 255}
-//ITEM_HOVER_BG :: base.Color{113, 113, 122, 255}
-//TEXT_COLOR :: base.Color{244, 244, 245, 255}
-//COMPLETED_TEXT_COLOR :: base.Color{113, 113, 122, 255}
-//DELETE_BUTTON_COLOR :: base.Color{225, 29, 72, 255}
-//ADD_BUTTON_COLOR :: base.Color{79, 70, 229, 255}
-//CHECKBOX_EMPTY_BG :: base.Color{45, 45, 48, 255}
-//CHECKBOX_DONE_BG :: base.Color{34, 197, 94, 255}
-
-// --- Style Palette: "Nordic Frost" ---
-//WINDOW_BG :: base.Color{46, 52, 64, 255}
-//PANEL_BG :: base.Color{59, 66, 82, 255}
-//ROW_BG :: base.Color{67, 76, 94, 255}
-//ITEM_BG :: base.Color{76, 86, 106, 255}
-//ITEM_HOVER_BG :: base.Color{129, 161, 193, 255}
-//TEXT_COLOR :: base.Color{236, 239, 244, 255}
-//COMPLETED_TEXT_COLOR :: base.Color{148, 156, 172, 255}
-//DELETE_BUTTON_COLOR :: base.Color{191, 97, 106, 255}
-//ADD_BUTTON_COLOR :: base.Color{136, 192, 208, 255}
-//CHECKBOX_EMPTY_BG :: base.Color{55, 62, 75, 255}
-//CHECKBOX_DONE_BG :: base.Color{163, 190, 140, 255}
-
 // --- Style Palette: "Warm Retro" ---
 WINDOW_BG :: base.Color{40, 40, 40, 255}
 PANEL_BG :: base.Color{60, 56, 54, 255}
