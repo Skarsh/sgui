@@ -6,7 +6,7 @@ import "core:testing"
 import base "../base"
 
 // Tests in this file focus on the UI Context lifecycle, some of which are:
-// - Frame-to-frame persistence (Caching)
+// * Frame-to-frame persistence (Caching)
 
 @(test)
 test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
@@ -47,8 +47,6 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	testing.expect_value(t, elem_f1.size.y, 100)
 
 	// --- Frame 2: Update Configuration ---
-	// We change the input data. This simulates the user dragging a scrollbar
-	// or changing a slider value in the application loop.
 	data.element_height = 50
 
 	begin(ctx)
