@@ -218,7 +218,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 	if open_ok {
 
-		key := ui_key_hash(element.id_string)
+		key := element.key
 		state, state_exists := &ctx.text_input_states[key]
 
 		if !state_exists {

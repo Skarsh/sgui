@@ -389,9 +389,9 @@ find_intersections :: proc(
 ) {
 	q := queue.Queue(^UI_Element){}
 	queue.init(&q, allocator = allocator)
-	visited := make(map[string]bool, allocator)
+	visited := make(map[UI_Key]bool, allocator)
 
-	visited[ctx.root_element.id_string] = true
+	visited[ctx.root_element.key] = true
 	ok, alloc_err := queue.push_back(&q, ctx.root_element)
 	if alloc_err != .None {
 		log.errorf("failed to allocate when push_back onto queue: %v", alloc_err)
@@ -409,9 +409,9 @@ find_intersections :: proc(
 		}
 
 		for child in v.children {
-			_, found := visited[child.id_string]
+			_, found := visited[child.key]
 			if !found {
-				visited[child.id_string] = true
+				visited[child.key] = true
 				ok, alloc_err = queue.push_back(&q, child)
 
 				if alloc_err != .None {
@@ -444,7 +444,8 @@ process_interactions :: proc(ctx: ^Context) {
 		is_on_active :=
 			top_element != nil &&
 			ctx.active_element != nil &&
-			top_element.id_string == ctx.active_element.id_string
+			top_element.key == ctx.active_element.key
+
 		if !is_on_active {
 			ctx.active_element = nil
 		}
@@ -488,9 +489,8 @@ process_interactions :: proc(ctx: ^Context) {
 			element = element,
 		}
 
-		is_top_element := (top_element != nil && top_element.id_string == element.id_string)
-		is_active_element :=
-			(ctx.active_element != nil && ctx.active_element.id_string == element.id_string)
+		is_top_element := (top_element != nil && top_element.key == element.key)
+		is_active_element := (ctx.active_element != nil && ctx.active_element.key == element.key)
 
 		button_animation_rate_of_change := (1.0 / 0.2) * ctx.dt
 
@@ -536,7 +536,7 @@ process_interactions :: proc(ctx: ^Context) {
 
 		// Text edit
 		if is_active_element {
-			key := ui_key_hash(ctx.active_element.id_string)
+			key := ctx.active_element.key
 			state, state_ok := &ctx.text_input_states[key]
 
 			if state_ok {

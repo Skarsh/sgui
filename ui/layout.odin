@@ -108,6 +108,7 @@ Scroll_Region :: struct {
 UI_Element :: struct {
 	parent:            ^UI_Element,
 	id_string:         string,
+	key:               UI_Key,
 	position:          base.Vec2,
 	min_size:          base.Vec2,
 	max_size:          base.Vec2,
@@ -785,6 +786,7 @@ make_element :: proc(
 		// so keeping it alive in the element is mostly for debugging purposes.
 		str_clone_err: mem.Allocator_Error
 		element.id_string, str_clone_err = strings.clone(id, ctx.frame_allocator)
+		element.key = key
 		assert(str_clone_err == .None)
 		if str_clone_err != .None {
 			log.error("failed to allocate memory for cloning id string")
@@ -814,6 +816,7 @@ make_element :: proc(
 			// so keeping it alive in the element is mostly for debugging purposes.
 			str_clone_err: mem.Allocator_Error
 			element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
+			element.key = key
 			assert(str_clone_err == .None)
 			if str_clone_err != .None {
 				log.error("failed to allocate memory for cloning id string")
