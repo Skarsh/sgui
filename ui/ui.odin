@@ -5,7 +5,7 @@ import "core:log"
 import "core:math"
 import "core:mem"
 
-import base "../base"
+import "../base"
 import textpkg "../text"
 
 ELEMENT_STACK_SIZE :: 64
@@ -95,10 +95,6 @@ Command_Shape :: struct {
 
 Color_Style :: [Color_Type]base.Color
 
-UI_Element_Text_Input_State :: struct {
-	state:             textpkg.Text_Edit_State,
-	caret_blink_timer: f32,
-}
 
 Context :: struct {
 	persistent_allocator:    mem.Allocator,
@@ -111,10 +107,8 @@ Context :: struct {
 	render_state:            Render_State,
 	current_parent:          ^UI_Element,
 	root_element:            ^UI_Element,
-	// input is owned by app
-	input:                   ^base.Input,
+	io:                      Io,
 	element_cache:           map[UI_Key]^UI_Element,
-	text_input_states:       map[UI_Key]UI_Element_Text_Input_State,
 	interactive_elements:    [dynamic]^UI_Element,
 	measure_text_proc:       textpkg.Measure_Text_Proc,
 	measure_codepoint_proc:  textpkg.Measure_Codepoint_Proc,
@@ -198,7 +192,9 @@ init :: proc(
 	font_size: f32,
 ) {
 	ctx^ = {} // zero memory
-	ctx.input = input
+	ctx.io = Io {
+		input = input,
+	}
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 	ctx.draw_cmd_allocator = draw_cmd_allocator
@@ -208,8 +204,9 @@ init :: proc(
 
 	ctx.command_queue = make([dynamic]Draw_Command, draw_cmd_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
-	ctx.text_input_states = make(map[UI_Key]UI_Element_Text_Input_State, persistent_allocator)
 	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
+
+	init_io(&ctx.io, persistent_allocator)
 
 	// Initialize default theme
 	ctx.theme = default_theme()
@@ -232,11 +229,7 @@ set_ctx_font_id :: proc(ctx: ^Context, font_id: textpkg.Font_Handle) {
 deinit :: proc(ctx: ^Context) {
 	delete(ctx.interactive_elements)
 
-	for key in ctx.text_input_states {
-		state := &ctx.text_input_states[key]
-		textpkg.text_buffer_deinit(&state.state.buffer)
-	}
-	delete(ctx.text_input_states)
+	deinit_io(&ctx.io)
 
 	free_list := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
@@ -341,7 +334,7 @@ end :: proc(ctx: ^Context) {
 
 	draw_all_elements(ctx)
 
-	base.clear_input(ctx.input)
+	base.clear_input(ctx.io.input)
 
 	prune_dead_elements(ctx)
 
@@ -430,7 +423,7 @@ process_input :: proc(ctx: ^Context) {
 
 	top_element: ^UI_Element
 	intersecting_elements := make([dynamic]^UI_Element, ctx.frame_allocator)
-	find_intersections(ctx, ctx.input.mouse_pos, &intersecting_elements, ctx.frame_allocator)
+	find_intersections(ctx, ctx.io.input.mouse_pos, &intersecting_elements, ctx.frame_allocator)
 
 	#reverse for elem in intersecting_elements {
 		if .Clickable in elem.config.capability_flags {
@@ -446,8 +439,8 @@ process_input :: proc(ctx: ^Context) {
 		// TODO(Thomas): Combine this iteratiion with the one for the .Clickable?
 		#reverse for elem in intersecting_elements {
 			if .Scrollable in elem.config.capability_flags {
-				if math.abs(ctx.input.scroll_delta.y) > 0 {
-					offset_delta := f32(ctx.input.scroll_delta.y) * SCROLL_SPEED
+				if math.abs(ctx.io.input.scroll_delta.y) > 0 {
+					offset_delta := f32(ctx.io.input.scroll_delta.y) * SCROLL_SPEED
 
 					elem.scroll_region.target_offset.y -= offset_delta
 
@@ -471,7 +464,7 @@ process_input :: proc(ctx: ^Context) {
 	// This is important to do before the processing
 	{
 		if ctx.active_element != nil {
-			if base.is_mouse_pressed(ctx.input^, .Left) {
+			if base.is_mouse_pressed(ctx.io.input^, .Left) {
 				is_on_active := top_element != nil && top_element.key == ctx.active_element.key
 
 				if !is_on_active {
@@ -480,7 +473,7 @@ process_input :: proc(ctx: ^Context) {
 			}
 
 			// If mouse released and element is not focusable, immediately lose active status
-			if base.is_mouse_released(ctx.input^, .Left) {
+			if base.is_mouse_released(ctx.io.input^, .Left) {
 				if .Focusable not_in ctx.active_element.config.capability_flags {
 					ctx.active_element = nil
 				}
@@ -502,22 +495,22 @@ process_input :: proc(ctx: ^Context) {
 		// Handle active element
 		if is_active_element {
 
-			if base.is_mouse_down(ctx.input^, .Left) {
+			if base.is_mouse_down(ctx.io.input^, .Left) {
 				comm.held = true
 			}
 
 			// Text edit
 			key := ctx.active_element.key
-			state, state_ok := &ctx.text_input_states[key]
+			state, state_ok := &ctx.io.text_input_states[key]
 
 			if state_ok {
-				if ctx.input.text_input.len > 0 {
-					text := string(ctx.input.text_input.data[:ctx.input.text_input.len])
+				if ctx.io.input.text_input.len > 0 {
+					text := string(ctx.io.input.text_input.data[:ctx.io.input.text_input.len])
 					textpkg.text_edit_insert(&state.state, text)
 				}
 
-				keymod := ctx.input.keymod_down_bits
-				keys := ctx.input.key_pressed_bits
+				keymod := ctx.io.input.keymod_down_bits
+				keys := ctx.io.input.key_pressed_bits
 				clipboard_command := textpkg.text_edit_handle_keys(&state.state, keys, keymod)
 
 				switch clipboard_command {
@@ -536,7 +529,7 @@ process_input :: proc(ctx: ^Context) {
 		} else {
 			if is_top_element {
 				// Set new active element
-				if base.is_mouse_pressed(ctx.input^, .Left) {
+				if base.is_mouse_pressed(ctx.io.input^, .Left) {
 					if .Focusable in element.config.capability_flags {
 						ctx.active_element = element
 					}

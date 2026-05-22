@@ -90,7 +90,7 @@ slider :: proc(
 
 		// Input Handling
 		if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
-			mouse_val := f32(ctx.input.mouse_pos[axis_idx])
+			mouse_val := f32(ctx.io.input.mouse_pos[axis_idx])
 			mouse_rel := mouse_val - track.position[axis_idx] - start_space
 
 			// Calculate ratio (centering thumb on mouse)
@@ -219,14 +219,14 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 	if open_ok {
 
 		key := element.key
-		state, state_exists := &ctx.text_input_states[key]
+		state, state_exists := &ctx.io.text_input_states[key]
 
 		if !state_exists {
-			new_state := UI_Element_Text_Input_State{}
+			new_state := Text_Input_State{}
 			new_state.state = textpkg.text_edit_init_fixed(buf)
 
-			ctx.text_input_states[key] = new_state
-			state = &ctx.text_input_states[key]
+			ctx.io.text_input_states[key] = new_state
+			state = &ctx.io.text_input_states[key]
 		}
 
 		//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
