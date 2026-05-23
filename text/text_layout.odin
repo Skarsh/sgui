@@ -290,15 +290,17 @@ layout_text :: proc(
 	text: string,
 	available_width: f32,
 	font_handle: Font_Handle,
-	font_user_data: rawptr,
-	measure_codepoint_proc: Measure_Codepoint_Proc,
-	measure_text_proc: Measure_Text_Proc,
+	text_measurement: Text_Measurement,
 	allocator: mem.Allocator,
 	text_wrap_mode: Text_Wrap_Mode,
 ) -> Text_Layout {
 
 	// TODO(Thomas): This should be cached of course.
-	text_metrics := measure_text_proc(text, font_handle, font_user_data)
+	text_metrics := text_measurement.measure_text_proc(
+		text,
+		font_handle,
+		text_measurement.font_user_data,
+	)
 
 	// Minimal pipeline for now
 	paragraphs := make([dynamic]Paragraph, allocator)
@@ -312,7 +314,14 @@ layout_text :: proc(
 	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
 	bidi_analysis()
 
-	shaping(text, paragraphs[:], text_runs[:], &glyphs, measure_codepoint_proc, font_user_data)
+	shaping(
+		text,
+		paragraphs[:],
+		text_runs[:],
+		&glyphs,
+		text_measurement.measure_codepoint_proc,
+		text_measurement.font_user_data,
+	)
 
 	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
 	// and not on glyphs
@@ -345,7 +354,6 @@ layout_text :: proc(
 MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
 MOCK_FONT_HANDLE :: 0
-MOCK_FONT_USER_DATA: rawptr = nil
 
 mock_measure_codepoint_proc :: proc(
 	codepoint: rune,
@@ -370,6 +378,12 @@ mock_measure_text_proc :: proc(
 	line_height: f32 = MOCK_LINE_HEIGHT
 
 	return Text_Metrics{width = width, line_height = line_height}
+}
+
+mock_text_measurement :: Text_Measurement {
+	measure_text_proc      = mock_measure_text_proc,
+	measure_codepoint_proc = mock_measure_codepoint_proc,
+	font_user_data         = nil,
 }
 
 expect_positioned_rows :: proc(
@@ -416,9 +430,7 @@ test_layout_text_newline_between_words_wraps :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -446,9 +458,7 @@ test_layout_text_single_newline_char_wraps :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -476,9 +486,7 @@ test_layout_text_exactly_fits_no_wrap :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -517,9 +525,7 @@ test_layout_text_wrap_on_whitespace_between_words :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -553,9 +559,7 @@ test_layout_text_wrap_when_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -578,9 +582,7 @@ test_layout_text_empty_string_no_wrap :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -608,9 +610,7 @@ test_layout_text_single_char_no_wrap :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -648,9 +648,7 @@ test_layout_text_wrap_on_consecutive_newlines :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -689,9 +687,7 @@ test_layout_text_multiple_wraps :: proc(t: ^testing.T) {
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.Wrap,
 	)
@@ -721,9 +717,7 @@ test_layout_text_single_long_word_overflows_when_none_wrapping :: proc(t: ^testi
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
-		MOCK_FONT_USER_DATA,
-		mock_measure_codepoint_proc,
-		mock_measure_text_proc,
+		mock_text_measurement,
 		context.temp_allocator,
 		.None,
 	)

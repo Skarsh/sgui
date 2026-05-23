@@ -3,6 +3,11 @@ package base
 Get_Clipboard_Text_Proc :: proc() -> string
 Set_Clipboard_Text_Proc :: proc(text: string)
 
+Clipboard_Text_Procs :: struct {
+	get_clipboard_text_proc: Get_Clipboard_Text_Proc,
+	set_clipboard_text_proc: Set_Clipboard_Text_Proc,
+}
+
 Event :: union {
 	Mouse_Motion_Event,
 	Mouse_Button_Event,
@@ -224,19 +229,21 @@ Text_Input_Buffer :: struct {
 
 Input :: struct {
 	// Mouse
-	mouse_pos:           Vector2i32,
-	last_mouse_pos:      Vector2i32,
-	mouse_delta:         Vector2i32,
-	scroll_delta:        Vector2i32,
-	mouse_down_bits:     Mouse_Set,
-	mouse_pressed_bits:  Mouse_Set,
-	mouse_released_bits: Mouse_Set,
+	mouse_pos:            Vector2i32,
+	last_mouse_pos:       Vector2i32,
+	mouse_delta:          Vector2i32,
+	scroll_delta:         Vector2i32,
+	mouse_down_bits:      Mouse_Set,
+	mouse_pressed_bits:   Mouse_Set,
+	mouse_released_bits:  Mouse_Set,
 	// Keys
-	key_down_bits:       Key_Set,
-	key_pressed_bits:    Key_Set,
-	keymod_down_bits:    Keymod_Set,
+	key_down_bits:        Key_Set,
+	key_pressed_bits:     Key_Set,
+	keymod_down_bits:     Keymod_Set,
 	// Text input
-	text_input:          Text_Input_Buffer,
+	text_input:           Text_Input_Buffer,
+	// Clipboard
+	clipboard_text_procs: Clipboard_Text_Procs,
 }
 
 handle_mouse_move :: proc(input: ^Input, x, y: i32) {
@@ -341,4 +348,8 @@ clear_input :: proc(input: ^Input) {
 	input.mouse_released_bits = {}
 	input.scroll_delta = {}
 	input.text_input.len = 0
+}
+
+set_clipboard_text_procs :: proc(input: ^Input, clipboard_text_procs: Clipboard_Text_Procs) {
+	input.clipboard_text_procs = clipboard_text_procs
 }

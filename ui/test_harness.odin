@@ -13,6 +13,7 @@ import textpkg "../text"
 Test_Environment :: struct {
 	ctx:                      Context,
 	input:                    base.Input,
+	text_measurement:         textpkg.Text_Measurement,
 	persistent_allocator:     mem.Allocator,
 	frame_arena:              virtual.Arena,
 	frame_arena_allocator:    mem.Allocator,
@@ -22,6 +23,13 @@ Test_Environment :: struct {
 
 setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	env := new(Test_Environment)
+
+	// Text measurement
+	env.text_measurement = textpkg.Text_Measurement {
+		measure_text_proc      = textpkg.mock_measure_text_proc,
+		measure_codepoint_proc = textpkg.mock_measure_codepoint_proc,
+		font_user_data         = nil,
+	}
 
 	// Setup arenas and allocators
 	env.persistent_allocator = context.allocator
@@ -39,6 +47,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	init(
 		&env.ctx,
 		&env.input,
+		&env.text_measurement,
 		env.persistent_allocator,
 		env.frame_arena_allocator,
 		env.draw_cmd_arena_allocator,
@@ -88,13 +97,6 @@ run_ui_test :: proc(
 	defer cleanup_test_environment(test_env)
 
 	ctx := &test_env.ctx
-
-	set_text_measurement_callbacks(
-		ctx,
-		textpkg.mock_measure_text_proc,
-		textpkg.mock_measure_codepoint_proc,
-		nil,
-	)
 
 	begin(ctx)
 	build_ui(ctx, data)

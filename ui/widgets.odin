@@ -252,8 +252,16 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 
 			// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
 			// use cached sizes from the text layout system.
-			metrics := ctx.measure_text_proc(text_before_cursor, ctx.font_id, ctx.font_user_data)
-			line_metrics := ctx.measure_text_proc("", ctx.font_id, ctx.font_user_data)
+			metrics := ctx.io.text_measurement.measure_text_proc(
+				text_before_cursor,
+				ctx.font_id,
+				ctx.io.text_measurement.font_user_data,
+			)
+			line_metrics := ctx.io.text_measurement.measure_text_proc(
+				"",
+				ctx.font_id,
+				ctx.io.text_measurement.font_user_data,
+			)
 			caret_x_offset := metrics.width
 			caret_height := line_metrics.line_height
 
@@ -288,18 +296,19 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 
 			selection_offset_text := text_view[:selection_start]
 			// TODO(Thomas): HACK - Same measurement argument as above
-			selection_offset_metrics := ctx.measure_text_proc(
+
+			selection_offset_metrics := ctx.io.text_measurement.measure_text_proc(
 				selection_offset_text,
 				ctx.font_id,
-				ctx.font_user_data,
+				ctx.io.text_measurement.font_user_data,
 			)
 
 			selected_text := text_view[selection_start:selection_end]
 			// TODO(Thomas): HACK - Same measurement argument as above
-			selection_metrics := ctx.measure_text_proc(
+			selection_metrics := ctx.io.text_measurement.measure_text_proc(
 				selected_text,
 				ctx.font_id,
-				ctx.font_user_data,
+				ctx.io.text_measurement.font_user_data,
 			)
 
 			// TODO(Thomas): Selection should be stylable

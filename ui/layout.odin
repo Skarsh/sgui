@@ -173,9 +173,7 @@ element_equip_text :: proc(
 		text,
 		math.F32_MAX,
 		ctx.font_id,
-		ctx.font_user_data,
-		ctx.measure_codepoint_proc,
-		ctx.measure_text_proc,
+		ctx.io.text_measurement^,
 		context.temp_allocator,
 		element.config.layout.text_wrap_mode,
 	)
@@ -704,9 +702,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			text,
 			wrap_width,
 			ctx.font_id,
-			ctx.font_user_data,
-			ctx.measure_codepoint_proc,
-			ctx.measure_text_proc,
+			ctx.io.text_measurement^,
 			allocator,
 			text_wrap_mode,
 		)

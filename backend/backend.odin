@@ -4,7 +4,7 @@ import "core:log"
 import "core:mem"
 
 import "../base"
-import ui "../ui"
+import textpkg "../text"
 
 GL_Attribute :: enum {
 	Context_Profile_Mask,
@@ -76,8 +76,8 @@ Context :: struct {
 // TODO(Thomas): This shouldn't be aware of texture paths at all. That is app specific knowledge.
 init_ctx :: proc(
 	ctx: ^Context,
-	ui_ctx: ^ui.Context,
 	input: ^base.Input,
+	text_measurement: ^textpkg.Text_Measurement,
 	window_title: cstring,
 	window_size: base.Vector2i32,
 	font_size: f32,
@@ -108,19 +108,17 @@ init_ctx :: proc(
 	}
 
 	ctx.stb_font_ctx = stb_font_ctx
-	// TODO(Thomas): Setting the callbacks on the ui library context like this is not nice
-	ui.set_text_measurement_callbacks(
-		ui_ctx,
-		stb_measure_text,
-		stb_measure_codepoint,
-		&ctx.stb_font_ctx,
-	)
 
-	// TODO(Thomas): Setting the callbacks on the ui library context like this is not nice
-	ui.set_clipboard_callbacks(
-		ui_ctx,
-		platform_api.get_clipboard_text,
-		platform_api.set_clipboard_text,
+	text_measurement.measure_text_proc = stb_measure_text
+	text_measurement.measure_codepoint_proc = stb_measure_codepoint
+	text_measurement.font_user_data = &ctx.stb_font_ctx
+
+	base.set_clipboard_text_procs(
+		input,
+		base.Clipboard_Text_Procs {
+			platform_api.get_clipboard_text,
+			platform_api.set_clipboard_text,
+		},
 	)
 
 	render_ctx := Render_Context{}

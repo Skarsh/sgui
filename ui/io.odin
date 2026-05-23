@@ -13,6 +13,8 @@ Text_Input_State :: struct {
 Io :: struct {
 	// input is owned by app
 	input:             ^base.Input,
+	// text_measurement is owned by app
+	text_measurement:  ^textpkg.Text_Measurement,
 	text_input_states: map[UI_Key]Text_Input_State,
 }
 

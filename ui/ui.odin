@@ -97,34 +97,29 @@ Color_Style :: [Color_Type]base.Color
 
 
 Context :: struct {
-	persistent_allocator:    mem.Allocator,
-	frame_allocator:         mem.Allocator,
-	draw_cmd_allocator:      mem.Allocator,
-	element_stack:           Stack(^UI_Element, ELEMENT_STACK_SIZE),
+	persistent_allocator: mem.Allocator,
+	frame_allocator:      mem.Allocator,
+	draw_cmd_allocator:   mem.Allocator,
+	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// Style stack for cascading styles. Use push_style/pop_style.
-	style_stack:             Stack(Style, STYLE_STACK_SIZE),
-	command_queue:           [dynamic]Draw_Command,
-	render_state:            Render_State,
-	current_parent:          ^UI_Element,
-	root_element:            ^UI_Element,
-	io:                      Io,
-	element_cache:           map[UI_Key]^UI_Element,
-	interactive_elements:    [dynamic]^UI_Element,
-	measure_text_proc:       textpkg.Measure_Text_Proc,
-	measure_codepoint_proc:  textpkg.Measure_Codepoint_Proc,
-	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
-	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
-	font_user_data:          rawptr,
-	frame_idx:               u64,
-	dt:                      f32,
+	style_stack:          Stack(Style, STYLE_STACK_SIZE),
+	command_queue:        [dynamic]Draw_Command,
+	render_state:         Render_State,
+	current_parent:       ^UI_Element,
+	root_element:         ^UI_Element,
+	io:                   Io,
+	element_cache:        map[UI_Key]^UI_Element,
+	interactive_elements: [dynamic]^UI_Element,
+	frame_idx:            u64,
+	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
-	font_size:               f32,
-	font_id:                 textpkg.Font_Handle,
-	window_size:             [2]i32,
-	active_element:          ^UI_Element,
+	font_size:            f32,
+	font_id:              textpkg.Font_Handle,
+	window_size:          [2]i32,
+	active_element:       ^UI_Element,
 	// Theme support
-	theme:                   Theme,
-	theme_stack:             Stack(Theme, THEME_STACK_SIZE),
+	theme:                Theme,
+	theme_stack:          Stack(Theme, THEME_STACK_SIZE),
 }
 
 Capability :: enum {
@@ -151,26 +146,6 @@ Comm :: struct {
 	text:     string,
 }
 
-set_text_measurement_callbacks :: proc(
-	ctx: ^Context,
-	measure_text: textpkg.Measure_Text_Proc,
-	measure_codepoint: textpkg.Measure_Codepoint_Proc,
-	user_data: rawptr,
-) {
-	ctx.measure_text_proc = measure_text
-	ctx.measure_codepoint_proc = measure_codepoint
-	ctx.font_user_data = user_data
-}
-
-set_clipboard_callbacks :: proc(
-	ctx: ^Context,
-	get_clipboard_text_proc: base.Get_Clipboard_Text_Proc,
-	set_clipboard_text_proc: base.Set_Clipboard_Text_Proc,
-) {
-	ctx.get_clipboard_text_proc = get_clipboard_text_proc
-	ctx.set_clipboard_text_proc = set_clipboard_text_proc
-}
-
 default_color_style := Color_Style {
 	.Text         = {230, 230, 230, 255},
 	.Selection_BG = {90, 90, 90, 255},
@@ -184,6 +159,7 @@ default_color_style := Color_Style {
 init :: proc(
 	ctx: ^Context,
 	input: ^base.Input,
+	text_measurement: ^textpkg.Text_Measurement,
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
 	draw_cmd_allocator: mem.Allocator,
@@ -193,7 +169,8 @@ init :: proc(
 ) {
 	ctx^ = {} // zero memory
 	ctx.io = Io {
-		input = input,
+		input            = input,
+		text_measurement = text_measurement,
 	}
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator

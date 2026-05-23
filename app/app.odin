@@ -23,6 +23,7 @@ App :: struct {
 	ui_ctx:               ui.Context,
 	backend_ctx:          backend.Context,
 	input:                base.Input,
+	text_measurement:     text.Text_Measurement,
 	running:              bool,
 }
 
@@ -94,17 +95,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	}
 	io_arena_allocator := virtual.arena_allocator(&app.io_arena)
 
-	ui.init(
-		&app.ui_ctx,
-		&app.input,
-		persistent_allocator,
-		frame_arena_allocator,
-		draw_cmd_arena_allocator,
-		app_config.window_size,
-		app_config.font_id,
-		app_config.font_size,
-	)
-
 	app_callbacks := backend.App_Callbacks {
 		on_quit      = _on_quit_callback,
 		on_quit_data = app,
@@ -112,8 +102,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
-		&app.ui_ctx,
 		&app.input,
+		&app.text_measurement,
 		app_config.title,
 		app_config.window_size,
 		app_config.font_size,
@@ -123,11 +113,24 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_arena_allocator,
 		io_arena_allocator,
 	)
+
 	assert(backend_init_ok)
 	if !backend_init_ok {
 		free(app)
 		return nil, false
 	}
+
+	ui.init(
+		&app.ui_ctx,
+		&app.input,
+		&app.text_measurement,
+		persistent_allocator,
+		frame_arena_allocator,
+		draw_cmd_arena_allocator,
+		app_config.window_size,
+		app_config.font_id,
+		app_config.font_size,
+	)
 
 	app.running = true
 
