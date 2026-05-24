@@ -6,9 +6,7 @@ import "../base"
 import textpkg "../text"
 
 ELEMENT_STACK_SIZE :: 64
-PARENT_STACK_SIZE :: 64
 STYLE_STACK_SIZE :: 64
-CHILD_LAYOUT_AXIS_STACK_SIZE :: 64
 
 Color_Type :: enum u32 {
 	Text,
