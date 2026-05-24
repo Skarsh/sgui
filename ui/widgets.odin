@@ -30,7 +30,7 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
-	append(&ctx.interactive_elements, element)
+	append(&ctx.interaction.interactive_elements, element)
 
 	return element.last_comm
 }
@@ -115,11 +115,11 @@ slider :: proc(
 		track.last_comm.active |= thumb.last_comm.active
 		track.last_comm.hovering |= thumb.last_comm.hovering
 
-		append(&ctx.interactive_elements, thumb)
+		append(&ctx.interaction.interactive_elements, thumb)
 		close_element(ctx)
 	}
 
-	append(&ctx.interactive_elements, track)
+	append(&ctx.interaction.interactive_elements, track)
 	close_element(ctx)
 
 	return track.last_comm
@@ -243,7 +243,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			Style{text_wrap_mode = .None, background_fill = base.Color{0, 0, 0, 0}},
 		)
 
-		if element == ctx.active_element {
+		if element == ctx.interaction.active_element {
 			state.caret_blink_timer += ctx.dt
 			CARET_BLINK_PERIOD :: 1.0
 
@@ -332,7 +332,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		close_element(ctx)
 	}
 
-	append(&ctx.interactive_elements, element)
+	append(&ctx.interaction.interactive_elements, element)
 	return element.last_comm
 }
 
@@ -364,7 +364,7 @@ checkbox :: proc(
 		close_element(ctx)
 	}
 
-	append(&ctx.interactive_elements, element)
+	append(&ctx.interaction.interactive_elements, element)
 	return element.last_comm
 }
 
@@ -376,6 +376,6 @@ image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = 
 		close_element(ctx)
 	}
 
-	append(&ctx.interactive_elements, element)
+	append(&ctx.interaction.interactive_elements, element)
 	return element.last_comm
 }

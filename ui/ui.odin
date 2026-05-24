@@ -92,7 +92,6 @@ Command_Shape :: struct {
 
 Color_Style :: [Color_Type]base.Color
 
-
 Context :: struct {
 	persistent_allocator: mem.Allocator,
 	frame_allocator:      mem.Allocator,
@@ -106,14 +105,12 @@ Context :: struct {
 	root_element:         ^UI_Element,
 	interaction:          Interaction,
 	element_cache:        map[UI_Key]^UI_Element,
-	interactive_elements: [dynamic]^UI_Element,
 	frame_idx:            u64,
 	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:            f32,
 	font_id:              textpkg.Font_Handle,
 	window_size:          [2]i32,
-	active_element:       ^UI_Element,
 	// Theme support
 	theme:                Theme,
 	theme_stack:          Stack(Theme, THEME_STACK_SIZE),
@@ -178,9 +175,8 @@ init :: proc(
 
 	ctx.command_queue = make([dynamic]Draw_Command, draw_cmd_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
-	ctx.interactive_elements = make([dynamic]^UI_Element, persistent_allocator)
 
-	init_io(&ctx.interaction, persistent_allocator)
+	init_interaction(&ctx.interaction, persistent_allocator)
 
 	// Initialize default theme
 	ctx.theme = default_theme()
@@ -201,9 +197,9 @@ set_ctx_font_id :: proc(ctx: ^Context, font_id: textpkg.Font_Handle) {
 // TODO(Thomas): When we figure out a better allocation scheme for persistent stuf
 // this can become better / cleaner.
 deinit :: proc(ctx: ^Context) {
-	delete(ctx.interactive_elements)
+	delete(ctx.interaction.interactive_elements)
 
-	deinit_io(&ctx.interaction)
+	deinit_interaction(&ctx.interaction)
 
 	free_list := make([dynamic]^UI_Element, context.temp_allocator)
 	defer free_all(context.temp_allocator)
@@ -233,7 +229,7 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 begin :: proc(ctx: ^Context) -> bool {
 	ctx.frame_idx += 1
 
-	clear_dynamic_array(&ctx.interactive_elements)
+	clear_dynamic_array(&ctx.interaction.interactive_elements)
 	clear_dynamic_array(&ctx.command_queue)
 	free_all(ctx.frame_allocator)
 	free_all(ctx.draw_cmd_allocator)

@@ -15,22 +15,25 @@ Text_Input_State :: struct {
 
 Interaction :: struct {
 	// input is owned by app
-	input:             ^base.Input,
+	input:                ^base.Input,
 	// text_measurement is owned by app
-	text_measurement:  ^textpkg.Text_Measurement,
-	text_input_states: map[UI_Key]Text_Input_State,
+	text_measurement:     ^textpkg.Text_Measurement,
+	text_input_states:    map[UI_Key]Text_Input_State,
+	active_element:       ^UI_Element,
+	interactive_elements: [dynamic]^UI_Element,
 }
 
-init_io :: proc(io: ^Interaction, allocator: mem.Allocator) {
-	io.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
+init_interaction :: proc(interaction: ^Interaction, allocator: mem.Allocator) {
+	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
+	interaction.interactive_elements = make([dynamic]^UI_Element, allocator)
 }
 
-deinit_io :: proc(io: ^Interaction) {
-	for key in io.text_input_states {
-		state := &io.text_input_states[key]
+deinit_interaction :: proc(interaction: ^Interaction) {
+	for key in interaction.text_input_states {
+		state := &interaction.text_input_states[key]
 		textpkg.text_buffer_deinit(&state.state.buffer)
 	}
-	delete(io.text_input_states)
+	delete(interaction.text_input_states)
 }
 
 // Traverses the element hierarchy in BFS order and appends on the elements
@@ -129,19 +132,20 @@ process_input :: proc(ctx: ^Context) {
 	// Update active element state
 	// This is important to do before the processing
 	{
-		if ctx.active_element != nil {
+		if ctx.interaction.active_element != nil {
 			if base.is_mouse_pressed(ctx.interaction.input^, .Left) {
-				is_on_active := top_element != nil && top_element.key == ctx.active_element.key
+				is_on_active :=
+					top_element != nil && top_element.key == ctx.interaction.active_element.key
 
 				if !is_on_active {
-					ctx.active_element = nil
+					ctx.interaction.active_element = nil
 				}
 			}
 
 			// If mouse released and element is not focusable, immediately lose active status
 			if base.is_mouse_released(ctx.interaction.input^, .Left) {
-				if .Focusable not_in ctx.active_element.config.capability_flags {
-					ctx.active_element = nil
+				if .Focusable not_in ctx.interaction.active_element.config.capability_flags {
+					ctx.interaction.active_element = nil
 				}
 			}
 		}
@@ -149,14 +153,16 @@ process_input :: proc(ctx: ^Context) {
 
 
 	// Iterate interactive elements
-	for element in ctx.interactive_elements {
+	for element in ctx.interaction.interactive_elements {
 
 		comm := Comm {
 			element = element,
 		}
 
 		is_top_element := (top_element != nil && top_element.key == element.key)
-		is_active_element := (ctx.active_element != nil && ctx.active_element.key == element.key)
+		is_active_element :=
+			(ctx.interaction.active_element != nil &&
+				ctx.interaction.active_element.key == element.key)
 
 		// Handle active element
 		if is_active_element {
@@ -166,7 +172,7 @@ process_input :: proc(ctx: ^Context) {
 			}
 
 			// Text edit
-			key := ctx.active_element.key
+			key := ctx.interaction.active_element.key
 			state, state_ok := &ctx.interaction.text_input_states[key]
 
 			if state_ok {
@@ -199,7 +205,7 @@ process_input :: proc(ctx: ^Context) {
 				// Set new active element
 				if base.is_mouse_pressed(ctx.interaction.input^, .Left) {
 					if .Focusable in element.config.capability_flags {
-						ctx.active_element = element
+						ctx.interaction.active_element = element
 					}
 					comm.clicked = true
 					comm.held = true
