@@ -220,7 +220,8 @@ element_equip_image :: proc(element: ^UI_Element, texture_id: Texture_Id) {
 	element.config.content.texture_id = texture_id
 }
 
-calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
+@(require_results)
+calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
 	if len(element.children) == 0 {
 		return 0
 	} else {
@@ -238,6 +239,7 @@ calc_child_gap := #force_inline proc(element: UI_Element) -> f32 {
 
 // TODO(Thomas): This can be simplified further by combining into a Vec2, but not sure if that
 // helps much since the layout algorithm needs to update per axis anyway.
+@(require_results)
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
 	border := element.config.layout.border
@@ -287,6 +289,7 @@ close_element :: proc(ctx: ^Context) {
 	}
 }
 
+@(require_results)
 open_element :: proc(
 	ctx: ^Context,
 	id: string,
@@ -425,6 +428,7 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 // TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
+@(require_results)
 calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
 	padding := element.config.layout.padding
 	border := element.config.layout.border
@@ -435,6 +439,7 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 	return remaining_size
 }
 
+@(require_results)
 is_main_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 
 	is_main_axis :=
@@ -444,6 +449,7 @@ is_main_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 	return is_main_axis
 }
 
+@(require_results)
 get_main_and_cross_axis :: proc(
 	layout_direction: Layout_Direction,
 ) -> (
@@ -689,6 +695,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 	}
 }
 
+@(require_results)
 make_element :: proc(
 	ctx: ^Context,
 	id: string,
@@ -797,12 +804,14 @@ make_element :: proc(
 	return element, true
 }
 
+@(require_results)
 get_alignment_factor :: #force_inline proc(align: $E) -> f32 {
 	// NOTE(Thomas): This works because Alignment_X and Alignment_Y are both
 	// representing the positions (Start, Center, End) which have the values 0, 1, 2
 	return f32(align) * 0.5
 }
 
+@(require_results)
 get_alignment_factors :: #force_inline proc(
 	align_x: Alignment_X,
 	align_y: Alignment_Y,
@@ -810,10 +819,12 @@ get_alignment_factors :: #force_inline proc(
 	return {get_alignment_factor(align_x), get_alignment_factor(align_y)}
 }
 
+@(require_results)
 get_axis_padding :: proc(padding: Padding) -> base.Vec2 {
 	return base.Vec2{padding.left + padding.right, padding.top + padding.bottom}
 }
 
+@(require_results)
 get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return padding.left, padding.right
@@ -822,6 +833,7 @@ get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 }
 
 // Generic helper for summing box values (padding, border, margin) for a given axis
+@(require_results)
 get_box_sum_for_axis :: proc(box: Box, axis: Axis2) -> f32 {
 	if axis == .X {
 		return box.left + box.right
@@ -829,14 +841,17 @@ get_box_sum_for_axis :: proc(box: Box, axis: Axis2) -> f32 {
 	return box.top + box.bottom
 }
 
+@(require_results)
 get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(padding), axis)
 }
 
+@(require_results)
 get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(border), axis)
 }
 
+@(require_results)
 get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return border.left, border.right
@@ -844,6 +859,7 @@ get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
 	return border.top, border.bottom
 }
 
+@(require_results)
 get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return margin.left, margin.right
@@ -851,10 +867,12 @@ get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 	return margin.top, margin.bottom
 }
 
+@(require_results)
 get_margin_sum_for_axis :: proc(margin: Margin, axis: Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(margin), axis)
 }
 
+@(require_results)
 get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) -> base.Vec2 {
 	return {
 		size.x - padding.left - padding.right - border.left - border.right,
@@ -862,6 +880,7 @@ get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) ->
 	}
 }
 
+@(require_results)
 has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 	for child in element.children {
 		if child.config.layout.position_mode == .Flow {
@@ -1046,6 +1065,7 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 
 
 // Helper to find an element in element hierarchy by id string
+@(require_results)
 find_element_by_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
 	key := ui_key_hash(id)
 	if element, ok := ctx.element_cache[key]; ok {
