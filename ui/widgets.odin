@@ -90,7 +90,7 @@ slider :: proc(
 
 		// Input Handling
 		if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
-			mouse_val := f32(ctx.io.input.mouse_pos[axis_idx])
+			mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
 			mouse_rel := mouse_val - track.position[axis_idx] - start_space
 
 			// Calculate ratio (centering thumb on mouse)
@@ -219,14 +219,14 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 	if open_ok {
 
 		key := element.key
-		state, state_exists := &ctx.io.text_input_states[key]
+		state, state_exists := &ctx.interaction.text_input_states[key]
 
 		if !state_exists {
 			new_state := Text_Input_State{}
 			new_state.state = textpkg.text_edit_init_fixed(buf)
 
-			ctx.io.text_input_states[key] = new_state
-			state = &ctx.io.text_input_states[key]
+			ctx.interaction.text_input_states[key] = new_state
+			state = &ctx.interaction.text_input_states[key]
 		}
 
 		//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
@@ -252,15 +252,15 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 
 			// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
 			// use cached sizes from the text layout system.
-			metrics := ctx.io.text_measurement.measure_text_proc(
+			metrics := ctx.interaction.text_measurement.measure_text_proc(
 				text_before_cursor,
 				ctx.font_id,
-				ctx.io.text_measurement.font_user_data,
+				ctx.interaction.text_measurement.font_user_data,
 			)
-			line_metrics := ctx.io.text_measurement.measure_text_proc(
+			line_metrics := ctx.interaction.text_measurement.measure_text_proc(
 				"",
 				ctx.font_id,
-				ctx.io.text_measurement.font_user_data,
+				ctx.interaction.text_measurement.font_user_data,
 			)
 			caret_x_offset := metrics.width
 			caret_height := line_metrics.line_height
@@ -297,18 +297,18 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			selection_offset_text := text_view[:selection_start]
 			// TODO(Thomas): HACK - Same measurement argument as above
 
-			selection_offset_metrics := ctx.io.text_measurement.measure_text_proc(
+			selection_offset_metrics := ctx.interaction.text_measurement.measure_text_proc(
 				selection_offset_text,
 				ctx.font_id,
-				ctx.io.text_measurement.font_user_data,
+				ctx.interaction.text_measurement.font_user_data,
 			)
 
 			selected_text := text_view[selection_start:selection_end]
 			// TODO(Thomas): HACK - Same measurement argument as above
-			selection_metrics := ctx.io.text_measurement.measure_text_proc(
+			selection_metrics := ctx.interaction.text_measurement.measure_text_proc(
 				selected_text,
 				ctx.font_id,
-				ctx.io.text_measurement.font_user_data,
+				ctx.interaction.text_measurement.font_user_data,
 			)
 
 			// TODO(Thomas): Selection should be stylable

@@ -14,7 +14,7 @@ import "../../ui"
 Test_Data :: struct {}
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
-	if base.is_key_pressed(ctx.io.input^, base.Key.Escape) {
+	if base.is_key_pressed(ctx.interaction.input^, base.Key.Escape) {
 		return false
 	}
 
