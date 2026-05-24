@@ -9,7 +9,6 @@ ELEMENT_STACK_SIZE :: 64
 PARENT_STACK_SIZE :: 64
 STYLE_STACK_SIZE :: 64
 CHILD_LAYOUT_AXIS_STACK_SIZE :: 64
-THEME_STACK_SIZE :: 8
 
 Color_Type :: enum u32 {
 	Text,
@@ -41,9 +40,6 @@ Context :: struct {
 	font_size:            f32,
 	font_id:              textpkg.Font_Handle,
 	window_size:          [2]i32,
-	// Theme support
-	theme:                Theme,
-	theme_stack:          Stack(Theme, THEME_STACK_SIZE),
 }
 
 Capability :: enum {
@@ -97,9 +93,6 @@ init :: proc(
 
 	init_draw_state(&ctx.draw_state, draw_cmd_allocator)
 	init_interaction(&ctx.interaction, persistent_allocator)
-
-	// Initialize default theme
-	ctx.theme = default_theme()
 }
 
 window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
@@ -253,29 +246,4 @@ prune_dead_elements :: proc(ctx: ^Context) {
 			free(elem.value, ctx.persistent_allocator)
 		}
 	}
-}
-
-
-set_theme :: proc(ctx: ^Context, theme: Theme) {
-	ctx.theme = theme
-}
-
-get_theme :: proc(ctx: ^Context) -> Theme {
-	return ctx.theme
-}
-
-push_theme :: proc(ctx: ^Context, theme: Theme) -> bool {
-	if push(&ctx.theme_stack, ctx.theme) {
-		ctx.theme = theme
-		return true
-	}
-	return false
-}
-
-pop_theme :: proc(ctx: ^Context) -> bool {
-	if theme, ok := pop(&ctx.theme_stack); ok {
-		ctx.theme = theme
-		return true
-	}
-	return false
 }
