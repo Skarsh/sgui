@@ -484,43 +484,6 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
-// TODO(Thomas): This is not in use, just remove it?
-calculate_size_to_distribute :: proc(
-	is_growing: bool,
-	resizables: []^UI_Element,
-	axis: Axis2,
-) -> (
-	dist: f32,
-	target: f32,
-) {
-	if len(resizables) == 0 {
-		return 0, 0
-	}
-
-	sign: f32 = is_growing ? 1 : -1
-
-	first: f32 = resizables[0].size[axis] * sign
-	second: f32 = math.INF_F32
-
-	for child in resizables {
-		val := child.size[axis] * sign
-		// NOTE(Thomas): We're skipping children that has the same size as first, this is important to make sure
-		// to ensure that first and second doesn't become equal, causing all sorts of nastyness later.
-		if val < first {
-			second = first
-			first = val
-		} else if val > first {
-			second = min(second, val)
-		}
-	}
-
-	// Share needs to have the sign that matches whether it's growing or not.
-	// When it's not growing, i.e. shrinking, the share needs to be negative.
-	dist = (second - first) * sign
-	target = first * sign
-	return
-}
-
 
 // Target-based distribution: elements are sized to match their factor ratios
 // e.g., factors 1:2:1 in 400px → sizes 100:200:100
