@@ -1,5 +1,7 @@
 package ui
 
+import "core:mem"
+
 import "../base"
 import textpkg "../text"
 
@@ -11,24 +13,30 @@ Draw_State :: struct {
 	current_clip_rect: base.Rect,
 	command_counter:   u64,
 	current_z_index:   i32,
+	command_queue:     [dynamic]Draw_Command,
+}
+
+init_draw_state :: proc(draw_state: ^Draw_State, allocator: mem.Allocator) {
+	draw_state.command_queue = make([dynamic]Draw_Command, allocator)
 }
 
 reset_draw_state :: proc(draw_state: ^Draw_State, window_size: base.Vector2i32) {
 	draw_state.command_counter = 0
 	draw_state.current_z_index = 0
 	draw_state.current_clip_rect = base.Rect{0, 0, window_size.x, window_size.y}
+	clear_dynamic_array(&draw_state.command_queue)
 }
 
-push_draw_command :: proc(ctx: ^Context, command: Command, z_offset: i32) {
-	ctx.draw_state.command_counter += 1
+push_draw_command :: proc(draw_state: ^Draw_State, command: Command, z_offset: i32) {
+	draw_state.command_counter += 1
 
 	draw_cmd := Draw_Command {
-		z_index   = ctx.draw_state.current_z_index + z_offset,
-		cmd_idx   = ctx.draw_state.command_counter,
-		clip_rect = ctx.draw_state.current_clip_rect,
+		z_index   = draw_state.current_z_index + z_offset,
+		cmd_idx   = draw_state.command_counter,
+		clip_rect = draw_state.current_clip_rect,
 		command   = command,
 	}
-	append(&ctx.command_queue, draw_cmd)
+	append(&draw_state.command_queue, draw_cmd)
 }
 
 Draw_Command :: struct {
@@ -72,14 +80,14 @@ Command_Shape :: struct {
 	data: Shape_Data,
 }
 
-draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
+draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 	if element == nil {
 		return
 	}
 
 	// NOTE(Thomas): Store the previous clip to restore it after processing this element
 	// and its children
-	prev_clip_rect := ctx.draw_state.current_clip_rect
+	prev_clip_rect := draw_state.current_clip_rect
 
 	clip_config := element.config.clip
 	should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
@@ -106,7 +114,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			new_constraint.h = prev_clip_rect.h
 		}
 
-		ctx.draw_state.current_clip_rect = base.intersect_rects(prev_clip_rect, new_constraint)
+		draw_state.current_clip_rect = base.intersect_rects(prev_clip_rect, new_constraint)
 	}
 
 	cap_flags := element.config.capability_flags
@@ -178,7 +186,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	if .Background in element.config.capability_flags {
 		draw_rect(
-			ctx,
+			draw_state,
 			base.Rect {
 				i32(element.position.x),
 				i32(element.position.y),
@@ -196,7 +204,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	if .Image in cap_flags {
 		if texture_id, has_texture := element.config.content.texture_id.?; has_texture {
 			draw_image(
-				ctx,
+				draw_state,
 				element.position.x,
 				element.position.y,
 				element.size.x,
@@ -245,7 +253,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			}
 
 			draw_text(
-				ctx,
+				draw_state,
 				start_x,
 				current_y,
 				text_layout.glyphs[row.glyph_range.start:row.glyph_range.end],
@@ -258,7 +266,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	if .Shape in cap_flags {
 		draw_shape(
-			ctx,
+			draw_state,
 			base.Rect {
 				i32(element.position.x),
 				i32(element.position.y),
@@ -275,7 +283,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	border_sum := border.left + border.right + border.top + border.bottom
 	if .Background in cap_flags && border_sum > (0 + epsilon) {
 		draw_rect(
-			ctx,
+			draw_state,
 			base.Rect {
 				i32(element.position.x),
 				i32(element.position.y),
@@ -291,18 +299,18 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 
 	for child in element.children {
-		draw_element(ctx, child)
+		draw_element(draw_state, child)
 	}
 
-	ctx.draw_state.current_clip_rect = prev_clip_rect
+	draw_state.current_clip_rect = prev_clip_rect
 }
 
-draw_all_elements :: proc(ctx: ^Context) {
-	draw_element(ctx, ctx.root_element)
+draw_all_elements :: proc(draw_state: ^Draw_State, root_element: ^UI_Element) {
+	draw_element(draw_state, root_element)
 }
 
 draw_rect :: proc(
-	ctx: ^Context,
+	draw_state: ^Draw_State,
 	rect: base.Rect,
 	fill: base.Fill,
 	border_radius: base.Vec4,
@@ -311,26 +319,31 @@ draw_rect :: proc(
 	z_offset: i32 = 0,
 ) {
 	cmd := Command_Rect{rect, fill, border_fill, border, border_radius}
-	push_draw_command(ctx, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_offset)
 }
 
 draw_text :: proc(
-	ctx: ^Context,
+	draw_state: ^Draw_State,
 	x, y: f32,
 	glyphs: []textpkg.Glyph,
 	color: base.Fill,
 	z_offset: i32 = 0,
 ) {
 	cmd := Command_Text{x, y, glyphs, color}
-	push_draw_command(ctx, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_offset)
 }
 
-draw_image :: proc(ctx: ^Context, x, y, w, h: f32, texture_id: Texture_Id, z_offset: i32 = 0) {
+draw_image :: proc(
+	draw_state: ^Draw_State,
+	x, y, w, h: f32,
+	texture_id: Texture_Id,
+	z_offset: i32 = 0,
+) {
 	cmd := Command_Image{x, y, w, h, texture_id}
-	push_draw_command(ctx, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_offset)
 }
 
-draw_shape :: proc(ctx: ^Context, rect: base.Rect, data: Shape_Data, z_offset: i32 = 0) {
+draw_shape :: proc(draw_state: ^Draw_State, rect: base.Rect, data: Shape_Data, z_offset: i32 = 0) {
 	cmd := Command_Shape{rect, data}
-	push_draw_command(ctx, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_offset)
 }

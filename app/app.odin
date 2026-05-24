@@ -162,7 +162,8 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		if !keep_running {
 			app.running = false
 		}
-		backend.render_end(&app.backend_ctx.render_ctx, app.ui_ctx.command_queue[:])
+		// TODO(Thomas): Shouldn't access ui_ctx command queue like this.
+		backend.render_end(&app.backend_ctx.render_ctx, app.ui_ctx.draw_state.command_queue[:])
 
 		// 4. TODO(Thomas): Sleep to hit target framerate if not vsync.
 		// currently hardcoded to use vsync, so no sleeping.

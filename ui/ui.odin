@@ -30,7 +30,6 @@ Context :: struct {
 	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// Style stack for cascading styles. Use push_style/pop_style.
 	style_stack:          Stack(Style, STYLE_STACK_SIZE),
-	command_queue:        [dynamic]Draw_Command,
 	draw_state:           Draw_State,
 	current_parent:       ^UI_Element,
 	root_element:         ^UI_Element,
@@ -94,9 +93,9 @@ init :: proc(
 	ctx.font_id = font_id
 	ctx.font_size = font_size
 
-	ctx.command_queue = make([dynamic]Draw_Command, draw_cmd_allocator)
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 
+	init_draw_state(&ctx.draw_state, draw_cmd_allocator)
 	init_interaction(&ctx.interaction, persistent_allocator)
 
 	// Initialize default theme
@@ -142,8 +141,9 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 begin :: proc(ctx: ^Context) -> bool {
 	ctx.frame_idx += 1
 
+	// TODO(Thomas): Call procedure in interaction.odin that does this
 	clear_dynamic_array(&ctx.interaction.interactive_elements)
-	clear_dynamic_array(&ctx.command_queue)
+
 	free_all(ctx.frame_allocator)
 	free_all(ctx.draw_cmd_allocator)
 
@@ -215,7 +215,7 @@ end :: proc(ctx: ^Context) {
 
 	process_input(&ctx.interaction, ctx.root_element, ctx.dt, ctx.frame_allocator)
 
-	draw_all_elements(ctx)
+	draw_all_elements(&ctx.draw_state, ctx.root_element)
 
 	base.clear_input(ctx.interaction.input)
 
