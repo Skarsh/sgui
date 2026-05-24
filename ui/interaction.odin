@@ -46,6 +46,10 @@ deinit_interaction :: proc(interaction: ^Interaction) {
 	delete(interaction.text_input_states)
 }
 
+reset_interaction :: proc(interaction: ^Interaction) {
+	clear_dynamic_array(&interaction.interactive_elements)
+}
+
 // Traverses the element hierarchy in BFS order and appends on the elements
 // that intersects with the given position.
 find_intersections :: proc(

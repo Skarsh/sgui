@@ -134,12 +134,10 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 begin :: proc(ctx: ^Context) -> bool {
 	ctx.frame_idx += 1
 
-	// TODO(Thomas): Call procedure in interaction.odin that does this
-	clear_dynamic_array(&ctx.interaction.interactive_elements)
-
 	free_all(ctx.frame_allocator)
 	free_all(ctx.draw_cmd_allocator)
 
+	reset_interaction(&ctx.interaction)
 	reset_draw_state(&ctx.draw_state, ctx.window_size)
 
 	// Open the root element
