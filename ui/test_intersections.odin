@@ -104,7 +104,7 @@ test_intersections_deep_hierarchy :: proc(t: ^testing.T) {
 
 		found := make([dynamic]^UI_Element, context.temp_allocator)
 		defer free_all(context.temp_allocator)
-		find_intersections(ctx, target_pos, &found, context.temp_allocator)
+		find_intersections(ctx.root_element, target_pos, &found, context.temp_allocator)
 
 		expect_intersected_ids(
 			t,
@@ -167,7 +167,7 @@ test_intersections_siblings_distinct :: proc(t: ^testing.T) {
 			target_pos := base.Vector2i32{10, 10}
 			found := make([dynamic]^UI_Element, context.temp_allocator)
 			defer free_all(context.temp_allocator)
-			find_intersections(ctx, target_pos, &found, context.temp_allocator)
+			find_intersections(ctx.root_element, target_pos, &found, context.temp_allocator)
 			expect_intersected_ids(
 				t,
 				found,
@@ -181,7 +181,7 @@ test_intersections_siblings_distinct :: proc(t: ^testing.T) {
 			target_pos := base.Vector2i32{60, 10}
 			found := make([dynamic]^UI_Element, context.temp_allocator)
 			defer free_all(context.temp_allocator)
-			find_intersections(ctx, target_pos, &found, context.temp_allocator)
+			find_intersections(ctx.root_element, target_pos, &found, context.temp_allocator)
 			expect_intersected_ids(
 				t,
 				found,

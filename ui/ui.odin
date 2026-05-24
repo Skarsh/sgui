@@ -300,7 +300,7 @@ end :: proc(ctx: ^Context) {
 
 	calculate_positions_and_alignment(ctx.root_element, ctx.dt)
 
-	process_input(ctx)
+	process_input(&ctx.interaction, ctx.root_element, ctx.dt, ctx.frame_allocator)
 
 	draw_all_elements(ctx)
 

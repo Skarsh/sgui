@@ -39,7 +39,7 @@ deinit_interaction :: proc(interaction: ^Interaction) {
 // Traverses the element hierarchy in BFS order and appends on the elements
 // that intersects with the given position.
 find_intersections :: proc(
-	ctx: ^Context,
+	root_element: ^UI_Element,
 	pos: base.Vector2i32,
 	elements: ^[dynamic]^UI_Element,
 	allocator: mem.Allocator,
@@ -48,8 +48,8 @@ find_intersections :: proc(
 	queue.init(&q, allocator = allocator)
 	visited := make(map[UI_Key]bool, allocator)
 
-	visited[ctx.root_element.key] = true
-	ok, alloc_err := queue.push_back(&q, ctx.root_element)
+	visited[root_element.key] = true
+	ok, alloc_err := queue.push_back(&q, root_element)
 	if alloc_err != .None {
 		log.errorf("failed to allocate when push_back onto queue: %v", alloc_err)
 	}
@@ -83,15 +83,20 @@ find_intersections :: proc(
 }
 
 // TODO(Thomas): Should really aim for a more structured approach here. This is quite messy.
-process_input :: proc(ctx: ^Context) {
+process_input :: proc(
+	interaction: ^Interaction,
+	root_element: ^UI_Element,
+	dt: f32,
+	allocator: mem.Allocator,
+) {
 
 	top_element: ^UI_Element
-	intersecting_elements := make([dynamic]^UI_Element, ctx.frame_allocator)
+	intersecting_elements := make([dynamic]^UI_Element, allocator)
 	find_intersections(
-		ctx,
-		ctx.interaction.input.mouse_pos,
+		root_element,
+		interaction.input.mouse_pos,
 		&intersecting_elements,
-		ctx.frame_allocator,
+		allocator,
 	)
 
 	#reverse for elem in intersecting_elements {
@@ -108,8 +113,8 @@ process_input :: proc(ctx: ^Context) {
 		// TODO(Thomas): Combine this iteratiion with the one for the .Clickable?
 		#reverse for elem in intersecting_elements {
 			if .Scrollable in elem.config.capability_flags {
-				if math.abs(ctx.interaction.input.scroll_delta.y) > 0 {
-					offset_delta := f32(ctx.interaction.input.scroll_delta.y) * SCROLL_SPEED
+				if math.abs(interaction.input.scroll_delta.y) > 0 {
+					offset_delta := f32(interaction.input.scroll_delta.y) * SCROLL_SPEED
 
 					elem.scroll_region.target_offset.y -= offset_delta
 
@@ -132,20 +137,20 @@ process_input :: proc(ctx: ^Context) {
 	// Update active element state
 	// This is important to do before the processing
 	{
-		if ctx.interaction.active_element != nil {
-			if base.is_mouse_pressed(ctx.interaction.input^, .Left) {
+		if interaction.active_element != nil {
+			if base.is_mouse_pressed(interaction.input^, .Left) {
 				is_on_active :=
-					top_element != nil && top_element.key == ctx.interaction.active_element.key
+					top_element != nil && top_element.key == interaction.active_element.key
 
 				if !is_on_active {
-					ctx.interaction.active_element = nil
+					interaction.active_element = nil
 				}
 			}
 
 			// If mouse released and element is not focusable, immediately lose active status
-			if base.is_mouse_released(ctx.interaction.input^, .Left) {
-				if .Focusable not_in ctx.interaction.active_element.config.capability_flags {
-					ctx.interaction.active_element = nil
+			if base.is_mouse_released(interaction.input^, .Left) {
+				if .Focusable not_in interaction.active_element.config.capability_flags {
+					interaction.active_element = nil
 				}
 			}
 		}
@@ -153,7 +158,7 @@ process_input :: proc(ctx: ^Context) {
 
 
 	// Iterate interactive elements
-	for element in ctx.interaction.interactive_elements {
+	for element in interaction.interactive_elements {
 
 		comm := Comm {
 			element = element,
@@ -161,30 +166,29 @@ process_input :: proc(ctx: ^Context) {
 
 		is_top_element := (top_element != nil && top_element.key == element.key)
 		is_active_element :=
-			(ctx.interaction.active_element != nil &&
-				ctx.interaction.active_element.key == element.key)
+			(interaction.active_element != nil && interaction.active_element.key == element.key)
 
 		// Handle active element
 		if is_active_element {
 
-			if base.is_mouse_down(ctx.interaction.input^, .Left) {
+			if base.is_mouse_down(interaction.input^, .Left) {
 				comm.held = true
 			}
 
 			// Text edit
-			key := ctx.interaction.active_element.key
-			state, state_ok := &ctx.interaction.text_input_states[key]
+			key := interaction.active_element.key
+			state, state_ok := &interaction.text_input_states[key]
 
 			if state_ok {
-				if ctx.interaction.input.text_input.len > 0 {
+				if interaction.input.text_input.len > 0 {
 					text := string(
-						ctx.interaction.input.text_input.data[:ctx.interaction.input.text_input.len],
+						interaction.input.text_input.data[:interaction.input.text_input.len],
 					)
 					textpkg.text_edit_insert(&state.state, text)
 				}
 
-				keymod := ctx.interaction.input.keymod_down_bits
-				keys := ctx.interaction.input.key_pressed_bits
+				keymod := interaction.input.keymod_down_bits
+				keys := interaction.input.key_pressed_bits
 				clipboard_command := textpkg.text_edit_handle_keys(&state.state, keys, keymod)
 
 				switch clipboard_command {
@@ -203,9 +207,9 @@ process_input :: proc(ctx: ^Context) {
 		} else {
 			if is_top_element {
 				// Set new active element
-				if base.is_mouse_pressed(ctx.interaction.input^, .Left) {
+				if base.is_mouse_pressed(interaction.input^, .Left) {
 					if .Focusable in element.config.capability_flags {
-						ctx.interaction.active_element = element
+						interaction.active_element = element
 					}
 					comm.clicked = true
 					comm.held = true
@@ -217,7 +221,7 @@ process_input :: proc(ctx: ^Context) {
 		// Processing for every element
 		// Animations
 		// TODO(Thomas): Animations should be styleable / configurable
-		hot_animation_rate_of_change := (1.0 / 0.2) * ctx.dt
+		hot_animation_rate_of_change := (1.0 / 0.2) * dt
 		active_animation_rate_of_change := hot_animation_rate_of_change
 
 		// Handle hover state
