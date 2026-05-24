@@ -1045,24 +1045,6 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 }
 
 
-// Helper to verify element size
-compare_element_size :: proc(
-	element: UI_Element,
-	expected_size: base.Vec2,
-	epsilon: f32 = EPSILON,
-) -> bool {
-	return base.approx_equal_vec2(element.size, expected_size, epsilon)
-}
-
-// Helper to verify element position
-compare_element_position :: proc(
-	element: UI_Element,
-	expected_pos: base.Vec2,
-	epsilon: f32 = EPSILON,
-) -> bool {
-	return base.approx_equal_vec2(element.position, expected_pos, epsilon)
-}
-
 // Helper to find an element in element hierarchy by id string
 find_element_by_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
 	key := ui_key_hash(id)
