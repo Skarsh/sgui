@@ -130,16 +130,6 @@ Capability :: enum {
 
 Capability_Flags :: bit_set[Capability]
 
-Comm :: struct {
-	element:  ^UI_Element,
-	active:   bool,
-	hot:      bool,
-	clicked:  bool,
-	held:     bool,
-	hovering: bool,
-	text:     string,
-}
-
 default_color_style := Color_Style {
 	.Text         = {230, 230, 230, 255},
 	.Selection_BG = {90, 90, 90, 255},
@@ -184,14 +174,6 @@ init :: proc(
 
 window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
 	ctx.window_size = window_size
-}
-
-set_ctx_font_size :: proc(ctx: ^Context, font_size: f32) {
-	ctx.font_size = font_size
-}
-
-set_ctx_font_id :: proc(ctx: ^Context, font_id: textpkg.Font_Handle) {
-	ctx.font_id = font_id
 }
 
 // TODO(Thomas): When we figure out a better allocation scheme for persistent stuf

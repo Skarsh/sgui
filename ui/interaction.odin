@@ -8,6 +8,16 @@ import "core:mem"
 import "../base"
 import textpkg "../text"
 
+Comm :: struct {
+	element:  ^UI_Element,
+	active:   bool,
+	hot:      bool,
+	clicked:  bool,
+	held:     bool,
+	hovering: bool,
+	text:     string,
+}
+
 Text_Input_State :: struct {
 	state:             textpkg.Text_Edit_State,
 	caret_blink_timer: f32,
