@@ -1055,27 +1055,6 @@ find_element_by_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
 }
 
 
-// Finds and returns a pointer to the element with matchin id string in current hierarchy.
-find_element_in_hierarchy :: proc(root: ^UI_Element, id: string) -> ^UI_Element {
-	if root == nil {
-		return nil
-	}
-
-	if root.id_string == id {
-		return root
-	}
-
-	for child in root.children {
-		result := find_element_in_hierarchy(child, id)
-
-		if result != nil {
-			return result
-		}
-	}
-
-	return nil
-}
-
 // Helper to print all the element_ids in the hierarchy
 print_element_hierarchy :: proc(root: ^UI_Element) {
 	if root == nil {
