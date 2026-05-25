@@ -1,6 +1,5 @@
 package ui
 
-import "core:container/queue"
 import "core:log"
 import "core:math"
 import "core:mem"
@@ -25,20 +24,20 @@ Text_Input_State :: struct {
 
 Interaction :: struct {
 	// input is owned by app
-	input:                ^base.Input,
+	input:               ^base.Input,
 	// text_measurement is owned by app
-	text_measurement:     ^textpkg.Text_Measurement,
-	text_input_states:    map[UI_Key]Text_Input_State,
-	active_element:       ^UI_Element,
-	hot_id:               UI_Key,
-	pressed_id:           UI_Key,
-	focused_id:           UI_Key,
-	interactive_elements: [dynamic]^UI_Element,
+	text_measurement:    ^textpkg.Text_Measurement,
+	text_input_states:   map[UI_Key]Text_Input_State,
+	active_element:      ^UI_Element,
+	hot_id:              UI_Key,
+	pressed_id:          UI_Key,
+	focused_id:          UI_Key,
+	animatable_elements: [dynamic]^UI_Element,
 }
 
 init_interaction :: proc(interaction: ^Interaction, allocator: mem.Allocator) {
 	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
-	interaction.interactive_elements = make([dynamic]^UI_Element, allocator)
+	interaction.animatable_elements = make([dynamic]^UI_Element, allocator)
 }
 
 deinit_interaction :: proc(interaction: ^Interaction) {
@@ -47,56 +46,11 @@ deinit_interaction :: proc(interaction: ^Interaction) {
 		textpkg.text_buffer_deinit(&state.state.buffer)
 	}
 	delete(interaction.text_input_states)
+	delete(interaction.animatable_elements)
 }
 
 reset_interaction :: proc(interaction: ^Interaction) {
-	clear_dynamic_array(&interaction.interactive_elements)
-}
-
-// Traverses the element hierarchy in BFS order and appends on the elements
-// that intersects with the given position.
-find_intersections :: proc(
-	root_element: ^UI_Element,
-	pos: base.Vector2i32,
-	elements: ^[dynamic]^UI_Element,
-	allocator: mem.Allocator,
-) {
-	q := queue.Queue(^UI_Element){}
-	queue.init(&q, allocator = allocator)
-	visited := make(map[UI_Key]bool, allocator)
-
-	visited[root_element.key] = true
-	ok, alloc_err := queue.push_back(&q, root_element)
-	if alloc_err != .None {
-		log.errorf("failed to allocate when push_back onto queue: %v", alloc_err)
-	}
-	assert(ok)
-	assert(alloc_err == .None)
-
-	for queue.len(q) > 0 {
-		v := queue.pop_front(&q)
-
-		rect := base.Rect{i32(v.position.x), i32(v.position.y), i32(v.size.x), i32(v.size.y)}
-
-		if base.point_in_rect(pos, rect) {
-			append(elements, v)
-		}
-
-		for child in v.children {
-			_, found := visited[child.key]
-			if !found {
-				visited[child.key] = true
-				ok, alloc_err = queue.push_back(&q, child)
-
-				if alloc_err != .None {
-					log.errorf("failed to allocate when push_back onto queue: %v", alloc_err)
-				}
-
-				assert(alloc_err == .None)
-				assert(ok)
-			}
-		}
-	}
+	clear_dynamic_array(&interaction.animatable_elements)
 }
 
 Hit_Result :: struct {
@@ -108,44 +62,46 @@ Hit_Result :: struct {
 
 @(require_results)
 hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result {
+	// TODO(Thomas): Make an iterative variant with explicit limitations
+	// Depth-First-Search works here because a child will be drawn on top of it's parent.
+	hit_test_recurse :: proc(element: ^UI_Element, pos: base.Vector2i32, out: ^Hit_Result) {
+		assert(element != nil)
+		assert(out != nil)
+		if base.point_in_rect(pos, element_rect(element^)) {
+			// chlidren drawn last are on top, so we visit in reverse
+			#reverse for child in element.children {
+				hit_test_recurse(child, pos, out)
+			}
+
+			flags := element.config.capability_flags
+
+			if out.clickable == nil && .Clickable in flags {
+				out.clickable = element
+			}
+
+			if out.scrollable == nil && .Scrollable in flags {
+				out.scrollable = element
+			}
+
+			if out.focusable == nil && .Focusable in flags {
+				out.focusable = element
+			}
+
+			if out.hot_animation == nil && .Hot_Animation in flags {
+				out.hot_animation = element
+			}
+
+		} else {
+			return
+		}
+	}
+
+
 	result: Hit_Result
 	hit_test_recurse(root_element, pos, &result)
 	return result
 }
 
-// TODO(Thomas): Make an iterative variant with explicit limitations
-// Depth-First-Search works here because a child will be drawn on top of it's parent.
-hit_test_recurse :: proc(element: ^UI_Element, pos: base.Vector2i32, out: ^Hit_Result) {
-	assert(element != nil)
-	assert(out != nil)
-	if base.point_in_rect(pos, element_rect(element^)) {
-		// chlidren drawn last are on top, so we visit in reverse
-		#reverse for child in element.children {
-			hit_test_recurse(child, pos, out)
-		}
-
-		flags := element.config.capability_flags
-
-		if out.clickable == nil && .Clickable in flags {
-			out.clickable = element
-		}
-
-		if out.scrollable == nil && .Scrollable in flags {
-			out.scrollable = element
-		}
-
-		if out.focusable == nil && .Focusable in flags {
-			out.focusable = element
-		}
-
-		if out.hot_animation == nil && .Hot_Animation in flags {
-			out.hot_animation = element
-		}
-
-	} else {
-		return
-	}
-}
 
 update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result) {
 	// hot_id is simply who is on top this frame, or nothing
@@ -223,7 +179,32 @@ apply_scroll :: proc(interaction: ^Interaction, scrollable: ^UI_Element) {
 	}
 }
 
-process_input_2 :: proc(ctx: ^Context, interaction: ^Interaction, root_element: ^UI_Element) {
+tween_animations :: proc(interaction: ^Interaction, dt: f32) {
+	rate := (1.0 / 0.2) * dt
+
+	for element in interaction.animatable_elements {
+		flags := element.config.capability_flags
+
+		if .Hot_Animation in flags {
+			if element.key == interaction.hot_id || element.key == interaction.pressed_id {
+				element.hot = math.clamp(element.hot + rate, 0, 1)
+			} else {
+				element.hot = math.clamp(element.hot - rate, 0, 1)
+			}
+		}
+
+		if .Active_Animation in flags {
+			if element.key == interaction.pressed_id {
+				element.active = math.clamp(element.active + rate, 0, 1)
+			} else {
+				element.active = math.clamp(element.active - rate, 0, 1)
+			}
+		}
+	}
+}
+
+
+process_interaction :: proc(interaction: ^Interaction, root_element: ^UI_Element, dt: f32) {
 	// find hits
 	mouse_pos := interaction.input.mouse_pos
 	hit_result := hit_test(root_element, mouse_pos)
@@ -231,191 +212,32 @@ process_input_2 :: proc(ctx: ^Context, interaction: ^Interaction, root_element: 
 	// update interaction ids, e.g. hot, pressed, focused
 	update_interaction_ids(interaction, hit_result)
 
-	hot_element := find_element_by_key(ctx, interaction.hot_id)
-	if hot_element != nil {
-		log.info("hot_element.id_string: ", hot_element.id_string)
-	}
-
-	pressed_element := find_element_by_key(ctx, interaction.pressed_id)
-	if pressed_element != nil {
-		log.info("pressed_element.id_string: ", pressed_element.id_string)
-	}
-
-	focused_element := find_element_by_key(ctx, interaction.focused_id)
-	if focused_element != nil {
-		log.info("focused_element.id_string: ", focused_element.id_string)
-	}
-
 	dispatch_keyboard_to_focused(interaction)
 
 	apply_scroll(interaction, hit_result.scrollable)
+
+	tween_animations(interaction, dt)
 }
 
-// TODO(Thomas): Should really aim for a more structured approach here. This is quite messy.
-process_input :: proc(
-	interaction: ^Interaction,
-	root_element: ^UI_Element,
-	dt: f32,
-	allocator: mem.Allocator,
-) {
+build_comm :: proc(interaction: ^Interaction, element: ^UI_Element) -> Comm {
+	is_hot := element.key == interaction.hot_id
+	is_pressed := element.key == interaction.pressed_id
+	is_focused := element.key == interaction.focused_id
 
-	top_element: ^UI_Element
-	intersecting_elements := make([dynamic]^UI_Element, allocator)
-	find_intersections(
-		root_element,
-		interaction.input.mouse_pos,
-		&intersecting_elements,
-		allocator,
-	)
+	flags := element.config.capability_flags
 
-	#reverse for elem in intersecting_elements {
-		if .Clickable in elem.config.capability_flags {
-			top_element = elem
-			break
-		}
+	if .Hot_Animation in flags || .Active_Animation in flags {
+		append(&interaction.animatable_elements, element)
 	}
 
-	{
-		// Scrolling
-		// TODO(Thomas): This should probably be per element
-		SCROLL_SPEED: f32 : 30.0
-		// TODO(Thomas): Combine this iteratiion with the one for the .Clickable?
-		#reverse for elem in intersecting_elements {
-			if .Scrollable in elem.config.capability_flags {
-				if math.abs(interaction.input.scroll_delta.y) > 0 {
-					offset_delta := f32(interaction.input.scroll_delta.y) * SCROLL_SPEED
+	clicked := is_hot && is_pressed && base.is_mouse_released(interaction.input^, .Left)
 
-					elem.scroll_region.target_offset.y -= offset_delta
-
-					// NOTE(Thomas) Clamp immediately. This is necessary for input responsiveness.
-					// Imagine the case where input goes to -1000, of not clamped to 0,
-					// then scrolling in the positive direction will feel sluggish.
-					elem.scroll_region.target_offset.y = math.clamp(
-						elem.scroll_region.target_offset.y,
-						0,
-						elem.scroll_region.max_offset.y,
-					)
-
-					break
-				}
-			}
-		}
-	}
-
-
-	// Update active element state
-	// This is important to do before the processing
-	{
-		if interaction.active_element != nil {
-			if base.is_mouse_pressed(interaction.input^, .Left) {
-				is_on_active :=
-					top_element != nil && top_element.key == interaction.active_element.key
-
-				if !is_on_active {
-					interaction.active_element = nil
-				}
-			}
-
-			// If mouse released and element is not focusable, immediately lose active status
-			if base.is_mouse_released(interaction.input^, .Left) {
-				if .Focusable not_in interaction.active_element.config.capability_flags {
-					interaction.active_element = nil
-				}
-			}
-		}
-	}
-
-
-	// Iterate interactive elements
-	for element in interaction.interactive_elements {
-
-		comm := Comm {
-			element = element,
-		}
-
-		is_top_element := (top_element != nil && top_element.key == element.key)
-		is_active_element :=
-			(interaction.active_element != nil && interaction.active_element.key == element.key)
-
-		// Handle active element
-		if is_active_element {
-
-			if base.is_mouse_down(interaction.input^, .Left) {
-				comm.held = true
-			}
-
-			// Text edit
-			key := interaction.active_element.key
-			state, state_ok := &interaction.text_input_states[key]
-
-			if state_ok {
-				if interaction.input.text_input.len > 0 {
-					text := string(
-						interaction.input.text_input.data[:interaction.input.text_input.len],
-					)
-					textpkg.text_edit_insert(&state.state, text)
-				}
-
-				keymod := interaction.input.keymod_down_bits
-				keys := interaction.input.key_pressed_bits
-				clipboard_command := textpkg.text_edit_handle_keys(&state.state, keys, keymod)
-
-				switch clipboard_command {
-				case .None:
-				case .Copy:
-					log.info("Copy clipboard command")
-				case .Paste:
-					log.info("Paste clipboard command")
-				case .Cut:
-					// TODO(Thomas): Does this really need to be its own thing?
-					// Isn't this just a copy selection but where the selection is deleted / removed before return??
-					log.info("Cut clipboard command")
-				}
-			}
-
-		} else {
-			if is_top_element {
-				// Set new active element
-				if base.is_mouse_pressed(interaction.input^, .Left) {
-					if .Focusable in element.config.capability_flags {
-						interaction.active_element = element
-					}
-					comm.clicked = true
-					comm.held = true
-					element.active = 1.0
-				}
-			}
-		}
-
-		// Processing for every element
-		// Animations
-		// TODO(Thomas): Animations should be styleable / configurable
-		hot_animation_rate_of_change := (1.0 / 0.2) * dt
-		active_animation_rate_of_change := hot_animation_rate_of_change
-
-		// Handle hover state
-		if is_top_element || is_active_element {
-			element.hot += hot_animation_rate_of_change
-			comm.hovering = true
-		} else {
-			element.hot -= hot_animation_rate_of_change
-		}
-
-		if !comm.held {
-			element.active -= active_animation_rate_of_change
-		}
-
-		// Clamp animations and set final comm state
-		element.hot = math.clamp(element.hot, 0, 1)
-
-		if base.approx_equal(element.active, 1.0, 0.001) {
-			comm.active = true
-		}
-
-		if base.approx_equal(element.hot, 1.0, 0.001) {
-			comm.hot = true
-		}
-
-		element.last_comm = comm
+	return Comm {
+		element = element,
+		held = is_pressed,
+		clicked = clicked,
+		active = is_focused,
+		hovering = is_hot || is_pressed,
+		hot = base.approx_equal(element.hot, 1.0, 0.001),
 	}
 }

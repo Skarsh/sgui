@@ -25,12 +25,12 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 
 button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().button)
+	element.last_comm = build_comm(&ctx.interaction, element)
 
 	if open_ok {
 		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
-	append(&ctx.interaction.interactive_elements, element)
 
 	return element.last_comm
 }
@@ -75,10 +75,12 @@ slider :: proc(
 	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
 
 	track, ok := open_element(ctx, id, style, track_style)
+	track.last_comm = build_comm(&ctx.interaction, track)
 	if !ok {return {}}
 
 	// Open Thumb & Logic
 	thumb, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), resolved_thumb)
+	thumb.last_comm = build_comm(&ctx.interaction, thumb)
 	if t_ok {
 
 		// Calculate Space
@@ -115,11 +117,9 @@ slider :: proc(
 		track.last_comm.active |= thumb.last_comm.active
 		track.last_comm.hovering |= thumb.last_comm.hovering
 
-		append(&ctx.interaction.interactive_elements, thumb)
 		close_element(ctx)
 	}
 
-	append(&ctx.interaction.interactive_elements, track)
 	close_element(ctx)
 
 	return track.last_comm
@@ -216,6 +216,8 @@ scrollbar :: proc(
 
 text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
+	element.last_comm = build_comm(&ctx.interaction, element)
+
 	if open_ok {
 
 		key := element.key
@@ -243,7 +245,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			Style{text_wrap_mode = .None, background_fill = base.Color{0, 0, 0, 0}},
 		)
 
-		if element == ctx.interaction.active_element {
+		if element.key == ctx.interaction.focused_id {
 			state.caret_blink_timer += ctx.dt
 			CARET_BLINK_PERIOD :: 1.0
 
@@ -332,7 +334,6 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		close_element(ctx)
 	}
 
-	append(&ctx.interaction.interactive_elements, element)
 	return element.last_comm
 }
 
@@ -347,6 +348,7 @@ checkbox :: proc(
 	style: Style = {},
 ) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().checkbox)
+	element.last_comm = build_comm(&ctx.interaction, element)
 	if open_ok {
 
 		if element.last_comm.clicked {
@@ -364,18 +366,17 @@ checkbox :: proc(
 		close_element(ctx)
 	}
 
-	append(&ctx.interaction.interactive_elements, element)
 	return element.last_comm
 }
 
 image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().image)
+	element.last_comm = build_comm(&ctx.interaction, element)
 
 	if open_ok {
 		element_equip_image(element, texture_id)
 		close_element(ctx)
 	}
 
-	append(&ctx.interaction.interactive_elements, element)
 	return element.last_comm
 }

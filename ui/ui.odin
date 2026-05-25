@@ -100,7 +100,6 @@ window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
 // TODO(Thomas): When we figure out a better allocation scheme for persistent stuf
 // this can become better / cleaner.
 deinit :: proc(ctx: ^Context) {
-	delete(ctx.interaction.interactive_elements)
 
 	deinit_interaction(&ctx.interaction)
 
@@ -202,9 +201,7 @@ end :: proc(ctx: ^Context) {
 
 	calculate_positions_and_alignment(ctx.root_element, ctx.dt)
 
-	process_input(&ctx.interaction, ctx.root_element, ctx.dt, ctx.frame_allocator)
-
-	process_input_2(ctx, &ctx.interaction, ctx.root_element)
+	process_interaction(&ctx.interaction, ctx.root_element, ctx.dt)
 
 	draw_all_elements(&ctx.draw_state, ctx.root_element)
 
