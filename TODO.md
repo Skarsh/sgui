@@ -1,6 +1,9 @@
 # TODOs
 
 ## Active
+* Bug in `text_input` widget with the `build_comm` setup.
+    The comm returned doesn't have the text set properly from the `text_input` procedure.
+    Need to figure out a nice and proper way to do this, that prevents this from going out of sync.
 * Fix scrolling not being an interactive element bug.
     - Document how scrolling works better.
 * For proper `text_input` behaviour we need to dig deeper.
