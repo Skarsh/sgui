@@ -1,9 +1,10 @@
 # TODOs
 
 ## Active
-* Bug in `text_input` widget with the `build_comm` setup.
-    The comm returned doesn't have the text set properly from the `text_input` procedure.
-    Need to figure out a nice and proper way to do this, that prevents this from going out of sync.
+* Figure out how to return Comm from the builder procedures, `open_element` should return
+    `^UI_element`, so that usage should stay internal to the ui package. But procedures like `begin_container`
+    and `container` should return Comm I think. If only widgets should return Comm, we need to come up with a nice
+    way of makinga widget that can be as flexible and easy to use as `begin_container`.
 * Fix scrolling not being an interactive element bug.
     - Document how scrolling works better.
 * For proper `text_input` behaviour we need to dig deeper.
