@@ -40,7 +40,7 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	end(ctx)
 
 	// Verify Frame 1
-	elem_f1 := find_element_by_id(ctx, "resizable_box")
+	elem_f1 := find_element_by_string_id(ctx, "resizable_box")
 	if elem_f1 == nil {
 		testing.fail_now(t, "Frame 1: Element 'resizable_box' not found")
 	}
@@ -54,7 +54,7 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	end(ctx)
 
 	// Verify Frame 2
-	elem_f2 := find_element_by_id(ctx, "resizable_box")
+	elem_f2 := find_element_by_string_id(ctx, "resizable_box")
 	if elem_f2 == nil {
 		testing.fail_now(t, "Frame 2: Element 'resizable_box' not found")
 	}

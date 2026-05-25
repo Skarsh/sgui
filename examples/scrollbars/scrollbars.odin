@@ -126,7 +126,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// HACK(Thomas): When we have cleaned up the interactive elements issue, the element should
 			// hopefully come directly from the creation of the container / widget. So we don't have to
 			// find it by id like here.
-			horizontal_boxes_wrapper_element := ui.find_element_by_id(
+			horizontal_boxes_wrapper_element := ui.find_element_by_string_id(
 				ctx,
 				"horizontal_boxes_wrapper",
 			)
@@ -207,7 +207,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// HACK(Thomas): When we have cleaned up the interactive elements issue, the element should
 			// hopefully come directly from the creation of the container / widget. So we don't have to
 			// find it by id like here.
-			vertical_boxes_wrapper_element := ui.find_element_by_id(ctx, "vertical_boxes_wrapper")
+			vertical_boxes_wrapper_element := ui.find_element_by_string_id(
+				ctx,
+				"vertical_boxes_wrapper",
+			)
 			scroll_region := vertical_boxes_wrapper_element.scroll_region
 
 			scroll_region_info_str := make_info_str(

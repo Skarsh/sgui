@@ -805,6 +805,16 @@ make_element :: proc(
 }
 
 @(require_results)
+element_rect :: proc(element: UI_Element) -> base.Rect {
+	return base.Rect {
+		i32(element.position.x),
+		i32(element.position.y),
+		i32(element.size.x),
+		i32(element.size.y),
+	}
+}
+
+@(require_results)
 get_alignment_factor :: #force_inline proc(align: $E) -> f32 {
 	// NOTE(Thomas): This works because Alignment_X and Alignment_Y are both
 	// representing the positions (Start, Center, End) which have the values 0, 1, 2
@@ -1066,8 +1076,17 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 
 // Helper to find an element in element hierarchy by id string
 @(require_results)
-find_element_by_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
+find_element_by_string_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
 	key := ui_key_hash(id)
+	if element, ok := ctx.element_cache[key]; ok {
+		return element
+	}
+	return nil
+}
+
+// Helper to find an element in element hierarchy by key
+@(require_results)
+find_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> ^UI_Element {
 	if element, ok := ctx.element_cache[key]; ok {
 		return element
 	}
