@@ -173,6 +173,56 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
+dispatch_keyboard_to_focused :: proc(interaction: ^Interaction) {
+	if interaction.focused_id != ui_key_null() {
+		state, ok := &interaction.text_input_states[interaction.focused_id]
+		if ok {
+			// Text Input
+			if interaction.input.text_input.len > 0 {
+				text := string(
+					interaction.input.text_input.data[:interaction.input.text_input.len],
+				)
+				textpkg.text_edit_insert(&state.state, text)
+			}
+
+			// Key handling
+			keymod := interaction.input.keymod_down_bits
+			keys := interaction.input.key_pressed_bits
+			clipboard_command := textpkg.text_edit_handle_keys(&state.state, keys, keymod)
+
+			switch clipboard_command {
+			case .None:
+			case .Copy:
+				log.info("Copy clipboard command")
+			case .Paste:
+				log.info("Paste clipboard command")
+			case .Cut:
+				// TODO(Thomas): Does this really need to be its own thing?
+				// Isn't this just a copy selection but where the selection is deleted / removed before return??
+				log.info("Cut clipboard command")
+			}
+		}
+	}
+}
+
+apply_scroll :: proc(interaction: ^Interaction, scrollable: ^UI_Element) {
+	if scrollable != nil {
+		if math.abs(interaction.input.scroll_delta.y) > 0 {
+			// TODO(Thomas): This should probably be per element
+			SCROLL_SPEED :: 30.0
+			offset_delta := f32(interaction.input.scroll_delta.y) * SCROLL_SPEED
+
+			scrollable.scroll_region.target_offset.y -= offset_delta
+
+			scrollable.scroll_region.target_offset.y = math.clamp(
+				scrollable.scroll_region.target_offset.y,
+				0,
+				scrollable.scroll_region.max_offset.y,
+			)
+		}
+	}
+}
+
 process_input_2 :: proc(ctx: ^Context, interaction: ^Interaction, root_element: ^UI_Element) {
 	// find hits
 	mouse_pos := interaction.input.mouse_pos
@@ -195,6 +245,10 @@ process_input_2 :: proc(ctx: ^Context, interaction: ^Interaction, root_element: 
 	if focused_element != nil {
 		log.info("focused_element.id_string: ", focused_element.id_string)
 	}
+
+	dispatch_keyboard_to_focused(interaction)
+
+	apply_scroll(interaction, hit_result.scrollable)
 }
 
 // TODO(Thomas): Should really aim for a more structured approach here. This is quite messy.
