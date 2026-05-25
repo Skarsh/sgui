@@ -296,7 +296,7 @@ open_element :: proc(
 	style: Style = {},
 	default_style: Style = {},
 ) -> (
-	^UI_Element,
+	Comm,
 	bool,
 ) {
 	final_config := resolve_style(ctx, style, default_style)
@@ -307,10 +307,13 @@ open_element :: proc(
 	if push(&ctx.element_stack, element) {
 		element.z_index = ctx.element_stack.top
 	} else {
-		return nil, false
+		return {}, false
 	}
 	ctx.current_parent = element
-	return element, true
+
+	element.last_comm = build_comm(&ctx.interaction, element)
+
+	return element.last_comm, true
 }
 
 begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> bool {
@@ -791,6 +794,17 @@ make_element :: proc(
 			element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
 			ctx.element_cache[key] = element
 		}
+	}
+
+
+	// TODO(Thomas): I don't think this is very clean.
+	// This has to happen before the incremeting in update_element_configuration
+	// This makes sure that elements that were not present this frame gets their
+	// animations reset, so the don't "freeze" if being hidden etc.
+	was_absent := element.last_frame_idx < ctx.frame_idx - 1
+	if was_absent {
+		element.hot = 0
+		element.active = 0
 	}
 
 	update_element_configuration(element, element_config, ctx.frame_idx)

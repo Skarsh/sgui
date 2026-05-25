@@ -8,15 +8,20 @@ import textpkg "../text"
 
 spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
 	_, open_ok := open_element(ctx, id, style, default_theme().spacer)
+
 	assert(open_ok)
+
 	if open_ok {
 		close_element(ctx)
 	}
 }
 
 text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
-	element, open_ok := open_element(ctx, id, style, default_theme().text)
+	comm, open_ok := open_element(ctx, id, style, default_theme().text)
 	assert(open_ok)
+
+	element := comm.element
+
 	if open_ok {
 		element_equip_text(ctx, element, text)
 		close_element(ctx)
@@ -24,15 +29,17 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 }
 
 button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().button)
-	element.last_comm = build_comm(&ctx.interaction, element)
+	comm, open_ok := open_element(ctx, id, style, default_theme().button)
+	assert(open_ok)
+
+	element := comm.element
 
 	if open_ok {
 		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
 
-	return element.last_comm
+	return comm
 }
 
 slider :: proc(
@@ -74,13 +81,13 @@ slider :: proc(
 	track_style.sizing_x = is_vert ? sizing_fixed(thumb_size.x) : sizing_grow()
 	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
 
-	track, ok := open_element(ctx, id, style, track_style)
-	track.last_comm = build_comm(&ctx.interaction, track)
+	track_comm, ok := open_element(ctx, id, style, track_style)
+	track := track_comm.element
 	if !ok {return {}}
 
 	// Open Thumb & Logic
-	thumb, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), resolved_thumb)
-	thumb.last_comm = build_comm(&ctx.interaction, thumb)
+	thumb_comm, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), resolved_thumb)
+	thumb := thumb_comm.element
 	if t_ok {
 
 		// Calculate Space
@@ -91,7 +98,8 @@ slider :: proc(
 		travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
 
 		// Input Handling
-		if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
+		//if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
+		if (track_comm.held || thumb_comm.held) && travel_len > 0 {
 			mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
 			mouse_rel := mouse_val - track.position[axis_idx] - start_space
 
@@ -112,17 +120,17 @@ slider :: proc(
 		}
 
 		// Merge interaction states
-		track.last_comm.held |= thumb.last_comm.held
-		track.last_comm.clicked |= thumb.last_comm.clicked
-		track.last_comm.active |= thumb.last_comm.active
-		track.last_comm.hovering |= thumb.last_comm.hovering
+		track_comm.held |= thumb.last_comm.held
+		track_comm.clicked |= thumb.last_comm.clicked
+		track_comm.active |= thumb.last_comm.active
+		track_comm.hovering |= thumb.last_comm.hovering
 
 		close_element(ctx)
 	}
 
 	close_element(ctx)
 
-	return track.last_comm
+	return track_comm
 }
 
 scrollbar :: proc(
@@ -131,10 +139,10 @@ scrollbar :: proc(
 	target_id: string,
 	axis: Axis2 = .Y,
 	style: Style = {},
-) {
+) -> Comm {
 	target := find_element_by_string_id(ctx, target_id)
 	if target == nil {
-		return
+		return Comm{}
 	}
 
 	axis_sizes: [2]f32
@@ -152,7 +160,7 @@ scrollbar :: proc(
 
 	// Auto hide check
 	if target.scroll_region.max_offset[axis] <= (1.0 + epsilon) {
-		return
+		return Comm{}
 	}
 
 	// Calculate thumb size
@@ -160,7 +168,7 @@ scrollbar :: proc(
 	content_len := target.scroll_region.content_size[axis]
 
 	if content_len <= (0 + epsilon) {
-		return
+		return Comm{}
 	}
 
 	view_ratio := viewport_len / content_len
@@ -211,12 +219,14 @@ scrollbar :: proc(
 	if comm.held || comm.clicked {
 		target.scroll_region.target_offset[axis] = val^
 	}
+
+	return comm
 }
 
 
 text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
-	element.last_comm = build_comm(&ctx.interaction, element)
+	comm, open_ok := open_element(ctx, id, style, default_theme().text_input)
+	element := comm.element
 
 	if open_ok {
 
@@ -334,7 +344,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		close_element(ctx)
 	}
 
-	return element.last_comm
+	return comm
 }
 
 // TODO(Thomas): Should the .Shape capability always be added
@@ -347,8 +357,8 @@ checkbox :: proc(
 	shape_data: Shape_Data,
 	style: Style = {},
 ) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().checkbox)
-	element.last_comm = build_comm(&ctx.interaction, element)
+	comm, open_ok := open_element(ctx, id, style, default_theme().checkbox)
+	element := comm.element
 	if open_ok {
 
 		if element.last_comm.clicked {
@@ -366,17 +376,17 @@ checkbox :: proc(
 		close_element(ctx)
 	}
 
-	return element.last_comm
+	return comm
 }
 
 image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().image)
-	element.last_comm = build_comm(&ctx.interaction, element)
+	comm, open_ok := open_element(ctx, id, style, default_theme().image)
+	element := comm.element
 
 	if open_ok {
 		element_equip_image(element, texture_id)
 		close_element(ctx)
 	}
 
-	return element.last_comm
+	return comm
 }
