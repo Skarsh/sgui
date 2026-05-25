@@ -296,7 +296,7 @@ open_element :: proc(
 	style: Style = {},
 	default_style: Style = {},
 ) -> (
-	Comm,
+	^UI_Element,
 	bool,
 ) {
 	final_config := resolve_style(ctx, style, default_style)
@@ -313,7 +313,7 @@ open_element :: proc(
 
 	element.last_comm = build_comm(&ctx.interaction, element)
 
-	return element.last_comm, true
+	return element, true
 }
 
 begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> bool {
