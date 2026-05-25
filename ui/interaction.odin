@@ -30,6 +30,9 @@ Interaction :: struct {
 	text_measurement:     ^textpkg.Text_Measurement,
 	text_input_states:    map[UI_Key]Text_Input_State,
 	active_element:       ^UI_Element,
+	hot_id:               UI_Key,
+	pressed_id:           UI_Key,
+	focused_id:           UI_Key,
 	interactive_elements: [dynamic]^UI_Element,
 }
 
@@ -93,6 +96,104 @@ find_intersections :: proc(
 				assert(ok)
 			}
 		}
+	}
+}
+
+Hit_Result :: struct {
+	clickable:     ^UI_Element,
+	scrollable:    ^UI_Element,
+	focusable:     ^UI_Element,
+	hot_animation: ^UI_Element,
+}
+
+@(require_results)
+hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result {
+	result: Hit_Result
+	hit_test_recurse(root_element, pos, &result)
+	return result
+}
+
+// TODO(Thomas): Make an iterative variant with explicit limitations
+// Depth-First-Search works here because a child will be drawn on top of it's parent.
+hit_test_recurse :: proc(element: ^UI_Element, pos: base.Vector2i32, out: ^Hit_Result) {
+	assert(element != nil)
+	assert(out != nil)
+	if base.point_in_rect(pos, element_rect(element^)) {
+		// chlidren drawn last are on top, so we visit in reverse
+		#reverse for child in element.children {
+			hit_test_recurse(child, pos, out)
+		}
+
+		flags := element.config.capability_flags
+
+		if out.clickable == nil && .Clickable in flags {
+			out.clickable = element
+		}
+
+		if out.scrollable == nil && .Scrollable in flags {
+			out.scrollable = element
+		}
+
+		if out.focusable == nil && .Focusable in flags {
+			out.focusable = element
+		}
+
+		if out.hot_animation == nil && .Hot_Animation in flags {
+			out.hot_animation = element
+		}
+
+	} else {
+		return
+	}
+}
+
+update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result) {
+	// hot_id is simply who is on top this frame, or nothing
+	interaction.hot_id = hit_result.clickable != nil ? hit_result.clickable.key : {}
+
+	if base.is_mouse_pressed(interaction.input^, .Left) {
+		if hit_result.clickable != nil {
+			interaction.pressed_id = hit_result.clickable.key
+
+			// Click away: pressing anywhere clears the focused unless we land on a focusable
+			if .Focusable in hit_result.clickable.config.capability_flags {
+				interaction.focused_id = hit_result.clickable.key
+			} else {
+				interaction.focused_id = {}
+			}
+		} else {
+			// Pressed on empty space, clear everything
+			interaction.pressed_id = {}
+			interaction.focused_id = {}
+		}
+	}
+
+	if base.is_mouse_released(interaction.input^, .Left) {
+		interaction.pressed_id = {}
+	}
+}
+
+process_input_2 :: proc(ctx: ^Context, interaction: ^Interaction, root_element: ^UI_Element) {
+	// find hits
+	mouse_pos := interaction.input.mouse_pos
+	hit_result := hit_test(root_element, mouse_pos)
+
+	// update interaction ids, e.g. hot, pressed, focused
+	update_interaction_ids(interaction, hit_result)
+
+	hot_element := find_element_by_key(ctx, interaction.hot_id)
+	if hot_element != nil {
+		log.info("hot_element.id_string: ", hot_element.id_string)
+	}
+
+	pressed_element := find_element_by_key(ctx, interaction.pressed_id)
+	if pressed_element != nil {
+		log.info("pressed_element.id_string: ", pressed_element.id_string)
+	}
+
+	focused_element := find_element_by_key(ctx, interaction.focused_id)
+	if focused_element != nil {
+		log.info("focused_element.id_string: ", focused_element.id_string)
 	}
 }
 

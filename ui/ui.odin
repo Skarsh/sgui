@@ -204,6 +204,8 @@ end :: proc(ctx: ^Context) {
 
 	process_input(&ctx.interaction, ctx.root_element, ctx.dt, ctx.frame_allocator)
 
+	process_input_2(ctx, &ctx.interaction, ctx.root_element)
+
 	draw_all_elements(&ctx.draw_state, ctx.root_element)
 
 	base.clear_input(ctx.interaction.input)
