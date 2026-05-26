@@ -1,10 +1,6 @@
 # TODOs
 
 ## Active
-* Figure out how to return Comm from the builder procedures, `open_element` should return
-    `^UI_element`, so that usage should stay internal to the ui package. But procedures like `begin_container`
-    and `container` should return Comm I think. If only widgets should return Comm, we need to come up with a nice
-    way of makinga widget that can be as flexible and easy to use as `begin_container`.
 * Fix scrolling not being an interactive element bug.
     - Document how scrolling works better.
 * For proper `text_input` behaviour we need to dig deeper.
@@ -21,15 +17,8 @@
 
 
 ## Bugs
-* There's are several cases of us adding containers with scrollable capability, which also scrolls
-without it being an interactive element. This done thorugh, e.g. `begin_container` with a Style that
-has the scrollable capability. There are several problems with this, one being that if one wants to get the Comm from that element,
-that is not returned from the `begin_container`, and hence needs to be fetched in some other way.
-The second problem is one of consistency, we're not interacting with an element that is not registered
-as interactive.
-Steps to start correcting this:
-    - The scrollable element must also be interactive to be scolled
-        - Restructure `process_interactions` for this.
+* Scrollbar thumb not visible when dragging.
+    - Cause seems to be OR-ing of interaction states on `track.last_comm` with the thumb.
 
 ## Backlog
 * Clearly document our "Box model"
