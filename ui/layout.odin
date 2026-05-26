@@ -303,6 +303,9 @@ open_element :: proc(
 
 	element, element_ok := make_element(ctx, id, final_config)
 	assert(element_ok)
+	if !element_ok {
+		panic("Cannot proceed when failing to make_element, panic")
+	}
 
 	if push(&ctx.element_stack, element) {
 		element.z_index = ctx.element_stack.top
@@ -333,21 +336,13 @@ container :: proc {
 	container_data_styled,
 }
 
-// TODO(Thomas): Return Comm struct
-container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = nil) {
-	//if begin_container(ctx, id) {
-	//	if body != nil {
-	//		body(ctx)
-	//	}
-	//	end_container(ctx)
-	//}
-
-	begin_container(ctx, id)
+container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = nil) -> Comm {
+	comm := begin_container(ctx, id)
 	if body != nil {
 		body(ctx)
 	}
 	end_container(ctx)
-
+	return comm
 }
 
 container_styled :: proc(
@@ -355,19 +350,13 @@ container_styled :: proc(
 	id: string,
 	style: Style,
 	body: proc(ctx: ^Context) = nil,
-) {
-	//if begin_container(ctx, id, style) {
-	//	if body != nil {
-	//		body(ctx)
-	//	}
-	//	end_container(ctx)
-	//}
-
-	begin_container(ctx, id, style)
+) -> Comm {
+	comm := begin_container(ctx, id, style)
 	if body != nil {
 		body(ctx)
 	}
 	end_container(ctx)
+	return comm
 }
 
 container_data :: proc(
@@ -375,19 +364,13 @@ container_data :: proc(
 	id: string,
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
-) {
-	//if begin_container(ctx, id) {
-	//	if body != nil {
-	//		body(ctx, data)
-	//	}
-	//	end_container(ctx)
-	//}
-
-	begin_container(ctx, id)
+) -> Comm {
+	comm := begin_container(ctx, id)
 	if body != nil {
 		body(ctx, data)
 	}
 	end_container(ctx)
+	return comm
 }
 
 container_data_styled :: proc(
@@ -396,19 +379,13 @@ container_data_styled :: proc(
 	style: Style,
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
-) {
-	//if begin_container(ctx, id, style) {
-	//	if body != nil {
-	//		body(ctx, data)
-	//	}
-	//	end_container(ctx)
-	//}
-
-	begin_container(ctx, id, style)
+) -> Comm {
+	comm := begin_container(ctx, id, style)
 	if body != nil {
 		body(ctx, data)
 	}
 	end_container(ctx)
+	return comm
 }
 
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
