@@ -28,7 +28,7 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		if begin_container(
+		begin_container(
 			ctx,
 			"main",
 			Style {
@@ -38,33 +38,30 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 				child_gap = data.main_child_gap,
 				layout_direction = data.main_layout_direction,
 			},
-		) {
+		)
 
-			// Row 1
-			if begin_container(
-				ctx,
-				"row_1",
-				Style{padding = data.row_padding, child_gap = data.row_child_gap},
-			) {
-				text(ctx, "text_1", "AAAA")
-				spacer(ctx, "spacer_1")
-				end_container(ctx)
-			}
+		// Row 1
+		begin_container(
+			ctx,
+			"row_1",
+			Style{padding = data.row_padding, child_gap = data.row_child_gap},
+		)
+		text(ctx, "text_1", "AAAA")
+		spacer(ctx, "spacer_1")
+		end_container(ctx)
 
 
-			// Row 2
-			if begin_container(
-				ctx,
-				"row_2",
-				Style{padding = data.row_padding, child_gap = data.row_child_gap},
-			) {
-				text(ctx, "text_2", "AA")
-				spacer(ctx, "spacer_2")
-				end_container(ctx)
-			}
+		// Row 2
+		begin_container(
+			ctx,
+			"row_2",
+			Style{padding = data.row_padding, child_gap = data.row_child_gap},
+		)
+		text(ctx, "text_2", "AA")
+		spacer(ctx, "spacer_2")
+		end_container(ctx)
 
-			end_container(ctx)
-		}
+		end_container(ctx)
 	}
 
 	// --- 3. Define the Verification Logic ---
@@ -488,17 +485,17 @@ test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
 	}
 
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		if begin_container(
+		begin_container(
 			ctx,
 			"parent",
 			Style {
 				sizing_x = sizing_fixed(4 * MOCK_CHAR_WIDTH),
 				sizing_y = sizing_fixed(MOCK_LINE_HEIGHT),
 			},
-		) {
-			text(ctx, "text", data.text, Style{text_wrap_mode = .None})
-			end_container(ctx)
-		}
+		)
+		text(ctx, "text", data.text, Style{text_wrap_mode = .None})
+		end_container(ctx)
+
 	}
 
 	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {

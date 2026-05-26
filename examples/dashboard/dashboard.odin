@@ -90,7 +90,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	if ui.begin(ctx) {
 		// Main layout container (ui.begin already creates implicit root)
-		if ui.begin_container(
+		ui.begin_container(
 			ctx,
 			"layout",
 			ui.Style {
@@ -100,26 +100,25 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				capability_flags = ui.Capability_Flags{.Background},
 				layout_direction = .Left_To_Right,
 			},
-		) {
-			// ==========================================
-			// SIDEBAR (1 part) - demonstrates 1:4 ratio
-			// ==========================================
-			build_sidebar(ctx, data, theme)
+		)
+		// ==========================================
+		// SIDEBAR (1 part) - demonstrates 1:4 ratio
+		// ==========================================
+		build_sidebar(ctx, data, theme)
 
-			// ==========================================
-			// MAIN CONTENT (4 parts)
-			// ==========================================
-			build_main_content(ctx, data, theme)
+		// ==========================================
+		// MAIN CONTENT (4 parts)
+		// ==========================================
+		build_main_content(ctx, data, theme)
 
-			ui.end_container(ctx)
-		}
+		ui.end_container(ctx)
 
 		ui.end(ctx)
 	}
 }
 
 build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"sidebar",
 		ui.Style {
@@ -131,103 +130,103 @@ build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			padding = ui.padding_all(16),
 			child_gap = 8,
 		},
-	) {
-		// Logo/Title
-		ui.text(
+	)
+	// Logo/Title
+	ui.text(
+		ctx,
+		"logo",
+		"Dashboard",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			text_fill = theme.text_primary,
+			text_alignment_x = .Center,
+		},
+	)
+
+	ui.container(ctx, "logo_spacer", ui.Style{sizing_y = ui.sizing_fixed(24)})
+
+	// Navigation items
+	fa := ctx.frame_allocator
+	nav_items := []string{"Overview", "Analytics", "Users", "Settings", "Help"}
+	for item, i in nav_items {
+		is_selected := data.selected_nav == i
+		bg_color := theme.accent_primary if is_selected else theme.bg_sidebar
+		text_color := theme.text_primary if is_selected else theme.text_secondary
+
+		comm := ui.button(
 			ctx,
-			"logo",
-			"Dashboard",
+			fmt.aprintf("nav_%d", i, allocator = fa),
+			item,
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
-				text_fill = theme.text_primary,
-				text_alignment_x = .Center,
+				sizing_y = ui.sizing_fixed(40),
+				background_fill = bg_color,
+				text_fill = text_color,
+				border_radius = ui.border_radius_all(6),
+				text_alignment_x = .Left,
+				padding = ui.padding_xy(0, 12),
 			},
 		)
-
-		ui.container(ctx, "logo_spacer", ui.Style{sizing_y = ui.sizing_fixed(24)})
-
-		// Navigation items
-		fa := ctx.frame_allocator
-		nav_items := []string{"Overview", "Analytics", "Users", "Settings", "Help"}
-		for item, i in nav_items {
-			is_selected := data.selected_nav == i
-			bg_color := theme.accent_primary if is_selected else theme.bg_sidebar
-			text_color := theme.text_primary if is_selected else theme.text_secondary
-
-			comm := ui.button(
-				ctx,
-				fmt.aprintf("nav_%d", i, allocator = fa),
-				item,
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_fixed(40),
-					background_fill = bg_color,
-					text_fill = text_color,
-					border_radius = ui.border_radius_all(6),
-					text_alignment_x = .Left,
-					padding = ui.padding_xy(0, 12),
-				},
-			)
-			if comm.clicked {
-				data.selected_nav = i
-			}
+		if comm.clicked {
+			data.selected_nav = i
 		}
-
-		// Spacer pushes user section to bottom
-		ui.spacer(ctx)
-
-		// User section at bottom
-		if ui.begin_container(
-			ctx,
-			"user_section",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fit(),
-				layout_direction = .Left_To_Right,
-				child_gap = 12,
-				padding = ui.padding_all(12),
-				background_fill = theme.bg_card,
-				capability_flags = ui.Capability_Flags{.Background},
-				border_radius = ui.border_radius_all(8),
-				alignment_y = .Center,
-			},
-		) {
-			// Avatar placeholder
-			ui.container(
-				ctx,
-				"avatar",
-				ui.Style {
-					sizing_x = ui.sizing_fixed(36),
-					sizing_y = ui.sizing_fixed(36),
-					background_fill = theme.accent_primary,
-					capability_flags = ui.Capability_Flags{.Background},
-					border_radius = ui.border_radius_all(18),
-				},
-			)
-			// User info - grows to fill remaining space
-			if ui.begin_container(
-				ctx,
-				"user_info",
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_fit(),
-					layout_direction = .Top_To_Bottom,
-					child_gap = 2,
-				},
-			) {
-				ui.text(ctx, "user_name", "John Doe", ui.Style{text_fill = theme.text_primary})
-				ui.text(ctx, "user_role", "Admin", ui.Style{text_fill = theme.text_muted})
-				ui.end_container(ctx)
-			}
-			ui.end_container(ctx)
-		}
-
-		ui.end_container(ctx)
 	}
+
+	// Spacer pushes user section to bottom
+	ui.spacer(ctx)
+
+	// User section at bottom
+	ui.begin_container(
+		ctx,
+		"user_section",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			layout_direction = .Left_To_Right,
+			child_gap = 12,
+			padding = ui.padding_all(12),
+			background_fill = theme.bg_card,
+			capability_flags = ui.Capability_Flags{.Background},
+			border_radius = ui.border_radius_all(8),
+			alignment_y = .Center,
+		},
+	)
+	// Avatar placeholder
+	ui.container(
+		ctx,
+		"avatar",
+		ui.Style {
+			sizing_x = ui.sizing_fixed(36),
+			sizing_y = ui.sizing_fixed(36),
+			background_fill = theme.accent_primary,
+			capability_flags = ui.Capability_Flags{.Background},
+			border_radius = ui.border_radius_all(18),
+		},
+	)
+	// User info - grows to fill remaining space
+	ui.begin_container(
+		ctx,
+		"user_info",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			layout_direction = .Top_To_Bottom,
+			child_gap = 2,
+		},
+	)
+	ui.text(ctx, "user_name", "John Doe", ui.Style{text_fill = theme.text_primary})
+	ui.text(ctx, "user_role", "Admin", ui.Style{text_fill = theme.text_muted})
+
+	ui.end_container(ctx)
+
+	ui.end_container(ctx)
+
+	ui.end_container(ctx)
+
 }
 
 build_main_content :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"main_content",
 		ui.Style {
@@ -237,39 +236,38 @@ build_main_content :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			padding = ui.padding_all(24),
 			child_gap = 24,
 		},
-	) {
-		// Header with search
-		build_header(ctx, data, theme)
+	)
+	// Header with search
+	build_header(ctx, data, theme)
 
-		// Stats row - 4 equal cards
-		build_stats_row(ctx, data, theme)
+	// Stats row - 4 equal cards
+	build_stats_row(ctx, data, theme)
 
-		// Main panels - 2:1 ratio
-		if ui.begin_container(
-			ctx,
-			"panels_row",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_grow(),
-				layout_direction = .Left_To_Right,
-				child_gap = 24,
-			},
-		) {
-			// Left panel (2 parts) - Form
-			build_form_panel(ctx, data, theme)
+	// Main panels - 2:1 ratio
+	ui.begin_container(
+		ctx,
+		"panels_row",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(),
+			layout_direction = .Left_To_Right,
+			child_gap = 24,
+		},
+	)
+	// Left panel (2 parts) - Form
+	build_form_panel(ctx, data, theme)
 
-			// Right panel (1 part) - Settings
-			build_settings_panel(ctx, data, theme)
+	// Right panel (1 part) - Settings
+	build_settings_panel(ctx, data, theme)
 
-			ui.end_container(ctx)
-		}
+	ui.end_container(ctx)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"header",
 		ui.Style {
@@ -279,59 +277,59 @@ build_header :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			child_gap = 16,
 			alignment_y = .Center,
 		},
-	) {
-		// Title
-		ui.text(
-			ctx,
-			"page_title",
-			"Welcome back, John!",
-			ui.Style{sizing_x = ui.sizing_fit(), text_fill = theme.text_primary},
-		)
+	)
+	// Title
+	ui.text(
+		ctx,
+		"page_title",
+		"Welcome back, John!",
+		ui.Style{sizing_x = ui.sizing_fit(), text_fill = theme.text_primary},
+	)
 
-		// Spacer - push search and buttons to right
-		ui.spacer(ctx)
+	// Spacer - push search and buttons to right
+	ui.spacer(ctx)
 
-		// Search bar - constrained width with min/max
-		ui.text_input(
-			ctx,
-			"search",
-			data.search_buf,
-			style = ui.Style {
-				sizing_x = ui.sizing_grow(min = 200, max = 300),
-				sizing_y = ui.sizing_fixed(40),
-				background_fill = theme.bg_input,
-				border_radius = ui.border_radius_all(8),
-				text_fill = theme.text_primary,
-			},
-		)
+	// Search bar - constrained width with min/max
+	ui.text_input(
+		ctx,
+		"search",
+		data.search_buf,
+		style = ui.Style {
+			sizing_x = ui.sizing_grow(min = 200, max = 300),
+			sizing_y = ui.sizing_fixed(40),
+			background_fill = theme.bg_input,
+			border_radius = ui.border_radius_all(8),
+			text_fill = theme.text_primary,
+		},
+	)
 
-		// Action buttons
-		ui.button(
-			ctx,
-			"btn_notifications",
-			"Alerts",
-			ui.Style {
-				sizing_x = ui.sizing_fit(),
-				sizing_y = ui.sizing_fixed(40),
-				background_fill = theme.bg_card,
-				text_fill = theme.text_primary,
-				border_radius = ui.border_radius_all(8),
-			},
-		)
-		ui.button(
-			ctx,
-			"btn_new",
-			"+ New",
-			ui.Style {
-				sizing_x = ui.sizing_fit(),
-				sizing_y = ui.sizing_fixed(40),
-				background_fill = theme.accent_primary,
-				border_radius = ui.border_radius_all(8),
-			},
-		)
+	// Action buttons
+	ui.button(
+		ctx,
+		"btn_notifications",
+		"Alerts",
+		ui.Style {
+			sizing_x = ui.sizing_fit(),
+			sizing_y = ui.sizing_fixed(40),
+			background_fill = theme.bg_card,
+			text_fill = theme.text_primary,
+			border_radius = ui.border_radius_all(8),
+		},
+	)
+	ui.button(
+		ctx,
+		"btn_new",
+		"+ New",
+		ui.Style {
+			sizing_x = ui.sizing_fit(),
+			sizing_y = ui.sizing_fixed(40),
+			background_fill = theme.accent_primary,
+			border_radius = ui.border_radius_all(8),
+		},
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 build_stats_row :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
@@ -339,7 +337,7 @@ build_stats_row :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 	// EQUAL DISTRIBUTION - 4 cards with factor=1
 	// Each gets exactly 25% of available space
 	// ==========================================
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"stats_row",
 		ui.Style {
@@ -348,43 +346,43 @@ build_stats_row :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			layout_direction = .Left_To_Right,
 			child_gap = 16,
 		},
-	) {
-		fa := ctx.frame_allocator
-		stat_card(
-			ctx,
-			"stat_users",
-			"Active Users",
-			fmt.aprintf("%d", data.active_users, allocator = fa),
-			theme.accent_primary,
-			theme,
-		)
-		stat_card(
-			ctx,
-			"stat_orders",
-			"Total Orders",
-			fmt.aprintf("%d", data.total_orders, allocator = fa),
-			theme.accent_success,
-			theme,
-		)
-		stat_card(
-			ctx,
-			"stat_revenue",
-			"Revenue",
-			fmt.aprintf("$%.0f", data.revenue, allocator = fa),
-			theme.accent_warning,
-			theme,
-		)
-		stat_card(
-			ctx,
-			"stat_conversion",
-			"Conversion",
-			fmt.aprintf("%.1f%%", data.conversion_rate, allocator = fa),
-			theme.accent_danger,
-			theme,
-		)
+	)
+	fa := ctx.frame_allocator
+	stat_card(
+		ctx,
+		"stat_users",
+		"Active Users",
+		fmt.aprintf("%d", data.active_users, allocator = fa),
+		theme.accent_primary,
+		theme,
+	)
+	stat_card(
+		ctx,
+		"stat_orders",
+		"Total Orders",
+		fmt.aprintf("%d", data.total_orders, allocator = fa),
+		theme.accent_success,
+		theme,
+	)
+	stat_card(
+		ctx,
+		"stat_revenue",
+		"Revenue",
+		fmt.aprintf("$%.0f", data.revenue, allocator = fa),
+		theme.accent_warning,
+		theme,
+	)
+	stat_card(
+		ctx,
+		"stat_conversion",
+		"Conversion",
+		fmt.aprintf("%.1f%%", data.conversion_rate, allocator = fa),
+		theme.accent_danger,
+		theme,
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 stat_card :: proc(
@@ -395,58 +393,58 @@ stat_card :: proc(
 	accent: base.Color,
 	theme: Theme,
 ) {
-	if ui.begin_container(
-	ctx,
-	id,
-	ui.Style {
-		// Equal grow factor - all cards same size
-		sizing_x         = ui.sizing_grow(),
-		sizing_y         = ui.sizing_fit(),
-		layout_direction = .Top_To_Bottom,
-		padding          = ui.padding_all(20),
-		child_gap        = 8,
-		background_fill  = theme.bg_card,
-		capability_flags = ui.Capability_Flags{.Background},
-		border_radius    = ui.border_radius_all(12),
-		border           = ui.border_all(1),
-		border_fill      = theme.border,
-	},
-	) {
-		fa := ctx.frame_allocator
-		// Accent bar
-		ui.container(
-			ctx,
-			fmt.aprintf("%s_accent", id, allocator = fa),
-			ui.Style {
-				sizing_x = ui.sizing_fixed(40),
-				sizing_y = ui.sizing_fixed(4),
-				background_fill = accent,
-				capability_flags = ui.Capability_Flags{.Background},
-				border_radius = ui.border_radius_all(2),
-			},
-		)
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_label", id, allocator = fa),
-			label,
-			ui.Style{text_fill = theme.text_secondary},
-		)
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_value", id, allocator = fa),
-			value,
-			ui.Style{text_fill = theme.text_primary},
-		)
+	ui.begin_container(
+		ctx,
+		id,
+		ui.Style {
+			// Equal grow factor - all cards same size
+			sizing_x         = ui.sizing_grow(),
+			sizing_y         = ui.sizing_fit(),
+			layout_direction = .Top_To_Bottom,
+			padding          = ui.padding_all(20),
+			child_gap        = 8,
+			background_fill  = theme.bg_card,
+			capability_flags = ui.Capability_Flags{.Background},
+			border_radius    = ui.border_radius_all(12),
+			border           = ui.border_all(1),
+			border_fill      = theme.border,
+		},
+	)
+	fa := ctx.frame_allocator
+	// Accent bar
+	ui.container(
+		ctx,
+		fmt.aprintf("%s_accent", id, allocator = fa),
+		ui.Style {
+			sizing_x = ui.sizing_fixed(40),
+			sizing_y = ui.sizing_fixed(4),
+			background_fill = accent,
+			capability_flags = ui.Capability_Flags{.Background},
+			border_radius = ui.border_radius_all(2),
+		},
+	)
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_label", id, allocator = fa),
+		label,
+		ui.Style{text_fill = theme.text_secondary},
+	)
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_value", id, allocator = fa),
+		value,
+		ui.Style{text_fill = theme.text_primary},
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 	// ==========================================
 	// 2:1 RATIO - Form panel gets 2 parts
 	// ==========================================
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"form_panel",
 		ui.Style {
@@ -459,69 +457,69 @@ build_form_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			capability_flags = ui.Capability_Flags{.Background},
 			border_radius = ui.border_radius_all(12),
 		},
-	) {
-		// Panel header
-		ui.text(ctx, "form_title", "User Profile", ui.Style{text_fill = theme.text_primary})
+	)
+	// Panel header
+	ui.text(ctx, "form_title", "User Profile", ui.Style{text_fill = theme.text_primary})
 
-		// Form fields
-		form_field(ctx, "username_field", "Username", data.username_buf, theme)
-		form_field(ctx, "email_field", "Email", data.email_buf, theme)
+	// Form fields
+	form_field(ctx, "username_field", "Username", data.username_buf, theme)
+	form_field(ctx, "email_field", "Email", data.email_buf, theme)
 
-		// Sliders section
-		ui.text(ctx, "sliders_title", "Preferences", ui.Style{text_fill = theme.text_secondary})
+	// Sliders section
+	ui.text(ctx, "sliders_title", "Preferences", ui.Style{text_fill = theme.text_secondary})
 
-		slider_field(ctx, "volume_field", "Volume", &data.volume, theme)
-		slider_field(ctx, "brightness_field", "Brightness", &data.brightness, theme)
+	slider_field(ctx, "volume_field", "Volume", &data.volume, theme)
+	slider_field(ctx, "brightness_field", "Brightness", &data.brightness, theme)
 
 
-		// Spacer
-		ui.spacer(ctx)
+	// Spacer
+	ui.spacer(ctx)
 
-		// Action buttons row - demonstrates equal distribution
-		if ui.begin_container(
-			ctx,
-			"form_actions",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fit(),
-				layout_direction = .Left_To_Right,
-				child_gap = 12,
-			},
-		) {
-			// Cancel and Save buttons - equal width (both factor=1)
-			ui.button(
-				ctx,
-				"btn_cancel",
-				"Cancel",
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_fixed(44),
-					background_fill = theme.bg_input,
-					text_fill = theme.text_primary,
-					border_radius = ui.border_radius_all(8),
-				},
-			)
-			ui.button(
-				ctx,
-				"btn_save",
-				"Save Changes",
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_fixed(44),
-					background_fill = theme.accent_primary,
-					border_radius = ui.border_radius_all(8),
-				},
-			)
+	// Action buttons row - demonstrates equal distribution
+	ui.begin_container(
+		ctx,
+		"form_actions",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			layout_direction = .Left_To_Right,
+			child_gap = 12,
+		},
+	)
+	// Cancel and Save buttons - equal width (both factor=1)
+	ui.button(
+		ctx,
+		"btn_cancel",
+		"Cancel",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fixed(44),
+			background_fill = theme.bg_input,
+			text_fill = theme.text_primary,
+			border_radius = ui.border_radius_all(8),
+		},
+	)
+	ui.button(
+		ctx,
+		"btn_save",
+		"Save Changes",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fixed(44),
+			background_fill = theme.accent_primary,
+			border_radius = ui.border_radius_all(8),
+		},
+	)
 
-			ui.end_container(ctx)
-		}
+	ui.end_container(ctx)
 
-		ui.end_container(ctx)
-	}
+
+	ui.end_container(ctx)
+
 }
 
 form_field :: proc(ctx: ^ui.Context, id: string, label: string, buf: []u8, theme: Theme) {
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		id,
 		ui.Style {
@@ -530,35 +528,35 @@ form_field :: proc(ctx: ^ui.Context, id: string, label: string, buf: []u8, theme
 			layout_direction = .Top_To_Bottom,
 			child_gap = 8,
 		},
-	) {
-		fa := ctx.frame_allocator
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_label", id, allocator = fa),
-			label,
-			ui.Style{text_fill = theme.text_secondary},
-		)
-		ui.text_input(
-			ctx,
-			fmt.aprintf("%s_input", id, allocator = fa),
-			buf,
-			style = ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fixed(44),
-				background_fill = theme.bg_input,
-				border_radius = ui.border_radius_all(8),
-				border = ui.border_all(1),
-				border_fill = theme.border,
-				text_fill = theme.text_primary,
-			},
-		)
+	)
+	fa := ctx.frame_allocator
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_label", id, allocator = fa),
+		label,
+		ui.Style{text_fill = theme.text_secondary},
+	)
+	ui.text_input(
+		ctx,
+		fmt.aprintf("%s_input", id, allocator = fa),
+		buf,
+		style = ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fixed(44),
+			background_fill = theme.bg_input,
+			border_radius = ui.border_radius_all(8),
+			border = ui.border_all(1),
+			border_fill = theme.border,
+			text_fill = theme.text_primary,
+		},
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, theme: Theme) {
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		id,
 		ui.Style {
@@ -568,43 +566,43 @@ slider_field :: proc(ctx: ^ui.Context, id: string, label: string, value: ^f32, t
 			child_gap = 16,
 			alignment_y = .Center,
 		},
-	) {
-		fa := ctx.frame_allocator
-		// Label - grows with weight 1
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_label", id, allocator = fa),
-			label,
-			ui.Style{sizing_x = ui.sizing_grow_weighted(1), text_fill = theme.text_secondary},
-		)
-		// Slider - grows with weight 3
-		ui.slider(
-			ctx,
-			fmt.aprintf("%s_slider", id, allocator = fa),
-			value,
-			0.0,
-			1.0,
-			style = ui.Style {
-				sizing_x = ui.sizing_grow_weighted(3),
-				sizing_y = ui.sizing_fixed(8),
-				background_fill = theme.bg_input,
-				border_radius = ui.border_radius_all(4),
-			},
-		)
-		// Value display - grow with weight 0.5
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_value", id, allocator = fa),
-			fmt.aprintf("%.0f%%", value^ * 100, allocator = fa),
-			ui.Style {
-				sizing_x = ui.sizing_grow_weighted(0.5),
-				text_fill = theme.text_muted,
-				text_alignment_x = .Right,
-			},
-		)
+	)
+	fa := ctx.frame_allocator
+	// Label - grows with weight 1
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_label", id, allocator = fa),
+		label,
+		ui.Style{sizing_x = ui.sizing_grow_weighted(1), text_fill = theme.text_secondary},
+	)
+	// Slider - grows with weight 3
+	ui.slider(
+		ctx,
+		fmt.aprintf("%s_slider", id, allocator = fa),
+		value,
+		0.0,
+		1.0,
+		style = ui.Style {
+			sizing_x = ui.sizing_grow_weighted(3),
+			sizing_y = ui.sizing_fixed(8),
+			background_fill = theme.bg_input,
+			border_radius = ui.border_radius_all(4),
+		},
+	)
+	// Value display - grow with weight 0.5
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_value", id, allocator = fa),
+		fmt.aprintf("%.0f%%", value^ * 100, allocator = fa),
+		ui.Style {
+			sizing_x = ui.sizing_grow_weighted(0.5),
+			text_fill = theme.text_muted,
+			text_alignment_x = .Right,
+		},
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
@@ -612,7 +610,7 @@ build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 	// 2:1 RATIO - Settings panel gets 1 part
 	// Also demonstrates min constraint
 	// ==========================================
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"settings_panel",
 		ui.Style {
@@ -625,58 +623,58 @@ build_settings_panel :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {
 			capability_flags = ui.Capability_Flags{.Background},
 			border_radius = ui.border_radius_all(12),
 		},
-	) {
-		ui.text(ctx, "settings_title", "Quick Settings", ui.Style{text_fill = theme.text_primary})
+	)
+	ui.text(ctx, "settings_title", "Quick Settings", ui.Style{text_fill = theme.text_primary})
 
-		// Toggle settings
-		toggle_setting(ctx, "toggle_notifications", "Notifications", &data.notifications, theme)
-		toggle_setting(ctx, "toggle_dark_mode", "Dark Mode", &data.dark_mode, theme)
-		toggle_setting(ctx, "toggle_auto_save", "Auto Save", &data.auto_save, theme)
+	// Toggle settings
+	toggle_setting(ctx, "toggle_notifications", "Notifications", &data.notifications, theme)
+	toggle_setting(ctx, "toggle_dark_mode", "Dark Mode", &data.dark_mode, theme)
+	toggle_setting(ctx, "toggle_auto_save", "Auto Save", &data.auto_save, theme)
 
-		ui.spacer(ctx)
+	ui.spacer(ctx)
 
-		// Status indicators - demonstrates 1:1:1 equal distribution
-		ui.text(ctx, "status_title", "System Status", ui.Style{text_fill = theme.text_secondary})
+	// Status indicators - demonstrates 1:1:1 equal distribution
+	ui.text(ctx, "status_title", "System Status", ui.Style{text_fill = theme.text_secondary})
 
-		if ui.begin_container(
-			ctx,
-			"status_row",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fit(),
-				layout_direction = .Left_To_Right,
-				child_gap = 8,
-			},
-		) {
-			status_indicator(ctx, "status_api", "API", theme.accent_success, theme)
-			status_indicator(ctx, "status_db", "DB", theme.accent_success, theme)
-			status_indicator(ctx, "status_cdn", "CDN", theme.accent_warning, theme)
+	ui.begin_container(
+		ctx,
+		"status_row",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			layout_direction = .Left_To_Right,
+			child_gap = 8,
+		},
+	)
+	status_indicator(ctx, "status_api", "API", theme.accent_success, theme)
+	status_indicator(ctx, "status_db", "DB", theme.accent_success, theme)
+	status_indicator(ctx, "status_cdn", "CDN", theme.accent_warning, theme)
 
-			ui.end_container(ctx)
-		}
+	ui.end_container(ctx)
 
-		ui.spacer(ctx)
 
-		// Danger zone
-		ui.text(ctx, "danger_title", "Danger Zone", ui.Style{text_fill = theme.accent_danger})
-		ui.button(
-			ctx,
-			"btn_reset",
-			"Reset All Settings",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fixed(40),
-				background_fill = theme.accent_danger,
-				border_radius = ui.border_radius_all(8),
-			},
-		)
+	ui.spacer(ctx)
 
-		ui.end_container(ctx)
-	}
+	// Danger zone
+	ui.text(ctx, "danger_title", "Danger Zone", ui.Style{text_fill = theme.accent_danger})
+	ui.button(
+		ctx,
+		"btn_reset",
+		"Reset All Settings",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fixed(40),
+			background_fill = theme.accent_danger,
+			border_radius = ui.border_radius_all(8),
+		},
+	)
+
+	ui.end_container(ctx)
+
 }
 
 toggle_setting :: proc(ctx: ^ui.Context, id: string, label: string, value: ^bool, theme: Theme) {
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		id,
 		ui.Style {
@@ -687,31 +685,31 @@ toggle_setting :: proc(ctx: ^ui.Context, id: string, label: string, value: ^bool
 			alignment_y = .Center,
 			padding = ui.padding_xy(12, 0),
 		},
-	) {
-		fa := ctx.frame_allocator
-		// Label takes remaining space
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_label", id, allocator = fa),
-			label,
-			ui.Style{sizing_x = ui.sizing_grow(), text_fill = theme.text_primary},
-		)
-		checkbox_color := theme.accent_success if value^ else theme.bg_input
-		ui.checkbox(
-			ctx,
-			fmt.aprintf("%s_checkbox", id, allocator = fa),
-			value,
-			ui.Shape_Data{ui.Shape_Kind.Checkmark, base.fill_color(255, 255, 255), 2.0},
-			ui.Style {
-				sizing_x = ui.sizing_fixed(24),
-				sizing_y = ui.sizing_fixed(24),
-				background_fill = checkbox_color,
-				border_radius = ui.border_radius_all(4),
-			},
-		)
+	)
+	fa := ctx.frame_allocator
+	// Label takes remaining space
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_label", id, allocator = fa),
+		label,
+		ui.Style{sizing_x = ui.sizing_grow(), text_fill = theme.text_primary},
+	)
+	checkbox_color := theme.accent_success if value^ else theme.bg_input
+	ui.checkbox(
+		ctx,
+		fmt.aprintf("%s_checkbox", id, allocator = fa),
+		value,
+		ui.Shape_Data{ui.Shape_Kind.Checkmark, base.fill_color(255, 255, 255), 2.0},
+		ui.Style {
+			sizing_x = ui.sizing_fixed(24),
+			sizing_y = ui.sizing_fixed(24),
+			background_fill = checkbox_color,
+			border_radius = ui.border_radius_all(4),
+		},
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 status_indicator :: proc(
@@ -722,7 +720,7 @@ status_indicator :: proc(
 	theme: Theme,
 ) {
 	// Equal grow factor - all indicators same width
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		id,
 		ui.Style {
@@ -736,29 +734,29 @@ status_indicator :: proc(
 			border_radius = ui.border_radius_all(6),
 			alignment_x = .Center,
 		},
-	) {
-		fa := ctx.frame_allocator
-		// Status dot
-		ui.container(
-			ctx,
-			fmt.aprintf("%s_dot", id, allocator = fa),
-			ui.Style {
-				sizing_x = ui.sizing_fixed(8),
-				sizing_y = ui.sizing_fixed(8),
-				background_fill = color,
-				capability_flags = ui.Capability_Flags{.Background},
-				border_radius = ui.border_radius_all(4),
-			},
-		)
-		ui.text(
-			ctx,
-			fmt.aprintf("%s_label", id, allocator = fa),
-			label,
-			ui.Style{text_fill = theme.text_muted},
-		)
+	)
+	fa := ctx.frame_allocator
+	// Status dot
+	ui.container(
+		ctx,
+		fmt.aprintf("%s_dot", id, allocator = fa),
+		ui.Style {
+			sizing_x = ui.sizing_fixed(8),
+			sizing_y = ui.sizing_fixed(8),
+			background_fill = color,
+			capability_flags = ui.Capability_Flags{.Background},
+			border_radius = ui.border_radius_all(4),
+		},
+	)
+	ui.text(
+		ctx,
+		fmt.aprintf("%s_label", id, allocator = fa),
+		label,
+		ui.Style{text_fill = theme.text_muted},
+	)
 
-		ui.end_container(ctx)
-	}
+	ui.end_container(ctx)
+
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {

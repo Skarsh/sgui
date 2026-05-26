@@ -24,7 +24,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			},
 		)
 
-		if ui.begin_container(
+		ui.begin_container(
 			ctx,
 			"main_container",
 			ui.Style {
@@ -35,12 +35,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				padding = ui.padding_all(10),
 				background_fill = base.fill_color(40, 40, 40),
 			},
-		) {
+		)
 
-			ui.text_input(ctx, "text_input", data.buf)
+		ui.text_input(ctx, "text_input", data.buf)
 
-			ui.end_container(ctx)
-		}
+		ui.end_container(ctx)
 
 		ui.end(ctx)
 	}

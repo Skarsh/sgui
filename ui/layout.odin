@@ -316,10 +316,10 @@ open_element :: proc(
 	return element, true
 }
 
-begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> bool {
-	_, open_ok := open_element(ctx, id, style)
+begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
+	element, open_ok := open_element(ctx, id, style)
 	assert(open_ok)
-	return open_ok
+	return element.last_comm
 }
 
 end_container :: proc(ctx: ^Context) {
@@ -333,13 +333,21 @@ container :: proc {
 	container_data_styled,
 }
 
+// TODO(Thomas): Return Comm struct
 container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = nil) {
-	if begin_container(ctx, id) {
-		if body != nil {
-			body(ctx)
-		}
-		end_container(ctx)
+	//if begin_container(ctx, id) {
+	//	if body != nil {
+	//		body(ctx)
+	//	}
+	//	end_container(ctx)
+	//}
+
+	begin_container(ctx, id)
+	if body != nil {
+		body(ctx)
 	}
+	end_container(ctx)
+
 }
 
 container_styled :: proc(
@@ -348,12 +356,18 @@ container_styled :: proc(
 	style: Style,
 	body: proc(ctx: ^Context) = nil,
 ) {
-	if begin_container(ctx, id, style) {
-		if body != nil {
-			body(ctx)
-		}
-		end_container(ctx)
+	//if begin_container(ctx, id, style) {
+	//	if body != nil {
+	//		body(ctx)
+	//	}
+	//	end_container(ctx)
+	//}
+
+	begin_container(ctx, id, style)
+	if body != nil {
+		body(ctx)
 	}
+	end_container(ctx)
 }
 
 container_data :: proc(
@@ -362,12 +376,18 @@ container_data :: proc(
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 ) {
-	if begin_container(ctx, id) {
-		if body != nil {
-			body(ctx, data)
-		}
-		end_container(ctx)
+	//if begin_container(ctx, id) {
+	//	if body != nil {
+	//		body(ctx, data)
+	//	}
+	//	end_container(ctx)
+	//}
+
+	begin_container(ctx, id)
+	if body != nil {
+		body(ctx, data)
 	}
+	end_container(ctx)
 }
 
 container_data_styled :: proc(
@@ -377,12 +397,18 @@ container_data_styled :: proc(
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 ) {
-	if begin_container(ctx, id, style) {
-		if body != nil {
-			body(ctx, data)
-		}
-		end_container(ctx)
+	//if begin_container(ctx, id, style) {
+	//	if body != nil {
+	//		body(ctx, data)
+	//	}
+	//	end_container(ctx)
+	//}
+
+	begin_container(ctx, id, style)
+	if body != nil {
+		body(ctx, data)
 	}
+	end_container(ctx)
 }
 
 fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {

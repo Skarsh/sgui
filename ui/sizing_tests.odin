@@ -2214,7 +2214,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 	// --- 2. Define the UI Building Logic ---
 	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
 
-		if begin_container(
+		begin_container(
 			ctx,
 			"main_container",
 			Style {
@@ -2223,32 +2223,28 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 				padding = data.main_container_padding,
 				border = data.main_container_border,
 			},
-		) {
+		)
 
-			container(
-				ctx,
-				"container_1",
-				Style {
-					sizing_x = Sizing{kind = .Percentage, value = data.container_1_pct},
-					sizing_y = sizing_grow(),
-				},
-			)
+		container(
+			ctx,
+			"container_1",
+			Style {
+				sizing_x = Sizing{kind = .Percentage, value = data.container_1_pct},
+				sizing_y = sizing_grow(),
+			},
+		)
 
 
-			container(
-				ctx,
-				"container_2",
-				Style{sizing_x = sizing_fixed(data.container_2_size.x), sizing_y = sizing_grow()},
-			)
+		container(
+			ctx,
+			"container_2",
+			Style{sizing_x = sizing_fixed(data.container_2_size.x), sizing_y = sizing_grow()},
+		)
 
-			container(
-				ctx,
-				"container_3",
-				Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
-			)
+		container(ctx, "container_3", Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()})
 
-			end_container(ctx)
-		}
+		end_container(ctx)
+
 	}
 
 	// --- 3. Define the Verification Logic ---

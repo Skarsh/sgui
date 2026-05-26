@@ -49,7 +49,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	)
 	defer ui.pop_style(ctx)
 
-	if ui.begin_container(
+	ui.begin_container(
 		ctx,
 		"main_container",
 		ui.Style {
@@ -59,175 +59,169 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			child_gap = 10,
 			layout_direction = .Left_To_Right,
 		},
-	) {
+	)
 
-		if ui.begin_container(
-			ctx,
-			"scroll_box_1",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_grow(),
-				padding = ui.padding_all(10),
-				layout_direction = .Top_To_Bottom,
-			},
-		) {
+	ui.begin_container(
+		ctx,
+		"scroll_box_1",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(),
+			padding = ui.padding_all(10),
+			layout_direction = .Top_To_Bottom,
+		},
+	)
 
-			if ui.begin_container(
-				ctx,
-				"horizontal_boxes_wrapper",
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_grow(),
-					background_fill = base.Color{50, 50, 50, 255},
-					padding = ui.padding_all(10),
-					child_gap = 5,
-					layout_direction = .Left_To_Right,
-					capability_flags = ui.Capability_Flags{.Scrollable},
-					clip = ui.Clip_Config{{true, true}},
-				},
-			) {
+	ui.begin_container(
+		ctx,
+		"horizontal_boxes_wrapper",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(),
+			background_fill = base.Color{50, 50, 50, 255},
+			padding = ui.padding_all(10),
+			child_gap = 5,
+			layout_direction = .Left_To_Right,
+			capability_flags = ui.Capability_Flags{.Scrollable},
+			clip = ui.Clip_Config{{true, true}},
+		},
+	)
 
-				ui.container(
-					ctx,
-					"horizontal_box_1",
-					ui.Style {
-						sizing_x = ui.sizing_percent(0.5),
-						sizing_y = ui.sizing_percent(1.0),
-						background_fill = base.Color{255, 50, 50, 255},
-					},
-				)
+	ui.container(
+		ctx,
+		"horizontal_box_1",
+		ui.Style {
+			sizing_x = ui.sizing_percent(0.5),
+			sizing_y = ui.sizing_percent(1.0),
+			background_fill = base.Color{255, 50, 50, 255},
+		},
+	)
 
-				ui.container(
-					ctx,
-					"horizontal_box_2",
-					ui.Style {
-						sizing_x = ui.sizing_percent(0.5),
-						sizing_y = ui.sizing_percent(1.0),
-						background_fill = base.Color{50, 255, 50, 255},
-					},
-				)
+	ui.container(
+		ctx,
+		"horizontal_box_2",
+		ui.Style {
+			sizing_x = ui.sizing_percent(0.5),
+			sizing_y = ui.sizing_percent(1.0),
+			background_fill = base.Color{50, 255, 50, 255},
+		},
+	)
 
-				ui.container(
-					ctx,
-					"horizontal_box_3",
-					ui.Style {
-						sizing_x = ui.sizing_percent(0.5),
-						sizing_y = ui.sizing_percent(1.0),
-						background_fill = base.Color{50, 50, 255, 255},
-					},
-				)
+	ui.container(
+		ctx,
+		"horizontal_box_3",
+		ui.Style {
+			sizing_x = ui.sizing_percent(0.5),
+			sizing_y = ui.sizing_percent(1.0),
+			background_fill = base.Color{50, 50, 255, 255},
+		},
+	)
 
-				ui.scrollbar(ctx, "horizontal_scrollbar", "horizontal_boxes_wrapper", .X)
+	ui.scrollbar(ctx, "horizontal_scrollbar", "horizontal_boxes_wrapper", .X)
 
-				ui.end_container(ctx)
-			}
-
-
-			// HACK(Thomas): When we have cleaned up the interactive elements issue, the element should
-			// hopefully come directly from the creation of the container / widget. So we don't have to
-			// find it by id like here.
-			horizontal_boxes_wrapper_element := ui.find_element_by_string_id(
-				ctx,
-				"horizontal_boxes_wrapper",
-			)
-			scroll_region := horizontal_boxes_wrapper_element.scroll_region
-			scroll_region_info_str := make_info_str(
-				data.horizontal_scroll_region_str_buf,
-				horizontal_boxes_wrapper_element.id_string,
-				horizontal_boxes_wrapper_element.size,
-				scroll_region,
-			)
-			ui.text(ctx, "scroll_box_1_scroll_region_info", scroll_region_info_str)
-
-			ui.end_container(ctx)
-		}
-
-		if ui.begin_container(
-			ctx,
-			"scroll_box_2",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_grow(),
-				padding = ui.padding_all(10),
-				layout_direction = .Top_To_Bottom,
-			},
-		) {
-
-			if ui.begin_container(
-				ctx,
-				"vertical_boxes_wrapper",
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_grow(),
-					padding = ui.padding_all(10),
-					child_gap = 5,
-					background_fill = base.Color{50, 50, 50, 255},
-					layout_direction = .Top_To_Bottom,
-					capability_flags = ui.Capability_Flags{.Scrollable},
-					clip = ui.Clip_Config{{true, true}},
-				},
-			) {
-
-				ui.container(
-					ctx,
-					"vertical_box_1",
-					ui.Style {
-						sizing_x = ui.sizing_percent(1.0),
-						sizing_y = ui.sizing_percent(0.5),
-						background_fill = base.Color{255, 50, 50, 255},
-						margin = ui.margin_trbl(10, 0, 0, 0),
-					},
-				)
-
-				ui.container(
-					ctx,
-					"vertical_box_2",
-					ui.Style {
-						sizing_x = ui.sizing_percent(1.0),
-						sizing_y = ui.sizing_percent(0.5),
-						background_fill = base.Color{50, 255, 50, 255},
-					},
-				)
-
-				ui.container(
-					ctx,
-					"vertical_box_3",
-					ui.Style {
-						sizing_x = ui.sizing_percent(1.0),
-						sizing_y = ui.sizing_percent(0.5),
-						background_fill = base.Color{50, 50, 255, 255},
-					},
-				)
-
-				ui.scrollbar(ctx, "vertical_scrollbar", "vertical_boxes_wrapper", .Y)
-
-				ui.end_container(ctx)
-			}
-
-			// HACK(Thomas): When we have cleaned up the interactive elements issue, the element should
-			// hopefully come directly from the creation of the container / widget. So we don't have to
-			// find it by id like here.
-			vertical_boxes_wrapper_element := ui.find_element_by_string_id(
-				ctx,
-				"vertical_boxes_wrapper",
-			)
-			scroll_region := vertical_boxes_wrapper_element.scroll_region
-
-			scroll_region_info_str := make_info_str(
-				data.vertical_scroll_region_str_buf,
-				vertical_boxes_wrapper_element.id_string,
-				vertical_boxes_wrapper_element.size,
-				scroll_region,
-			)
-
-			ui.text(ctx, "scroll_box_2_scroll_region_info", scroll_region_info_str)
-
-			ui.end_container(ctx)
-		}
+	ui.end_container(ctx)
 
 
-		ui.end_container(ctx)
-	}
+	// HACK(Thomas): When we have cleaned up the interactive elements issue, the element should
+	// hopefully come directly from the creation of the container / widget. So we don't have to
+	// find it by id like here.
+	horizontal_boxes_wrapper_element := ui.find_element_by_string_id(
+		ctx,
+		"horizontal_boxes_wrapper",
+	)
+	scroll_region := horizontal_boxes_wrapper_element.scroll_region
+	scroll_region_info_str := make_info_str(
+		data.horizontal_scroll_region_str_buf,
+		horizontal_boxes_wrapper_element.id_string,
+		horizontal_boxes_wrapper_element.size,
+		scroll_region,
+	)
+	ui.text(ctx, "scroll_box_1_scroll_region_info", scroll_region_info_str)
+
+	ui.end_container(ctx)
+
+
+	ui.begin_container(
+		ctx,
+		"scroll_box_2",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(),
+			padding = ui.padding_all(10),
+			layout_direction = .Top_To_Bottom,
+		},
+	)
+
+	ui.begin_container(
+		ctx,
+		"vertical_boxes_wrapper",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(),
+			padding = ui.padding_all(10),
+			child_gap = 5,
+			background_fill = base.Color{50, 50, 50, 255},
+			layout_direction = .Top_To_Bottom,
+			capability_flags = ui.Capability_Flags{.Scrollable},
+			clip = ui.Clip_Config{{true, true}},
+		},
+	)
+
+	ui.container(
+		ctx,
+		"vertical_box_1",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(0.5),
+			background_fill = base.Color{255, 50, 50, 255},
+			margin = ui.margin_trbl(10, 0, 0, 0),
+		},
+	)
+
+	ui.container(
+		ctx,
+		"vertical_box_2",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(0.5),
+			background_fill = base.Color{50, 255, 50, 255},
+		},
+	)
+
+	ui.container(
+		ctx,
+		"vertical_box_3",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(0.5),
+			background_fill = base.Color{50, 50, 255, 255},
+		},
+	)
+
+	ui.scrollbar(ctx, "vertical_scrollbar", "vertical_boxes_wrapper", .Y)
+
+	ui.end_container(ctx)
+
+
+	// HACK(Thomas): When we have cleaned up the interactive elements issue, the element should
+	// hopefully come directly from the creation of the container / widget. So we don't have to
+	// find it by id like here.
+
+	vertical_boxes_wrapper_element := ui.find_element_by_string_id(ctx, "vertical_boxes_wrapper")
+	vertical_boxes_scroll_region := vertical_boxes_wrapper_element.scroll_region
+
+	vertical_boxes_scroll_region_info_str := make_info_str(
+		data.vertical_scroll_region_str_buf,
+		vertical_boxes_wrapper_element.id_string,
+		vertical_boxes_wrapper_element.size,
+		vertical_boxes_scroll_region,
+	)
+
+	ui.text(ctx, "scroll_box_2_scroll_region_info", vertical_boxes_scroll_region_info_str)
+
+	ui.end_container(ctx)
+
+	ui.end_container(ctx)
 
 	ui.end(ctx)
 }

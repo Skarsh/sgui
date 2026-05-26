@@ -26,7 +26,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		defer ui.pop_style(ctx)
 
 		// --- Main Panel (centered) ---
-		if ui.begin_container(
+		ui.begin_container(
 			ctx,
 			"main_panel",
 			ui.Style {
@@ -37,23 +37,23 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				capability_flags = ui.Capability_Flags{.Background},
 				padding = ui.padding_all(15),
 			},
-		) {
+		)
 
-			// --- Image widget ---
-			ui.image(
-				ctx,
-				"image",
-				data.tex_id,
-				style = ui.Style {
-					sizing_x = ui.sizing_percent(1.0),
-					sizing_y = ui.sizing_percent(1.0),
-					background_fill = base.fill_color(255, 165, 0),
-					capability_flags = ui.Capability_Flags{.Background},
-				},
-			)
+		// --- Image widget ---
+		ui.image(
+			ctx,
+			"image",
+			data.tex_id,
+			style = ui.Style {
+				sizing_x = ui.sizing_percent(1.0),
+				sizing_y = ui.sizing_percent(1.0),
+				background_fill = base.fill_color(255, 165, 0),
+				capability_flags = ui.Capability_Flags{.Background},
+			},
+		)
 
-			ui.end_container(ctx)
-		}
+		ui.end_container(ctx)
+
 		ui.end(ctx)
 	}
 }
