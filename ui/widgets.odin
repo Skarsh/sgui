@@ -92,7 +92,6 @@ slider :: proc(
 		travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
 
 		// Input Handling
-		//if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
 		if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
 			mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
 			mouse_rel := mouse_val - track.position[axis_idx] - start_space
