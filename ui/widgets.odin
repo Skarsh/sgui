@@ -47,8 +47,8 @@ slider :: proc(
 	style: Style = {},
 	thumb_style: Style = {},
 ) -> Comm {
+
 	is_vert := axis == .Y
-	axis_idx := int(axis)
 
 	// Merge user thumb_style with theme default
 	resolved_thumb := merge_styles(default_theme().slider_thumb, thumb_style)
@@ -57,73 +57,79 @@ slider :: proc(
 	if resolved_thumb.alignment_x == nil {
 		resolved_thumb.alignment_x = is_vert ? .Center : .Left
 	}
+
 	if resolved_thumb.alignment_y == nil {
 		resolved_thumb.alignment_y = is_vert ? .Top : .Center
 	}
 
 	// Extract thumb size from resolved style
-	thumb_size_x: f32 = 20.0
-	thumb_size_y: f32 = 20.0
+	thumb_size := base.Vec2{20, 20}
 	if sizing, ok := resolved_thumb.sizing_x.?; ok {
-		thumb_size_x = sizing.value
+		thumb_size.x = sizing.value
 	}
 	if sizing, ok := resolved_thumb.sizing_y.?; ok {
-		thumb_size_y = sizing.value
+		thumb_size.y = sizing.value
 	}
-	thumb_size := base.Vec2{thumb_size_x, thumb_size_y}
 
 	// Setup Track style
 	track_style := default_theme().slider
 	track_style.sizing_x = is_vert ? sizing_fixed(thumb_size.x) : sizing_grow()
 	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
 
-	track, ok := open_element(ctx, id, style, track_style)
-	if !ok {return {}}
+	track, track_ok := open_element(ctx, id, style, track_style)
+	slider_comm := track.last_comm
+	if track_ok {
 
-	// Open Thumb & Logic
-	thumb, t_ok := open_element(ctx, fmt.tprintf("%s_thumb", id), resolved_thumb)
-	if t_ok {
+		// Make thumb
+		thumb, thumb_ok := open_element(
+			ctx,
+			fmt.aprintf("%s_thumb", id, allocator = ctx.frame_allocator),
+			resolved_thumb,
+		)
+		if thumb_ok {
 
-		// Calculate Space
-		pad, border := track.config.layout.padding, track.config.layout.border
-		start_space := is_vert ? (pad.top + border.top) : (pad.left + border.left)
-		end_space := is_vert ? (pad.bottom + border.bottom) : (pad.right + border.right)
+			padding := track.config.layout.padding
+			border := track.config.layout.border
 
-		travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
+			start_space := is_vert ? (padding.top + border.top) : (padding.left + border.left)
+			end_space :=
+				is_vert ? (padding.bottom + border.bottom) : (padding.right + border.right)
 
-		// Input Handling
-		if (track.last_comm.held || thumb.last_comm.held) && travel_len > 0 {
-			mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
-			mouse_rel := mouse_val - track.position[axis_idx] - start_space
+			axis_idx := int(axis)
+			travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
 
-			// Calculate ratio (centering thumb on mouse)
-			ratio := (mouse_rel - thumb_size[axis_idx] * 0.5) / travel_len
-			value^ = min_val + (math.clamp(ratio, 0, 1) * (max_val - min_val))
+			range := max_val - min_val
+			if (track.last_comm.clicked || thumb.last_comm.held) && travel_len > 0 {
+				mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
+				mouse_rel := mouse_val - track.position[axis_idx] - start_space
+
+				// Calculate ratio (centering thumb on mouse)
+				ratio := (mouse_rel - thumb_size[axis_idx] * 0.5) / travel_len
+				value^ = min_val + (math.clamp(ratio, 0, 1) * range)
+			}
+
+			// Visual Positioning
+			ratio := range != 0 ? math.clamp((value^ - min_val) / range, 0, 1) : 0.0
+			offset := ratio * travel_len
+
+			if is_vert {
+				thumb.config.layout.relative_position = {0, offset}
+			} else {
+				thumb.config.layout.relative_position = {offset, 0}
+			}
+
+			slider_comm.held |= thumb.last_comm.held
+			slider_comm.clicked |= thumb.last_comm.clicked
+			slider_comm.active |= thumb.last_comm.active
+			slider_comm.hovering |= thumb.last_comm.hovering
+
+			close_element(ctx)
 		}
-
-		// Visual Positioning
-		range := max_val - min_val
-		ratio := range != 0 ? math.clamp((value^ - min_val) / range, 0, 1) : 0.0
-		offset := ratio * travel_len
-
-		if is_vert {
-			thumb.config.layout.relative_position = {0, offset}
-		} else {
-			thumb.config.layout.relative_position = {offset, 0}
-		}
-
-		// Merge interaction states
-		track.last_comm.held |= thumb.last_comm.held
-		track.last_comm.clicked |= thumb.last_comm.clicked
-		track.last_comm.active |= thumb.last_comm.active
-		track.last_comm.hovering |= thumb.last_comm.hovering
 
 		close_element(ctx)
 	}
 
-	close_element(ctx)
-
-	return track.last_comm
+	return slider_comm
 }
 
 scrollbar :: proc(
@@ -215,7 +221,6 @@ scrollbar :: proc(
 
 	return comm
 }
-
 
 text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
