@@ -17,8 +17,6 @@
 
 
 ## Bugs
-* Scrollbar thumb not visible when dragging.
-    - Cause seems to be OR-ing of interaction states on `track.last_comm` with the thumb.
 
 ## Backlog
 * Clearly document our "Box model"
