@@ -174,10 +174,9 @@ element_equip_text :: proc(
 		math.F32_MAX,
 		ctx.font_id,
 		ctx.interaction.text_measurement^,
-		context.temp_allocator,
+		ctx.frame_allocator,
 		element.config.layout.text_wrap_mode,
 	)
-	defer free_all(context.temp_allocator)
 
 	// Calculate total content size including padding and border
 	padding := element.config.layout.padding
