@@ -454,6 +454,7 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 	border_sum := get_border_sum_for_axis(border, axis)
 
 	remaining_size := element.size[axis] - padding_sum - border_sum
+	assert(remaining_size >= 0)
 	return remaining_size
 }
 
@@ -847,7 +848,9 @@ element_rect :: proc(element: UI_Element) -> base.Rect {
 get_alignment_factor :: #force_inline proc(align: $E) -> f32 {
 	// NOTE(Thomas): This works because Alignment_X and Alignment_Y are both
 	// representing the positions (Start, Center, End) which have the values 0, 1, 2
-	return f32(align) * 0.5
+	result := f32(align) * 0.5
+	assert(result >= 0)
+	return result
 }
 
 @(require_results)
