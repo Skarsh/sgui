@@ -211,20 +211,22 @@ element_equip_text :: proc(
 }
 
 element_equip_shape :: proc(element: ^UI_Element, shape_data: Shape_Data) {
+	assert(element != nil)
 	element.config.capability_flags |= {.Shape}
 	element.config.content.shape_data = shape_data
 }
 
 element_equip_image :: proc(element: ^UI_Element, texture_id: Texture_Id) {
+	assert(element != nil)
 	element.config.capability_flags |= {.Image}
 	element.config.content.texture_id = texture_id
 }
 
 @(require_results)
 calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
-	if len(element.children) == 0 {
-		return 0
-	} else {
+
+	result: f32 = 0
+	if len(element.children) > 0 {
 		// Only flow children counts towards the child_gap
 		flow_children: int
 		for child in element.children {
@@ -232,8 +234,11 @@ calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
 				flow_children += 1
 			}
 		}
-		return f32(flow_children - 1) * element.config.layout.child_gap
+		result = f32(flow_children - 1) * element.config.layout.child_gap
 	}
+
+	assert(result >= 0)
+	return result
 }
 
 
@@ -241,6 +246,8 @@ calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
 // helps much since the layout algorithm needs to update per axis anyway.
 @(require_results)
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
+	assert(element != nil)
+
 	padding := element.config.layout.padding
 	border := element.config.layout.border
 	padding_sum := get_padding_sum_for_axis(padding, axis)
@@ -276,8 +283,11 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 
 	// Add padding and borders
 	total_size := content_size + padding_sum + border_sum
+
 	// Clamp to min/max size constraints
 	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
+
+	assert(total_size >= 0)
 	return total_size
 }
 
