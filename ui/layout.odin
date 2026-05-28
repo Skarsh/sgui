@@ -271,20 +271,23 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f3
 		}
 	}
 
+	total_size: f32
 	// Also consider text content size (text_content_size already includes padding + border)
 	if .Text in element.config.capability_flags {
 		content_size = max(
 			content_size + padding_sum + border_sum,
 			element.text_content_size[axis],
 		)
-		return math.clamp(content_size, element.min_size[axis], element.max_size[axis])
+
+		total_size = math.clamp(content_size, element.min_size[axis], element.max_size[axis])
+	} else {
+
+		// Add padding and borders
+		total_size = content_size + padding_sum + border_sum
+
+		// Clamp to min/max size constraints
+		total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
 	}
-
-	// Add padding and borders
-	total_size := content_size + padding_sum + border_sum
-
-	// Clamp to min/max size constraints
-	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
 
 	assert(total_size >= 0)
 	return total_size
