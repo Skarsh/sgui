@@ -177,7 +177,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		}
 
 		// --- 3. Define the Verification Logic ---
-		verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+		verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 			expected_layout_tree := Expected_Element {
 				id       = "root",
 				children = []Expected_Element {
@@ -267,7 +267,7 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		parent_pos := base.Vec2{0, 0}
 
 		// Top-Left
@@ -422,7 +422,7 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		parent_pos := base.Vec2{0, 0}
 
 		// Child Top-Left: Anchored at (0, 0)
@@ -545,7 +545,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		// Content box size
 		content_width :=

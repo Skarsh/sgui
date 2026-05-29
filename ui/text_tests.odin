@@ -65,7 +65,7 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		text_1_size := base.Vec2{4 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT}
 		text_2_size := base.Vec2{2 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT}
@@ -201,7 +201,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		text_width: f32 = 6 * MOCK_CHAR_WIDTH
 		text_height: f32 = MOCK_LINE_HEIGHT
 
@@ -259,7 +259,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		text_width: f32 = 3 * MOCK_CHAR_WIDTH
 		text_height: f32 = 2 * MOCK_LINE_HEIGHT
 
@@ -322,7 +322,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapp
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		padding := data.container_padding
 		container_size := base.Vec2{60, 2 * MOCK_LINE_HEIGHT + padding.top + padding.bottom}
 
@@ -392,7 +392,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		text_width: f32 = data.text_min_width
 		text_height: f32 = data.text_min_height
 
@@ -446,7 +446,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		expected_elements: [5]Expected_Element
 		width_offset: f32 = 0
 		for item, idx in data.items {
@@ -498,7 +498,7 @@ test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
 
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		text_width: f32 = f32(len(data.text) * MOCK_CHAR_WIDTH)
 		text_height: f32 = MOCK_LINE_HEIGHT

@@ -1114,21 +1114,17 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 
 // Helper to find an element in element hierarchy by id string
 @(require_results)
-find_element_by_string_id :: proc(ctx: ^Context, id: string) -> ^UI_Element {
+find_element_by_string_id :: proc(ctx: ^Context, id: string) -> (UI_Element, bool) {
 	key := ui_key_hash(id)
-	if element, ok := ctx.element_cache[key]; ok {
-		return element
-	}
-	return nil
+	element, ok := ctx.element_cache[key]
+	return element^, ok
 }
 
 // Helper to find an element in element hierarchy by key
 @(require_results)
-find_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> ^UI_Element {
-	if element, ok := ctx.element_cache[key]; ok {
-		return element
-	}
-	return nil
+find_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> (UI_Element, bool) {
+	element, ok := ctx.element_cache[key]
+	return element^, ok
 }
 
 

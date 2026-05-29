@@ -89,7 +89,7 @@ MOCK_LINE_HEIGHT :: 10
 run_ui_test :: proc(
 	t: ^testing.T,
 	build_ui: proc(ctx: ^Context, data: ^$T),
-	verify: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^T),
+	verify: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^T),
 	data: ^T,
 	window_size := DEFAULT_TESTING_WINDOW_SIZE,
 ) {
@@ -102,21 +102,21 @@ run_ui_test :: proc(
 	build_ui(ctx, data)
 	end(ctx)
 
-	verify(t, ctx, ctx.root_element, data)
+	verify(t, ctx, ctx.root_element^, data)
 }
 
 expect_layout :: proc(
 	t: ^testing.T,
 	ctx: ^Context,
-	parent_element: ^UI_Element,
+	parent_element: UI_Element,
 	expected: Expected_Element,
 	epsilon: f32 = EPSILON,
 ) {
 	// Find the actual element in the UI tree corresponding to the expected ID
-	element_to_check := find_element_by_string_id(ctx, expected.id)
+	element_to_check, element_to_check_ok := find_element_by_string_id(ctx, expected.id)
 
 	// Fail the test if the element doesn't exist
-	if element_to_check == nil {
+	if !element_to_check_ok {
 		testing.fail_now(t, fmt.tprintf("Element with id '%s' not found in layout", expected.id))
 	}
 

@@ -139,8 +139,8 @@ scrollbar :: proc(
 	axis: Axis2 = .Y,
 	style: Style = {},
 ) -> Comm {
-	target := find_element_by_string_id(ctx, target_id)
-	if target == nil {
+	target, target_ok := find_element_by_string_id(ctx, target_id)
+	if !target_ok {
 		return Comm{}
 	}
 

@@ -83,7 +83,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Parent position and size
 		parent_pos := base.Vec2{0, 0}
 		parent_size := data.parent_size
@@ -202,7 +202,7 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		parent_pos := base.Vec2{0, 0}
 		parent_size := data.parent_size
 
@@ -301,7 +301,7 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Parent is offset by its margin from grandparent's content area
 		parent_pos := base.Vec2{data.parent_margin.left, data.parent_margin.top}
 
@@ -420,7 +420,7 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		parent_pos := base.Vec2{0, 0}
 
 		// Child 1 position: parent start + left margin

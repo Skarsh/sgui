@@ -40,7 +40,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := base.Vec2 {
 			f32(DEFAULT_TESTING_WINDOW_SIZE.x),
@@ -148,7 +148,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -296,7 +296,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -440,7 +440,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	verify_proc :: proc(
 		t: ^testing.T,
 		ctx: ^Context,
-		root: ^UI_Element,
+		root: UI_Element,
 		data: ^Test_Grow_Sizing_Ltr_Context,
 	) {
 		inner_panel_w :=
@@ -573,7 +573,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		container_1_size := base.Vec2 {
 			data.container_1_max_value,
 			data.panel_size.y -
@@ -697,7 +697,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		inner_panel_w :=
 			data.panel_size.x -
@@ -827,7 +827,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		container_1_size := base.Vec2 {
 			data.panel_size.x -
 			data.panel_padding.left -
@@ -961,7 +961,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		// --- Primary Axis Calculation (X-axis) ---
 		num_children := 3
@@ -1144,7 +1144,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		// --- Primary Axis Calculation (Y-axis) ---
 		num_children := 3
@@ -1295,7 +1295,7 @@ test_grow_sizing_equal_factors_reach_equal_size_ltr :: proc(t: ^testing.T) {
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		parent_pos := base.Vec2{0, 0}
 		parent_size := base.Vec2{data.parent_width, data.parent_height}
 
@@ -1410,7 +1410,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		available_width :=
 			data.panel_size.x -
@@ -1550,7 +1550,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 
 		available_height :=
 			data.panel_size.y -
@@ -1687,7 +1687,7 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		inner_width :=
 			data.parent_width -
 			data.parent_padding.left -
@@ -1823,7 +1823,7 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		inner_width :=
 			data.parent_width -
 			data.parent_padding.left -
@@ -1949,7 +1949,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		main_container_pos := base.Vec2{0, 0}
 		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
 
@@ -2089,7 +2089,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		main_container_pos := base.Vec2{0, 0}
 		main_container_size := base.Vec2{data.main_container_width, data.main_container_height}
 
@@ -2248,7 +2248,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -2366,7 +2366,7 @@ test_fit_sizing_respects_max_size_constraint :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -2454,7 +2454,7 @@ test_fit_sizing_respects_min_size_constraint :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		root_pos := base.Vec2{0, 0}
 		root_size := data.root_size
 
@@ -2531,7 +2531,7 @@ test_text_element_size_includes_border :: proc(t: ^testing.T) {
 	}
 
 	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Calculate expected size:
 		text_width: f32 = 6 * MOCK_LINE_HEIGHT // "Button" = 6 chars
 		text_height: f32 = MOCK_LINE_HEIGHT
@@ -2612,7 +2612,7 @@ test_grow_equal_factors :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		expect_layout(
 			t,
 			ctx,
@@ -2672,7 +2672,7 @@ test_grow_weighted_factors :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		expect_layout(
 			t,
 			ctx,
@@ -2727,7 +2727,7 @@ test_shrink_proportional_to_factor :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Fixed sizing doesn't participate in shrink, so children keep their sizes
 		// The panel just doesn't have enough space, but fixed children don't shrink
 		expect_layout(
@@ -2777,7 +2777,7 @@ test_shrink_grow_elements :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Both grow elements split the space equally
 		expect_layout(
 			t,
@@ -2838,7 +2838,7 @@ test_zero_grow_factor_excluded :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// c2 with factor=0 stays at 0, c1 and c3 split the 400px equally
 		expect_layout(
 			t,
@@ -2897,7 +2897,7 @@ test_weighted_grow_with_max_constraint :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// c1 hits max at 100, c2 gets the rest (300)
 		expect_layout(
 			t,
@@ -2953,7 +2953,7 @@ test_all_zero_factors :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Both have factor=0, so no grow distribution; they stay at initial size (0)
 		expect_layout(
 			t,
@@ -3014,7 +3014,7 @@ test_weighted_grow_ttb :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// factors [1,2,1] on Y axis, 400px => [100, 200, 100]
 		expect_layout(
 			t,
@@ -3093,7 +3093,7 @@ test_anchored_fit_ltr :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Child gap has no effect because even though there are two children, only one of them
 		// is flow, meaning total child gap is 0
 		expected_panel_size := base.Vec2 {
@@ -3187,7 +3187,7 @@ test_anchored_fit_ttb :: proc(t: ^testing.T) {
 		)
 	}
 
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: ^UI_Element, data: ^Test_Data) {
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
 		// Child gap has no effect because even though there are two children, only one of them
 		// is flow meaning total child gap is 0
 		expected_panel_size := base.Vec2 {
