@@ -870,8 +870,9 @@ get_axis_padding :: proc(padding: Padding) -> base.Vec2 {
 get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return padding.left, padding.right
+	} else {
+		return padding.top, padding.bottom
 	}
-	return padding.top, padding.bottom
 }
 
 // Generic helper for summing box values (padding, border, margin) for a given axis
@@ -879,8 +880,9 @@ get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 get_box_sum_for_axis :: proc(box: Box, axis: Axis2) -> f32 {
 	if axis == .X {
 		return box.left + box.right
+	} else {
+		return box.top + box.bottom
 	}
-	return box.top + box.bottom
 }
 
 @(require_results)
@@ -905,8 +907,10 @@ get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
 get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return margin.left, margin.right
+	} else {
+
+		return margin.top, margin.bottom
 	}
-	return margin.top, margin.bottom
 }
 
 @(require_results)
@@ -924,12 +928,14 @@ get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) ->
 
 @(require_results)
 has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
+	result := false
 	for child in element.children {
 		if child.config.layout.position_mode == .Flow {
-			return true
+			result = true
+			break
 		}
 	}
-	return false
+	return result
 }
 
 layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
