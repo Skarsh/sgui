@@ -103,7 +103,8 @@ deinit :: proc(ctx: ^Context) {
 
 	deinit_interaction(&ctx.interaction)
 
-	free_list := make([dynamic]^UI_Element, context.temp_allocator)
+	free_list, alloc_err := make([dynamic]^UI_Element, context.temp_allocator)
+	assert(alloc_err == .None)
 	defer free_all(context.temp_allocator)
 
 	for _, elem in ctx.element_cache {
@@ -131,8 +132,11 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 begin :: proc(ctx: ^Context) -> bool {
 	ctx.frame_idx += 1
 
-	free_all(ctx.frame_allocator)
-	free_all(ctx.draw_cmd_allocator)
+	free_frame_alloc_err := free_all(ctx.frame_allocator)
+	assert(free_frame_alloc_err == .None)
+
+	free_draw_cmd_alloc_err := free_all(ctx.draw_cmd_allocator)
+	assert(free_draw_cmd_alloc_err == .None)
 
 	reset_interaction(&ctx.interaction)
 	reset_draw_state(&ctx.draw_state, ctx.window_size)
