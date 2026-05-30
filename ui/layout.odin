@@ -453,7 +453,12 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 	padding_sum := get_padding_sum_for_axis(padding, axis)
 	border_sum := get_border_sum_for_axis(border, axis)
 
-	remaining_size := element.size[axis] - padding_sum - border_sum
+	remaining_size := math.clamp(
+		element.size[axis] - padding_sum - border_sum,
+		0,
+		element.size[axis],
+	)
+
 	assert(remaining_size >= 0)
 	return remaining_size
 }
@@ -920,10 +925,14 @@ get_margin_sum_for_axis :: proc(margin: Margin, axis: Axis2) -> f32 {
 
 @(require_results)
 get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) -> base.Vec2 {
-	return {
-		size.x - padding.left - padding.right - border.left - border.right,
-		size.y - padding.top - padding.bottom - border.top - border.bottom,
-	}
+	available_x := size.x - padding.left - padding.right - border.left - border.right
+	available_y := size.y - padding.top - padding.bottom - border.top - border.bottom
+	result := base.Vec2{math.clamp(available_x, 0, size.x), math.clamp(available_y, 0, size.y)}
+
+	assert(result.x >= 0)
+	assert(result.y >= 0)
+
+	return result
 }
 
 @(require_results)
