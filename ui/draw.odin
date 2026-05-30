@@ -17,7 +17,9 @@ Draw_State :: struct {
 }
 
 init_draw_state :: proc(draw_state: ^Draw_State, allocator: mem.Allocator) {
-	draw_state.command_queue = make([dynamic]Draw_Command, allocator)
+	alloc_err: mem.Allocator_Error
+	draw_state.command_queue, alloc_err = make([dynamic]Draw_Command, allocator)
+	assert(alloc_err == .None)
 }
 
 reset_draw_state :: proc(draw_state: ^Draw_State, window_size: base.Vector2i32) {
@@ -36,7 +38,8 @@ push_draw_command :: proc(draw_state: ^Draw_State, command: Command, z_offset: i
 		clip_rect = draw_state.current_clip_rect,
 		command   = command,
 	}
-	append(&draw_state.command_queue, draw_cmd)
+	_, alloc_err := append(&draw_state.command_queue, draw_cmd)
+	assert(alloc_err == .None)
 }
 
 Draw_Command :: struct {
@@ -81,93 +84,109 @@ Command_Shape :: struct {
 }
 
 draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
-	if element == nil {
-		return
-	}
+	assert(draw_state != nil)
+	assert(element != nil)
 
-	// NOTE(Thomas): Store the previous clip to restore it after processing this element
-	// and its children
-	prev_clip_rect := draw_state.current_clip_rect
+	if element != nil && draw_state != nil {
 
-	clip_config := element.config.clip
-	should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
+		// NOTE(Thomas): Store the previous clip to restore it after processing this element
+		// and its children
+		prev_clip_rect := draw_state.current_clip_rect
 
-	if should_clip {
-		new_constraint := base.Rect {
-			x = i32(element.position.x),
-			y = i32(element.position.y),
-			w = i32(element.size.x),
-			h = i32(element.size.y),
-		}
+		clip_config := element.config.clip
+		should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
 
-		//NOTE(Thomas): If X clipping is disabled, we ignore the elements's width constraint
-		// and use the the parent's width constraint instead.
-		if !clip_config.clip_axes.x {
-			new_constraint.x = prev_clip_rect.x
-			new_constraint.w = prev_clip_rect.w
-		}
-
-		//NOTE(Thomas): If Y clipping is disabled, we ignore the elements's height constraint
-		// and use the the parent's height constraint instead.
-		if !clip_config.clip_axes.y {
-			new_constraint.y = prev_clip_rect.y
-			new_constraint.h = prev_clip_rect.h
-		}
-
-		draw_state.current_clip_rect = base.intersect_rects(prev_clip_rect, new_constraint)
-	}
-
-	cap_flags := element.config.capability_flags
-	final_bg_fill := element.fill
-
-	last_comm := element.last_comm
-
-
-	// TODO(Thomas): Click could have an embossed / debossed animation effect instead.
-	// There's lots left to figure out for hot and active too, it could be highlighted with
-	// a border instead or many other things. This is a temporary a solution.
-	switch fill in final_bg_fill {
-	case base.Color:
-		color := fill
-		if .Hot_Animation in cap_flags {
-			hot_color := default_color_style[.Hot]
-			color = base.lerp_color(color, hot_color, element.hot)
-		}
-
-		if .Active_Animation in cap_flags {
-			active_color := default_color_style[.Active]
-			color = base.lerp_color(color, active_color, element.active)
-		}
-
-		if .Clickable in cap_flags {
-			if last_comm.held {
-				color = default_color_style[.Click]
+		if should_clip {
+			new_constraint := base.Rect {
+				x = i32(element.position.x),
+				y = i32(element.position.y),
+				w = i32(element.size.x),
+				h = i32(element.size.y),
 			}
-		}
-		final_bg_fill = color
-	case base.Gradient:
-		gradient := fill
 
-		if .Hot_Animation in cap_flags {
-			hot_color := default_color_style[.Hot]
-			gradient.color_start = base.lerp_color(gradient.color_start, hot_color, element.hot)
-			gradient.color_end = base.lerp_color(gradient.color_end, hot_color, element.hot)
-		}
+			//NOTE(Thomas): If X clipping is disabled, we ignore the elements's width constraint
+			// and use the the parent's width constraint instead.
+			if !clip_config.clip_axes.x {
+				new_constraint.x = prev_clip_rect.x
+				new_constraint.w = prev_clip_rect.w
+			}
 
-		if .Active_Animation in cap_flags {
-			active_color := default_color_style[.Active]
-			gradient.color_start = base.lerp_color(
-				gradient.color_start,
-				active_color,
-				element.active,
-			)
-			gradient.color_end = base.lerp_color(gradient.color_end, active_color, element.active)
+			//NOTE(Thomas): If Y clipping is disabled, we ignore the elements's height constraint
+			// and use the the parent's height constraint instead.
+			if !clip_config.clip_axes.y {
+				new_constraint.y = prev_clip_rect.y
+				new_constraint.h = prev_clip_rect.h
+			}
+
+			draw_state.current_clip_rect = base.intersect_rects(prev_clip_rect, new_constraint)
 		}
 
-		if .Clickable in cap_flags {
-			if last_comm.held {
-				click_color := default_color_style[.Click]
-				final_bg_fill = click_color
+		cap_flags := element.config.capability_flags
+		final_bg_fill := element.fill
+
+		last_comm := element.last_comm
+
+
+		// TODO(Thomas): Click could have an embossed / debossed animation effect instead.
+		// There's lots left to figure out for hot and active too, it could be highlighted with
+		// a border instead or many other things. This is a temporary a solution.
+		switch fill in final_bg_fill {
+		case base.Color:
+			color := fill
+			if .Hot_Animation in cap_flags {
+				hot_color := default_color_style[.Hot]
+				color = base.lerp_color(color, hot_color, element.hot)
+			}
+
+			if .Active_Animation in cap_flags {
+				active_color := default_color_style[.Active]
+				color = base.lerp_color(color, active_color, element.active)
+			}
+
+			if .Clickable in cap_flags {
+				if last_comm.held {
+					color = default_color_style[.Click]
+				}
+			}
+			final_bg_fill = color
+		case base.Gradient:
+			gradient := fill
+
+			if .Hot_Animation in cap_flags {
+				hot_color := default_color_style[.Hot]
+				gradient.color_start = base.lerp_color(
+					gradient.color_start,
+					hot_color,
+					element.hot,
+				)
+				gradient.color_end = base.lerp_color(gradient.color_end, hot_color, element.hot)
+			}
+
+			if .Active_Animation in cap_flags {
+				active_color := default_color_style[.Active]
+				gradient.color_start = base.lerp_color(
+					gradient.color_start,
+					active_color,
+					element.active,
+				)
+				gradient.color_end = base.lerp_color(
+					gradient.color_end,
+					active_color,
+					element.active,
+				)
+			}
+
+			if .Clickable in cap_flags {
+				if last_comm.held {
+					click_color := default_color_style[.Click]
+					final_bg_fill = click_color
+				} else {
+					final_bg_fill = base.fill_gradient(
+						gradient.color_start,
+						gradient.color_end,
+						gradient.direction,
+					)
+				}
 			} else {
 				final_bg_fill = base.fill_gradient(
 					gradient.color_start,
@@ -175,134 +194,128 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 					gradient.direction,
 				)
 			}
-		} else {
-			final_bg_fill = base.fill_gradient(
-				gradient.color_start,
-				gradient.color_end,
-				gradient.direction,
-			)
 		}
-	}
 
-	if .Background in element.config.capability_flags {
-		draw_rect(
-			draw_state,
-			base.Rect {
-				i32(element.position.x),
-				i32(element.position.y),
-				i32(element.size.x),
-				i32(element.size.y),
-			},
-			final_bg_fill,
-			element.config.layout.border_radius,
-			border = Border{},
-			border_fill = base.fill_color(0, 0, 0, 0),
-			z_offset = 0,
-		)
-	}
-
-	if .Image in cap_flags {
-		if texture_id, has_texture := element.config.content.texture_id.?; has_texture {
-			draw_image(
+		if .Background in element.config.capability_flags {
+			draw_rect(
 				draw_state,
-				element.position.x,
-				element.position.y,
-				element.size.x,
-				element.size.y,
-				texture_id,
-				// Base layer
+				base.Rect {
+					i32(element.position.x),
+					i32(element.position.y),
+					i32(element.size.x),
+					i32(element.size.y),
+				},
+				final_bg_fill,
+				element.config.layout.border_radius,
+				border = Border{},
+				border_fill = base.fill_color(0, 0, 0, 0),
 				z_offset = 0,
 			)
 		}
-	}
 
-	if .Text in cap_flags {
-		padding := element.config.layout.padding
-		content_area_x := element.position.x + padding.left
-		content_area_y := element.position.y + padding.top
-		content_area_w := element.size.x - padding.left - padding.right
-		content_area_h := element.size.y - padding.top - padding.bottom
-
-		text_layout := element.config.content.text_data.text_layout
-
-		// Calculate the initial vertical offset for the whole block based on Aligment_Y
-		start_y: f32 = content_area_y
-		switch element.config.layout.text_alignment_y {
-		case .Top:
-			// Default, no change
-			start_y = content_area_y
-		case .Center:
-			start_y = content_area_y + (content_area_h - text_layout.size.y) / 2
-		case .Bottom:
-			start_y = content_area_y + (content_area_h - text_layout.size.y)
+		if .Image in cap_flags {
+			if texture_id, has_texture := element.config.content.texture_id.?; has_texture {
+				draw_image(
+					draw_state,
+					element.position.x,
+					element.position.y,
+					element.size.x,
+					element.size.y,
+					texture_id,
+					// Base layer
+					z_offset = 0,
+				)
+			}
 		}
 
-		// Iterate through each line and draw it with the correct X and Y
-		current_y := start_y
+		if .Text in cap_flags {
+			padding := element.config.layout.padding
+			content_area_x := element.position.x + padding.left
+			content_area_y := element.position.y + padding.top
+			content_area_w := element.size.x - padding.left - padding.right
+			content_area_h := element.size.y - padding.top - padding.bottom
 
-		for row in text_layout.rows {
-			start_x: f32 = content_area_x
-			switch element.config.layout.text_alignment_x {
-			case .Left:
+			text_layout := element.config.content.text_data.text_layout
+
+			// Calculate the initial vertical offset for the whole block based on Aligment_Y
+			start_y: f32 = content_area_y
+			switch element.config.layout.text_alignment_y {
+			case .Top:
 				// Default, no change
-				start_x = content_area_x
+				start_y = content_area_y
 			case .Center:
-				start_x = content_area_x + (content_area_w - row.size.x) / 2
-			case .Right:
-				start_x = content_area_x + (content_area_w - row.size.x)
+				start_y = content_area_y + (content_area_h - text_layout.size.y) / 2
+			case .Bottom:
+				start_y = content_area_y + (content_area_h - text_layout.size.y)
 			}
 
-			draw_text(
+			// Iterate through each line and draw it with the correct X and Y
+			current_y := start_y
+
+			for row in text_layout.rows {
+				start_x: f32 = content_area_x
+				switch element.config.layout.text_alignment_x {
+				case .Left:
+					// Default, no change
+					start_x = content_area_x
+				case .Center:
+					start_x = content_area_x + (content_area_w - row.size.x) / 2
+				case .Right:
+					start_x = content_area_x + (content_area_w - row.size.x)
+				}
+
+				draw_text(
+					draw_state,
+					start_x,
+					current_y,
+					text_layout.glyphs[row.glyph_range.start:row.glyph_range.end],
+					element.config.text_fill,
+					z_offset = 0,
+				)
+				current_y += row.size.y
+			}
+		}
+
+		if .Shape in cap_flags {
+			draw_shape(
 				draw_state,
-				start_x,
-				current_y,
-				text_layout.glyphs[row.glyph_range.start:row.glyph_range.end],
-				element.config.text_fill,
+				base.Rect {
+					i32(element.position.x),
+					i32(element.position.y),
+					i32(element.size.x),
+					i32(element.size.y),
+				},
+				element.config.content.shape_data,
 				z_offset = 0,
 			)
-			current_y += row.size.y
 		}
-	}
 
-	if .Shape in cap_flags {
-		draw_shape(
-			draw_state,
-			base.Rect {
-				i32(element.position.x),
-				i32(element.position.y),
-				i32(element.size.x),
-				i32(element.size.y),
-			},
-			element.config.content.shape_data,
-			z_offset = 0,
-		)
-	}
+		epsilon: f32 = 0.001
+		border := element.config.layout.border
+		border_sum := border.left + border.right + border.top + border.bottom
+		if .Background in cap_flags && border_sum > (0 + epsilon) {
+			draw_rect(
+				draw_state,
+				base.Rect {
+					i32(element.position.x),
+					i32(element.position.y),
+					i32(element.size.x),
+					i32(element.size.y),
+				},
+				base.fill_color(0, 0, 0, 0),
+				element.config.layout.border_radius,
+				element.config.layout.border,
+				element.config.border_fill,
+				z_offset = 1,
+			)
+		}
 
-	epsilon: f32 = 0.001
-	border := element.config.layout.border
-	border_sum := border.left + border.right + border.top + border.bottom
-	if .Background in cap_flags && border_sum > (0 + epsilon) {
-		draw_rect(
-			draw_state,
-			base.Rect {
-				i32(element.position.x),
-				i32(element.position.y),
-				i32(element.size.x),
-				i32(element.size.y),
-			},
-			base.fill_color(0, 0, 0, 0),
-			element.config.layout.border_radius,
-			element.config.layout.border,
-			element.config.border_fill,
-			z_offset = 1,
-		)
-	}
+		for child in element.children {
+			draw_element(draw_state, child)
+		}
 
-	for child in element.children {
-		draw_element(draw_state, child)
+		draw_state.current_clip_rect = prev_clip_rect
 	}
-
-	draw_state.current_clip_rect = prev_clip_rect
 }
 
 draw_all_elements :: proc(draw_state: ^Draw_State, root_element: ^UI_Element) {
