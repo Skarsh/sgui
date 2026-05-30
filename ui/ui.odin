@@ -185,7 +185,7 @@ end :: proc(ctx: ^Context) {
 	size_children_on_cross_axis(ctx.root_element, .X)
 
 	// Resolve dependent widths
-	resolve_dependent_sizes_for_axis(ctx.root_element, .X)
+	resolve_dependent_sizes_for_axis(ctx.root_element, .X, ctx.frame_allocator)
 
 	// Wrap text
 	wrap_text(ctx, ctx.root_element, ctx.frame_allocator)
@@ -197,7 +197,7 @@ end :: proc(ctx: ^Context) {
 	size_children_on_cross_axis(ctx.root_element, .Y)
 
 	// Reolve dependent heights
-	resolve_dependent_sizes_for_axis(ctx.root_element, .Y)
+	resolve_dependent_sizes_for_axis(ctx.root_element, .Y, ctx.frame_allocator)
 
 	calculate_positions_and_alignment(ctx.root_element, ctx.dt)
 

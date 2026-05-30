@@ -410,6 +410,7 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	}
 }
 
+// TODO(Thomas): Remove early returns to simplify control flow
 update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 	parent := element.parent
 
@@ -491,133 +492,137 @@ get_main_and_cross_axis :: proc(
 }
 
 size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
-	if element == nil {
-		return
-	}
+	assert(element != nil)
 
-	if element.config.layout.sizing[axis].kind == .Fit && !is_main_axis(element^, axis) {
-		content_size_on_axis := calc_remaining_size(element^, axis)
-		for child in element.children {
-			child_sizing_kind := child.config.layout.sizing[axis].kind
-			if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage {
-				child.size[axis] = clamp(
-					content_size_on_axis,
-					child.min_size[axis],
-					child.max_size[axis],
-				)
+	if element != nil {
+		if element.config.layout.sizing[axis].kind == .Fit && !is_main_axis(element^, axis) {
+			content_size_on_axis := calc_remaining_size(element^, axis)
+			for child in element.children {
+				child_sizing_kind := child.config.layout.sizing[axis].kind
+				if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage {
+					child.size[axis] = clamp(
+						content_size_on_axis,
+						child.min_size[axis],
+						child.max_size[axis],
+					)
+				}
 			}
 		}
-	}
 
-	for child in element.children {
-		size_children_on_cross_axis(child, axis)
+		for child in element.children {
+			size_children_on_cross_axis(child, axis)
+		}
 	}
 }
 
 
 // Target-based distribution: elements are sized to match their factor ratios
 // e.g., factors 1:2:1 in 400px → sizes 100:200:100
+// The caller passing in the allocator has the responsibility of freeing the allocated memory.
 RESIZE_ITER_MAX :: 32
-resolve_grow_sizes_for_children :: proc(element: ^UI_Element, axis: Axis2) {
+resolve_grow_sizes_for_children :: proc(
+	element: ^UI_Element,
+	axis: Axis2,
+	allocator: mem.Allocator,
+) {
 
-	if !has_flow_children(element^) {
-		return
-	}
+	if has_flow_children(element^) {
+		resizables := make([dynamic]^UI_Element, allocator)
+		main_axis := is_main_axis(element^, axis)
 
-	resizables := make([dynamic]^UI_Element, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	main_axis := is_main_axis(element^, axis)
+		if main_axis {
+			padding := element.config.layout.padding
+			border := element.config.layout.border
+			padding_sum := get_padding_sum_for_axis(padding, axis)
+			border_sum := get_border_sum_for_axis(border, axis)
+			child_gap := calc_child_gap(element^)
 
-	if main_axis {
-		padding := element.config.layout.padding
-		border := element.config.layout.border
-		padding_sum := get_padding_sum_for_axis(padding, axis)
-		border_sum := get_border_sum_for_axis(border, axis)
-		child_gap := calc_child_gap(element^)
-
-		// Calculate space used by non-grow elements
-		fixed_space: f32 = padding_sum + border_sum + child_gap
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				if child.config.layout.sizing[axis].kind != .Grow {
-					fixed_space += child.size[axis]
-				}
-			}
-		}
-
-		// Available space for grow elements
-		available_for_grow := element.size[axis] - fixed_space
-
-		// Collect grow elements with positive factor
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				if child.config.layout.sizing[axis].kind == .Grow {
-					factor := child.config.layout.sizing[axis].grow_factor
-					if factor > 0 {
-						append(&resizables, child)
+			// Calculate space used by non-grow elements
+			fixed_space: f32 = padding_sum + border_sum + child_gap
+			for child in element.children {
+				if child.config.layout.position_mode == .Flow {
+					if child.config.layout.sizing[axis].kind != .Grow {
+						fixed_space += child.size[axis]
 					}
 				}
 			}
-		}
 
-		if len(resizables) == 0 {
-			return
-		}
+			// Available space for grow elements
+			available_for_grow := element.size[axis] - fixed_space
 
-		// Iteratively assign target sizes, handling constraints
-		resize_iter := 0
-		for resize_iter < RESIZE_ITER_MAX && len(resizables) > 0 {
-			resize_iter += 1
-
-			// Calculate total factor for current resizables
-			total_factor: f32 = 0
-			for child in resizables {
-				total_factor += child.config.layout.sizing[axis].grow_factor
-			}
-
-			if base.approx_equal(total_factor, 0, EPSILON) {
-				break
-			}
-
-			any_clamped := false
-
-			// Calculate and apply target sizes
-			#reverse for child, idx in resizables {
-				child_factor := child.config.layout.sizing[axis].grow_factor
-				target_size := (child_factor / total_factor) * available_for_grow
-				clamped_size := clamp(target_size, child.min_size[axis], child.max_size[axis])
-
-				child.size[axis] = clamped_size
-
-				// If clamped, remove from pool and adjust available space
-				if !base.approx_equal(clamped_size, target_size, EPSILON) {
-					unordered_remove(&resizables, idx)
-					available_for_grow -= clamped_size
-					any_clamped = true
+			// Collect grow elements with positive factor
+			for child in element.children {
+				if child.config.layout.position_mode == .Flow {
+					if child.config.layout.sizing[axis].kind == .Grow {
+						factor := child.config.layout.sizing[axis].grow_factor
+						if factor > 0 {
+							append(&resizables, child)
+						}
+					}
 				}
 			}
 
-			// If no constraints were hit, we're done
-			if !any_clamped {
-				break
-			}
-		}
+			if len(resizables) > 0 {
+				// Iteratively assign target sizes, handling constraints
+				resize_iter := 0
+				for resize_iter < RESIZE_ITER_MAX && len(resizables) > 0 {
+					resize_iter += 1
 
-	} else {
-		remaining_size := calc_remaining_size(element^, axis)
-		// Cross axis
-		for child in element.children {
-			// In then non-primary axis case, the child should just grow
-			// or shrink to match the size of the parent in that direction.
-			size_kind := child.config.layout.sizing[axis].kind
-			if size_kind == .Grow {
-				// This works because if remaining_size is positive, we're growing
-				// and we'll add size to the child.
-				// If remaining_size is negative, we need to shrink the child
-				// so we'll be adding a negative number to the size, effectively shrinking it.
-				new_size := child.size[axis] + (remaining_size - child.size[axis])
-				// Restricting the child size to be within it's min and max size
-				child.size[axis] = clamp(new_size, child.min_size[axis], child.max_size[axis])
+					// Calculate total factor for current resizables
+					total_factor: f32 = 0
+					for child in resizables {
+						total_factor += child.config.layout.sizing[axis].grow_factor
+					}
+
+					if base.approx_equal(total_factor, 0, EPSILON) {
+						break
+					}
+
+					any_clamped := false
+
+					// Calculate and apply target sizes
+					#reverse for child, idx in resizables {
+						child_factor := child.config.layout.sizing[axis].grow_factor
+						target_size := (child_factor / total_factor) * available_for_grow
+						clamped_size := clamp(
+							target_size,
+							child.min_size[axis],
+							child.max_size[axis],
+						)
+
+						child.size[axis] = clamped_size
+
+						// If clamped, remove from pool and adjust available space
+						if !base.approx_equal(clamped_size, target_size, EPSILON) {
+							unordered_remove(&resizables, idx)
+							available_for_grow -= clamped_size
+							any_clamped = true
+						}
+					}
+
+					// If no constraints were hit, we're done
+					if !any_clamped {
+						break
+					}
+				}
+			}
+
+		} else {
+			remaining_size := calc_remaining_size(element^, axis)
+			// Cross axis
+			for child in element.children {
+				// In then non-primary axis case, the child should just grow
+				// or shrink to match the size of the parent in that direction.
+				size_kind := child.config.layout.sizing[axis].kind
+				if size_kind == .Grow {
+					// This works because if remaining_size is positive, we're growing
+					// and we'll add size to the child.
+					// If remaining_size is negative, we need to shrink the child
+					// so we'll be adding a negative number to the size, effectively shrinking it.
+					new_size := child.size[axis] + (remaining_size - child.size[axis])
+					// Restricting the child size to be within it's min and max size
+					child.size[axis] = clamp(new_size, child.min_size[axis], child.max_size[axis])
+				}
 			}
 		}
 	}
@@ -637,16 +642,20 @@ resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) 
 	}
 }
 
-resolve_dependent_sizes_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+resolve_dependent_sizes_for_axis :: proc(
+	element: ^UI_Element,
+	axis: Axis2,
+	allocator: mem.Allocator,
+) {
 	if element == nil {
 		return
 	}
 
 	resolve_percentage_sizes_for_children(element, axis)
-	resolve_grow_sizes_for_children(element, axis)
+	resolve_grow_sizes_for_children(element, axis, allocator)
 
 	for child in element.children {
-		resolve_dependent_sizes_for_axis(child, axis)
+		resolve_dependent_sizes_for_axis(child, axis, allocator)
 	}
 }
 
@@ -904,8 +913,9 @@ get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
 get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return border.left, border.right
+	} else {
+		return border.top, border.bottom
 	}
-	return border.top, border.bottom
 }
 
 @(require_results)
@@ -913,7 +923,6 @@ get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 	if axis == .X {
 		return margin.left, margin.right
 	} else {
-
 		return margin.top, margin.bottom
 	}
 }
