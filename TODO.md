@@ -17,8 +17,7 @@
 
 
 ## Bugs
-Adding assert on the `get_available_size` result triggers on several tests, meaning they have negative sizes.
-    - Need to figure out why, and whether it is expected behaviour.
+* scrollbar can't be dragged
 
 ## Backlog
 * Clearly document our "Box model"
