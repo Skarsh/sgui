@@ -83,13 +83,21 @@ paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
 		byte_pos += width
 
 		if r == '\n' {
-			append(paragraphs, Paragraph{text_range = {start = start, end = byte_pos}})
+			_, alloc_err := append(
+				paragraphs,
+				Paragraph{text_range = {start = start, end = byte_pos}},
+			)
+			assert(alloc_err == .None)
 			start = byte_pos
 		}
 	}
 
 	if start < byte_pos {
-		append(paragraphs, Paragraph{text_range = {start = start, end = len(text)}})
+		_, alloc_err := append(
+			paragraphs,
+			Paragraph{text_range = {start = start, end = len(text)}},
+		)
+		assert(alloc_err == .None)
 	}
 }
 
@@ -102,7 +110,8 @@ style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
 	text_run_end := 0
 	for &paragraph in paragraphs {
 		text_run_end += 1
-		append(text_runs, Text_Run{range = paragraph.text_range})
+		_, alloc_err := append(text_runs, Text_Run{range = paragraph.text_range})
+		assert(alloc_err == .None)
 		paragraph.text_run_range = base.Range {
 			start = text_run_start,
 			end   = text_run_end,
@@ -141,7 +150,8 @@ shaping :: proc(
 				glyph_end += 1
 				// TODO(Thomas): This will have to be cached of course.
 				codepoint_metrics := measure_codepoint_proc(r, FONT_ID, font_user_data)
-				append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
+				_, alloc_err := append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
+				assert(alloc_err == .None)
 			}
 		}
 		paragraph.glyph_range = base.Range {
@@ -168,10 +178,11 @@ find_linebreak_candidates :: proc(
 		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
 		for glyph in paragraph_glyphs {
 			if unicode.is_white_space(glyph.codepoint) {
-				append(
+				_, alloc_err := append(
 					linebreak_candidates,
 					Linebreak_Candidate{kind = .Word, glyph_idx = glyph_idx},
 				)
+				assert(alloc_err == .None)
 			}
 			glyph_idx += 1
 		}
@@ -244,7 +255,7 @@ layout_rows :: proc(
 					// We should probably have two different sizes here, one that is the size including the
 					// trailing whitespace for calculating hit tests etc, and one for the content width which
 					// would be used in cases where you don't want to show trailling whitespace.
-					append(
+					_, alloc_err := append(
 						rows,
 						Positioned_Row {
 							pos = {0, line_height_offset},
@@ -252,6 +263,7 @@ layout_rows :: proc(
 							glyph_range = {start = row_start, end = break_at_idx + 1},
 						},
 					)
+					assert(alloc_err == .None)
 
 					row_start = break_at_idx + 1
 					line_height_offset += line_height
@@ -266,7 +278,7 @@ layout_rows :: proc(
 			}
 		}
 
-		append(
+		_, alloc_err := append(
 			rows,
 			Positioned_Row {
 				pos = {0, line_height_offset},
@@ -274,6 +286,7 @@ layout_rows :: proc(
 				glyph_range = {start = row_start, end = paragraph.glyph_range.end},
 			},
 		)
+		assert(alloc_err == .None)
 		line_height_offset += line_height
 	}
 }
@@ -281,6 +294,8 @@ layout_rows :: proc(
 
 // TODO(Thomas): We need to think about good allocation strategies here,
 // can we get away with an arena, e.g. the frame arena?
+// TODO(Thomas): Too much allocation going on here would like to have pre-allocated, upper bounded
+// arrays come in instead maybe?
 // Don't return an instance of Text_Layout here? Take in ^Text_Layout instead?
 // It holds a slice into the rows, which is allocated by the passed in allocator,
 // so that lifetime needs to be made explicit and obvious at least.
@@ -303,13 +318,16 @@ layout_text :: proc(
 	)
 
 	// Minimal pipeline for now
-	paragraphs := make([dynamic]Paragraph, allocator)
+	paragraphs, paragraphs_alloc_err := make([dynamic]Paragraph, allocator)
+	assert(paragraphs_alloc_err == .None)
 	paragraph_segmentation(text, &paragraphs)
 
-	text_runs := make([dynamic]Text_Run, allocator)
+	text_runs, text_runs_alloc_err := make([dynamic]Text_Run, allocator)
+	assert(text_runs_alloc_err == .None)
 	style_analysis(paragraphs[:], &text_runs)
 
-	glyphs := make([dynamic]Glyph, allocator)
+	glyphs, glyphs_alloc_err := make([dynamic]Glyph, allocator)
+	assert(glyphs_alloc_err == .None)
 
 	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
 	bidi_analysis()
@@ -325,10 +343,15 @@ layout_text :: proc(
 
 	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
 	// and not on glyphs
-	linebreak_candidates := make([dynamic]Linebreak_Candidate, allocator)
+	linebreak_candidates, linebreak_candidates_alloc_err := make(
+		[dynamic]Linebreak_Candidate,
+		allocator,
+	)
+	assert(linebreak_candidates_alloc_err == .None)
 	find_linebreak_candidates(paragraphs[:], glyphs[:], &linebreak_candidates)
 
-	rows := make([dynamic]Positioned_Row, allocator)
+	rows, rows_alloc_err := make([dynamic]Positioned_Row, allocator)
+	assert(rows_alloc_err == .None)
 	layout_rows(
 		paragraphs[:],
 		glyphs[:],
