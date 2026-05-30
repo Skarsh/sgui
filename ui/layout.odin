@@ -1144,13 +1144,13 @@ find_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> (UI_Element, bool) {
 
 // Helper to print all the element_ids in the hierarchy
 print_element_hierarchy :: proc(root: ^UI_Element) {
-	if root == nil {
-		return
-	}
+	assert(root != nil)
 
-	log.infof("id: %v, size: %v, pos: %v", root.id_string, root.size, root.position)
+	if root != nil {
+		log.infof("id: %v, size: %v, pos: %v", root.id_string, root.size, root.position)
 
-	for child in root.children {
-		print_element_hierarchy(child)
+		for child in root.children {
+			print_element_hierarchy(child)
+		}
 	}
 }
