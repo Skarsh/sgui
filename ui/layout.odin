@@ -1097,26 +1097,31 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 }
 
 calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
-	if parent == nil {
-		return
-	}
+	assert(parent != nil)
 
-	base.animate_vec2(&parent.scroll_region.offset, &parent.scroll_region.target_offset, dt, 20.0)
+	if parent != nil {
+		base.animate_vec2(
+			&parent.scroll_region.offset,
+			&parent.scroll_region.target_offset,
+			dt,
+			20.0,
+		)
 
-	// Reset scroll content size for this frame
-	parent.scroll_region.content_size = {}
+		// Reset scroll content size for this frame
+		parent.scroll_region.content_size = {}
 
-	layout_children_in_flow(parent)
+		layout_children_in_flow(parent)
 
-	for child in parent.children {
-		if child.config.layout.position_mode == .Anchored {
-			layout_child_anchored(parent, child)
+		for child in parent.children {
+			if child.config.layout.position_mode == .Anchored {
+				layout_child_anchored(parent, child)
+			}
 		}
-	}
 
-	// Recursive step
-	for child in parent.children {
-		calculate_positions_and_alignment(child, dt)
+		// Recursive step
+		for child in parent.children {
+			calculate_positions_and_alignment(child, dt)
+		}
 	}
 }
 
