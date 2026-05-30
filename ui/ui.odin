@@ -207,38 +207,51 @@ end :: proc(ctx: ^Context) {
 
 	base.clear_input(ctx.interaction.input)
 
-	prune_dead_elements(ctx)
+	prune_dead_elements(
+		&ctx.element_cache,
+		ctx.frame_idx,
+		ctx.persistent_allocator,
+		ctx.frame_allocator,
+	)
 
 }
 
 // Prunes dead elements from the cache and the hierarchy
 // Dead elements are elements which hasn't been had their last_frame_idx
 // update in the last frame.
-prune_dead_elements :: proc(ctx: ^Context) {
+prune_dead_elements :: proc(
+	element_cache: ^map[UI_Key]^UI_Element,
+	frame_idx: u64,
+	persistent_allocator: mem.Allocator,
+	frame_allocator: mem.Allocator,
+) {
 	Elem :: struct {
 		key:   UI_Key,
 		value: ^UI_Element,
 	}
 
 	// Cannot alter map while iterating, so we make a free list
-	free_list := make([dynamic]Elem, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	for key, elem in ctx.element_cache {
+	free_list, alloc_err := make([dynamic]Elem, frame_allocator)
+	assert(alloc_err == .None)
+
+	for key, elem in element_cache {
 		if elem != nil {
-			if elem.last_frame_idx < ctx.frame_idx - 1 {
-				append(&free_list, Elem{key, elem})
+			if elem.last_frame_idx < frame_idx - 1 {
+				_, alloc_err = append(&free_list, Elem{key, elem})
+				assert(alloc_err == .None)
 			}
 		}
 	}
 
 	for elem in free_list {
-		delete_key(&ctx.element_cache, elem.key)
+		delete_key(element_cache, elem.key)
 		if elem.value != nil {
 			if elem.value.children != nil {
 				delete(elem.value.children)
 			}
 			delete(elem.value.id_string)
-			free(elem.value, ctx.persistent_allocator)
+			free_err := free(elem.value, persistent_allocator)
+			assert(free_err == .None)
 		}
 	}
 }
