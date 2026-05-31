@@ -174,7 +174,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(0.5),
 			background_fill = base.Color{255, 50, 50, 255},
-			margin = ui.margin_trbl(10, 0, 0, 0),
 		},
 	)
 
