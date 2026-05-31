@@ -17,7 +17,6 @@
 
 
 ## Bugs
-* scrollbar can't be dragged
 
 ## Backlog
 * Clearly document our "Box model"
