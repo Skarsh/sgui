@@ -79,7 +79,7 @@ hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result 
 				out.clickable = element
 			}
 
-			if out.scrollable == nil && .Scrollable in flags {
+			if out.scrollable == nil && (.Scrollable_X in flags || .Scrollable_Y in flags) {
 				out.scrollable = element
 			}
 
@@ -163,18 +163,21 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction) {
 
 apply_scroll :: proc(interaction: ^Interaction, scrollable: ^UI_Element) {
 	if scrollable != nil {
-		if math.abs(interaction.input.scroll_delta.y) > 0 {
-			// TODO(Thomas): This should probably be per element
-			SCROLL_SPEED :: 30.0
-			offset_delta := f32(interaction.input.scroll_delta.y) * SCROLL_SPEED
+		// Mouse wheel scrolling only makes sense in Y-axis
+		if .Scrollable_Y in scrollable.config.capability_flags {
+			if math.abs(interaction.input.scroll_delta.y) > 0 {
+				// TODO(Thomas): This should probably be per element
+				SCROLL_SPEED :: 30.0
+				offset_delta := f32(interaction.input.scroll_delta.y) * SCROLL_SPEED
 
-			scrollable.scroll_region.target_offset.y -= offset_delta
+				scrollable.scroll_region.target_offset.y -= offset_delta
 
-			scrollable.scroll_region.target_offset.y = math.clamp(
-				scrollable.scroll_region.target_offset.y,
-				0,
-				scrollable.scroll_region.max_offset.y,
-			)
+				scrollable.scroll_region.target_offset.y = math.clamp(
+					scrollable.scroll_region.target_offset.y,
+					0,
+					scrollable.scroll_region.max_offset.y,
+				)
+			}
 		}
 	}
 }

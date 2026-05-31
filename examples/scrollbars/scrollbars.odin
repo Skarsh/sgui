@@ -82,7 +82,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			padding = ui.padding_all(10),
 			child_gap = 5,
 			layout_direction = .Left_To_Right,
-			capability_flags = ui.Capability_Flags{.Scrollable},
+			capability_flags = ui.Capability_Flags{.Scrollable_X},
 			clip = ui.Clip_Config{{true, true}},
 		},
 	)
@@ -162,7 +162,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			child_gap = 5,
 			background_fill = base.Color{50, 50, 50, 255},
 			layout_direction = .Top_To_Bottom,
-			capability_flags = ui.Capability_Flags{.Scrollable},
+			capability_flags = ui.Capability_Flags{.Scrollable_Y},
 			clip = ui.Clip_Config{{true, true}},
 		},
 	)

@@ -49,7 +49,8 @@ Capability :: enum {
 	Hot_Animation,
 	Clickable,
 	Focusable,
-	Scrollable,
+	Scrollable_X,
+	Scrollable_Y,
 }
 
 Capability_Flags :: bit_set[Capability]

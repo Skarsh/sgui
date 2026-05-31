@@ -122,7 +122,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				layout_direction = ui.Layout_Direction.Top_To_Bottom,
 				child_gap = 8,
 				padding = ui.padding_all(10),
-				capability_flags = ui.Capability_Flags{.Scrollable},
+				capability_flags = ui.Capability_Flags{.Scrollable_Y},
 				clip = ui.Clip_Config{clip_axes = {true, true}},
 			},
 		)
