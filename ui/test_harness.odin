@@ -113,7 +113,7 @@ expect_layout :: proc(
 	epsilon: f32 = EPSILON,
 ) {
 	// Find the actual element in the UI tree corresponding to the expected ID
-	element_to_check, element_to_check_ok := find_element_by_string_id(ctx, expected.id)
+	element_to_check, element_to_check_ok := get_element_by_string_id(ctx, expected.id)
 
 	// Fail the test if the element doesn't exist
 	if !element_to_check_ok {

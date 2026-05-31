@@ -126,7 +126,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	// hopefully come directly from the creation of the container / widget. So we don't have to
 	// find it by id like here.
 	horizontal_boxes_wrapper_element, horizontal_boxes_wrapper_element_found :=
-		ui.find_element_by_string_id(ctx, "horizontal_boxes_wrapper")
+		ui.get_element_by_string_id(ctx, "horizontal_boxes_wrapper")
 	assert(horizontal_boxes_wrapper_element_found)
 
 	scroll_region := horizontal_boxes_wrapper_element.scroll_region
@@ -208,7 +208,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	// find it by id like here.
 
 	vertical_boxes_wrapper_element, vertical_boxes_wrapper_element_found :=
-		ui.find_element_by_string_id(ctx, "vertical_boxes_wrapper")
+		ui.get_element_by_string_id(ctx, "vertical_boxes_wrapper")
 	assert(vertical_boxes_wrapper_element_found)
 
 	vertical_boxes_scroll_region := vertical_boxes_wrapper_element.scroll_region
