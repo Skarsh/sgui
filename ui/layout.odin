@@ -1036,8 +1036,8 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 		// Update Scroll region and clamp offsets
 		// We always calculate bounds and clamp. If not scrollable, clear the scroll_region.
 		parent_flags := parent.config.capability_flags
-		if .Scrollable_X in parent_flags || .Scrollable_Y in parent_flags {
 
+		if .Scrollable_X in parent_flags || .Scrollable_Y in parent_flags {
 			parent.scroll_region.content_size[main_axis] = total_children_main
 			parent.scroll_region.content_size[cross_axis] = max_children_cross
 
@@ -1047,6 +1047,8 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 			parent.scroll_region.max_offset[main_axis] = max_offset_main
 			parent.scroll_region.max_offset[cross_axis] = max_offset_cross
 
+			// We always set the offset for both main axis and cross axis, even though
+			// one of the axis might not have the Scrollable capability set.
 			parent.scroll_region.offset[main_axis] = clamp(
 				parent.scroll_region.offset[main_axis],
 				0,
@@ -1058,6 +1060,16 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 				0,
 				max_offset_cross,
 			)
+
+			// Clear offset if one of them is not set, only one can not be set at a time.
+			if .Scrollable_X not_in parent_flags {
+				parent.scroll_region.offset.x = 0
+				parent.scroll_region.target_offset.x = 0
+			} else if .Scrollable_Y not_in parent_flags {
+				parent.scroll_region.offset.y = 0
+				parent.scroll_region.target_offset.y = 0
+			}
+
 		} else {
 			parent.scroll_region = Scroll_Region{}
 		}
