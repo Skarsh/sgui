@@ -793,7 +793,8 @@ make_element :: proc(
 		}
 
 
-		element.children = make([dynamic]^UI_Element, ctx.frame_allocator)
+		element.children, err = make([dynamic]^UI_Element, ctx.frame_allocator)
+		assert(err == .None)
 
 	} else {
 		// Cached Element
@@ -821,7 +822,8 @@ make_element :: proc(
 				log.error("failed to allocate memory for cloning id string")
 				return nil, false
 			}
-			element.children = make([dynamic]^UI_Element, ctx.persistent_allocator)
+			element.children, err = make([dynamic]^UI_Element, ctx.persistent_allocator)
+			assert(err == .None)
 			ctx.element_cache[key] = element
 		}
 	}
