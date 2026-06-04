@@ -47,3 +47,22 @@
 * Property testing
     When the API has somewhat stabilized we should add property testing, e.g. generate Layout scenarios and assert properties
     that we know are supposed to be true holds. Examples are parent elements should always be bigger than their children etc.
+
+* Consider "immediate" layout aswell as the deferred auto-layout we currently have.
+    - The idea is to have an easy way to describe right then and there imperatively in the code
+    the size and layout of an element, without having to go through the entire layout system.
+    This can be very handy and nice to have when having to describe things that needs to be dynamic, e.g.
+    put a circle at the top of the 'T' character on the button etc.
+    - We make functions from the layout system available for much of this, if somewhat altered probably, example is
+    "I want to right now layout 12 evenly spaced elements", that could use the same procedure to achieve that in
+    immediate layout as well as it would in the deferred layout we have now.
+    - Probably have to make a clear API
+    - This is powerful because then a user can imperatively describe how the element / layout should look for something
+        directly with just simple steps instead of trying to make this work through configuring hierarch of elements
+        to achieve the same thing.
+
+* Remove z-index integer from element, at least it should be f32, but probably just make position of element into a Vec3. 
+    This will make things simpler and much more powerful because then things can be animated etc.
+
+
+
