@@ -1063,6 +1063,18 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 				max_offset_cross,
 			)
 
+			parent.scroll_region.target_offset[main_axis] = clamp(
+				parent.scroll_region.target_offset[main_axis],
+				0,
+				max_offset_main,
+			)
+
+			parent.scroll_region.target_offset[cross_axis] = clamp(
+				parent.scroll_region.target_offset[cross_axis],
+				0,
+				max_offset_cross,
+			)
+
 			// Clear offset if one of them is not set, only one can not be set at a time.
 			if .Scrollable_X not_in parent_flags {
 				parent.scroll_region.offset.x = 0
