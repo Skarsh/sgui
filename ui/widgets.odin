@@ -1,7 +1,6 @@
 package ui
 
 import "core:fmt"
-import "core:log"
 import "core:math"
 
 import base "../base"
@@ -276,34 +275,22 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			caret_x_offset := metrics.width
 			caret_height := line_metrics.line_height
 
-			// CONTINUE HERE:
-			// The caret goes "off" the side when all the way to the right on the text input field.
-			// First thought is that this is due to not taking padding, border and margin into
-			// consideration.
+			start := element.scroll_region.offset.x
+			padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
+			border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
+			end := start + (element.size.x - padding_sum - border_sum)
 
-			// BUG(Thomas): When typing enough characters so that the caret and text goes way past the right side
-			// then hold backspace to delete will delete and move the caret towards the beginning for a while, then suddenly
-			// it stops and only the characters from the beginning "moves".
-
-			scroll_input_size := element.size
-			content_size := element.scroll_region.content_size
-			start := element.scroll_region.offset
-			end := start + scroll_input_size
-
-			log.info("start: ", start)
-			log.info("end: ", end)
-			log.info("caret_x_offset: ", caret_x_offset)
-
-			if caret_x_offset > end.x {
-				diff := caret_x_offset - end.x
+			if caret_x_offset > end {
+				diff := caret_x_offset - end
 				element.scroll_region.offset.x += diff
 				element.scroll_region.target_offset.x += diff
-			} else if caret_x_offset < start.x {
-				diff := start.x - caret_x_offset
+			} else if caret_x_offset < start {
+				diff := start - caret_x_offset
 				element.scroll_region.offset.x -= diff
 				element.scroll_region.target_offset.x -= diff
 			}
 
+			// TODO(Thomas): This way of doing the blinking is really bad.
 			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
 				// TODO(Thomas): Caret should be stylable
 				CARET_WIDTH :: 2.0
@@ -336,8 +323,8 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			selection_end := textpkg.selection_end(selection)
 
 			selection_offset_text := text_view[:selection_start]
-			// TODO(Thomas): HACK - Same measurement argument as above
 
+			// TODO(Thomas): HACK - Same measurement argument as above
 			selection_offset_metrics := ctx.interaction.text_measurement.measure_text_proc(
 				selection_offset_text,
 				ctx.font_id,
