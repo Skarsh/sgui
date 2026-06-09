@@ -12,8 +12,10 @@ Gap_Buffer :: struct {
 }
 
 init_gap_buffer :: proc(size: int, allocator: mem.Allocator) -> Gap_Buffer {
+	buf, alloc_err := make([]u8, size, allocator)
+	assert(alloc_err == .None)
 	gb := Gap_Buffer {
-		buf       = make([]u8, size, allocator),
+		buf       = buf,
 		start     = 0,
 		end       = size,
 		allocator = allocator,
@@ -28,7 +30,8 @@ deinit :: proc(gb: ^Gap_Buffer) {
 
 // Allocates using the passed in allocator
 get_text :: proc(gb: Gap_Buffer, allocator: mem.Allocator) -> string {
-	res := make([]u8, byte_length(gb), allocator)
+	res, alloc_err := make([]u8, byte_length(gb), allocator)
+	assert(alloc_err == .None)
 
 	// copy left
 	copy(res[:gb.start], gb.buf[:gb.start])

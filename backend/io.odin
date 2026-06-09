@@ -25,6 +25,14 @@ Platform_API :: struct {
 	),
 }
 
+assert_platform_api :: proc(platform_api: Platform_API) {
+	assert(platform_api.get_perf_counter != nil)
+	assert(platform_api.get_perf_freq != nil)
+	assert(platform_api.get_clipboard_text != nil)
+	assert(platform_api.set_clipboard_text != nil)
+	assert(platform_api.poll_events != nil)
+}
+
 App_Callbacks :: struct {
 	on_quit:      proc(user_data: rawptr),
 	on_quit_data: rawptr,
@@ -50,6 +58,7 @@ init_io :: proc(
 	app_callbacks: App_Callbacks,
 	allocator: mem.Allocator,
 ) -> bool {
+	assert_platform_api(platform_api)
 	io.frame_time.frequency = platform_api.get_perf_freq()
 	io.allocator = allocator
 	alloc_err := queue.init(&io.input_queue, 32, io.allocator)

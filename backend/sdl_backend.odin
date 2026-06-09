@@ -1,5 +1,8 @@
 package backend
 
+import "core:mem"
+import "core:strings"
+
 import sdl "vendor:sdl2"
 
 import "../base"
@@ -12,12 +15,21 @@ sdl_get_perf_freq :: proc() -> u64 {
 	return sdl.GetPerformanceFrequency()
 }
 
-sdl_get_clipboard_text :: proc() -> string {
-	return ""
+// TODO(Thomas): Error handling, return error type
+sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> string {
+	c_str := sdl.GetClipboardText()
+	defer sdl.free(cast(rawptr)c_str)
+
+	str, alloc_err := strings.clone_from_cstring(c_str, allocator)
+	assert(alloc_err == .None)
+	return str
 }
 
+// TODO(Thomas): Error handling, return error type
 sdl_set_clipboard_text :: proc(text: string) {
-
+	c_str := strings.unsafe_string_to_cstring(text)
+	err := sdl.SetClipboardText(c_str)
+	assert(err == 0)
 }
 
 // Window API implementations

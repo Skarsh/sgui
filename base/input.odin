@@ -1,6 +1,8 @@
 package base
 
-Get_Clipboard_Text_Proc :: proc() -> string
+import "core:mem"
+
+Get_Clipboard_Text_Proc :: proc(allocator: mem.Allocator) -> string
 Set_Clipboard_Text_Proc :: proc(text: string)
 
 Clipboard_Text_Procs :: struct {

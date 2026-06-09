@@ -13,19 +13,20 @@ Backing_Buffer :: union {
 
 // Text_Buffer is meant to be an abstraction providing a simple text manipulation
 // API on top of varying data structures e.g. Gap_Buffer, Rope etc.
-
-// TODO(Thomas): Add another backing data structure to see how the API holds
 Text_Buffer :: struct {
 	buf: Backing_Buffer,
 }
 
 DEFAULT_GAP_BUFFER_SIZE :: 4096
 
+// CONTINUE HERE: Fix these TODOs
+// TODO(Thomas): Rename to text_buffer_init_gap_buffer
 text_buffer_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Buffer {
 	gb := gap_buffer.init_gap_buffer(DEFAULT_GAP_BUFFER_SIZE, allocator)
 	return Text_Buffer{buf = gb}
 }
 
+// TODO(Thomas): Rename to text_buffer_init_gap_buffer_with_content
 text_buffer_init_with_content :: proc(content: string, allocator: mem.Allocator) -> Text_Buffer {
 	str_len := len(content)
 	buf_len := max(2 * str_len, DEFAULT_GAP_BUFFER_SIZE)
@@ -94,7 +95,6 @@ text_buffer_capacity :: proc(tb: Text_Buffer) -> int {
 	return byte_len
 }
 
-// Allocated using the passed in allocator
 text_buffer_text :: proc(tb: Text_Buffer, allocator: mem.Allocator) -> string {
 	str: string
 	switch buf in tb.buf {

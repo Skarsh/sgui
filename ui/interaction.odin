@@ -129,7 +129,8 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
-dispatch_keyboard_to_focused :: proc(interaction: ^Interaction) {
+// TODO(Thomas): Find a better way than just pass the frame_allocator here?
+dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator: mem.Allocator) {
 	if interaction.focused_id != ui_key_null() {
 		state, ok := &interaction.text_input_states[interaction.focused_id]
 		if ok {
@@ -149,9 +150,31 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction) {
 			switch clipboard_command {
 			case .None:
 			case .Copy:
-				log.info("Copy clipboard command")
+				selection := state.state.selection
+
+				//NOTE(Thomas): This will be freed when the frame_allocator is freed
+				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+				//very large text. We can think about using a fallback strategy of
+				//persistent allocator or some general purpose allocator in those cases
+				//when it has first failed with the frame allocator
+				text := textpkg.text_buffer_text(state.state.buffer, frame_allocator)
+
+				selection_start := textpkg.selection_start(selection)
+				selection_end := textpkg.selection_end(selection)
+				selection_text := text[selection_start:selection_end]
+
+				interaction.input.clipboard_text_procs.set_clipboard_text_proc(selection_text)
+
 			case .Paste:
-				log.info("Paste clipboard command")
+				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+				//very large text. We can think about using a fallback strategy of
+				//persistent allocator or some general purpose allocator in those cases
+				//when it has first failed with the frame allocator
+				text_to_paste := interaction.input.clipboard_text_procs.get_clipboard_text_proc(
+					frame_allocator,
+				)
+
+				textpkg.text_edit_insert(&state.state, text_to_paste)
 			case .Cut:
 				// TODO(Thomas): Does this really need to be its own thing?
 				// Isn't this just a copy selection but where the selection is deleted / removed before return??
@@ -207,7 +230,13 @@ tween_animations :: proc(interaction: ^Interaction, dt: f32) {
 }
 
 
-process_interaction :: proc(interaction: ^Interaction, root_element: ^UI_Element, dt: f32) {
+// TODO(Thomas): Find a better way than just passing the frame allocator here?
+process_interaction :: proc(
+	interaction: ^Interaction,
+	root_element: ^UI_Element,
+	dt: f32,
+	frame_allocator: mem.Allocator,
+) {
 	// find hits
 	mouse_pos := interaction.input.mouse_pos
 	hit_result := hit_test(root_element, mouse_pos)
@@ -215,7 +244,7 @@ process_interaction :: proc(interaction: ^Interaction, root_element: ^UI_Element
 	// update interaction ids, e.g. hot, pressed, focused
 	update_interaction_ids(interaction, hit_result)
 
-	dispatch_keyboard_to_focused(interaction)
+	dispatch_keyboard_to_focused(interaction, frame_allocator)
 
 	apply_scroll(interaction, hit_result.scrollable)
 
