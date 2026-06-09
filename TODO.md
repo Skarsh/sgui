@@ -1,14 +1,6 @@
 # TODOs
 
 ## Active
-* Fix scrolling not being an interactive element bug.
-    - Document how scrolling works better.
-* For proper `text_input` behaviour we need to dig deeper.
-    Even though wrap mode is None now, we will still split on paragraphs, will have to add something like `max_rows`
-    or something to tell the text layout system not to split no matter what.
-    Currently when typing text into `text_input` that overflows, there is no way to "scroll" along that text.
-    One thought is to add a horizontal invisible scrollbar to reuse functionality. Not sure if this is doable.
-    Will start by making horizontal scrollbars a thing anyway.
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
