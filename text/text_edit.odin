@@ -35,11 +35,11 @@ Text_Edit_Clipboard_Command :: enum {
 	Cut,
 }
 
-text_edit_init :: proc(
+text_edit_init_gap_buffer :: proc(
 	max_len: int = max(int),
 	allocator: mem.Allocator = context.allocator,
 ) -> Text_Edit_State {
-	text_buf := text_buffer_init(allocator)
+	text_buf := text_buffer_init_gap_buffer(allocator)
 	return Text_Edit_State {
 		buffer = text_buf,
 		selection = {active = 0, anchor = 0},

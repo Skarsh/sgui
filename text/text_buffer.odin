@@ -19,15 +19,15 @@ Text_Buffer :: struct {
 
 DEFAULT_GAP_BUFFER_SIZE :: 4096
 
-// CONTINUE HERE: Fix these TODOs
-// TODO(Thomas): Rename to text_buffer_init_gap_buffer
-text_buffer_init :: proc(allocator: mem.Allocator = context.allocator) -> Text_Buffer {
+text_buffer_init_gap_buffer :: proc(allocator: mem.Allocator = context.allocator) -> Text_Buffer {
 	gb := gap_buffer.init_gap_buffer(DEFAULT_GAP_BUFFER_SIZE, allocator)
 	return Text_Buffer{buf = gb}
 }
 
-// TODO(Thomas): Rename to text_buffer_init_gap_buffer_with_content
-text_buffer_init_with_content :: proc(content: string, allocator: mem.Allocator) -> Text_Buffer {
+text_buffer_init_gap_buffer_with_content :: proc(
+	content: string,
+	allocator: mem.Allocator,
+) -> Text_Buffer {
 	str_len := len(content)
 	buf_len := max(2 * str_len, DEFAULT_GAP_BUFFER_SIZE)
 
@@ -39,6 +39,11 @@ text_buffer_init_with_content :: proc(content: string, allocator: mem.Allocator)
 
 text_buffer_init_fixed :: proc(buf: []u8) -> Text_Buffer {
 	fb := fixed_buffer.init(buf)
+	return Text_Buffer{buf = fb}
+}
+
+text_buffer_init_fixed_with_content :: proc(buf: []u8, content: []u8) -> Text_Buffer {
+	fb := fixed_buffer.init_with_content(buf, content)
 	return Text_Buffer{buf = fb}
 }
 

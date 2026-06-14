@@ -4,7 +4,7 @@ import "core:testing"
 
 @(test)
 test_text_buffer_len_counts_runes :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("a©", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("a©", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	testing.expect_value(t, text_buffer_byte_length(buf), 3)
@@ -12,7 +12,7 @@ test_text_buffer_len_counts_runes :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("World", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("World", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	text_buffer_insert_at(&buf, 0, "Hello ")
@@ -26,7 +26,7 @@ test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("Hello", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("Hello", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	len_bytes := text_buffer_byte_length(buf)
@@ -41,7 +41,7 @@ test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_insert_utf8_mid_insertion :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("Hi!", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("Hi!", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// Insert '世' (3 bytes) at byte index 2 (before '!')
@@ -62,7 +62,7 @@ test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 	// Setup: "A©B"
 	// 'A' (1 byte), '©' (2 bytes), 'B' (1 byte)
 	// Rune indices: 0->A, 1->©, 2->B
-	buf := text_buffer_init_with_content("A©B", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("A©B", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// Insert at rune index 2 (Between © and B)
@@ -81,7 +81,7 @@ test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("ABC", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("ABC", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	start_bytes := text_buffer_byte_length(buf)
@@ -98,7 +98,7 @@ test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("Start", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("Start", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// Try to insert at byte index 100, which is way past "Start" (len 5)
@@ -113,7 +113,7 @@ test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) 
 
 @(test)
 test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("World", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("World", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// Try to insert at -5
@@ -128,7 +128,7 @@ test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("abcXYZdef", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("abcXYZdef", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	text_buffer_delete_range(&buf, 3, 3)
@@ -141,7 +141,7 @@ test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("Héllo", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("Héllo", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// é is 2 bytes
@@ -159,7 +159,7 @@ test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("abcdef", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("abcdef", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	before_len := text_buffer_byte_length(buf)
@@ -175,7 +175,7 @@ test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("abcdef", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("abcdef", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	before_len := text_buffer_byte_length(buf)
@@ -196,7 +196,7 @@ test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing
 
 @(test)
 test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("abcdef", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("abcdef", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// Start at rune 4 ('e'), try to delete 999 runes
@@ -214,7 +214,7 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 
 @(test)
 text_text_buffer_next_word_byte_pos :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("ab cd", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("ab cd", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	next_pos := text_buffer_next_word_byte_pos(buf, 0)
@@ -224,7 +224,7 @@ text_text_buffer_next_word_byte_pos :: proc(t: ^testing.T) {
 
 @(test)
 test_text_buffer_next_word_rune_pos_gap_in_middle :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("ab cd ef", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("ab cd ef", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// Move the internal "caret" to the middle without changing content.
@@ -239,7 +239,7 @@ test_text_buffer_next_word_rune_pos_gap_in_middle :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_next_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
 	// "hé<NBSP><SPACE>世界"
-	buf := text_buffer_init_with_content("hé  世界", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("hé  世界", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
@@ -253,7 +253,7 @@ test_text_buffer_next_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^test
 
 @(test)
 test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("ab cd", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("ab cd", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	testing.expect_value(t, text_buffer_next_word_byte_pos(buf, -100), 3)
@@ -262,7 +262,7 @@ test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 
 @(test)
 test_text_buffer_prev_word_rune_pos_basic :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("ab cd ef", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("ab cd ef", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(buf, 8), 6)
@@ -274,7 +274,7 @@ test_text_buffer_prev_word_rune_pos_basic :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_prev_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
 	// "hé<NBSP><SPACE>世界"
-	buf := text_buffer_init_with_content("hé  世界", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("hé  世界", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
@@ -289,7 +289,7 @@ test_text_buffer_prev_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^test
 
 @(test)
 test_text_buffer_prev_word_rune_pos_clamps_input_position :: proc(t: ^testing.T) {
-	buf := text_buffer_init_with_content("ab cd", context.allocator)
+	buf := text_buffer_init_gap_buffer_with_content("ab cd", context.allocator)
 	defer text_buffer_deinit(&buf)
 
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(buf, -100), 0)
