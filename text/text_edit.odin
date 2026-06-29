@@ -1,10 +1,8 @@
 package text
 
-//import "core:mem"
-
 import "../base"
 
-// Base on this RXI article
+// Based on this RXI article
 // https://rxi.github.io/textbox_behaviour.html
 
 // Byte indexes
