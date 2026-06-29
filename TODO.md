@@ -1,15 +1,11 @@
 # TODOs
 
 ## Active
-* Look into how init of `Text_Buffer` and `Text_Edit` can be unified for both backing buffer types,
-    i.e. `Gap_Buffer` and `Fixed_Buffer`. Still need to be something the user chooses, but the it feels
-    like it shouldn't propagate all the way out to `Text_Edit`.
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
     - Font caching?
     - Layout caching?
-
 
 ## Bugs
 
