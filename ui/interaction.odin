@@ -163,7 +163,10 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				selection_end := textpkg.selection_end(selection)
 				selection_text := text[selection_start:selection_end]
 
-				interaction.input.clipboard_text_procs.set_clipboard_text_proc(selection_text)
+				interaction.input.clipboard_text_procs.set_clipboard_text_proc(
+					selection_text,
+					frame_allocator,
+				)
 
 			case .Paste:
 				//TODO(Thomas): This can cause OOM for the frame_allocator if copying

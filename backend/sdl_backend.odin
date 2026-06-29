@@ -15,7 +15,7 @@ sdl_get_perf_freq :: proc() -> u64 {
 	return sdl.GetPerformanceFrequency()
 }
 
-// TODO(Thomas): Error handling, return error type
+// TODO(Thomas): Error handling, return error type, probably Allocator_Error at least
 sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> string {
 	c_str := sdl.GetClipboardText()
 	defer sdl.free(cast(rawptr)c_str)
@@ -25,9 +25,9 @@ sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> string {
 	return str
 }
 
-// TODO(Thomas): Error handling, return error type
-sdl_set_clipboard_text :: proc(text: string) {
-	c_str := strings.unsafe_string_to_cstring(text)
+// TODO(Thomas): Error handling, return error type, probably Allocator_Error at least
+sdl_set_clipboard_text :: proc(text: string, allocator: mem.Allocator) {
+	c_str := strings.clone_to_cstring(text, allocator)
 	err := sdl.SetClipboardText(c_str)
 	assert(err == 0)
 }
