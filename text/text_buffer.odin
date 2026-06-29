@@ -17,36 +17,6 @@ Text_Buffer :: struct {
 	buf: Backing_Buffer,
 }
 
-DEFAULT_GAP_BUFFER_SIZE :: 4096
-
-text_buffer_init_gap_buffer :: proc(allocator: mem.Allocator = context.allocator) -> Text_Buffer {
-	gb := gap_buffer.init_gap_buffer(DEFAULT_GAP_BUFFER_SIZE, allocator)
-	return Text_Buffer{buf = gb}
-}
-
-text_buffer_init_gap_buffer_with_content :: proc(
-	content: string,
-	allocator: mem.Allocator,
-) -> Text_Buffer {
-	str_len := len(content)
-	buf_len := max(2 * str_len, DEFAULT_GAP_BUFFER_SIZE)
-
-	gb := gap_buffer.init_gap_buffer(buf_len, allocator)
-	gap_buffer.insert_at(&gb, 0, content)
-
-	return Text_Buffer{buf = gb}
-}
-
-text_buffer_init_fixed :: proc(buf: []u8) -> Text_Buffer {
-	fb := fixed_buffer.init(buf)
-	return Text_Buffer{buf = fb}
-}
-
-text_buffer_init_fixed_with_content :: proc(buf: []u8, content: []u8) -> Text_Buffer {
-	fb := fixed_buffer.init_with_content(buf, content)
-	return Text_Buffer{buf = fb}
-}
-
 text_buffer_deinit :: proc(tb: ^Text_Buffer) {
 	switch &buf in tb.buf {
 	case gap_buffer.Gap_Buffer:
@@ -58,7 +28,6 @@ text_buffer_deinit :: proc(tb: ^Text_Buffer) {
 
 text_buffer_insert_at :: proc(tb: ^Text_Buffer, byte_pos: int, str: string) {
 	switch &buf in tb.buf {
-
 	case gap_buffer.Gap_Buffer:
 		byte_idx := clamp(byte_pos, 0, gap_buffer.byte_length(buf))
 		gap_buffer.insert_at(&buf, byte_idx, str)

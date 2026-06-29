@@ -4,6 +4,8 @@ import "core:mem"
 import "core:testing"
 import "core:unicode/utf8"
 
+DEFAULT_GAP_BUFFER_SIZE :: 4096
+
 Gap_Buffer :: struct {
 	buf:       []u8,
 	start:     int,
@@ -11,16 +13,13 @@ Gap_Buffer :: struct {
 	allocator: mem.Allocator,
 }
 
-init_gap_buffer :: proc(size: int, allocator: mem.Allocator) -> Gap_Buffer {
+init_gap_buffer :: proc(gb: ^Gap_Buffer, size: int, allocator: mem.Allocator) {
 	buf, alloc_err := make([]u8, size, allocator)
 	assert(alloc_err == .None)
-	gb := Gap_Buffer {
-		buf       = buf,
-		start     = 0,
-		end       = size,
-		allocator = allocator,
-	}
-	return gb
+	gb.buf = buf
+	gb.start = 0
+	gb.end = size
+	gb.allocator = allocator
 }
 
 deinit :: proc(gb: ^Gap_Buffer) {
@@ -268,7 +267,8 @@ check_byte_at :: proc(
 
 @(test)
 test_basic_insert :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(10, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 10, context.allocator)
 	defer deinit(&gb)
 
 	// Test 1: Append
@@ -287,7 +287,8 @@ test_basic_insert :: proc(t: ^testing.T) {
 
 @(test)
 test_cursor_movement_logic :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(10, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 10, context.allocator)
 	defer deinit(&gb)
 
 	insert_at(&gb, 0, "ABC")
@@ -314,7 +315,8 @@ test_cursor_movement_logic :: proc(t: ^testing.T) {
 @(test)
 test_growing :: proc(t: ^testing.T) {
 	// Start very small
-	gb := init_gap_buffer(2, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 2, context.allocator)
 	defer deinit(&gb)
 
 	testing.expect_value(t, capacity(gb), 2)
@@ -339,7 +341,8 @@ test_growing :: proc(t: ^testing.T) {
 
 @(test)
 test_deletion :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(20, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 20, context.allocator)
 	defer deinit(&gb)
 
 	insert_at(&gb, 0, "0123456789")
@@ -360,7 +363,8 @@ test_deletion :: proc(t: ^testing.T) {
 
 @(test)
 test_range_deletion :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(20, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 20, context.allocator)
 	defer deinit(&gb)
 
 	insert_at(&gb, 0, "Hello World")
@@ -381,7 +385,8 @@ test_range_deletion :: proc(t: ^testing.T) {
 
 @(test)
 test_rune_utf8 :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(20, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 20, context.allocator)
 	defer deinit(&gb)
 
 	insert_at(&gb, 0, "Hi")
@@ -406,9 +411,11 @@ test_rune_utf8 :: proc(t: ^testing.T) {
 }
 
 @(test)
-test_stress_random :: proc(t: ^testing.T) {
+test_small_stress :: proc(t: ^testing.T) {
 	// A small stress test moving the gap back and forth
-	gb := init_gap_buffer(4, context.allocator)
+
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 4, context.allocator)
 	defer deinit(&gb)
 
 	insert_byte_at(&gb, 0, 'A') // A
@@ -423,7 +430,8 @@ test_stress_random :: proc(t: ^testing.T) {
 
 @(test)
 test_get_byte_at_bounds :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(8, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 8, context.allocator)
 	defer deinit(&gb)
 
 	// Empty buffer should not allow index 0.
@@ -439,7 +447,8 @@ test_get_byte_at_bounds :: proc(t: ^testing.T) {
 
 @(test)
 test_get_byte_at_gap_in_middle :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(10, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 10, context.allocator)
 	defer deinit(&gb)
 
 	insert_at(&gb, 0, "ABCD")
@@ -455,7 +464,8 @@ test_get_byte_at_gap_in_middle :: proc(t: ^testing.T) {
 
 @(test)
 test_get_byte_at_matches_get_text_after_edits :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(12, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 12, context.allocator)
 	defer deinit(&gb)
 
 	insert_at(&gb, 0, "ABC")
@@ -473,7 +483,8 @@ test_get_byte_at_matches_get_text_after_edits :: proc(t: ^testing.T) {
 
 @(test)
 test_iterator_empty :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(10, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 10, context.allocator)
 	defer deinit(&gb)
 
 	it := init_gap_buffer_iterator(gb)
@@ -487,7 +498,8 @@ test_iterator_empty :: proc(t: ^testing.T) {
 
 @(test)
 test_iterator_gap_in_the_middle :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(10, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 10, context.allocator)
 	defer deinit(&gb)
 
 	// Insert "AB"
@@ -518,7 +530,8 @@ test_iterator_gap_in_the_middle :: proc(t: ^testing.T) {
 
 @(test)
 test_iterator_matches_get_text :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(20, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 20, context.allocator)
 	defer deinit(&gb)
 
 	// Insert "Hello World" with gap in the word "World"
@@ -547,7 +560,8 @@ test_iterator_matches_get_text :: proc(t: ^testing.T) {
 
 @(test)
 test_iterator_utf8_bytes :: proc(t: ^testing.T) {
-	gb := init_gap_buffer(10, context.allocator)
+	gb := Gap_Buffer{}
+	init_gap_buffer(&gb, 10, context.allocator)
 	defer deinit(&gb)
 
 	// Insert '世' (3 bytes)

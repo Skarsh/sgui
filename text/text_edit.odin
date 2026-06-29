@@ -1,6 +1,6 @@
 package text
 
-import "core:mem"
+//import "core:mem"
 
 import "../base"
 
@@ -35,25 +35,14 @@ Text_Edit_Clipboard_Command :: enum {
 	Cut,
 }
 
-text_edit_init_gap_buffer :: proc(
-	max_len: int = max(int),
-	allocator: mem.Allocator = context.allocator,
-) -> Text_Edit_State {
-	text_buf := text_buffer_init_gap_buffer(allocator)
-	return Text_Edit_State {
-		buffer = text_buf,
-		selection = {active = 0, anchor = 0},
-		max_len = max_len,
-	}
+text_edit_init :: proc(state: ^Text_Edit_State, buffer: Text_Buffer, max_len: int = max(int)) {
+	state.buffer = buffer
+	state.selection = {}
+	state.max_len = max_len
 }
 
-text_edit_init_fixed :: proc(buf: []u8) -> Text_Edit_State {
-	text_buf := text_buffer_init_fixed(buf)
-	return Text_Edit_State {
-		buffer = text_buf,
-		selection = {active = 0, anchor = 0},
-		max_len = len(buf),
-	}
+text_edit_deinit :: proc(state: ^Text_Edit_State) {
+	text_buffer_deinit(&state.buffer)
 }
 
 // TODO(Thomas): Pretty sure this can be simplified in a good way.

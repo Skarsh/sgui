@@ -8,15 +8,12 @@ Fixed_Buffer :: struct {
 	len: int,
 }
 
-init :: proc(buf: []u8) -> Fixed_Buffer {
-	return Fixed_Buffer{buf = buf, len = 0}
-}
-
-init_with_content :: proc(buf: []u8, content: []u8) -> Fixed_Buffer {
+init_with_content :: proc(fb: ^Fixed_Buffer, buf: []u8, content: []u8) {
 	assert(len(content) <= len(buf))
 	n := min(len(buf), len(content))
 	copy(buf[:n], content[:n])
-	return Fixed_Buffer{buf = buf, len = n}
+	fb.buf = buf
+	fb.len = n
 }
 
 deinit :: proc(fb: ^Fixed_Buffer) {}
@@ -106,7 +103,9 @@ peek_rune_at :: proc(fb: Fixed_Buffer, byte_idx: int) -> (rune, int) {
 test_init :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8
-	fb := init(backing[:])
+	fb := Fixed_Buffer {
+		buf = backing[:],
+	}
 
 	testing.expect_value(t, fb.len, 0)
 	testing.expect_value(t, capacity(fb), N)
@@ -117,7 +116,8 @@ test_init_with_content :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8
 	content := "hello"
-	fb := init_with_content(backing[:], transmute([]u8)content)
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)content)
 	testing.expect_value(t, fb.len, len(content))
 	testing.expect_value(t, capacity(fb), N)
 	testing.expect_value(t, contents_string(fb), "hello")
@@ -127,7 +127,9 @@ test_init_with_content :: proc(t: ^testing.T) {
 test_insert_slice :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8
-	fb := init(backing[:])
+	fb := Fixed_Buffer {
+		buf = backing[:],
+	}
 
 	testing.expect(t, insert_slice_at(&fb, 0, transmute([]u8)string("hello")))
 	testing.expect_value(t, contents_string(fb), "hello")
@@ -143,7 +145,8 @@ test_insert_slice :: proc(t: ^testing.T) {
 test_insert_byte_at :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("ac"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("ac"))
 
 	testing.expect(t, insert_byte_at(&fb, 1, 'b'))
 	testing.expect_value(t, contents_string(fb), "abc")
@@ -153,7 +156,9 @@ test_insert_byte_at :: proc(t: ^testing.T) {
 test_insert_out_of_bounds :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
-	fb := init(backing[:])
+	fb := Fixed_Buffer {
+		buf = backing[:],
+	}
 
 	testing.expect(t, !insert_slice_at(&fb, -1, transmute([]u8)string("x")))
 
@@ -165,7 +170,8 @@ test_insert_out_of_bounds :: proc(t: ^testing.T) {
 test_insert_overflow :: proc(t: ^testing.T) {
 	N :: 4
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("abcd"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("abcd"))
 
 	testing.expect(t, !insert_byte_at(&fb, 0, 'x'))
 	testing.expect_value(t, fb.len, 4)
@@ -175,7 +181,9 @@ test_insert_overflow :: proc(t: ^testing.T) {
 test_insert_rune_at :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8
-	fb := init(backing[:])
+	fb := Fixed_Buffer {
+		buf = backing[:],
+	}
 
 	testing.expect(t, insert_rune_at(&fb, 0, 'H'))
 	testing.expect_value(t, contents_string(fb), "H")
@@ -195,7 +203,8 @@ test_insert_rune_at :: proc(t: ^testing.T) {
 test_insert_rune_overflow :: proc(t: ^testing.T) {
 	N :: 4
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
 
 	// 'é' is 2 bytes, only 1 byte remaining
 	testing.expect(t, !insert_rune_at(&fb, 3, 'é'))
@@ -207,7 +216,9 @@ test_insert_rune_overflow :: proc(t: ^testing.T) {
 test_insert_string_at :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8
-	fb := init(backing[:])
+	fb := Fixed_Buffer {
+		buf = backing[:],
+	}
 
 	testing.expect(t, insert_string_at(&fb, 0, "hello"))
 	testing.expect_value(t, contents_string(fb), "hello")
@@ -223,7 +234,8 @@ test_insert_string_at :: proc(t: ^testing.T) {
 test_delete :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("hello world"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("hello world"))
 
 	testing.expect(t, delete_range(&fb, 5, 6))
 	testing.expect_value(t, contents_string(fb), "hello")
@@ -236,7 +248,8 @@ test_delete :: proc(t: ^testing.T) {
 test_delete_invalid :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
 
 	// Try to delete from negative pos
 	testing.expect(t, !delete_range(&fb, -1, 1))
@@ -250,7 +263,8 @@ test_delete_invalid :: proc(t: ^testing.T) {
 test_delete_zero_count :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
 
 	testing.expect(t, delete_range(&fb, 1, 0))
 }
@@ -259,7 +273,8 @@ test_delete_zero_count :: proc(t: ^testing.T) {
 test_clear :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("hello"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("hello"))
 
 	clear(&fb)
 	testing.expect_value(t, fb.len, 0)
@@ -271,7 +286,8 @@ test_clear :: proc(t: ^testing.T) {
 test_byte_at :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
-	fb := init_with_content(backing[:], transmute([]u8)string("abc"))
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
 
 	b, ok := get_byte_at(fb, 0)
 	testing.expect(t, ok)

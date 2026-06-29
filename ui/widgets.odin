@@ -5,6 +5,7 @@ import "core:math"
 
 import base "../base"
 import textpkg "../text"
+import fixed_buffer "../text/fixed_buffer"
 
 spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
 	_, open_ok := open_element(ctx, id, style, default_theme().spacer)
@@ -233,7 +234,16 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 
 		if !state_exists {
 			new_state := Text_Input_State{}
-			new_state.state = textpkg.text_edit_init_fixed(buf)
+
+			fixed_buf := fixed_buffer.Fixed_Buffer {
+				buf = buf,
+				len = 0,
+			}
+			text_buffer := textpkg.Text_Buffer {
+				buf = fixed_buf,
+			}
+
+			textpkg.text_edit_init(&new_state.state, text_buffer)
 
 			ctx.interaction.text_input_states[key] = new_state
 			state = &ctx.interaction.text_input_states[key]
