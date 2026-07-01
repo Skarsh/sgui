@@ -173,9 +173,15 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				//very large text. We can think about using a fallback strategy of
 				//persistent allocator or some general purpose allocator in those cases
 				//when it has first failed with the frame allocator
-				text_to_paste := interaction.input.clipboard_text_procs.get_clipboard_text_proc(
-					frame_allocator,
-				)
+				text_to_paste, alloc_err :=
+					interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
+				if alloc_err != .None {
+					log.error(
+						"memory allocation error when trying to get clipboard text: ",
+						alloc_err,
+					)
+				}
+				assert(alloc_err == .None)
 
 				textpkg.text_edit_insert(&state.state, text_to_paste)
 			case .Cut:

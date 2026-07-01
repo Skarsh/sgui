@@ -2,8 +2,8 @@ package base
 
 import "core:mem"
 
-Get_Clipboard_Text_Proc :: proc(allocator: mem.Allocator) -> string
-Set_Clipboard_Text_Proc :: proc(text: string, allocator: mem.Allocator)
+Get_Clipboard_Text_Proc :: proc(allocator: mem.Allocator) -> (string, mem.Allocator_Error)
+Set_Clipboard_Text_Proc :: proc(text: string, allocator: mem.Allocator) -> mem.Allocator_Error
 
 Clipboard_Text_Procs :: struct {
 	get_clipboard_text_proc: Get_Clipboard_Text_Proc,

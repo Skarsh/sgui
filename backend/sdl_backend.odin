@@ -15,24 +15,27 @@ sdl_get_perf_freq :: proc() -> u64 {
 	return sdl.GetPerformanceFrequency()
 }
 
-// TODO(Thomas): Error handling, return error type, probably Allocator_Error at least
-sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> string {
+// TODO(Thomas): Error handling for sdl procedure along the potential allocator error
+@(require_results)
+sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> (string, mem.Allocator_Error) {
 	c_str := sdl.GetClipboardText()
 	defer sdl.free(cast(rawptr)c_str)
 
 	str, alloc_err := strings.clone_from_cstring(c_str, allocator)
-	assert(alloc_err == .None)
-	return str
+	return str, alloc_err
 }
 
-// TODO(Thomas): Error handling, return error type, probably Allocator_Error at least
-sdl_set_clipboard_text :: proc(text: string, allocator: mem.Allocator) {
-	c_str := strings.clone_to_cstring(text, allocator)
+// TODO(Thomas): Error handling for sdl procedure along the potential allocator error
+@(require_results)
+sdl_set_clipboard_text :: proc(text: string, allocator: mem.Allocator) -> mem.Allocator_Error {
+	c_str, alloc_err := strings.clone_to_cstring(text, allocator)
 	err := sdl.SetClipboardText(c_str)
 	assert(err == 0)
+
+	return alloc_err
 }
 
-// Window API implementations
+@(require_results)
 sdl_window_init :: proc() -> bool {
 	return sdl.Init(sdl.INIT_VIDEO) >= 0
 }
@@ -41,6 +44,7 @@ sdl_window_deinit :: proc() {
 	sdl.Quit()
 }
 
+@(require_results)
 sdl_create_window :: proc(title: cstring, size: base.Vector2i32) -> (rawptr, bool) {
 	window := sdl.CreateWindow(
 		title,
@@ -57,11 +61,13 @@ sdl_destroy_window :: proc(handle: rawptr) {
 	sdl.DestroyWindow(cast(^sdl.Window)handle)
 }
 
+@(require_results)
 sdl_create_gl_context :: proc(handle: rawptr) -> (rawptr, bool) {
 	gl_context := sdl.GL_CreateContext(cast(^sdl.Window)handle)
 	return rawptr(gl_context), gl_context != nil
 }
 
+@(require_results)
 sdl_make_gl_current :: proc(handle: rawptr, gl_context: rawptr) -> bool {
 	return sdl.GL_MakeCurrent(cast(^sdl.Window)handle, cast(sdl.GLContext)gl_context) == 0
 }
