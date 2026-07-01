@@ -236,6 +236,7 @@ end :: proc(ctx: ^Context) {
 // Prunes dead elements from the cache and the hierarchy
 // Dead elements are elements which hasn't been had their last_frame_idx
 // update in the last frame.
+// TODO(Thomas): How would proper error handling here look?
 prune_dead_elements :: proc(
 	element_cache: ^map[UI_Key]^UI_Element,
 	frame_idx: u64,

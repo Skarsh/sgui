@@ -8,7 +8,12 @@ import gap_buffer "../gap_buffer"
 @(test)
 test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one_rune :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -32,7 +37,12 @@ test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one_rune :: pro
 @(test)
 test_text_edit_move_left_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -56,7 +66,12 @@ test_text_edit_move_left_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_move_left_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -84,7 +99,12 @@ test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one_rune :: p
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -108,7 +128,12 @@ test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one_rune :: p
 @(test)
 test_text_edit_move_right_with_selection_collapses_to_selection_end :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -132,7 +157,12 @@ test_text_edit_move_right_with_selection_collapses_to_selection_end :: proc(t: ^
 @(test)
 test_text_edit_move_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -156,7 +186,12 @@ test_text_edit_move_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_move_right_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -181,7 +216,12 @@ test_text_edit_move_right_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_move_next_word_moves_to_start_of_next_word :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -205,7 +245,12 @@ test_text_edit_move_next_word_moves_to_start_of_next_word :: proc(t: ^testing.T)
 @(test)
 test_text_edit_move_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -229,7 +274,12 @@ test_text_edit_move_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.T)
 @(test)
 test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -256,7 +306,12 @@ test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 @(test)
 test_text_edit_move_prev_word_moves_to_start_of_previous_word :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -280,7 +335,12 @@ test_text_edit_move_prev_word_moves_to_start_of_previous_word :: proc(t: ^testin
 @(test)
 test_text_edit_move_prev_word_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -304,7 +364,12 @@ test_text_edit_move_prev_word_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_move_prev_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -332,7 +397,12 @@ test_text_edit_move_prev_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 @(test)
 test_text_edit_move_prev_word_from_inside_word_moves_to_that_word_start :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -357,7 +427,12 @@ test_text_edit_move_prev_word_from_inside_word_moves_to_that_word_start :: proc(
 @(test)
 test_text_edit_select_left_from_collapsed_caret_extends_selection_left :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -381,7 +456,12 @@ test_text_edit_select_left_from_collapsed_caret_extends_selection_left :: proc(t
 @(test)
 test_text_edit_select_right_from_collapsed_caret_extends_selection_right :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -407,7 +487,12 @@ test_text_edit_select_next_word_from_collapsed_caret_extends_selection_to_next_w
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -433,7 +518,12 @@ test_text_edit_select_prev_word_from_collapsed_caret_extends_selection_to_prev_w
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -459,7 +549,12 @@ test_text_edit_select_start_from_collapsed_caret_extends_selection_to_start :: p
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -483,7 +578,12 @@ test_text_edit_select_start_from_collapsed_caret_extends_selection_to_start :: p
 @(test)
 test_text_edit_select_end_from_collapsed_caret_extends_selection_to_end :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -507,7 +607,12 @@ test_text_edit_select_end_from_collapsed_caret_extends_selection_to_end :: proc(
 @(test)
 test_text_edit_select_left_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -531,7 +636,12 @@ test_text_edit_select_left_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_select_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -555,7 +665,12 @@ test_text_edit_select_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_select_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -579,7 +694,12 @@ test_text_edit_select_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.
 @(test)
 test_text_edit_select_prev_word_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -603,7 +723,12 @@ test_text_edit_select_prev_word_at_start_clamps_to_zero :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_delete_left_from_collapsed_caret_deletes_rune_before_caret :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -620,7 +745,8 @@ test_text_edit_delete_left_from_collapsed_caret_deletes_rune_before_caret :: pro
 
 	text_edit_delete_to(&state, .Left)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ac")
@@ -631,7 +757,12 @@ test_text_edit_delete_left_from_collapsed_caret_deletes_rune_before_caret :: pro
 @(test)
 test_text_edit_delete_right_from_collapsed_caret_deletes_rune_after_caret :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -648,7 +779,8 @@ test_text_edit_delete_right_from_collapsed_caret_deletes_rune_after_caret :: pro
 
 	text_edit_delete_to(&state, .Right)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ac")
@@ -661,7 +793,12 @@ test_text_edit_delete_next_word_from_collapsed_caret_deletes_to_next_word_start 
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -678,7 +815,8 @@ test_text_edit_delete_next_word_from_collapsed_caret_deletes_to_next_word_start 
 
 	text_edit_delete_to(&state, .Next_Word)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "cd ef")
@@ -691,7 +829,12 @@ test_text_edit_delete_to_with_non_collapsed_selection_deletes_selection_range ::
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -708,7 +851,8 @@ test_text_edit_delete_to_with_non_collapsed_selection_deletes_selection_range ::
 
 	text_edit_delete_to(&state, .Right)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "aef")
@@ -719,7 +863,12 @@ test_text_edit_delete_to_with_non_collapsed_selection_deletes_selection_range ::
 @(test)
 test_text_edit_delete_left_at_start_is_no_op :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -736,7 +885,8 @@ test_text_edit_delete_left_at_start_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Left)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abc")
@@ -747,7 +897,12 @@ test_text_edit_delete_left_at_start_is_no_op :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_delete_right_at_end_is_no_op :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -764,7 +919,8 @@ test_text_edit_delete_right_at_end_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Right)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abc")
@@ -775,7 +931,12 @@ test_text_edit_delete_right_at_end_is_no_op :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_delete_prev_word_at_start_is_no_op :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -792,7 +953,8 @@ test_text_edit_delete_prev_word_at_start_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Prev_Word)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab cd")
@@ -803,7 +965,12 @@ test_text_edit_delete_prev_word_at_start_is_no_op :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_delete_next_word_at_end_is_no_op :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -820,7 +987,8 @@ test_text_edit_delete_next_word_at_end_is_no_op :: proc(t: ^testing.T) {
 
 	text_edit_delete_to(&state, .Next_Word)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab cd")
@@ -831,7 +999,12 @@ test_text_edit_delete_next_word_at_end_is_no_op :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_insert_at_collapsed_caret_inserts_text_and_advances_caret :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -848,7 +1021,8 @@ test_text_edit_insert_at_collapsed_caret_inserts_text_and_advances_caret :: proc
 
 	text_edit_insert(&state, "XY")
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "aXYbc")
@@ -859,7 +1033,12 @@ test_text_edit_insert_at_collapsed_caret_inserts_text_and_advances_caret :: proc
 @(test)
 test_text_edit_insert_with_non_collapsed_selection_replaces_selected_range :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -876,7 +1055,8 @@ test_text_edit_insert_with_non_collapsed_selection_replaces_selected_range :: pr
 
 	text_edit_insert(&state, "Z")
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "aZef")
@@ -889,7 +1069,12 @@ test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_inser
 	t: ^testing.T,
 ) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -906,7 +1091,8 @@ test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_inser
 	// 世 = 3 bytes, x = 1 byte, 3 + 1 = 4 bytes
 	text_edit_insert(&state, "世x")
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "a世xef")
@@ -918,7 +1104,12 @@ test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_inser
 @(test)
 test_text_edit_handle_key_left_without_mod_moves_caret_left :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -942,7 +1133,12 @@ test_text_edit_handle_key_left_without_mod_moves_caret_left :: proc(t: ^testing.
 @(test)
 test_text_edit_handle_key_shift_left_extends_selection_left :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -966,7 +1162,12 @@ test_text_edit_handle_key_shift_left_extends_selection_left :: proc(t: ^testing.
 @(test)
 test_text_edit_handle_key_ctrl_left_moves_to_prev_word :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -990,7 +1191,12 @@ test_text_edit_handle_key_ctrl_left_moves_to_prev_word :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_handle_key_ctrl_shift_right_extends_selection_to_next_word :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -1014,8 +1220,12 @@ test_text_edit_handle_key_ctrl_shift_right_extends_selection_to_next_word :: pro
 @(test)
 test_text_edit_handle_key_backspace_deletes_left :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
-
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -1032,7 +1242,9 @@ test_text_edit_handle_key_backspace_deletes_left :: proc(t: ^testing.T) {
 
 	text_edit_handle_keys(&state, base.Key_Set{.Backspace})
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
+
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ac")
@@ -1043,7 +1255,12 @@ test_text_edit_handle_key_backspace_deletes_left :: proc(t: ^testing.T) {
 @(test)
 test_text_edit_handle_key_ctrl_backspace_deletes_prev_word :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -1060,7 +1277,8 @@ test_text_edit_handle_key_ctrl_backspace_deletes_prev_word :: proc(t: ^testing.T
 
 	text_edit_handle_keys(&state, base.Key_Set{.Backspace}, base.KMOD_CTRL)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab ef")
@@ -1071,7 +1289,12 @@ test_text_edit_handle_key_ctrl_backspace_deletes_prev_word :: proc(t: ^testing.T
 @(test)
 test_text_edit_handle_key_shift_a_selects_all :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -1088,7 +1311,8 @@ test_text_edit_handle_key_shift_a_selects_all :: proc(t: ^testing.T) {
 
 	text_edit_handle_keys(&state, base.Key_Set{.A}, base.KMOD_CTRL)
 
-	actual := text_buffer_text(state.buffer, context.allocator)
+	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ab cd ef")

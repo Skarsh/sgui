@@ -69,16 +69,23 @@ text_buffer_capacity :: proc(tb: Text_Buffer) -> int {
 	return byte_len
 }
 
-text_buffer_text :: proc(tb: Text_Buffer, allocator: mem.Allocator) -> string {
+text_buffer_text :: proc(
+	tb: Text_Buffer,
+	allocator: mem.Allocator,
+) -> (
+	string,
+	mem.Allocator_Error,
+) {
 	str: string
+	alloc_err: mem.Allocator_Error
 	switch buf in tb.buf {
 	case gap_buffer.Gap_Buffer:
-		str = gap_buffer.get_text(buf, allocator)
+		str, alloc_err = gap_buffer.get_text(buf, allocator)
 	case fixed_buffer.Fixed_Buffer:
 		str = fixed_buffer.contents_string(buf)
 	}
 
-	return str
+	return str, alloc_err
 }
 
 text_buffer_get_byte_at :: proc(tb: Text_Buffer, byte_idx: int) -> (u8, bool) {

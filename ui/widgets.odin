@@ -1,6 +1,7 @@
 package ui
 
 import "core:fmt"
+import "core:log"
 import "core:math"
 
 import base "../base"
@@ -251,7 +252,14 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 
 		//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
 		// which will free at the beginning of the next frame.
-		text_view := textpkg.text_buffer_text(state.state.buffer, ctx.frame_allocator)
+		text_view, text_alloc_err := textpkg.text_buffer_text(
+			state.state.buffer,
+			ctx.frame_allocator,
+		)
+		if text_alloc_err != .None {
+			log.error("Error when trying to get text buffer text: ", text_alloc_err)
+		}
+		assert(text_alloc_err == .None)
 
 		// TODO(Thomas): Better id here?
 		text_element_id := fmt.tprintf("%s_text", id)

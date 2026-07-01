@@ -7,7 +7,12 @@ import "../gap_buffer"
 @(test)
 test_text_buffer_len_counts_runes :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -21,7 +26,12 @@ test_text_buffer_len_counts_runes :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -31,7 +41,8 @@ test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
 
 	text_buffer_insert_at(&tb, 0, "Hello ")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hello World")
@@ -41,7 +52,12 @@ test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -52,7 +68,8 @@ test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
 	len_bytes := text_buffer_byte_length(tb)
 	text_buffer_insert_at(&tb, len_bytes, " World")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hello World")
@@ -62,7 +79,12 @@ test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_insert_utf8_mid_insertion :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -73,7 +95,8 @@ test_text_buffer_insert_utf8_mid_insertion :: proc(t: ^testing.T) {
 	// Insert '世' (3 bytes) at byte index 2 (before '!')
 	text_buffer_insert_at(&tb, 2, "世")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hi世!")
@@ -85,7 +108,12 @@ test_text_buffer_insert_utf8_mid_insertion :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -97,7 +125,8 @@ test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 	// We insert "★" = 3 bytes between A '©' and 'B', i.e. byte index 3
 	text_buffer_insert_at(&tb, 3, "★")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "A©★B")
@@ -110,7 +139,12 @@ test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -123,7 +157,8 @@ test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
 	// Insert empty string in middle
 	text_buffer_insert_at(&tb, 1, "")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "ABC")
@@ -133,7 +168,12 @@ test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -145,7 +185,8 @@ test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) 
 	// Expectation: Appends to the end
 	text_buffer_insert_at(&tb, 100, "End")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "StartEnd")
@@ -154,7 +195,12 @@ test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) 
 @(test)
 test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -166,7 +212,8 @@ test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
 	// Expectation: Prepends at 0
 	text_buffer_insert_at(&tb, -5, "Hello ")
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "Hello World")
@@ -175,7 +222,12 @@ test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -186,7 +238,8 @@ test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&tb, 3, 3)
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -195,7 +248,12 @@ test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -206,7 +264,8 @@ test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
 	// é is 2 bytes
 	text_buffer_delete_range(&tb, 1, 2)
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	// Should be "Hllo"
@@ -219,7 +278,12 @@ test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -231,7 +295,8 @@ test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 
 	text_buffer_delete_range(&tb, 2, 0)
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -241,7 +306,12 @@ test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -258,7 +328,8 @@ test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing
 	// Way past end
 	text_buffer_delete_range(&tb, 7, 2)
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	testing.expect_value(t, actual, "abcdef")
@@ -268,7 +339,12 @@ test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing
 @(test)
 test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -279,7 +355,8 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 	// Start at rune 4 ('e'), try to delete 999 runes
 	text_buffer_delete_range(&tb, 4, 999)
 
-	actual := text_buffer_text(tb, context.allocator)
+	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
+	assert(text_alloc_err == .None)
 	defer delete(actual)
 
 	// Should remove 'e' and 'f'
@@ -292,7 +369,12 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 @(test)
 text_text_buffer_next_word_byte_pos :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -308,7 +390,12 @@ text_text_buffer_next_word_byte_pos :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_next_word_rune_pos_gap_in_middle :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -328,7 +415,12 @@ test_text_buffer_next_word_rune_pos_gap_in_middle :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_next_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -349,7 +441,12 @@ test_text_buffer_next_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^test
 @(test)
 test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -363,7 +460,12 @@ test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 @(test)
 test_text_buffer_prev_word_rune_pos_basic :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -379,7 +481,12 @@ test_text_buffer_prev_word_rune_pos_basic :: proc(t: ^testing.T) {
 @(test)
 test_text_buffer_prev_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
@@ -401,7 +508,12 @@ test_text_buffer_prev_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^test
 @(test)
 test_text_buffer_prev_word_rune_pos_clamps_input_position :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
-	gap_buffer.init_gap_buffer(&gb, gap_buffer.DEFAULT_GAP_BUFFER_SIZE, context.allocator)
+	gb_alloc_err := gap_buffer.init_gap_buffer(
+		&gb,
+		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
+		context.allocator,
+	)
+	assert(gb_alloc_err == .None)
 	tb := Text_Buffer {
 		buf = gb,
 	}
