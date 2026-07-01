@@ -1,5 +1,6 @@
 package ui
 
+import "core:log"
 import "core:mem"
 
 import "../base"
@@ -88,10 +89,21 @@ init :: proc(
 	ctx.font_id = font_id
 	ctx.font_size = font_size
 
+	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
+	// and is actually returning the error in an upcoming Odin version?
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 
-	init_draw_state(&ctx.draw_state, draw_cmd_allocator)
-	init_interaction(&ctx.interaction, persistent_allocator)
+	init_draw_state_alloc_err := init_draw_state(&ctx.draw_state, draw_cmd_allocator)
+	if init_draw_state_alloc_err != .None {
+		log.error("Error when trying to init draw state: ", init_draw_state_alloc_err)
+	}
+	assert(init_draw_state_alloc_err == .None)
+
+	init_interaction_alloc_err := init_interaction(&ctx.interaction, persistent_allocator)
+	if init_interaction_alloc_err != .None {
+		log.error("Error when trying to init interaction state", init_interaction_alloc_err)
+	}
+	assert(init_interaction_alloc_err == .None)
 }
 
 window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {

@@ -35,9 +35,22 @@ Interaction :: struct {
 	animatable_elements: [dynamic]^UI_Element,
 }
 
-init_interaction :: proc(interaction: ^Interaction, allocator: mem.Allocator) {
+@(require_results)
+init_interaction :: proc(
+	interaction: ^Interaction,
+	allocator: mem.Allocator,
+) -> mem.Allocator_Error {
+
+	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
+	// and is actually returning the error in an upcoming Odin version?
 	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
-	interaction.animatable_elements = make([dynamic]^UI_Element, allocator)
+
+	animatable_elements_alloc_err: mem.Allocator_Error
+	interaction.animatable_elements, animatable_elements_alloc_err = make(
+		[dynamic]^UI_Element,
+		allocator,
+	)
+	return animatable_elements_alloc_err
 }
 
 deinit_interaction :: proc(interaction: ^Interaction) {

@@ -16,10 +16,11 @@ Draw_State :: struct {
 	command_queue:     [dynamic]Draw_Command,
 }
 
-init_draw_state :: proc(draw_state: ^Draw_State, allocator: mem.Allocator) {
+@(require_results)
+init_draw_state :: proc(draw_state: ^Draw_State, allocator: mem.Allocator) -> mem.Allocator_Error {
 	alloc_err: mem.Allocator_Error
 	draw_state.command_queue, alloc_err = make([dynamic]Draw_Command, allocator)
-	assert(alloc_err == .None)
+	return alloc_err
 }
 
 reset_draw_state :: proc(draw_state: ^Draw_State, window_size: base.Vector2i32) {
