@@ -122,8 +122,8 @@ deinit :: proc(ctx: ^Context) {
 
 	for _, elem in ctx.element_cache {
 		if elem != nil {
-			_, append_err := append(&free_list, elem)
-			assert(append_err == .None)
+			_, append_alloc_err := append(&free_list, elem)
+			assert(append_alloc_err == .None)
 		}
 	}
 
@@ -203,10 +203,16 @@ end :: proc(ctx: ^Context) {
 	size_children_on_cross_axis(ctx.root_element, .X)
 
 	// Resolve dependent widths
-	resolve_dependent_sizes_for_axis(ctx.root_element, .X, ctx.frame_allocator)
+	resolve_width_alloc_err := resolve_dependent_sizes_for_axis(
+		ctx.root_element,
+		.X,
+		ctx.frame_allocator,
+	)
+	assert(resolve_width_alloc_err == .None)
 
 	// Wrap text
-	wrap_text(ctx, ctx.root_element, ctx.frame_allocator)
+	wrap_text_alloc_err := wrap_text(ctx, ctx.root_element, ctx.frame_allocator)
+	assert(wrap_text_alloc_err == .None)
 
 	// Fit sizing heights
 	fit_size_axis(ctx.root_element, .Y)
@@ -215,7 +221,12 @@ end :: proc(ctx: ^Context) {
 	size_children_on_cross_axis(ctx.root_element, .Y)
 
 	// Reolve dependent heights
-	resolve_dependent_sizes_for_axis(ctx.root_element, .Y, ctx.frame_allocator)
+	resolve_height_alloc_err := resolve_dependent_sizes_for_axis(
+		ctx.root_element,
+		.Y,
+		ctx.frame_allocator,
+	)
+	assert(resolve_height_alloc_err == .None)
 
 	calculate_positions_and_alignment(ctx.root_element, ctx.dt)
 

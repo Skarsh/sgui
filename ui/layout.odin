@@ -153,7 +153,7 @@ element_equip_text :: proc(
 	element: ^UI_Element,
 	text: string,
 	text_fill: base.Fill = {},
-) {
+) -> mem.Allocator_Error {
 	element.config.capability_flags |= {.Text}
 
 	if element.config.text_fill == nil {
@@ -176,7 +176,7 @@ element_equip_text :: proc(
 		ctx.interaction.text_measurement^,
 		ctx.frame_allocator,
 		element.config.layout.text_wrap_mode,
-	)
+	) or_return
 
 	// Calculate total content size including padding and border
 	padding := element.config.layout.padding
@@ -207,6 +207,7 @@ element_equip_text :: proc(
 			element.max_size.y,
 		)
 	}
+	return nil
 }
 
 element_equip_shape :: proc(element: ^UI_Element, shape_data: Shape_Data) {
@@ -326,8 +327,8 @@ open_element :: proc(
 	}
 	ctx.current_parent = element
 
-	comm, comm_err := build_comm(&ctx.interaction, element)
-	assert(comm_err == .None)
+	comm, comm_alloc_err := build_comm(&ctx.interaction, element)
+	assert(comm_alloc_err == .None)
 	element.last_comm = comm
 
 	return element, true
@@ -526,10 +527,10 @@ resolve_grow_sizes_for_children :: proc(
 	element: ^UI_Element,
 	axis: Axis2,
 	allocator: mem.Allocator,
-) {
+) -> mem.Allocator_Error {
 
 	if has_flow_children(element^) {
-		resizables := make([dynamic]^UI_Element, allocator)
+		resizables := make([dynamic]^UI_Element, allocator) or_return
 		main_axis := is_main_axis(element^, axis)
 
 		if main_axis {
@@ -558,7 +559,7 @@ resolve_grow_sizes_for_children :: proc(
 					if child.config.layout.sizing[axis].kind == .Grow {
 						factor := child.config.layout.sizing[axis].grow_factor
 						if factor > 0 {
-							append(&resizables, child)
+							append(&resizables, child) or_return
 						}
 					}
 				}
@@ -628,6 +629,8 @@ resolve_grow_sizes_for_children :: proc(
 			}
 		}
 	}
+
+	return nil
 }
 
 resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) {
@@ -648,20 +651,25 @@ resolve_dependent_sizes_for_axis :: proc(
 	element: ^UI_Element,
 	axis: Axis2,
 	allocator: mem.Allocator,
-) {
+) -> mem.Allocator_Error {
 	if element == nil {
-		return
+		return nil
 	}
 
 	resolve_percentage_sizes_for_children(element, axis)
-	resolve_grow_sizes_for_children(element, axis, allocator)
+	resolve_grow_sizes_for_children(element, axis, allocator) or_return
 
 	for child in element.children {
-		resolve_dependent_sizes_for_axis(child, axis, allocator)
+		resolve_dependent_sizes_for_axis(child, axis, allocator) or_return
 	}
+	return nil
 }
 
-wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator) {
+wrap_text :: proc(
+	ctx: ^Context,
+	element: ^UI_Element,
+	allocator: mem.Allocator,
+) -> mem.Allocator_Error {
 	if .Text in element.config.capability_flags {
 		border := element.config.layout.border
 		padding := element.config.layout.padding
@@ -709,7 +717,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 			ctx.interaction.text_measurement^,
 			allocator,
 			text_wrap_mode,
-		)
+		) or_return
 
 		element.config.content.text_data.text_layout = text_layout
 
@@ -726,8 +734,9 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element, allocator: mem.Allocator)
 	}
 
 	for child in element.children {
-		wrap_text(ctx, child, allocator)
+		wrap_text(ctx, child, allocator) or_return
 	}
+	return nil
 }
 
 @(require_results)

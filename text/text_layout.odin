@@ -69,9 +69,12 @@ Text_Layout :: struct {
 	glyphs: []Glyph,
 }
 
-paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
+paragraph_segmentation :: proc(
+	text: string,
+	paragraphs: ^[dynamic]Paragraph,
+) -> mem.Allocator_Error {
 	if len(text) == 0 {
-		return
+		return nil
 	}
 
 	byte_pos := 0
@@ -83,41 +86,37 @@ paragraph_segmentation :: proc(text: string, paragraphs: ^[dynamic]Paragraph) {
 		byte_pos += width
 
 		if r == '\n' {
-			_, alloc_err := append(
-				paragraphs,
-				Paragraph{text_range = {start = start, end = byte_pos}},
-			)
-			assert(alloc_err == .None)
+			append(paragraphs, Paragraph{text_range = {start = start, end = byte_pos}}) or_return
 			start = byte_pos
 		}
 	}
 
 	if start < byte_pos {
-		_, alloc_err := append(
-			paragraphs,
-			Paragraph{text_range = {start = start, end = len(text)}},
-		)
-		assert(alloc_err == .None)
+		append(paragraphs, Paragraph{text_range = {start = start, end = len(text)}}) or_return
 	}
+	return nil
 }
 
 
 // TODO(Thomas): Better name?
-style_analysis :: proc(paragraphs: []Paragraph, text_runs: ^[dynamic]Text_Run) {
+style_analysis :: proc(
+	paragraphs: []Paragraph,
+	text_runs: ^[dynamic]Text_Run,
+) -> mem.Allocator_Error {
 	// TODO(Thomas): This looks a little dumb right now, but sets us up for being able
 	// to deal with multiple Text_Runs in a single paragraph later.
 	text_run_start := 0
 	text_run_end := 0
 	for &paragraph in paragraphs {
 		text_run_end += 1
-		_, alloc_err := append(text_runs, Text_Run{range = paragraph.text_range})
-		assert(alloc_err == .None)
+		append(text_runs, Text_Run{range = paragraph.text_range}) or_return
 		paragraph.text_run_range = base.Range {
 			start = text_run_start,
 			end   = text_run_end,
 		}
 		text_run_start = text_run_end
 	}
+	return nil
 }
 
 // TODO(Thomas): We won't really do anything here to begin with I think.
@@ -133,7 +132,7 @@ shaping :: proc(
 	glyphs: ^[dynamic]Glyph,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
 	font_user_data: rawptr,
-) {
+) -> mem.Allocator_Error {
 	// TODO(Thomas): font_id Font_Handle is hardcoded here for now, this should come
 	// in with other contextual stuff that we need, probably / maybe stored on the Text_Run?
 	FONT_ID :: 0
@@ -150,8 +149,7 @@ shaping :: proc(
 				glyph_end += 1
 				// TODO(Thomas): This will have to be cached of course.
 				codepoint_metrics := measure_codepoint_proc(r, FONT_ID, font_user_data)
-				_, alloc_err := append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics})
-				assert(alloc_err == .None)
+				append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics}) or_return
 			}
 		}
 		paragraph.glyph_range = base.Range {
@@ -160,6 +158,7 @@ shaping :: proc(
 		}
 		glyph_start = glyph_end
 	}
+	return nil
 }
 
 // TODO(Thomas): Implement other linebreak kinds too.
@@ -172,21 +171,21 @@ find_linebreak_candidates :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
 	linebreak_candidates: ^[dynamic]Linebreak_Candidate,
-) {
+) -> mem.Allocator_Error {
 	glyph_idx := 0
 	for paragraph in paragraphs {
 		paragraph_glyphs := glyphs[paragraph.glyph_range.start:paragraph.glyph_range.end]
 		for glyph in paragraph_glyphs {
 			if unicode.is_white_space(glyph.codepoint) {
-				_, alloc_err := append(
+				append(
 					linebreak_candidates,
 					Linebreak_Candidate{kind = .Word, glyph_idx = glyph_idx},
-				)
-				assert(alloc_err == .None)
+				) or_return
 			}
 			glyph_idx += 1
 		}
 	}
+	return nil
 }
 
 layout_rows :: proc(
@@ -197,7 +196,7 @@ layout_rows :: proc(
 	max_width: f32,
 	line_height: f32,
 	text_wrap_mode: Text_Wrap_Mode,
-) {
+) -> mem.Allocator_Error {
 
 	EPSILON :: 0.001
 	candidate_cursor := 0
@@ -255,15 +254,14 @@ layout_rows :: proc(
 					// We should probably have two different sizes here, one that is the size including the
 					// trailing whitespace for calculating hit tests etc, and one for the content width which
 					// would be used in cases where you don't want to show trailling whitespace.
-					_, alloc_err := append(
+					append(
 						rows,
 						Positioned_Row {
 							pos = {0, line_height_offset},
 							size = {actual_row_width, line_height},
 							glyph_range = {start = row_start, end = break_at_idx + 1},
 						},
-					)
-					assert(alloc_err == .None)
+					) or_return
 
 					row_start = break_at_idx + 1
 					line_height_offset += line_height
@@ -278,17 +276,17 @@ layout_rows :: proc(
 			}
 		}
 
-		_, alloc_err := append(
+		append(
 			rows,
 			Positioned_Row {
 				pos = {0, line_height_offset},
 				size = {row_width, line_height},
 				glyph_range = {start = row_start, end = paragraph.glyph_range.end},
 			},
-		)
-		assert(alloc_err == .None)
+		) or_return
 		line_height_offset += line_height
 	}
+	return nil
 }
 
 
@@ -308,7 +306,10 @@ layout_text :: proc(
 	text_measurement: Text_Measurement,
 	allocator: mem.Allocator,
 	text_wrap_mode: Text_Wrap_Mode,
-) -> Text_Layout {
+) -> (
+	layout: Text_Layout,
+	alloc_err: mem.Allocator_Error,
+) {
 
 	// TODO(Thomas): This should be cached of course.
 	text_metrics := text_measurement.measure_text_proc(
@@ -318,16 +319,13 @@ layout_text :: proc(
 	)
 
 	// Minimal pipeline for now
-	paragraphs, paragraphs_alloc_err := make([dynamic]Paragraph, allocator)
-	assert(paragraphs_alloc_err == .None)
-	paragraph_segmentation(text, &paragraphs)
+	paragraphs := make([dynamic]Paragraph, allocator) or_return
+	paragraph_segmentation(text, &paragraphs) or_return
 
-	text_runs, text_runs_alloc_err := make([dynamic]Text_Run, allocator)
-	assert(text_runs_alloc_err == .None)
-	style_analysis(paragraphs[:], &text_runs)
+	text_runs := make([dynamic]Text_Run, allocator) or_return
+	style_analysis(paragraphs[:], &text_runs) or_return
 
-	glyphs, glyphs_alloc_err := make([dynamic]Glyph, allocator)
-	assert(glyphs_alloc_err == .None)
+	glyphs := make([dynamic]Glyph, allocator) or_return
 
 	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
 	bidi_analysis()
@@ -339,19 +337,14 @@ layout_text :: proc(
 		&glyphs,
 		text_measurement.measure_codepoint_proc,
 		text_measurement.font_user_data,
-	)
+	) or_return
 
 	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
 	// and not on glyphs
-	linebreak_candidates, linebreak_candidates_alloc_err := make(
-		[dynamic]Linebreak_Candidate,
-		allocator,
-	)
-	assert(linebreak_candidates_alloc_err == .None)
-	find_linebreak_candidates(paragraphs[:], glyphs[:], &linebreak_candidates)
+	linebreak_candidates := make([dynamic]Linebreak_Candidate, allocator) or_return
+	find_linebreak_candidates(paragraphs[:], glyphs[:], &linebreak_candidates) or_return
 
-	rows, rows_alloc_err := make([dynamic]Positioned_Row, allocator)
-	assert(rows_alloc_err == .None)
+	rows := make([dynamic]Positioned_Row, allocator) or_return
 	layout_rows(
 		paragraphs[:],
 		glyphs[:],
@@ -360,7 +353,7 @@ layout_text :: proc(
 		available_width,
 		text_metrics.line_height,
 		text_wrap_mode,
-	)
+	) or_return
 
 	// TODO(Thomas): This could be done in layout_rows instead so we don't have
 	// to iterate over the rows again here.
@@ -369,7 +362,7 @@ layout_text :: proc(
 		layout_size.x = max(layout_size.x, row.size.x)
 		layout_size.y += row.size.y
 	}
-	return Text_Layout{size = layout_size, rows = rows[:], glyphs = glyphs[:]}
+	return Text_Layout{size = layout_size, rows = rows[:], glyphs = glyphs[:]}, nil
 }
 
 // ------------ TESTS -------------
@@ -449,7 +442,7 @@ test_layout_text_newline_between_words_wraps :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -477,7 +470,7 @@ test_layout_text_single_newline_char_wraps :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -505,7 +498,7 @@ test_layout_text_exactly_fits_no_wrap :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -544,7 +537,7 @@ test_layout_text_wrap_on_whitespace_between_words :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -578,7 +571,7 @@ test_layout_text_wrap_when_overflow_in_middle_of_word :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -601,7 +594,7 @@ test_layout_text_empty_string_no_wrap :: proc(t: ^testing.T) {
 		rows = {},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -629,7 +622,7 @@ test_layout_text_single_char_no_wrap :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -667,7 +660,7 @@ test_layout_text_wrap_on_consecutive_newlines :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -706,7 +699,7 @@ test_layout_text_multiple_wraps :: proc(t: ^testing.T) {
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,
@@ -736,7 +729,7 @@ test_layout_text_single_long_word_overflows_when_none_wrapping :: proc(t: ^testi
 		},
 	}
 
-	text_layout := layout_text(
+	text_layout, _ := layout_text(
 		text,
 		100.0,
 		MOCK_FONT_HANDLE,

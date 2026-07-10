@@ -276,7 +276,7 @@ build_comm :: proc(
 	element: ^UI_Element,
 ) -> (
 	comm: Comm,
-	err: mem.Allocator_Error,
+	alloc_err: mem.Allocator_Error,
 ) {
 	is_hot := element.key == interaction.hot_id
 	is_pressed := element.key == interaction.pressed_id

@@ -23,7 +23,8 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	assert(open_ok)
 
 	if open_ok {
-		element_equip_text(ctx, element, text)
+		equip_alloc_err := element_equip_text(ctx, element, text)
+		assert(equip_alloc_err == .None)
 		close_element(ctx)
 	}
 }
@@ -33,7 +34,8 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	assert(open_ok)
 
 	if open_ok {
-		element_equip_text(ctx, element, text)
+		equip_alloc_err := element_equip_text(ctx, element, text)
+		assert(equip_alloc_err == .None)
 		close_element(ctx)
 	}
 
