@@ -40,17 +40,11 @@ init_interaction :: proc(
 	interaction: ^Interaction,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
-
-	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
-	// and is actually returning the error in an upcoming Odin version?
+	// NOTE(Thomas): make(map) does not return an Allocator_Error in this Odin
+	// version (unlike make([dynamic])), so there is nothing to propagate here yet.
 	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
-
-	animatable_elements_alloc_err: mem.Allocator_Error
-	interaction.animatable_elements, animatable_elements_alloc_err = make(
-		[dynamic]^UI_Element,
-		allocator,
-	)
-	return animatable_elements_alloc_err
+	interaction.animatable_elements = make([dynamic]^UI_Element, allocator) or_return
+	return nil
 }
 
 deinit_interaction :: proc(interaction: ^Interaction) {
@@ -277,7 +271,13 @@ process_interaction :: proc(
 	tween_animations(interaction, dt)
 }
 
-build_comm :: proc(interaction: ^Interaction, element: ^UI_Element) -> Comm {
+build_comm :: proc(
+	interaction: ^Interaction,
+	element: ^UI_Element,
+) -> (
+	comm: Comm,
+	err: mem.Allocator_Error,
+) {
 	is_hot := element.key == interaction.hot_id
 	is_pressed := element.key == interaction.pressed_id
 	is_focused := element.key == interaction.focused_id
@@ -285,17 +285,18 @@ build_comm :: proc(interaction: ^Interaction, element: ^UI_Element) -> Comm {
 	flags := element.config.capability_flags
 
 	if .Hot_Animation in flags || .Active_Animation in flags {
-		append(&interaction.animatable_elements, element)
+		append(&interaction.animatable_elements, element) or_return
 	}
 
 	clicked := is_hot && is_pressed && base.is_mouse_released(interaction.input^, .Left)
 
 	return Comm {
-		element = element,
-		held = is_pressed,
-		clicked = clicked,
-		active = is_focused,
-		hovering = is_hot || is_pressed,
-		hot = base.approx_equal(element.hot, 1.0, 0.001),
-	}
+			element = element,
+			held = is_pressed,
+			clicked = clicked,
+			active = is_focused,
+			hovering = is_hot || is_pressed,
+			hot = base.approx_equal(element.hot, 1.0, 0.001),
+		},
+		nil
 }

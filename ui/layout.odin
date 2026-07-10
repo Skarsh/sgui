@@ -326,7 +326,9 @@ open_element :: proc(
 	}
 	ctx.current_parent = element
 
-	element.last_comm = build_comm(&ctx.interaction, element)
+	comm, comm_err := build_comm(&ctx.interaction, element)
+	assert(comm_err == .None)
+	element.last_comm = comm
 
 	return element, true
 }

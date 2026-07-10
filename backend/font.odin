@@ -134,7 +134,7 @@ pack_font_glyphs :: proc(
 
 	stbtt.PackEnd(&atlas.pack_ctx)
 
-	return pack_result != 0
+	return bool(pack_result) 
 }
 
 // We need to iterate over the packed chars and insert them
