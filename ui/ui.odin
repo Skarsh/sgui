@@ -122,7 +122,8 @@ deinit :: proc(ctx: ^Context) {
 
 	for _, elem in ctx.element_cache {
 		if elem != nil {
-			append(&free_list, elem)
+			_, append_err := append(&free_list, elem)
+			assert(append_err == .None)
 		}
 	}
 
