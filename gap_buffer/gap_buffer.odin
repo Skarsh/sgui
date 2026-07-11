@@ -19,12 +19,12 @@ init_gap_buffer :: proc(
 	size: int,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
-	buf, alloc_err := make([]u8, size, allocator)
+	buf := make([]u8, size, allocator) or_return
 	gb.buf = buf
 	gb.start = 0
-	gb.end = size
+	gb.end = len(buf)
 	gb.allocator = allocator
-	return alloc_err
+	return nil
 }
 
 deinit :: proc(gb: ^Gap_Buffer) {
@@ -54,35 +54,43 @@ insert_at :: proc {
 	insert_string_at,
 }
 
-insert_byte_at :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) {
+@(require_results)
+insert_byte_at :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) -> mem.Allocator_Error {
 	if pos >= 0 && pos <= byte_length(gb^) {
-		ensure_space(gb, 1)
+		ensure_space(gb, 1) or_return
 		shift_gap_to(gb, pos)
 		gb.buf[gb.start] = ch
 		gb.start += 1
 	}
+	return nil
 }
 
-insert_rune_at :: proc(gb: ^Gap_Buffer, pos: int, r: rune) {
+@(require_results)
+insert_rune_at :: proc(gb: ^Gap_Buffer, pos: int, r: rune) -> mem.Allocator_Error {
 	if pos >= 0 && pos <= byte_length(gb^) {
 		bytes, width := utf8.encode_rune(r)
-		insert_slice_at(gb, pos, bytes[:width])
+		insert_slice_at(gb, pos, bytes[:width]) or_return
 	}
+	return nil
 }
 
-insert_slice_at :: proc(gb: ^Gap_Buffer, pos: int, slice: []u8) {
+@(require_results)
+insert_slice_at :: proc(gb: ^Gap_Buffer, pos: int, slice: []u8) -> mem.Allocator_Error {
 	if pos >= 0 && pos <= byte_length(gb^) {
-		ensure_space(gb, len(slice))
+		ensure_space(gb, len(slice)) or_return
 		shift_gap_to(gb, pos)
 		copy(gb.buf[gb.start:], slice)
 		gb.start += len(slice)
 	}
+	return nil
 }
 
-insert_string_at :: proc(gb: ^Gap_Buffer, pos: int, str: string) {
+@(require_results)
+insert_string_at :: proc(gb: ^Gap_Buffer, pos: int, str: string) -> mem.Allocator_Error {
 	if pos >= 0 && pos <= byte_length(gb^) {
-		insert_slice_at(gb, pos, transmute([]u8)str)
+		insert_slice_at(gb, pos, transmute([]u8)str) or_return
 	}
+	return nil
 }
 
 
@@ -108,18 +116,22 @@ delete_range :: proc(gb: ^Gap_Buffer, pos: int, count: int) {
 }
 
 
+@(require_results)
 byte_length :: proc(gb: Gap_Buffer) -> int {
 	return len(gb.buf) - (gb.end - gb.start)
 }
 
+@(require_results)
 capacity :: proc(gb: Gap_Buffer) -> int {
 	return len(gb.buf)
 }
 
+@(require_results)
 gap_size :: proc(gb: Gap_Buffer) -> int {
 	return gb.end - gb.start
 }
 
+@(require_results)
 get_byte_at :: proc(gb: Gap_Buffer, pos: int) -> (u8, bool) {
 	if pos < 0 || pos >= byte_length(gb) {
 		return 0, false
@@ -133,6 +145,7 @@ get_byte_at :: proc(gb: Gap_Buffer, pos: int) -> (u8, bool) {
 	return gb.buf[pos + gap_sz], true
 }
 
+@(require_results)
 peek_rune_at :: proc(gb: Gap_Buffer, byte_idx: int) -> (r: rune, width: int) {
 	if byte_idx < gb.start {
 		return utf8.decode_rune(gb.buf[byte_idx:])
@@ -148,6 +161,7 @@ peek_rune_at :: proc(gb: Gap_Buffer, byte_idx: int) -> (r: rune, width: int) {
 
 // Helper procedure to get the left and right strings of the gap
 @(private)
+@(require_results)
 get_strings :: proc(gb: Gap_Buffer) -> (left: string, right: string) {
 	left = string(gb.buf[0:gb.start])
 	right = string(gb.buf[gb.end:])
@@ -156,14 +170,15 @@ get_strings :: proc(gb: Gap_Buffer) -> (left: string, right: string) {
 
 // Grows the buffer when out of space
 @(private)
-grow :: proc(gb: ^Gap_Buffer, required: int) {
+@(require_results)
+grow :: proc(gb: ^Gap_Buffer, required: int) -> mem.Allocator_Error {
 	current_len := len(gb.buf)
 	new_cap := max(current_len * 2, current_len + required)
 
 	// Amount how much bigger the buffer is getting
 	amount_grown := new_cap - current_len
 
-	new_buf := make([]u8, new_cap, gb.allocator)
+	new_buf := make([]u8, new_cap, gb.allocator) or_return
 
 	// Copy data before the gap
 	copy(new_buf[:gb.start], gb.buf[:gb.start])
@@ -177,14 +192,18 @@ grow :: proc(gb: ^Gap_Buffer, required: int) {
 	delete(gb.buf, gb.allocator)
 	gb.buf = new_buf
 	gb.end = new_end
+
+	return nil
 }
 
 // Helper to ensure we grow if we don't have enough space
 @(private)
-ensure_space :: proc(gb: ^Gap_Buffer, amount: int) {
+@(require_results)
+ensure_space :: proc(gb: ^Gap_Buffer, amount: int) -> mem.Allocator_Error {
 	if gap_size(gb^) < amount {
-		grow(gb, amount)
+		grow(gb, amount) or_return
 	}
+	return nil
 }
 
 // TODO(Thomas): @Perf - Can we do some copy here when
@@ -259,6 +278,13 @@ check_str :: proc(t: ^testing.T, gb: Gap_Buffer, expected: string, loc := #calle
 	testing.expect_value(t, s, expected, loc)
 }
 
+@(private = "file")
+// Helper only for testing purposes
+insert_ok :: proc(t: ^testing.T, gb: ^Gap_Buffer, pos: int, val: $T, loc := #caller_location) {
+	alloc_err := insert_at(gb, pos, val)
+	testing.expect_value(t, alloc_err, mem.Allocator_Error.None, loc)
+}
+
 check_byte_at :: proc(
 	t: ^testing.T,
 	gb: Gap_Buffer,
@@ -280,16 +306,16 @@ test_basic_insert :: proc(t: ^testing.T) {
 	defer deinit(&gb)
 
 	// Test 1: Append
-	insert_at(&gb, 0, "Hello")
+	insert_ok(t, &gb, 0, "Hello")
 	check_str(t, gb, "Hello")
 
 	// Test 2: Insert in middle (Moves gap)
 	// Current "Hello", Pos: 1 -> "Hello"
-	insert_at(&gb, 1, "i")
+	insert_ok(t, &gb, 1, "i")
 	check_str(t, gb, "Hiello")
 
 	// Test 3: Insert at end
-	insert_at(&gb, byte_length(gb), "!")
+	insert_ok(t, &gb, byte_length(gb), "!")
 	check_str(t, gb, "Hiello!")
 }
 
@@ -300,12 +326,12 @@ test_cursor_movement_logic :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_at(&gb, 0, "ABC")
+	insert_ok(t, &gb, 0, "ABC")
 	// Buffer state: [A, B, C, gap, gap, gap, gap, gap, gap, gap]
 	// Text: "ABC"
 	// Gap Size: 7
 
-	insert_at(&gb, 1, "X")
+	insert_ok(t, &gb, 1, "X")
 	// 1. Logic shifts gap to index 1 (between A and B).
 	//    State: [A, gap, gap, gap, gap, gap, gap, gap, B, C]
 
@@ -331,21 +357,21 @@ test_growing :: proc(t: ^testing.T) {
 
 	testing.expect_value(t, capacity(gb), 2)
 
-	insert_at(&gb, 0, "A")
-	insert_at(&gb, 1, "B")
+	insert_ok(t, &gb, 0, "A")
+	insert_ok(t, &gb, 1, "B")
 
 	// Buffer is full (used 2, cap 2)
 	testing.expect(t, gap_size(gb) == 0, "Gap should be empty")
 
 	// This triggers grow()
-	insert_at(&gb, 2, "C")
+	insert_ok(t, &gb, 2, "C")
 
 	check_str(t, gb, "ABC")
 	testing.expect(t, capacity(gb) > 2, "Capacity should have grown")
 
 	// Test inserting larger than current capacity
 	long_str := "Defghijk"
-	insert_at(&gb, 3, long_str)
+	insert_ok(t, &gb, 3, long_str)
 	check_str(t, gb, "ABCDefghijk")
 }
 
@@ -356,7 +382,7 @@ test_deletion :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_at(&gb, 0, "0123456789")
+	insert_ok(t, &gb, 0, "0123456789")
 
 	// Delete at start
 	delete_at(&gb, 0)
@@ -379,7 +405,7 @@ test_range_deletion :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_at(&gb, 0, "Hello World")
+	insert_ok(t, &gb, 0, "Hello World")
 
 	// Delete " World" (at index 5, length 6)
 	delete_range(&gb, 5, 6)
@@ -387,7 +413,7 @@ test_range_deletion :: proc(t: ^testing.T) {
 
 	// Test deleting out of bounds
 	// Hello!!!
-	insert_at(&gb, 5, "!!!")
+	insert_ok(t, &gb, 5, "!!!")
 
 	// Trying to delete way past the end, should clamp to only
 	// deleting the 3 that exists
@@ -402,12 +428,12 @@ test_rune_utf8 :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_at(&gb, 0, "Hi")
+	insert_ok(t, &gb, 0, "Hi")
 	// Buffer: "Hi" (Length 2)
 
 	// 1. Insert '世' at index 2
 	// '世' is 3 bytes (0xE4, 0xB8, 0x96)
-	insert_at(&gb, 2, '世')
+	insert_ok(t, &gb, 2, '世')
 
 	// Buffer should now be 2 + 3 = 5 bytes.
 	testing.expect_value(t, byte_length(gb), 5)
@@ -415,7 +441,7 @@ test_rune_utf8 :: proc(t: ^testing.T) {
 	// 2. Insert '界' AFTER '世'.
 	// We must advance by the byte width of '世' (3 bytes).
 	// Start pos (2) + Width (3) = 5.
-	insert_at(&gb, 5, '界')
+	insert_ok(t, &gb, 5, '界')
 
 	// Buffer should now be 5 + 3 = 8 bytes.
 	testing.expect_value(t, byte_length(gb), 8)
@@ -432,12 +458,12 @@ test_small_stress :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_byte_at(&gb, 0, 'A') // A
-	insert_at(&gb, 0, "B") // BA
-	insert_byte_at(&gb, 1, 'C') // BCA
-	insert_at(&gb, 3, "D") // BCAD
+	insert_ok(t, &gb, 0, 'A') // A
+	insert_ok(t, &gb, 0, "B") // BA
+	insert_ok(t, &gb, 1, 'C') // BCA
+	insert_ok(t, &gb, 3, "D") // BCAD
 	delete_at(&gb, 0) // CAD
-	insert_at(&gb, 1, "E") // CEAD
+	insert_ok(t, &gb, 1, "E") // CEAD
 
 	check_str(t, gb, "CEAD")
 }
@@ -452,7 +478,7 @@ test_get_byte_at_bounds :: proc(t: ^testing.T) {
 	// Empty buffer should not allow index 0.
 	check_byte_at(t, gb, 0, 0, false)
 
-	insert_at(&gb, 0, "ABC")
+	insert_ok(t, &gb, 0, "ABC")
 
 	// Negative, equal-to-length, and far out-of-range indices are invalid.
 	check_byte_at(t, gb, -1, 0, false)
@@ -467,7 +493,7 @@ test_get_byte_at_gap_in_middle :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_at(&gb, 0, "ABCD")
+	insert_ok(t, &gb, 0, "ABCD")
 
 	// Force the gap to sit between 'B' and 'C'.
 	shift_gap_to(&gb, 2)
@@ -485,10 +511,10 @@ test_get_byte_at_matches_get_text_after_edits :: proc(t: ^testing.T) {
 	assert(gb_alloc_err == .None)
 	defer deinit(&gb)
 
-	insert_at(&gb, 0, "ABC")
-	insert_at(&gb, 1, "x")
+	insert_ok(t, &gb, 0, "ABC")
+	insert_ok(t, &gb, 1, "x")
 	delete_at(&gb, 2)
-	insert_at(&gb, 3, "D")
+	insert_ok(t, &gb, 3, "D")
 
 	full_text, text_alloc_err := get_text(gb, gb.allocator)
 	assert(text_alloc_err == .None)
@@ -523,8 +549,8 @@ test_iterator_gap_in_the_middle :: proc(t: ^testing.T) {
 	defer deinit(&gb)
 
 	// Insert "AB"
-	insert_at(&gb, 0, "A")
-	insert_at(&gb, 1, "B")
+	insert_ok(t, &gb, 0, "A")
+	insert_ok(t, &gb, 1, "B")
 
 	// Move gap to index 1 (Between A and B)
 	// Memory: [A, gap, gap, ... , B]
@@ -556,7 +582,8 @@ test_iterator_matches_get_text :: proc(t: ^testing.T) {
 	defer deinit(&gb)
 
 	// Insert "Hello World" with gap in the word "World"
-	insert_at(&gb, 0, "Hello World")
+	insert_ok(t, &gb, 0, "Hello World")
+
 	// Gap inside "Wor...ld"
 	shift_gap_to(&gb, 8)
 
@@ -588,7 +615,7 @@ test_iterator_utf8_bytes :: proc(t: ^testing.T) {
 	defer deinit(&gb)
 
 	// Insert '世' (3 bytes)
-	insert_at(&gb, 0, '世')
+	insert_ok(t, &gb, 0, '世')
 
 	// Move gap to 0, moving '世' to the right of the gap
 	// This is to make sure that the iterator will skip the gap

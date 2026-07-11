@@ -30,7 +30,8 @@ text_buffer_insert_at :: proc(tb: ^Text_Buffer, byte_pos: int, str: string) {
 	switch &buf in tb.buf {
 	case gap_buffer.Gap_Buffer:
 		byte_idx := clamp(byte_pos, 0, gap_buffer.byte_length(buf))
-		gap_buffer.insert_at(&buf, byte_idx, str)
+		// TODO(Thomas): Handle error properly
+		_ = gap_buffer.insert_at(&buf, byte_idx, str)
 	case fixed_buffer.Fixed_Buffer:
 		byte_idx := clamp(byte_pos, 0, buf.len)
 		fixed_buffer.insert_at(&buf, byte_idx, str)
