@@ -40,7 +40,7 @@ init_interaction :: proc(
 	interaction: ^Interaction,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
-	// NOTE(Thomas): make(map) does not return an Allocator_Error in this Odin
+	// TODO(Thomas): make(map) does not return an Allocator_Error in this Odin
 	// version (unlike make([dynamic])), so there is nothing to propagate here yet.
 	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
 	interaction.animatable_elements = make([dynamic]^UI_Element, allocator) or_return
