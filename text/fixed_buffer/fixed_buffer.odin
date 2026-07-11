@@ -69,13 +69,14 @@ insert_string_at :: proc(fb: ^Fixed_Buffer, pos: int, str: string) -> bool {
 	return insert_slice_at(fb, pos, transmute([]u8)str)
 }
 
-delete_range :: proc(fb: ^Fixed_Buffer, pos: int, count: int) -> bool {
-	if pos < 0 || count < 0 || pos + count > fb.len do return false
-
-	copy(fb.buf[pos:], fb.buf[pos + count:fb.len])
-	fb.len -= count
-
-	return true
+delete_range :: proc(fb: ^Fixed_Buffer, pos: int, count: int) {
+	if pos >= 0 && pos < fb.len && count > 0 {
+		valid_len := fb.len - pos
+		// Clamp count so we don't delete past the end
+		actual_count := min(count, valid_len)
+		copy(fb.buf[pos:], fb.buf[pos + actual_count:fb.len])
+		fb.len -= actual_count
+	}
 }
 
 clear :: proc(fb: ^Fixed_Buffer) {
@@ -237,36 +238,56 @@ test_delete :: proc(t: ^testing.T) {
 	fb := Fixed_Buffer{}
 	init_with_content(&fb, backing[:], transmute([]u8)string("hello world"))
 
-	testing.expect(t, delete_range(&fb, 5, 6))
+	delete_range(&fb, 5, 6)
 	testing.expect_value(t, contents_string(fb), "hello")
 
-	testing.expect(t, delete_range(&fb, 0, 2))
+	delete_range(&fb, 0, 2)
 	testing.expect_value(t, contents_string(fb), "llo")
 }
 
 @(test)
-test_delete_invalid :: proc(t: ^testing.T) {
+test_delete_out_of_range_is_noop :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
 	fb := Fixed_Buffer{}
-	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
 
-	// Try to delete from negative pos
-	testing.expect(t, !delete_range(&fb, -1, 1))
-	// Try to delete with count >= fb.len
-	testing.expect(t, !delete_range(&fb, 0, 4))
-	// Try to delete with a pos and a count that will go past the fb.len
-	testing.expect(t, !delete_range(&fb, 2, 2))
+	// Negative pos
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
+	delete_range(&fb, -1, 1)
+	testing.expect_value(t, contents_string(fb), "abc")
+	testing.expect_value(t, fb.len, 3)
+
+	// pos at the very end, nothing left to delete
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
+	delete_range(&fb, 3, 1)
+	testing.expect_value(t, contents_string(fb), "abc")
+	testing.expect_value(t, fb.len, 3)
+
+	// Zero count
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
+	delete_range(&fb, 1, 0)
+	testing.expect_value(t, contents_string(fb), "abc")
+	testing.expect_value(t, fb.len, 3)
 }
 
 @(test)
-test_delete_zero_count :: proc(t: ^testing.T) {
+test_delete_count_clamps_to_end :: proc(t: ^testing.T) {
 	N :: 8
 	backing: [N]u8
 	fb := Fixed_Buffer{}
-	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
 
-	testing.expect(t, delete_range(&fb, 1, 0))
+	// Count past the end from 0 pos deletes everything
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
+	delete_range(&fb, 0, 4)
+	testing.expect_value(t, contents_string(fb), "")
+	testing.expect_value(t, fb.len, 0)
+
+	// Count past the end from a pos inside the buffer deletes
+	// only what's left after pos
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
+	delete_range(&fb, 2, 2)
+	testing.expect_value(t, contents_string(fb), "ab")
+	testing.expect_value(t, fb.len, 2)
 }
 
 @(test)

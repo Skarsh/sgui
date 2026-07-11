@@ -1,8 +1,10 @@
 package text
 
+import "core:mem"
 import "core:testing"
 
 import "../gap_buffer"
+import "fixed_buffer"
 
 @(test)
 test_text_buffer_len_counts_runes :: proc(t: ^testing.T) {
@@ -523,4 +525,28 @@ test_text_buffer_prev_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(tb, -100), 0)
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(tb, 999), 3)
+}
+
+// Fixed buffer tests
+@(test)
+test_text_buffer_delete_range_count_clamps_to_end_fixed :: proc(t: ^testing.T) {
+	storage: [64]u8
+	tb := Text_Buffer {
+		buf = fixed_buffer.Fixed_Buffer{buf = storage[:], len = 0},
+	}
+	defer text_buffer_deinit(&tb)
+
+	text_buffer_insert_at(&tb, 0, "abcdef")
+	// Should delete "ef" from the end, making the
+	// resulting buffer contain "abcd"
+	text_buffer_delete_range(&tb, 4, 999)
+
+	// NOTE(Thomas): The Fixed_Buffer path never allocates, it returns a view into
+	// storage, so the allocator is unused and actual is only valid while tb is alive.
+	actual, text_alloc_err := text_buffer_text(tb, mem.nil_allocator())
+	assert(text_alloc_err == .None)
+
+	testing.expect_value(t, text_buffer_byte_length(tb), 4)
+	// Should remove 'e' and 'f'
+	testing.expect_value(t, actual, "abcd")
 }
