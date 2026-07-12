@@ -20,7 +20,7 @@ test_text_buffer_len_counts_runes :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "a©")
+	text_buffer_insert_ok(t, &tb, 0, "a©")
 
 	testing.expect_value(t, text_buffer_byte_length(tb), 3)
 }
@@ -39,9 +39,8 @@ test_text_buffer_insert_at_start :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "World")
-
-	text_buffer_insert_at(&tb, 0, "Hello ")
+	text_buffer_insert_ok(t, &tb, 0, "World")
+	text_buffer_insert_ok(t, &tb, 0, "Hello ")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -65,10 +64,10 @@ test_text_buffer_insert_at_end :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "Hello")
+	text_buffer_insert_ok(t, &tb, 0, "Hello")
 
 	len_bytes := text_buffer_byte_length(tb)
-	text_buffer_insert_at(&tb, len_bytes, " World")
+	text_buffer_insert_ok(t, &tb, len_bytes, " World")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -92,10 +91,10 @@ test_text_buffer_insert_utf8_mid_insertion :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "Hi!")
+	text_buffer_insert_ok(t, &tb, 0, "Hi!")
 
 	// Insert '世' (3 bytes) at byte index 2 (before '!')
-	text_buffer_insert_at(&tb, 2, "世")
+	text_buffer_insert_ok(t, &tb, 2, "世")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -122,10 +121,10 @@ test_text_buffer_insert_into_existing_utf8 :: proc(t: ^testing.T) {
 	defer text_buffer_deinit(&tb)
 
 	// 'A' = 1 byte, '©' = 2 bytes, 'B' = 1 byte
-	text_buffer_insert_at(&tb, 0, "A©B")
+	text_buffer_insert_ok(t, &tb, 0, "A©B")
 
 	// We insert "★" = 3 bytes between A '©' and 'B', i.e. byte index 3
-	text_buffer_insert_at(&tb, 3, "★")
+	text_buffer_insert_ok(t, &tb, 3, "★")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -152,12 +151,12 @@ test_text_buffer_insert_empty_string_is_safe :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "ABC")
+	text_buffer_insert_ok(t, &tb, 0, "ABC")
 
 	start_bytes := text_buffer_byte_length(tb)
 
 	// Insert empty string in middle
-	text_buffer_insert_at(&tb, 1, "")
+	text_buffer_insert_ok(t, &tb, 1, "")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -181,11 +180,11 @@ test_text_buffer_insert_out_of_bounds_high_clamps_to_end :: proc(t: ^testing.T) 
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "Start")
+	text_buffer_insert_ok(t, &tb, 0, "Start")
 
 	// Try to insert at byte index 100, which is way past "Start" (len 5)
 	// Expectation: Appends to the end
-	text_buffer_insert_at(&tb, 100, "End")
+	text_buffer_insert_ok(t, &tb, 100, "End")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -208,11 +207,11 @@ test_text_buffer_insert_negative_index_clamps_to_start :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "World")
+	text_buffer_insert_ok(t, &tb, 0, "World")
 
 	// Try to insert at -5
 	// Expectation: Prepends at 0
-	text_buffer_insert_at(&tb, -5, "Hello ")
+	text_buffer_insert_ok(t, &tb, -5, "Hello ")
 
 	actual, text_alloc_err := text_buffer_text(tb, context.allocator)
 	assert(text_alloc_err == .None)
@@ -235,8 +234,7 @@ test_text_buffer_delete_range_removes_middle_runes :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "abcXYZdef")
-
+	text_buffer_insert_ok(t, &tb, 0, "abcXYZdef")
 
 	text_buffer_delete_range(&tb, 3, 3)
 
@@ -261,7 +259,7 @@ test_text_buffer_delete_range_utf8_correctness :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "Héllo")
+	text_buffer_insert_ok(t, &tb, 0, "Héllo")
 
 	// é is 2 bytes
 	text_buffer_delete_range(&tb, 1, 2)
@@ -291,7 +289,7 @@ test_text_buffer_delete_range_count_zero_is_no_op :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "abcdef")
+	text_buffer_insert_ok(t, &tb, 0, "abcdef")
 
 	before_len := text_buffer_byte_length(tb)
 
@@ -319,7 +317,7 @@ test_text_buffer_delete_range_out_of_range_position_is_no_op :: proc(t: ^testing
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "abcdef")
+	text_buffer_insert_ok(t, &tb, 0, "abcdef")
 
 	before_len := text_buffer_byte_length(tb)
 
@@ -352,7 +350,7 @@ test_text_buffer_delete_range_count_clamps_to_end :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "abcdef")
+	text_buffer_insert_ok(t, &tb, 0, "abcdef")
 
 	// Start at rune 4 ('e'), try to delete 999 runes
 	text_buffer_delete_range(&tb, 4, 999)
@@ -382,7 +380,7 @@ text_text_buffer_next_word_byte_pos :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "ab cd")
+	text_buffer_insert_ok(t, &tb, 0, "ab cd")
 
 	next_pos := text_buffer_next_word_byte_pos(tb, 0)
 
@@ -403,10 +401,10 @@ test_text_buffer_next_word_rune_pos_gap_in_middle :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "ab cd ef")
+	text_buffer_insert_ok(t, &tb, 0, "ab cd ef")
 
 	// Move the internal "caret" to the middle without changing content.
-	text_buffer_insert_at(&tb, 2, "")
+	text_buffer_insert_ok(t, &tb, 2, "")
 
 	testing.expect_value(t, text_buffer_next_word_byte_pos(tb, 0), 3)
 	testing.expect_value(t, text_buffer_next_word_byte_pos(tb, 1), 3)
@@ -429,7 +427,7 @@ test_text_buffer_next_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^test
 	defer text_buffer_deinit(&tb)
 
 	// "hé<NBSP><SPACE>世界"
-	text_buffer_insert_at(&tb, 0, "hé  世界")
+	text_buffer_insert_ok(t, &tb, 0, "hé  世界")
 
 	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
 	// 1 + 2 + 2 + 1 + 3 + 3 = 12
@@ -453,7 +451,7 @@ test_text_buffer_next_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 		buf = gb,
 	}
 	defer text_buffer_deinit(&tb)
-	text_buffer_insert_at(&tb, 0, "ab cd")
+	text_buffer_insert_ok(t, &tb, 0, "ab cd")
 
 	testing.expect_value(t, text_buffer_next_word_byte_pos(tb, -100), 3)
 	testing.expect_value(t, text_buffer_next_word_byte_pos(tb, 999), text_buffer_byte_length(tb))
@@ -472,7 +470,7 @@ test_text_buffer_prev_word_rune_pos_basic :: proc(t: ^testing.T) {
 		buf = gb,
 	}
 	defer text_buffer_deinit(&tb)
-	text_buffer_insert_at(&tb, 0, "ab cd ef")
+	text_buffer_insert_ok(t, &tb, 0, "ab cd ef")
 
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(tb, 8), 6)
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(tb, 7), 6)
@@ -495,7 +493,7 @@ test_text_buffer_prev_word_rune_pos_utf8_and_unicode_whitespace :: proc(t: ^test
 	defer text_buffer_deinit(&tb)
 
 	// "hé<NBSP><SPACE>世界"
-	text_buffer_insert_at(&tb, 0, "hé  世界")
+	text_buffer_insert_ok(t, &tb, 0, "hé  世界")
 
 	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
 	// 1 + 2 + 2 + 1 + 3 + 3 = 12
@@ -521,7 +519,7 @@ test_text_buffer_prev_word_rune_pos_clamps_input_position :: proc(t: ^testing.T)
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "ab cd")
+	text_buffer_insert_ok(t, &tb, 0, "ab cd")
 
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(tb, -100), 0)
 	testing.expect_value(t, text_buffer_prev_word_byte_pos(tb, 999), 3)
@@ -536,7 +534,7 @@ test_text_buffer_delete_range_count_clamps_to_end_fixed :: proc(t: ^testing.T) {
 	}
 	defer text_buffer_deinit(&tb)
 
-	text_buffer_insert_at(&tb, 0, "abcdef")
+	text_buffer_insert_ok(t, &tb, 0, "abcdef")
 	// Should delete "ef" from the end, making the
 	// resulting buffer contain "abcd"
 	text_buffer_delete_range(&tb, 4, 999)

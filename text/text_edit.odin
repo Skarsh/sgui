@@ -166,7 +166,8 @@ text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
 
 	current_len := text_buffer_byte_length(state.buffer)
 	if current_len + len(text) <= state.max_len {
-		text_buffer_insert_at(&state.buffer, insert_at, text)
+		// TODO(Thomas): Properly handle error
+		_ = text_buffer_insert_at(&state.buffer, insert_at, text)
 		set_caret(state, insert_at + len(text))
 	}
 }

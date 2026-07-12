@@ -115,6 +115,7 @@ peek_rune_at :: proc(fb: Fixed_Buffer, byte_idx: int) -> (rune, int) {
 
 // ----------------- Tests ----------------- //
 
+// Test only helper to check insert error
 @(private = "file")
 insert_ok :: proc(t: ^testing.T, fb: ^Fixed_Buffer, pos: int, val: $T, loc := #caller_location) {
 	fb_err := insert_at(fb, pos, val)

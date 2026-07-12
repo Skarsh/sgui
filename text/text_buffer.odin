@@ -1,6 +1,7 @@
 package text
 
 import "core:mem"
+import "core:testing"
 import "core:unicode/utf8"
 
 import gap_buffer "../gap_buffer"
@@ -17,6 +18,11 @@ Text_Buffer :: struct {
 	buf: Backing_Buffer,
 }
 
+Text_Buffer_Error :: union #shared_nil {
+	fixed_buffer.Fixed_Buffer_Error,
+	mem.Allocator_Error,
+}
+
 text_buffer_deinit :: proc(tb: ^Text_Buffer) {
 	switch &buf in tb.buf {
 	case gap_buffer.Gap_Buffer:
@@ -26,17 +32,17 @@ text_buffer_deinit :: proc(tb: ^Text_Buffer) {
 	}
 }
 
-text_buffer_insert_at :: proc(tb: ^Text_Buffer, byte_pos: int, str: string) {
+@(require_results)
+text_buffer_insert_at :: proc(tb: ^Text_Buffer, byte_pos: int, str: string) -> Text_Buffer_Error {
 	switch &buf in tb.buf {
 	case gap_buffer.Gap_Buffer:
 		byte_idx := clamp(byte_pos, 0, gap_buffer.byte_length(buf))
-		// TODO(Thomas): Handle error properly
-		_ = gap_buffer.insert_at(&buf, byte_idx, str)
+		gap_buffer.insert_at(&buf, byte_idx, str) or_return
 	case fixed_buffer.Fixed_Buffer:
 		byte_idx := clamp(byte_pos, 0, buf.len)
-		// TODO(Thomas): Handle error properly
-		_ = fixed_buffer.insert_at(&buf, byte_idx, str)
+		fixed_buffer.insert_at(&buf, byte_idx, str) or_return
 	}
+	return nil
 }
 
 text_buffer_delete_range :: proc(tb: ^Text_Buffer, byte_pos: int, byte_count: int) {
@@ -213,4 +219,17 @@ peek_rune_at_byte_offset :: proc(tb: Text_Buffer, byte_idx: int) -> (rune, int) 
 	}
 
 	return r, width
+}
+
+// Test only helper to check insert error
+@(private)
+text_buffer_insert_ok :: proc(
+	t: ^testing.T,
+	tb: ^Text_Buffer,
+	pos: int,
+	val: $T,
+	loc := #caller_location,
+) {
+	tb_err := text_buffer_insert_at(tb, pos, val)
+	testing.expect_value(t, tb_err, nil, loc)
 }
