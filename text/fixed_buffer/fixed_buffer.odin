@@ -272,6 +272,25 @@ test_insert_string_at :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_insert_empty_is_noop :: proc(t: ^testing.T) {
+	N :: 8
+	backing: [N]u8
+	fb := Fixed_Buffer{}
+	init_with_content(&fb, backing[:], transmute([]u8)string("abc"))
+
+	// Empty string in the middle
+	insert_ok(t, &fb, 1, "")
+	testing.expect_value(t, contents_string(fb), "abc")
+	testing.expect_value(t, fb.len, 3)
+
+	// Empty slice in the middle
+	empty: []u8
+	insert_ok(t, &fb, 1, empty)
+	testing.expect_value(t, contents_string(fb), "abc")
+	testing.expect_value(t, fb.len, 3)
+}
+
+@(test)
 test_delete :: proc(t: ^testing.T) {
 	N :: 16
 	backing: [N]u8

@@ -422,6 +422,68 @@ test_range_deletion :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_range_deletion_out_of_range_is_noop :: proc(t: ^testing.T) {
+	gb := Gap_Buffer{}
+	gb_alloc_err := init_gap_buffer(&gb, 20, context.allocator)
+	assert(gb_alloc_err == .None)
+	defer deinit(&gb)
+
+	insert_ok(t, &gb, 0, "abcdef")
+
+	// Negative pos
+	delete_range(&gb, -1, 2)
+	check_str(t, gb, "abcdef")
+	testing.expect_value(t, byte_length(gb), 6)
+
+	// Pos at the very end, nothing left to delete.
+	// Valid for insert, but invalid for delete range.
+	delete_range(&gb, 6, 2)
+	check_str(t, gb, "abcdef")
+	testing.expect_value(t, byte_length(gb), 6)
+
+	// Way past the end
+	delete_range(&gb, 7, 2)
+	check_str(t, gb, "abcdef")
+	testing.expect_value(t, byte_length(gb), 6)
+}
+
+@(test)
+test_range_deletion_count_zero_is_noop :: proc(t: ^testing.T) {
+	gb := Gap_Buffer{}
+	gb_alloc_err := init_gap_buffer(&gb, 20, context.allocator)
+	assert(gb_alloc_err == .None)
+	defer deinit(&gb)
+
+	insert_ok(t, &gb, 0, "abcdef")
+
+	delete_range(&gb, 2, 0)
+
+	check_str(t, gb, "abcdef")
+	testing.expect_value(t, byte_length(gb), 6)
+}
+
+@(test)
+test_insert_empty_is_noop :: proc(t: ^testing.T) {
+	gb := Gap_Buffer{}
+	gb_alloc_err := init_gap_buffer(&gb, 20, context.allocator)
+	assert(gb_alloc_err == .None)
+	defer deinit(&gb)
+
+	insert_ok(t, &gb, 0, "abc")
+
+	// Empty string in the middle
+	insert_ok(t, &gb, 1, "")
+	check_str(t, gb, "abc")
+	testing.expect_value(t, byte_length(gb), 3)
+
+	// Empty slice in the middle
+	empty: []u8
+	insert_ok(t, &gb, 1, empty)
+	check_str(t, gb, "abc")
+	testing.expect_value(t, byte_length(gb), 3)
+}
+
+@(test)
 test_rune_utf8 :: proc(t: ^testing.T) {
 	gb := Gap_Buffer{}
 	gb_alloc_err := init_gap_buffer(&gb, 20, context.allocator)
