@@ -1,7 +1,6 @@
 package text
 
 import "core:mem"
-import "core:testing"
 import "core:unicode/utf8"
 
 import gap_buffer "../gap_buffer"
@@ -219,17 +218,4 @@ peek_rune_at_byte_offset :: proc(tb: Text_Buffer, byte_idx: int) -> (rune, int) 
 	}
 
 	return r, width
-}
-
-// Test only helper to check insert error
-@(private)
-text_buffer_insert_ok :: proc(
-	t: ^testing.T,
-	tb: ^Text_Buffer,
-	pos: int,
-	val: $T,
-	loc := #caller_location,
-) {
-	tb_err := text_buffer_insert_at(tb, pos, val)
-	testing.expect_value(t, tb_err, nil, loc)
 }
