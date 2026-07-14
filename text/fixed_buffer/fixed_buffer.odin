@@ -31,7 +31,6 @@ remaining :: proc(fb: Fixed_Buffer) -> int {
 	return len(fb.buf) - fb.len
 }
 
-
 contents_slice :: proc(fb: Fixed_Buffer) -> []u8 {
 	return fb.buf[:fb.len]
 }
