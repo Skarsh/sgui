@@ -56,41 +56,37 @@ insert_at :: proc {
 
 @(require_results)
 insert_byte_at :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) -> mem.Allocator_Error {
-	if pos >= 0 && pos <= byte_length(gb^) {
-		ensure_space(gb, 1) or_return
-		shift_gap_to(gb, pos)
-		gb.buf[gb.start] = ch
-		gb.start += 1
-	}
+	assert(pos >= 0, "pos must be non-negative")
+	assert(pos <= byte_length(gb^), "pos must be within the buffer contents")
+
+	ensure_space(gb, 1) or_return
+	shift_gap_to(gb, pos)
+	gb.buf[gb.start] = ch
+	gb.start += 1
 	return nil
 }
 
 @(require_results)
 insert_rune_at :: proc(gb: ^Gap_Buffer, pos: int, r: rune) -> mem.Allocator_Error {
-	if pos >= 0 && pos <= byte_length(gb^) {
-		bytes, width := utf8.encode_rune(r)
-		insert_slice_at(gb, pos, bytes[:width]) or_return
-	}
-	return nil
+	bytes, width := utf8.encode_rune(r)
+	return insert_slice_at(gb, pos, bytes[:width])
 }
 
 @(require_results)
 insert_slice_at :: proc(gb: ^Gap_Buffer, pos: int, slice: []u8) -> mem.Allocator_Error {
-	if pos >= 0 && pos <= byte_length(gb^) {
-		ensure_space(gb, len(slice)) or_return
-		shift_gap_to(gb, pos)
-		copy(gb.buf[gb.start:], slice)
-		gb.start += len(slice)
-	}
+	assert(pos >= 0, "pos must be non-negative")
+	assert(pos <= byte_length(gb^), "pos must be within the buffer contents")
+
+	ensure_space(gb, len(slice)) or_return
+	shift_gap_to(gb, pos)
+	copy(gb.buf[gb.start:], slice)
+	gb.start += len(slice)
 	return nil
 }
 
 @(require_results)
 insert_string_at :: proc(gb: ^Gap_Buffer, pos: int, str: string) -> mem.Allocator_Error {
-	if pos >= 0 && pos <= byte_length(gb^) {
-		insert_slice_at(gb, pos, transmute([]u8)str) or_return
-	}
-	return nil
+	return insert_slice_at(gb, pos, transmute([]u8)str)
 }
 
 
@@ -481,6 +477,35 @@ test_insert_empty_is_noop :: proc(t: ^testing.T) {
 	insert_ok(t, &gb, 1, empty)
 	check_str(t, gb, "abc")
 	testing.expect_value(t, byte_length(gb), 3)
+}
+
+// TODO(Thomas): Remove this when statement when the following issue has been resolved:
+// https://github.com/odin-lang/Odin/issues/7035
+when ODIN_OS != .Windows {
+	@(test)
+	test_insert_negative_pos :: proc(t: ^testing.T) {
+		gb := Gap_Buffer{}
+		gb_alloc_err := init_gap_buffer(&gb, 8, context.temp_allocator)
+		assert(gb_alloc_err == .None)
+
+		testing.expect_assert(t, "pos must be non-negative")
+		err := insert_at(&gb, -1, "x")
+		testing.expect_value(t, err, mem.Allocator_Error.None)
+		testing.fail_now(t, "expected assert did not fire")
+	}
+
+	@(test)
+	test_insert_pos_past_len :: proc(t: ^testing.T) {
+		gb := Gap_Buffer{}
+		gb_alloc_err := init_gap_buffer(&gb, 8, context.temp_allocator)
+		assert(gb_alloc_err == .None)
+
+		// byte_length == 0, so pos 1 is past the contents
+		testing.expect_assert(t, "pos must be within the buffer contents")
+		err := insert_at(&gb, 1, "x")
+		testing.expect_value(t, err, mem.Allocator_Error.None)
+		testing.fail_now(t, "expected assert did not fire")
+	}
 }
 
 @(test)
