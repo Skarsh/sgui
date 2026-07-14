@@ -188,33 +188,37 @@ test_insert_exact :: proc(t: ^testing.T) {
 	testing.expect_value(t, remaining(fb), 0)
 }
 
-@(test)
-test_insert_negative_pos :: proc(t: ^testing.T) {
-	N :: 8
-	backing: [N]u8
-	fb := Fixed_Buffer {
-		buf = backing[:],
+// TODO(Thomas): Remove this when statement when the following issue has been resolved:
+// https://github.com/odin-lang/Odin/issues/7035
+when ODIN_OS != .Windows {
+	@(test)
+	test_insert_negative_pos :: proc(t: ^testing.T) {
+		N :: 8
+		backing: [N]u8
+		fb := Fixed_Buffer {
+			buf = backing[:],
+		}
+
+		testing.expect_assert(t, "pos must be non-negative")
+		err := insert_at(&fb, -1, transmute([]u8)string("x"))
+		testing.expect_value(t, err, Fixed_Buffer_Error.None)
+		testing.fail_now(t, "expected assert did not fire")
 	}
 
-	testing.expect_assert(t, "pos must be non-negative")
-	err := insert_at(&fb, -1, transmute([]u8)string("x"))
-	testing.expect_value(t, err, Fixed_Buffer_Error.None)
-	testing.fail_now(t, "expected assert did not fire")
-}
+	@(test)
+	test_insert_pos_past_len :: proc(t: ^testing.T) {
+		N :: 8
+		backing: [N]u8
+		fb := Fixed_Buffer {
+			buf = backing[:],
+		}
 
-@(test)
-test_insert_pos_past_len :: proc(t: ^testing.T) {
-	N :: 8
-	backing: [N]u8
-	fb := Fixed_Buffer {
-		buf = backing[:],
+		// fb.len == 0, so pos 1 is past the contents
+		testing.expect_assert(t, "pos must be within the buffer contents")
+		err := insert_at(&fb, 1, transmute([]u8)string("x"))
+		testing.expect_value(t, err, Fixed_Buffer_Error.None)
+		testing.fail_now(t, "expected assert did not fire")
 	}
-
-	// fb.len == 0, so pos 1 is past the contents
-	testing.expect_assert(t, "pos must be within the buffer contents")
-	err := insert_at(&fb, 1, transmute([]u8)string("x"))
-	testing.expect_value(t, err, Fixed_Buffer_Error.None)
-	testing.fail_now(t, "expected assert did not fire")
 }
 
 @(test)
