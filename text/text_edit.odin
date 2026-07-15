@@ -131,24 +131,15 @@ text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 }
 
 text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
+	if is_selection_collapsed(state.selection) {
+		text_edit_select_to(state, translation)
+	}
 
-	if !is_selection_collapsed(state.selection) {
-		start := selection_start(state.selection)
-		end := selection_end(state.selection)
+	start := selection_start(state.selection)
+	end := selection_end(state.selection)
+	if start != end {
 		text_buffer_delete_range(&state.buffer, start, end - start)
-		set_caret(state, start)
-		return
 	}
-
-	from := state.selection.active
-	to := translated_pos(state, translation, false)
-	start := min(from, to)
-	end := max(from, to)
-	if start == end {
-		return
-	}
-
-	text_buffer_delete_range(&state.buffer, start, end - start)
 	set_caret(state, start)
 }
 

@@ -3,7 +3,6 @@ package text
 import "core:testing"
 
 import base "../base"
-import gap_buffer "../gap_buffer"
 
 // "hé<NBSP><SPACE>世界". The NBSP is written as an escape so that it survives
 // editing tools that normalize unicode, it is invisible but has to stay a
@@ -14,1312 +13,217 @@ UTF8_SAMPLE :: "hé\u00a0 世界"
 #assert(len(UTF8_SAMPLE) == 12)
 
 @(test)
-test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one_rune :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_move_to(&state, .Left)
-
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_move_left_at_start_clamps_to_zero :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_move_to(&state, .Left)
-
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_move_left_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "a世b")
+test_text_edit_move_to :: proc(t: ^testing.T) {
+	// Left
+	check_move(t, "abc", {active = 2, anchor = 2}, .Left, {active = 1, anchor = 1})
+	check_move(t, "abc", {active = 0, anchor = 0}, .Left, {active = 0, anchor = 0})
 	// a + 世 = 1 + 3 = 4 bytes
-	state.selection = Selection {
-		active = 4,
-		anchor = 4,
-	}
+	check_move(t, "a世b", {active = 4, anchor = 4}, .Left, {active = 1, anchor = 1})
+	check_move(t, "abcdef", {active = 5, anchor = 2}, .Left, {active = 2, anchor = 2})
 
-	text_edit_move_to(&state, .Left)
-
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_move_right_collapsed_selection_moves_caret_right_by_one_rune :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 1,
-		anchor = 1,
-	}
-
-	text_edit_move_to(&state, .Right)
-
-	testing.expect_value(t, state.selection.active, 2)
-	testing.expect_value(t, state.selection.anchor, 2)
-}
-
-@(test)
-test_text_edit_move_right_with_selection_collapses_to_selection_end :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abcdef")
-	state.selection = Selection {
-		active = 2,
-		anchor = 5,
-	}
-
-	text_edit_move_to(&state, .Right)
-
-	testing.expect_value(t, state.selection.active, 5)
-	testing.expect_value(t, state.selection.anchor, 5)
-}
-
-@(test)
-test_text_edit_move_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 3,
-		anchor = 3,
-	}
-
-	text_edit_move_to(&state, .Right)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_move_right_utf8_moves_by_rune_not_byte :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "a世b")
-	state.selection = Selection {
-		active = 1,
-		anchor = 1,
-	}
-
-	text_edit_move_to(&state, .Right)
-
+	// Right
+	check_move(t, "abc", {active = 1, anchor = 1}, .Right, {active = 2, anchor = 2})
+	check_move(t, "abc", {active = 3, anchor = 3}, .Right, {active = 3, anchor = 3})
 	// a + 世 = 1 + 3 = 4 bytes
-	testing.expect_value(t, state.selection.active, 4)
-	testing.expect_value(t, state.selection.anchor, 4)
-}
+	check_move(t, "a世b", {active = 1, anchor = 1}, .Right, {active = 4, anchor = 4})
+	check_move(t, "abcdef", {active = 2, anchor = 5}, .Right, {active = 5, anchor = 5})
 
-@(test)
-test_text_edit_move_next_word_moves_to_start_of_next_word :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_move_to(&state, .Next_Word)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_move_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 3,
-		anchor = 3,
-	}
-
-	text_edit_move_to(&state, .Next_Word)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, UTF8_SAMPLE)
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_move_to(&state, .Next_Word)
+	// Next_Word
+	check_move(t, "ab cd ef", {active = 0, anchor = 0}, .Next_Word, {active = 3, anchor = 3})
+	check_move(t, "abc", {active = 3, anchor = 3}, .Next_Word, {active = 3, anchor = 3})
 
 	// h + é + <NBSP> + <SPACE> = 1 + 2 + 2 + 1 = 6 bytes
-	testing.expect_value(t, state.selection.active, 6)
-	testing.expect_value(t, state.selection.anchor, 6)
+	check_move(t, UTF8_SAMPLE, {active = 0, anchor = 0}, .Next_Word, {active = 6, anchor = 6})
+
+	// Prev_Word
+	check_move(t, "ab cd ef", {active = 8, anchor = 8}, .Prev_Word, {active = 6, anchor = 6})
+	check_move(t, "ab cd ef", {active = 7, anchor = 7}, .Prev_Word, {active = 6, anchor = 6})
+	check_move(t, "abc", {active = 0, anchor = 0}, .Prev_Word, {active = 0, anchor = 0})
+	check_move(t, UTF8_SAMPLE, {active = 12, anchor = 12}, .Prev_Word, {active = 6, anchor = 6})
 }
 
 @(test)
-test_text_edit_move_prev_word_moves_to_start_of_previous_word :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
+test_text_edit_select_to :: proc(t: ^testing.T) {
+	// Left
+	check_select(t, "abc", {active = 2, anchor = 2}, .Left, {active = 1, anchor = 2})
+	check_select(t, "abc", {active = 0, anchor = 0}, .Left, {active = 0, anchor = 0})
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
+	// Right
+	check_select(t, "abc", {active = 0, anchor = 0}, .Right, {active = 1, anchor = 0})
+	check_select(t, "abc", {active = 3, anchor = 3}, .Right, {active = 3, anchor = 3})
 
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 8,
-		anchor = 8,
-	}
+	// Start
+	check_select(t, "abc", {active = 2, anchor = 2}, .Start, {active = 0, anchor = 2})
 
-	text_edit_move_to(&state, .Prev_Word)
+	// End
+	check_select(t, "abc", {active = 1, anchor = 1}, .End, {active = 3, anchor = 1})
 
-	testing.expect_value(t, state.selection.active, 6)
-	testing.expect_value(t, state.selection.anchor, 6)
+	// Next_Word
+	check_select(t, "ab cd ef", {active = 0, anchor = 0}, .Next_Word, {active = 3, anchor = 0})
+	check_select(t, "abc", {active = 3, anchor = 3}, .Next_Word, {active = 3, anchor = 3})
+
+	// Prev_Word
+	check_select(t, "ab cd ef", {active = 8, anchor = 8}, .Prev_Word, {active = 6, anchor = 8})
+	check_select(t, "abc", {active = 0, anchor = 0}, .Prev_Word, {active = 0, anchor = 0})
 }
 
 @(test)
-test_text_edit_move_prev_word_at_start_clamps_to_zero :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+test_text_edit_delete_to :: proc(t: ^testing.T) {
+	// Left
+	check_delete(t, "abc", {active = 2, anchor = 2}, .Left, "ac", {active = 1, anchor = 1})
+	check_delete(t, "abc", {active = 0, anchor = 0}, .Left, "abc", {active = 0, anchor = 0})
+
+	// Right
+	check_delete(t, "abc", {active = 1, anchor = 1}, .Right, "ac", {active = 1, anchor = 1})
+	check_delete(t, "abcdef", {active = 4, anchor = 1}, .Right, "aef", {active = 1, anchor = 1})
+	check_delete(t, "abc", {active = 3, anchor = 3}, .Right, "abc", {active = 3, anchor = 3})
+
+	// Next_Word
+	check_delete(
+		t,
+		"ab cd ef",
+		{active = 0, anchor = 0},
+		.Next_Word,
+		"cd ef",
+		{active = 0, anchor = 0},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
+	check_delete(
+		t,
+		"ab cd ef",
+		{active = 6, anchor = 6},
+		.Next_Word,
+		"ab cd ",
+		{active = 6, anchor = 6},
+	)
 
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
+	check_delete(
+		t,
+		"ab cd",
+		{active = 5, anchor = 5},
+		.Next_Word,
+		"ab cd",
+		{active = 5, anchor = 5},
+	)
 
-	text_edit_move_to(&state, .Prev_Word)
+	// Prev_Word
+	check_delete(
+		t,
+		"ab cd ef",
+		{active = 2, anchor = 2},
+		.Prev_Word,
+		" cd ef",
+		{active = 0, anchor = 0},
+	)
 
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
+	check_delete(
+		t,
+		"ab cd ef",
+		{active = 8, anchor = 8},
+		.Prev_Word,
+		"ab cd ",
+		{active = 6, anchor = 6},
+	)
+
+	check_delete(
+		t,
+		"ab cd",
+		{active = 0, anchor = 0},
+		.Prev_Word,
+		"ab cd",
+		{active = 0, anchor = 0},
+	)
 }
 
 @(test)
-test_text_edit_move_prev_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
+test_text_edit_insert :: proc(t: ^testing.T) {
+	check_edit_insert(t, "abc", {active = 1, anchor = 1}, "XY", "aXYbc", {active = 3, anchor = 3})
+	check_edit_insert(t, "abcdef", {active = 4, anchor = 1}, "Z", "aZef", {active = 2, anchor = 2})
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, UTF8_SAMPLE)
-
-	// At the end - 1 + 2 + 2 + 1 + 3 + 3 = 12
-	state.selection = Selection {
-		active = 12,
-		anchor = 12,
-	}
-
-	text_edit_move_to(&state, .Prev_Word)
-	// h + é + <NBSP> + <SPACE> = 1 + 2 + 2 + 1 = 6
-	testing.expect_value(t, state.selection.active, 6)
-	testing.expect_value(t, state.selection.anchor, 6)
-}
-
-@(test)
-test_text_edit_move_prev_word_from_inside_word_moves_to_that_word_start :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	// Between e and f
-	state.selection = Selection {
-		active = 7,
-		anchor = 7,
-	}
-
-	text_edit_move_to(&state, .Prev_Word)
-
-	testing.expect_value(t, state.selection.active, 6)
-	testing.expect_value(t, state.selection.anchor, 6)
-}
-
-@(test)
-test_text_edit_select_left_from_collapsed_caret_extends_selection_left :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_select_to(&state, .Left)
-
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 2)
-}
-
-@(test)
-test_text_edit_select_right_from_collapsed_caret_extends_selection_right :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_select_to(&state, .Right)
-
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_select_next_word_from_collapsed_caret_extends_selection_to_next_word_start :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_select_to(&state, .Next_Word)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_select_prev_word_from_collapsed_caret_extends_selection_to_prev_word_start :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 8,
-		anchor = 8,
-	}
-
-	text_edit_select_to(&state, .Prev_Word)
-
-	testing.expect_value(t, state.selection.active, 6)
-	testing.expect_value(t, state.selection.anchor, 8)
-}
-
-@(test)
-test_text_edit_select_start_from_collapsed_caret_extends_selection_to_start :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_select_to(&state, .Start)
-
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 2)
-}
-
-@(test)
-test_text_edit_select_end_from_collapsed_caret_extends_selection_to_end :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 1,
-		anchor = 1,
-	}
-
-	text_edit_select_to(&state, .End)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_select_left_at_start_clamps_to_zero :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_select_to(&state, .Left)
-
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_select_right_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 3,
-		anchor = 3,
-	}
-
-	text_edit_select_to(&state, .Right)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_select_next_word_at_end_clamps_to_buffer_len :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 3,
-		anchor = 3,
-	}
-
-	text_edit_select_to(&state, .Next_Word)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_select_prev_word_at_start_clamps_to_zero :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_select_to(&state, .Prev_Word)
-
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_delete_left_from_collapsed_caret_deletes_rune_before_caret :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_delete_to(&state, .Left)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ac")
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_delete_right_from_collapsed_caret_deletes_rune_after_caret :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 1,
-		anchor = 1,
-	}
-
-	text_edit_delete_to(&state, .Right)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ac")
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_delete_next_word_from_collapsed_caret_deletes_to_next_word_start :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_delete_to(&state, .Next_Word)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "cd ef")
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_delete_to_with_non_collapsed_selection_deletes_selection_range :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abcdef")
-	state.selection = Selection {
-		active = 4,
-		anchor = 1,
-	}
-
-	text_edit_delete_to(&state, .Right)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "aef")
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_delete_left_at_start_is_no_op :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_delete_to(&state, .Left)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "abc")
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_delete_right_at_end_is_no_op :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 3,
-		anchor = 3,
-	}
-
-	text_edit_delete_to(&state, .Right)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "abc")
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_delete_prev_word_at_start_is_no_op :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_delete_to(&state, .Prev_Word)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ab cd")
-	testing.expect_value(t, state.selection.active, 0)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_delete_next_word_at_end_is_no_op :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd")
-	state.selection = Selection {
-		active = 5,
-		anchor = 5,
-	}
-
-	text_edit_delete_to(&state, .Next_Word)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ab cd")
-	testing.expect_value(t, state.selection.active, 5)
-	testing.expect_value(t, state.selection.anchor, 5)
-}
-
-@(test)
-test_text_edit_insert_at_collapsed_caret_inserts_text_and_advances_caret :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 1,
-		anchor = 1,
-	}
-
-	text_edit_insert(&state, "XY")
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "aXYbc")
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_insert_with_non_collapsed_selection_replaces_selected_range :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abcdef")
-	state.selection = Selection {
-		active = 4,
-		anchor = 1,
-	}
-
-	text_edit_insert(&state, "Z")
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "aZef")
-	testing.expect_value(t, state.selection.active, 2)
-	testing.expect_value(t, state.selection.anchor, 2)
-}
-
-@(test)
-test_text_edit_insert_with_reverse_selection_and_utf8_text_collapses_after_insert :: proc(
-	t: ^testing.T,
-) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
-	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abcdef")
-	state.selection = Selection {
-		active = 1,
-		anchor = 4,
-	}
 	// 世 = 3 bytes, x = 1 byte, 3 + 1 = 4 bytes
-	text_edit_insert(&state, "世x")
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "a世xef")
-	testing.expect_value(t, state.selection.active, 5)
-	testing.expect_value(t, state.selection.anchor, 5)
-}
-
-
-@(test)
-test_text_edit_handle_key_left_without_mod_moves_caret_left :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+	check_edit_insert(
+		t,
+		"abcdef",
+		{active = 1, anchor = 4},
+		"世x",
+		"a世xef",
+		{active = 5, anchor = 5},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
-
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.Left})
-
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
 }
 
 @(test)
-test_text_edit_handle_key_shift_left_extends_selection_left :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+test_text_edit_handle_keys :: proc(t: ^testing.T) {
+	// Left
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 2, anchor = 2},
+		{.Left},
+		base.KMOD_NONE,
+		"abc",
+		{active = 1, anchor = 1},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.Left}, base.KMOD_SHIFT)
-
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 2)
-}
-
-@(test)
-test_text_edit_handle_key_ctrl_left_moves_to_prev_word :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 2, anchor = 2},
+		{.Left},
+		base.KMOD_SHIFT,
+		"abc",
+		{active = 1, anchor = 2},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 8,
-		anchor = 8,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.Left}, base.KMOD_CTRL)
-
-	testing.expect_value(t, state.selection.active, 6)
-	testing.expect_value(t, state.selection.anchor, 6)
-}
-
-@(test)
-test_text_edit_handle_key_ctrl_shift_right_extends_selection_to_next_word :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+	check_handle_keys(
+		t,
+		"ab cd ef",
+		{active = 8, anchor = 8},
+		{.Left},
+		base.KMOD_CTRL,
+		"ab cd ef",
+		{active = 6, anchor = 6},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 0,
-		anchor = 0,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.Right}, base.KMOD_CTRL + base.KMOD_SHIFT)
-
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 0)
-}
-
-@(test)
-test_text_edit_handle_key_backspace_deletes_left :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+	// Right
+	check_handle_keys(
+		t,
+		"ab cd ef",
+		{active = 0, anchor = 0},
+		{.Right},
+		base.KMOD_CTRL + base.KMOD_SHIFT,
+		"ab cd ef",
+		{active = 3, anchor = 0},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "abc")
-	state.selection = Selection {
-		active = 2,
-		anchor = 2,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.Backspace})
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ac")
-	testing.expect_value(t, state.selection.active, 1)
-	testing.expect_value(t, state.selection.anchor, 1)
-}
-
-@(test)
-test_text_edit_handle_key_ctrl_backspace_deletes_prev_word :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+	// Backspace
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 2, anchor = 2},
+		{.Backspace},
+		base.KMOD_NONE,
+		"ac",
+		{active = 1, anchor = 1},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 6,
-		anchor = 6,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.Backspace}, base.KMOD_CTRL)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ab ef")
-	testing.expect_value(t, state.selection.active, 3)
-	testing.expect_value(t, state.selection.anchor, 3)
-}
-
-@(test)
-test_text_edit_handle_key_shift_a_selects_all :: proc(t: ^testing.T) {
-	gb := gap_buffer.Gap_Buffer{}
-	gb_alloc_err := gap_buffer.init_gap_buffer(
-		&gb,
-		gap_buffer.DEFAULT_GAP_BUFFER_SIZE,
-		context.allocator,
+	check_handle_keys(
+		t,
+		"ab cd ef",
+		{active = 6, anchor = 6},
+		{.Backspace},
+		base.KMOD_CTRL,
+		"ab ef",
+		{active = 3, anchor = 3},
 	)
-	assert(gb_alloc_err == .None)
-	tb := Text_Buffer {
-		buf = gb,
-	}
 
-	state := Text_Edit_State{}
-	text_edit_init(&state, tb)
-	defer text_edit_deinit(&state)
-
-	text_buffer_insert_ok(t, &state.buffer, 0, "ab cd ef")
-	state.selection = Selection {
-		active = 4,
-		anchor = 4,
-	}
-
-	text_edit_handle_keys(&state, base.Key_Set{.A}, base.KMOD_CTRL)
-
-	actual, text_alloc_err := text_buffer_text(state.buffer, context.allocator)
-	assert(text_alloc_err == .None)
-	defer delete(actual)
-
-	testing.expect_value(t, actual, "ab cd ef")
-	testing.expect_value(t, state.selection.active, 8)
-	testing.expect_value(t, state.selection.anchor, 0)
+	// A
+	check_handle_keys(
+		t,
+		"ab cd ef",
+		{active = 4, anchor = 4},
+		{.A},
+		base.KMOD_CTRL,
+		"ab cd ef",
+		{active = 8, anchor = 0},
+	)
 }

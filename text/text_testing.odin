@@ -2,6 +2,7 @@ package text
 
 import "core:testing"
 
+import base "../base"
 import gap_buffer "../gap_buffer"
 import fixed_buffer "fixed_buffer"
 
@@ -16,6 +17,7 @@ TEST_BUFFER_CAP :: 64
 
 // Test only helper to make a Text_Buffer, getting initialized with the provided text.
 @(private)
+@(require_results)
 test_text_buffer :: proc(backend: Test_Backend, text: string) -> Text_Buffer {
 	tb: Text_Buffer
 	switch backend {
@@ -40,20 +42,7 @@ test_text_buffer :: proc(backend: Test_Backend, text: string) -> Text_Buffer {
 	return tb
 }
 
-// Test only helper to check insert error
-@(private)
-text_buffer_insert_ok :: proc(
-	t: ^testing.T,
-	tb: ^Text_Buffer,
-	pos: int,
-	val: $T,
-	loc := #caller_location,
-) {
-	tb_err := text_buffer_insert_at(tb, pos, val)
-	testing.expect_value(t, tb_err, nil, loc)
-}
-
-// Checks that inserting into initial at pos yields expected on every backend.
+// Test only helper which checks that inserting into initial at pos yields expected on every backend.
 @(private)
 check_insert :: proc(
 	t: ^testing.T,
@@ -91,6 +80,218 @@ check_insert :: proc(
 			initial,
 			expected,
 			actual,
+			loc = loc,
+		)
+	}
+}
+
+// Test only helper to make a Text_Buffer, getting initialized with the provided text and selection.
+@(private)
+@(require_results)
+test_text_edit_state :: proc(
+	backend: Test_Backend,
+	text: string,
+	selection: Selection,
+) -> Text_Edit_State {
+	state := Text_Edit_State{}
+	text_edit_init(&state, test_text_buffer(backend, text))
+	state.selection = selection
+	return state
+}
+
+// Test only helper which checks that moving at selection
+// with translation yields expected selection on every backend.
+@(private)
+check_move :: proc(
+	t: ^testing.T,
+	text: string,
+	selection: Selection,
+	translation: Translation,
+	expected_selection: Selection,
+	loc := #caller_location,
+) {
+	for backend in TEST_BACKENDS {
+		state := test_text_edit_state(backend, text, selection)
+		text_edit_move_to(&state, translation)
+		testing.expectf(
+			t,
+			state.selection == expected_selection,
+			"[%v] move %v in %q from %v: expected %v, got %v",
+			backend,
+			translation,
+			text,
+			selection,
+			expected_selection,
+			state.selection,
+			loc = loc,
+		)
+	}
+}
+
+// Test only helper which checks that selecting at selection with translation
+// yields expected selection on every backend.
+@(private)
+check_select :: proc(
+	t: ^testing.T,
+	text: string,
+	selection: Selection,
+	translation: Translation,
+	expected_selection: Selection,
+	loc := #caller_location,
+) {
+	for backend in TEST_BACKENDS {
+		state := test_text_edit_state(backend, text, selection)
+		text_edit_select_to(&state, translation)
+		testing.expectf(
+			t,
+			state.selection == expected_selection,
+			"[%v] select %v in %q from %v: expected %v, got %v",
+			backend,
+			translation,
+			text,
+			selection,
+			expected_selection,
+			state.selection,
+			loc = loc,
+		)
+	}
+}
+
+// Test only helper which checks that deleting at selection
+// with translation yields expected text and expected selection on every backend.
+@(private)
+check_delete :: proc(
+	t: ^testing.T,
+	text: string,
+	selection: Selection,
+	translation: Translation,
+	expected_text: string,
+	expected_selection: Selection,
+	loc := #caller_location,
+) {
+	for backend in TEST_BACKENDS {
+		state := test_text_edit_state(backend, text, selection)
+		text_edit_delete_to(&state, translation)
+
+		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
+		assert(alloc_err == .None)
+		testing.expectf(
+			t,
+			actual_text == expected_text,
+			"[%v] delete %v in %q from %v: expected text %q, got %q",
+			backend,
+			translation,
+			text,
+			selection,
+			expected_text,
+			actual_text,
+			loc = loc,
+		)
+		testing.expectf(
+			t,
+			state.selection == expected_selection,
+			"[%v] delete %v in %q from %v: expected selection %v, got %v",
+			backend,
+			translation,
+			text,
+			selection,
+			expected_selection,
+			state.selection,
+			loc = loc,
+		)
+	}
+}
+
+// Test only helper which checks that inserting at selection yields
+// expected text and selection on every backend.
+@(private)
+check_edit_insert :: proc(
+	t: ^testing.T,
+	text: string,
+	selection: Selection,
+	insertion: string,
+	expected_text: string,
+	expected_selection: Selection,
+	loc := #caller_location,
+) {
+	for backend in TEST_BACKENDS {
+		state := test_text_edit_state(backend, text, selection)
+		text_edit_insert(&state, insertion)
+
+		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
+		assert(alloc_err == .None)
+		testing.expectf(
+			t,
+			actual_text == expected_text,
+			"[%v] insert %q in %q at %v: expected text %q, got %q",
+			backend,
+			insertion,
+			text,
+			selection,
+			expected_text,
+			actual_text,
+			loc = loc,
+		)
+		testing.expectf(
+			t,
+			state.selection == expected_selection,
+			"[%v] insert %q in %q at %v: expected selection %v, got %v",
+			backend,
+			insertion,
+			text,
+			selection,
+			expected_selection,
+			state.selection,
+			loc = loc,
+		)
+	}
+}
+
+// Test only helper which checks that keys get handled
+// as expected as expected on every backend
+@(private)
+check_handle_keys :: proc(
+	t: ^testing.T,
+	text: string,
+	selection: Selection,
+	keys: base.Key_Set,
+	mods: base.Keymod_Set,
+	expected_text: string,
+	expected_selection: Selection,
+	loc := #caller_location,
+) {
+	for backend in TEST_BACKENDS {
+		state := test_text_edit_state(backend, text, selection)
+
+		// TODO(Thomas): Should we use the return command here somehow?
+		_ = text_edit_handle_keys(&state, keys, mods)
+
+		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
+		assert(alloc_err == .None)
+		testing.expectf(
+			t,
+			actual_text == expected_text,
+			"[%v] keys %v mods %v in %q at %v: expected text %q, got %q",
+			backend,
+			keys,
+			mods,
+			text,
+			selection,
+			expected_text,
+			actual_text,
+			loc = loc,
+		)
+		testing.expectf(
+			t,
+			state.selection == expected_selection,
+			"[%v] keys %v mods %v in %q at %v: expected selection %v, got %v",
+			backend,
+			keys,
+			mods,
+			text,
+			selection,
+			expected_selection,
+			state.selection,
 			loc = loc,
 		)
 	}
