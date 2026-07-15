@@ -204,9 +204,9 @@ translated_pos :: proc(
 		_, width := peek_rune_at_byte_offset(state.buffer, state.selection.active)
 		return state.selection.active + width
 	case .Next_Word:
-		return text_buffer_next_word_byte_pos(state.buffer, state.selection.active)
+		return next_word_byte_pos(state.buffer, state.selection.active)
 	case .Prev_Word:
-		return text_buffer_prev_word_byte_pos(state.buffer, state.selection.active)
+		return prev_word_byte_pos(state.buffer, state.selection.active)
 	case .Start:
 		return 0
 	case .End:
@@ -214,6 +214,78 @@ translated_pos :: proc(
 	}
 
 	return state.selection.active
+}
+
+@(private)
+prev_word_byte_pos :: proc(buf: Text_Buffer, pos: int) -> int {
+	byte_idx := clamp(pos, 0, text_buffer_byte_length(buf))
+
+	for byte_idx > 0 {
+		b, ok := text_buffer_get_byte_at(buf, byte_idx - 1)
+		if !ok {
+			break
+		}
+
+		if !is_space(b) {
+			break
+		}
+
+		byte_idx -= 1
+	}
+
+	for byte_idx > 0 {
+		b, ok := text_buffer_get_byte_at(buf, byte_idx - 1)
+		if !ok {
+			break
+		}
+
+		if is_space(b) {
+			break
+		}
+
+		byte_idx -= 1
+	}
+
+	return byte_idx
+}
+
+@(private)
+next_word_byte_pos :: proc(buf: Text_Buffer, pos: int) -> int {
+	buf_byte_len := text_buffer_byte_length(buf)
+	byte_idx := clamp(pos, 0, buf_byte_len)
+
+	for byte_idx < buf_byte_len {
+		b, ok := text_buffer_get_byte_at(buf, byte_idx)
+		if !ok {
+			break
+		}
+
+		if is_space(b) {
+			break
+		}
+
+		byte_idx += 1
+	}
+
+	for byte_idx < buf_byte_len {
+		b, ok := text_buffer_get_byte_at(buf, byte_idx)
+		if !ok {
+			break
+		}
+
+		if !is_space(b) {
+			break
+		}
+
+		byte_idx += 1
+	}
+
+	return byte_idx
+}
+
+@(private)
+is_space :: proc(b: u8) -> bool {
+	return b == ' ' || b == '\t' || b == '\n'
 }
 
 @(private)

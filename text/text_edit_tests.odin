@@ -5,6 +5,14 @@ import "core:testing"
 import base "../base"
 import gap_buffer "../gap_buffer"
 
+// "hé<NBSP><SPACE>世界". The NBSP is written as an escape so that it survives
+// editing tools that normalize unicode, it is invisible but has to stay a
+// 2 byte non-space.
+// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
+@(private = "file")
+UTF8_SAMPLE :: "hé\u00a0 世界"
+#assert(len(UTF8_SAMPLE) == 12)
+
 @(test)
 test_text_edit_move_left_collapsed_selection_moves_caret_left_by_one_rune :: proc(t: ^testing.T) {
 	gb := gap_buffer.Gap_Buffer{}
@@ -288,9 +296,7 @@ test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 	text_edit_init(&state, tb)
 	defer text_edit_deinit(&state)
 
-	// "hé<NBSP><SPACE>世界"
-	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
-	text_buffer_insert_ok(t, &state.buffer, 0, "hé  世界")
+	text_buffer_insert_ok(t, &state.buffer, 0, UTF8_SAMPLE)
 	state.selection = Selection {
 		active = 0,
 		anchor = 0,
@@ -298,7 +304,7 @@ test_text_edit_move_next_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 
 	text_edit_move_to(&state, .Next_Word)
 
-	// h + é + <NBSP> + Space = 1 + 2 + 2 + 1 = 6 bytes
+	// h + é + <NBSP> + <SPACE> = 1 + 2 + 2 + 1 = 6 bytes
 	testing.expect_value(t, state.selection.active, 6)
 	testing.expect_value(t, state.selection.anchor, 6)
 }
@@ -378,9 +384,7 @@ test_text_edit_move_prev_word_utf8_and_unicode_whitespace :: proc(t: ^testing.T)
 	text_edit_init(&state, tb)
 	defer text_edit_deinit(&state)
 
-	// "hé<NBSP><SPACE>世界"
-	// h = 1 byte, é = 2 bytes, NBSP = 2 bytes, SPACE = 1, 世 = 3 bytes, 界 = 3 bytes
-	text_buffer_insert_ok(t, &state.buffer, 0, "hé  世界")
+	text_buffer_insert_ok(t, &state.buffer, 0, UTF8_SAMPLE)
 
 	// At the end - 1 + 2 + 2 + 1 + 3 + 3 = 12
 	state.selection = Selection {
