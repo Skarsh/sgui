@@ -53,6 +53,7 @@ text_buffer_delete_range :: proc(tb: ^Text_Buffer, byte_pos: int, byte_count: in
 	}
 }
 
+@(require_results)
 text_buffer_byte_length :: proc(tb: Text_Buffer) -> int {
 	byte_len: int
 	switch buf in tb.buf {
@@ -64,6 +65,7 @@ text_buffer_byte_length :: proc(tb: Text_Buffer) -> int {
 	return byte_len
 }
 
+@(require_results)
 text_buffer_capacity :: proc(tb: Text_Buffer) -> int {
 	byte_len: int
 	switch buf in tb.buf {
@@ -76,6 +78,7 @@ text_buffer_capacity :: proc(tb: Text_Buffer) -> int {
 	return byte_len
 }
 
+@(require_results)
 text_buffer_text :: proc(
 	tb: Text_Buffer,
 	allocator: mem.Allocator,
@@ -95,6 +98,7 @@ text_buffer_text :: proc(
 	return str, alloc_err
 }
 
+@(require_results)
 text_buffer_get_byte_at :: proc(tb: Text_Buffer, byte_idx: int) -> (u8, bool) {
 	b: u8 = 0
 	ok: bool = false
@@ -109,6 +113,7 @@ text_buffer_get_byte_at :: proc(tb: Text_Buffer, byte_idx: int) -> (u8, bool) {
 }
 
 @(private)
+@(require_results)
 get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (rune, int) {
 	r: rune = utf8.RUNE_ERROR
 	width: int = 0
@@ -137,6 +142,7 @@ get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (rune, int) {
 }
 
 @(private)
+@(require_results)
 peek_rune_at_byte_offset :: proc(tb: Text_Buffer, byte_idx: int) -> (rune, int) {
 	r: rune = utf8.RUNE_ERROR
 	width: int = 0
