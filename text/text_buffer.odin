@@ -89,7 +89,7 @@ text_buffer_text :: proc(
 	case gap_buffer.Gap_Buffer:
 		str, alloc_err = gap_buffer.get_text(buf, allocator)
 	case fixed_buffer.Fixed_Buffer:
-		str = fixed_buffer.contents_string(buf)
+		str = fixed_buffer.get_text(buf)
 	}
 
 	return str, alloc_err

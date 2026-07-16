@@ -37,7 +37,7 @@ check_insert :: proc(
 		loc = loc,
 	)
 
-	actual_text := contents_string(fb)
+	actual_text := get_text(fb)
 	testing.expectf(
 		t,
 		actual_text == expected_text,
@@ -63,7 +63,7 @@ check_delete :: proc(
 ) {
 	fb := test_fixed_buffer(16, initial_text)
 	delete_range(&fb, pos, count)
-	actual_text := contents_string(fb)
+	actual_text := get_text(fb)
 	testing.expectf(
 		t,
 		actual_text == expected_text,
@@ -145,7 +145,7 @@ test_clear :: proc(t: ^testing.T) {
 	N :: 8
 	fb := test_fixed_buffer(N, "hello")
 	clear(&fb)
-	actual_text := contents_string(fb)
+	actual_text := get_text(fb)
 
 	testing.expect_value(t, actual_text, "")
 	testing.expect_value(t, fb.len, 0)
