@@ -1181,10 +1181,14 @@ calculate_positions_and_alignment :: proc(parent: ^UI_Element, dt: f32) {
 // Helper to get an element in the element cache by id string.
 // The returned UI_Element will be a copy of the one in the element cache.
 @(require_results)
-get_element_by_string_id :: proc(ctx: ^Context, id: string) -> (UI_Element, bool) {
+get_element_by_string_id :: proc(ctx: ^Context, id: string) -> (element: UI_Element, ok: bool) {
 	key := ui_key_hash(id)
-	element, ok := ctx.element_cache[key]
-	return element^, ok
+	element_ptr, found := ctx.element_cache[key]
+	if found {
+		element = element_ptr^
+		ok = true
+	}
+	return
 }
 
 // Helper to get a pointer to an element in element cache by id string
