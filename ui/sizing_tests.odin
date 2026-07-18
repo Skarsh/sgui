@@ -73,6 +73,111 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 
 
 @(test)
+test_fit_container_nonzero_gap_only_anchored_children :: proc(t: ^testing.T) {
+	// --- 1. Define the Test-Specific Data ---
+	Test_Data :: struct {
+		panel_padding:             Padding,
+		panel_child_gap:           f32,
+		child_size:                base.Vec2,
+		child_2_relative_position: base.Vec2,
+	}
+
+	test_data := Test_Data {
+		panel_padding = Padding{left = 10, top = 10, right = 10, bottom = 10},
+		panel_child_gap = 10,
+		child_size = base.Vec2{50, 50},
+		child_2_relative_position = base.Vec2{100, 0},
+	}
+
+	// --- 2. Define the UI Building Logic ---
+	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
+		begin_container(
+			ctx,
+			"anchored_panel",
+			Style {
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
+				padding = data.panel_padding,
+				child_gap = data.panel_child_gap,
+			},
+		)
+
+		container(
+			ctx,
+			"anchor_child_1",
+			Style {
+				sizing_x = sizing_fixed(data.child_size.x),
+				sizing_y = sizing_fixed(data.child_size.y),
+				alignment_x = .Left,
+				alignment_y = .Top,
+				position_mode = .Anchored,
+			},
+		)
+
+		container(
+			ctx,
+			"anchor_child_2",
+			Style {
+				sizing_x = sizing_fixed(data.child_size.x),
+				sizing_y = sizing_fixed(data.child_size.y),
+				alignment_x = .Left,
+				alignment_y = .Top,
+				relative_position = data.child_2_relative_position,
+				position_mode = .Anchored,
+			},
+		)
+
+		end_container(ctx)
+	}
+
+	// --- 3. Define the Verification Logic ---
+	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
+		root_pos := base.Vec2{0, 0}
+		root_size := base.Vec2 {
+			f32(DEFAULT_TESTING_WINDOW_SIZE.x),
+			f32(DEFAULT_TESTING_WINDOW_SIZE.y),
+		}
+
+		// Anchored children don't contribute to fit sizing, and no flow children
+		// means no gaps, so the panel collapses to its padding.
+		panel_pos := base.Vec2{0, 0}
+		panel_size := base.Vec2 {
+			data.panel_padding.left + data.panel_padding.right,
+			data.panel_padding.top + data.panel_padding.bottom,
+		}
+
+		content_origin := base.Vec2 {
+			panel_pos.x + data.panel_padding.left,
+			panel_pos.y + data.panel_padding.top,
+		}
+		child_1_pos := content_origin
+		child_2_pos := content_origin + data.child_2_relative_position
+
+		expected_layout_tree := Expected_Element {
+			id       = "root",
+			pos      = root_pos,
+			size     = root_size,
+			children = []Expected_Element {
+				{
+					id = "anchored_panel",
+					pos = panel_pos,
+					size = panel_size,
+					children = []Expected_Element {
+						{id = "anchor_child_1", pos = child_1_pos, size = data.child_size},
+						{id = "anchor_child_2", pos = child_2_pos, size = data.child_size},
+					},
+				},
+			},
+		}
+		expect_layout(t, ctx, root, expected_layout_tree)
+	}
+
+	// --- 4. Run the Test ---
+	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+}
+
+
+@(test)
 test_fit_sizing_ltr :: proc(t: ^testing.T) {
 	// --- 1. Define the Test-Specific Data ---
 	Test_Data :: struct {

@@ -234,10 +234,12 @@ calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
 				flow_children += 1
 			}
 		}
-		result = f32(flow_children - 1) * element.config.layout.child_gap
+
+		// Make sure the fence post calculation of the children is >= 0
+		result = max(f32(flow_children - 1), 0) * element.config.layout.child_gap
 	}
 
-	assert(result >= 0)
+	assert(result >= 0, "child gap must be >= 0")
 	return result
 }
 
