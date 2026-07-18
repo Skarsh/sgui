@@ -307,6 +307,24 @@ test_layout_text_no_wrap_mode_overflows :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_layout_text_truncate_mode_stops_at_max_width :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		text = "01234567890123456789",
+		expected_size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+		expected_rows = {
+			Positioned_Row {
+				pos = {0, 0},
+				size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				glyph_range = {0, 20},
+			},
+		},
+		max_width = 100,
+		wrap_mode = .Truncate,
+	)
+}
+
+@(test)
 test_layout_text_wraps_mid_word_when_no_candidate :: proc(t: ^testing.T) {
 	check_layout(
 		t,

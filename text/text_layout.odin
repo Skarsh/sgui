@@ -186,17 +186,57 @@ find_linebreak_candidates :: proc(
 	return nil
 }
 
-layout_rows :: proc(
+// TODO(Thomas): Epsilon is for f32 accumulation error,
+// the proper fix is integer/fixed-point glyph metrics (e.g. FreeType 26.6 or Pango units).
+@(private = "file")
+DEFAULT_EPSILON :: 0.001
+
+layout_rows_unwrapped :: proc(
+	paragraphs: []Paragraph,
+	glyphs: []Glyph,
+	rows: ^[dynamic]Positioned_Row,
+	max_width: f32,
+	line_height: f32,
+	text_wrap_mode: Text_Wrap_Mode,
+	epsilon: f32,
+) -> mem.Allocator_Error {
+	line_height_offset: f32 = 0
+	for paragraph in paragraphs {
+		row_width: f32 = 0
+		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
+			glyph_width := glyphs[i].metrics.width
+
+			// TODO(Thomas): For .Truncate we should stop at first overflow,
+			// if not we can end up with adding a later glyph that actually fits, which
+			// most definitely is unintended behaviour.
+			if text_wrap_mode == .None || row_width + glyph_width <= max_width + epsilon {
+				row_width += glyph_width
+			}
+		}
+
+		append(
+			rows,
+			Positioned_Row {
+				pos = {0, line_height_offset},
+				size = {row_width, line_height},
+				glyph_range = paragraph.glyph_range,
+			},
+		) or_return
+		line_height_offset += line_height
+	}
+	return nil
+}
+
+layout_rows_wrapped :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
 	linebreak_candidates: []Linebreak_Candidate,
 	rows: ^[dynamic]Positioned_Row,
 	max_width: f32,
 	line_height: f32,
-	text_wrap_mode: Text_Wrap_Mode,
+	epsilon: f32,
 ) -> mem.Allocator_Error {
 
-	EPSILON :: 0.001
 	candidate_cursor := 0
 	line_height_offset: f32 = 0
 
@@ -223,53 +263,44 @@ layout_rows :: proc(
 				candidate_cursor += 1
 			}
 
-			if row_width + glyph.metrics.width > max_width + EPSILON {
-				switch text_wrap_mode {
-				case .None:
-					row_width += glyph.metrics.width
-				case .Truncate:
-					if row_width + glyph.metrics.width < max_width {
-						row_width += glyph.metrics.width
-					}
-				case .Wrap:
-					break_at_idx: int
-					if break_candidate_idx >= row_start {
-						break_at_idx = break_candidate_idx
-					} else {
-						break_at_idx = max(i - 1, row_start)
-					}
+			if row_width + glyph.metrics.width > max_width + epsilon {
+				break_at_idx: int
+				if break_candidate_idx >= row_start {
+					break_at_idx = break_candidate_idx
+				} else {
+					break_at_idx = max(i - 1, row_start)
+				}
 
-					// Find the row width
-					actual_row_width: f32 = 0
-					for j in row_start ..= break_at_idx {
-						actual_row_width += glyphs[j].metrics.width
-					}
+				// Find the row width
+				actual_row_width: f32 = 0
+				for j in row_start ..= break_at_idx {
+					actual_row_width += glyphs[j].metrics.width
+				}
 
-					// TODO(Thomas): What to do with trailing whitespace here?
-					// We have cases where we overflow on whitespace, meaning that width of the
-					// row then will be larger than the max size.
-					// We should probably have two different sizes here, one that is the size including the
-					// trailing whitespace for calculating hit tests etc, and one for the content width which
-					// would be used in cases where you don't want to show trailling whitespace.
-					append(
-						rows,
-						Positioned_Row {
-							pos = {0, line_height_offset},
-							size = {actual_row_width, line_height},
-							glyph_range = {start = row_start, end = break_at_idx + 1},
-						},
-					) or_return
+				// TODO(Thomas): What to do with trailing whitespace here?
+				// We have cases where we overflow on whitespace, meaning that width of the
+				// row then will be larger than the max size.
+				// We should probably have two different sizes here, one that is the size including the
+				// trailing whitespace for calculating hit tests etc, and one for the content width which
+				// would be used in cases where you don't want to show trailling whitespace.
+				append(
+					rows,
+					Positioned_Row {
+						pos = {0, line_height_offset},
+						size = {actual_row_width, line_height},
+						glyph_range = {start = row_start, end = break_at_idx + 1},
+					},
+				) or_return
 
-					row_start = break_at_idx + 1
-					line_height_offset += line_height
+				row_start = break_at_idx + 1
+				line_height_offset += line_height
 
-					row_width = 0
-					for j in row_start ..= i {
-						row_width += glyphs[j].metrics.width
-					}
+				row_width = 0
+				for j in row_start ..= i {
+					row_width += glyphs[j].metrics.width
 				}
 			} else {
-				row_width += glyphs[i].metrics.width
+				row_width += glyph.metrics.width
 			}
 		}
 
@@ -286,6 +317,40 @@ layout_rows :: proc(
 	return nil
 }
 
+layout_rows :: proc(
+	paragraphs: []Paragraph,
+	glyphs: []Glyph,
+	linebreak_candidates: []Linebreak_Candidate,
+	rows: ^[dynamic]Positioned_Row,
+	max_width: f32,
+	line_height: f32,
+	text_wrap_mode: Text_Wrap_Mode,
+	epsilon: f32 = DEFAULT_EPSILON,
+) -> mem.Allocator_Error {
+	switch text_wrap_mode {
+	case .None, .Truncate:
+		layout_rows_unwrapped(
+			paragraphs,
+			glyphs,
+			rows,
+			max_width,
+			line_height,
+			text_wrap_mode,
+			epsilon,
+		) or_return
+	case .Wrap:
+		layout_rows_wrapped(
+			paragraphs,
+			glyphs,
+			linebreak_candidates,
+			rows,
+			max_width,
+			line_height,
+			epsilon,
+		) or_return
+	}
+	return nil
+}
 
 // TODO(Thomas): We need to think about good allocation strategies here,
 // can we get away with an arena, e.g. the frame arena?
