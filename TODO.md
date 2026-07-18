@@ -13,6 +13,7 @@
 ## Backlog
 * Very few / if any layout sizing tests really tests border and margin.
 * Don't use f32 for time, should be something like nanoseconds instead.
+* Use integer / fixed point glyph metrics instead of f32 (same as FreeType, Pango) etc
 * Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
     as `Pool_Allocator` or some other type of allocator for several benefits (simplicity, perf?).
@@ -51,6 +52,7 @@
         to achieve the same thing.
 
 * Remove z-index integer from element, at least it should be f32, but probably just make position of element into a Vec3. 
+
     This will make things simpler and much more powerful because then things can be animated etc.
 
 
