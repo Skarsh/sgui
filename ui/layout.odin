@@ -812,7 +812,12 @@ make_element :: proc(
 		found := false
 		element, found = ctx.element_cache[key]
 
-		if !found {
+		if found {
+			assert(
+				ctx.frame_idx > element.last_frame_idx,
+				"adding two elements with the same id / key on the same frame is not allowed",
+			)
+		} else {
 			err: mem.Allocator_Error
 			element, err = new(UI_Element, ctx.persistent_allocator)
 			assert(err == .None)
