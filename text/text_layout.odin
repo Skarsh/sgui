@@ -239,10 +239,9 @@ layout_rows :: proc(
 						break_at_idx = max(i - 1, row_start)
 					}
 
-					// Find the row width from the start of the current row to
-					// break candidate, inclusive.
+					// Find the row width
 					actual_row_width: f32 = 0
-					for j in row_start ..= break_candidate_idx {
+					for j in row_start ..= break_at_idx {
 						actual_row_width += glyphs[j].metrics.width
 					}
 
