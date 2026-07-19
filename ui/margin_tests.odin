@@ -132,7 +132,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -240,7 +240,7 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -354,7 +354,7 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -454,7 +454,7 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---

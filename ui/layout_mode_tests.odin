@@ -196,7 +196,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 				},
 			}
 
-			expect_layout(t, ctx, root, expected_layout_tree.children[0])
+			expect_layout(t, ctx, expected_layout_tree.children[0])
 		}
 
 		// --- 4. Run the Test ---
@@ -301,7 +301,7 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -460,7 +460,7 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -601,7 +601,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 
 	}
 

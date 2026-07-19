@@ -1,6 +1,5 @@
 package ui
 
-import "core:fmt"
 import "core:mem"
 import "core:mem/virtual"
 import "core:testing"
@@ -108,59 +107,47 @@ run_ui_test :: proc(
 expect_layout :: proc(
 	t: ^testing.T,
 	ctx: ^Context,
-	parent_element: UI_Element,
 	expected: Expected_Element,
 	epsilon: f32 = EPSILON,
+	loc := #caller_location,
 ) {
-	// Find the actual element in the UI tree corresponding to the expected ID
-	element_to_check, element_to_check_ok := get_element_by_string_id(ctx, expected.id)
+	element, found := get_element_by_string_id(ctx, expected.id)
+	if testing.expectf(t, found, "element '%s' not found in layout", expected.id, loc = loc) {
 
-	// Fail the test if the element doesn't exist
-	if !element_to_check_ok {
-		testing.fail_now(t, fmt.tprintf("Element with id '%s' not found in layout", expected.id))
-	}
-
-	// Compare size and position with a small tolerance
-	size_ok := base.approx_equal_vec2(element_to_check.size, expected.size, epsilon)
-	pos_ok := base.approx_equal_vec2(element_to_check.position, expected.pos, epsilon)
-
-	if !size_ok {
-		testing.fail_now(
+		// Testing position
+		testing.expectf(
 			t,
-			fmt.tprintf(
-				"Element '%s' has wrong size. Expected %v, got %v",
-				expected.id,
-				expected.size,
-				element_to_check.size,
-			),
+			base.approx_equal_vec2(element.position, expected.pos, epsilon),
+			"element '%s': expected position %v, got %v",
+			expected.id,
+			expected.pos,
+			element.position,
+			loc = loc,
 		)
-	}
 
-	if !pos_ok {
-		testing.fail_now(
+		// Testing size
+		testing.expectf(
 			t,
-			fmt.tprintf(
-				"Element '%s' has wrong position. Expected %v, got %v",
-				expected.id,
-				expected.pos,
-				element_to_check.position,
-			),
+			base.approx_equal_vec2(element.size, expected.size, epsilon),
+			"element '%s': expected size %v, got %v",
+			expected.id,
+			expected.size,
+			element.size,
 		)
-	}
 
-	if len(element_to_check.children) != len(expected.children) {
-		testing.fail_now(
+		// Testing children count
+		testing.expectf(
 			t,
-			fmt.tprintf(
-				"Element '%s' has wrong number of children. Expected %d, got %d",
-				expected.id,
-				len(expected.children),
-				len(element_to_check.children),
-			),
+			len(element.children) == len(expected.children),
+			"element '%s': expected %d children, got %d",
+			expected.id,
+			len(expected.children),
+			len(element.children),
 		)
-	}
 
-	for child in expected.children {
-		expect_layout(t, ctx, element_to_check, child, epsilon)
+		// Testing children layout
+		for child in expected.children {
+			expect_layout(t, ctx, child, epsilon, loc)
+		}
 	}
 }

@@ -148,7 +148,7 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -219,7 +219,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -277,7 +277,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -344,7 +344,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapp
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -410,7 +410,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -465,7 +465,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 			children = expected_elements[:],
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -517,7 +517,7 @@ test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 
 	}
 

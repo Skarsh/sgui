@@ -64,7 +64,7 @@ test_fit_container_no_children :: proc(t: ^testing.T) {
 			size     = root_size,
 			children = []Expected_Element{{id = "empty_panel", pos = pos, size = size}},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -169,7 +169,7 @@ test_fit_container_nonzero_gap_only_anchored_children :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -312,7 +312,7 @@ test_fit_sizing_ltr :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -461,7 +461,7 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -597,7 +597,7 @@ test_grow_sizing_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 
 	}
 
@@ -729,7 +729,7 @@ test_grow_sizing_max_value_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -854,7 +854,7 @@ test_grow_sizing_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -983,7 +983,7 @@ test_grow_sizing_max_value_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1166,7 +1166,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1349,7 +1349,7 @@ test_grow_sizing_max_value_on_non_primary_axis_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1430,7 +1430,7 @@ test_grow_sizing_equal_factors_reach_equal_size_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1572,7 +1572,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ltr :: proc(t: ^testing.T)
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1711,7 +1711,7 @@ test_grow_sizing_with_mixed_elements_reach_equal_size_ttb :: proc(t: ^testing.T)
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1847,7 +1847,7 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -1983,7 +1983,7 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2127,7 +2127,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 	}
 
 	// --- 4. Run the Test ---
@@ -2257,7 +2257,7 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree.children[0])
+		expect_layout(t, ctx, expected_layout_tree.children[0])
 
 	}
 
@@ -2409,7 +2409,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 				},
 			},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -2497,7 +2497,7 @@ test_fit_sizing_respects_max_size_constraint :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -2586,7 +2586,7 @@ test_fit_sizing_respects_min_size_constraint :: proc(t: ^testing.T) {
 				},
 			},
 		}
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -2677,7 +2677,7 @@ test_text_element_size_includes_border :: proc(t: ^testing.T) {
 			},
 		}
 
-		expect_layout(t, ctx, root, expected_layout_tree)
+		expect_layout(t, ctx, expected_layout_tree)
 	}
 
 	// --- 4. Run the Test ---
@@ -2721,7 +2721,6 @@ test_grow_equal_factors :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -2781,7 +2780,6 @@ test_grow_weighted_factors :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -2838,7 +2836,6 @@ test_shrink_proportional_to_factor :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -2887,7 +2884,6 @@ test_shrink_grow_elements :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -2948,7 +2944,6 @@ test_zero_grow_factor_excluded :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -3007,7 +3002,6 @@ test_weighted_grow_with_max_constraint :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -3063,7 +3057,6 @@ test_all_zero_factors :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -3124,7 +3117,6 @@ test_weighted_grow_ttb :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -3209,7 +3201,6 @@ test_anchored_fit_ltr :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
@@ -3303,7 +3294,6 @@ test_anchored_fit_ttb :: proc(t: ^testing.T) {
 		expect_layout(
 			t,
 			ctx,
-			root,
 			Expected_Element {
 				id = "panel",
 				pos = {0, 0},
