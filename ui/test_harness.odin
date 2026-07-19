@@ -73,6 +73,13 @@ expect_element_pos :: proc(t: ^testing.T, element: ^UI_Element, expected_pos: ba
 	testing.expect_value(t, element.position.y, expected_pos.y)
 }
 
+Element_Spec :: struct {
+	id:       string,
+	style:    Style,
+	text:     string,
+	children: []Element_Spec,
+}
+
 Expected_Element :: struct {
 	id:       string,
 	pos:      base.Vec2,
@@ -102,6 +109,34 @@ run_ui_test :: proc(
 	end(ctx)
 
 	verify(t, ctx, ctx.root_element^, data)
+}
+
+check_layout :: proc(
+	t: ^testing.T,
+	spec: Element_Spec,
+	expected: Expected_Element,
+	window_size := DEFAULT_TESTING_WINDOW_SIZE,
+	loc := #caller_location,
+) {
+	env := setup_test_environment(window_size)
+	defer cleanup_test_environment(env)
+
+	begin(&env.ctx)
+	build_spec(&env.ctx, spec)
+	end(&env.ctx)
+	expect_layout(t, &env.ctx, expected, loc = loc)
+}
+
+build_spec :: proc(ctx: ^Context, spec: Element_Spec) {
+	if spec.text != "" {
+		text(ctx, spec.id, spec.text, spec.style)
+	} else {
+		begin_container(ctx, spec.id, spec.style)
+		for child in spec.children {
+			build_spec(ctx, child)
+		}
+		end_container(ctx)
+	}
 }
 
 expect_layout :: proc(
