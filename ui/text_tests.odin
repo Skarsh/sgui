@@ -2,286 +2,133 @@ package ui
 
 import "core:testing"
 
-import base "../base"
-
 
 @(test)
 test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: proc(t: ^testing.T) {
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		main_layout_direction: Layout_Direction,
-		main_padding:          Padding,
-		main_child_gap:        f32,
-		row_layout_direction:  Layout_Direction,
-		row_padding:           Padding,
-		row_child_gap:         f32,
-	}
-
-	test_data := Test_Data {
-		main_layout_direction = .Top_To_Bottom,
-		main_padding          = padding_all(10),
-		main_child_gap        = 5,
-		row_layout_direction  = .Left_To_Right,
-		row_padding           = padding_all(5),
-		row_child_gap         = 2,
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		begin_container(
-			ctx,
-			"main",
-			Style {
+	// A grow element only gets space if its parent has space to give.
+	// Both rows are Fit and hold a text plus a grow element. The panel takes its
+	// width from the widest row. So grow_1 collapses to 0. row_2 is stretched to
+	// that same width and its shorter text leaves room for grow_2.
+	//
+	// grow_2 = 52 row - 5+5 pad - 20 text - 2 gap = 20
+	check_layout(
+		t,
+		Element_Spec {
+			id = "main",
+			style = {
 				sizing_x = sizing_fit(),
 				sizing_y = sizing_fit(),
-				padding = data.main_padding,
-				child_gap = data.main_child_gap,
-				layout_direction = data.main_layout_direction,
+				padding = padding_all(10),
+				child_gap = 5,
+				layout_direction = .Top_To_Bottom,
 			},
-		)
-
-		// Row 1
-		begin_container(
-			ctx,
-			"row_1",
-			Style{padding = data.row_padding, child_gap = data.row_child_gap},
-		)
-		text(ctx, "text_1", "AAAA")
-		spacer(ctx, "spacer_1")
-		end_container(ctx)
-
-
-		// Row 2
-		begin_container(
-			ctx,
-			"row_2",
-			Style{padding = data.row_padding, child_gap = data.row_child_gap},
-		)
-		text(ctx, "text_2", "AA")
-		spacer(ctx, "spacer_2")
-		end_container(ctx)
-
-		end_container(ctx)
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-
-		text_1_size := base.Vec2{4 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT}
-		text_2_size := base.Vec2{2 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT}
-
-		row_1_size := base.Vec2 {
-			data.row_padding.left +
-			text_1_size.x +
-			data.row_child_gap +
-			0 +
-			data.row_padding.right,
-			data.row_padding.top + text_1_size.y + data.row_padding.bottom,
-		}
-
-		main_content_width := row_1_size.x
-		row_2_stretched_size := base.Vec2{main_content_width, row_1_size.y}
-		row_2_content_width :=
-			row_2_stretched_size.x - data.row_padding.left - data.row_padding.right
-		spacer_2_width := row_2_content_width - text_2_size.x - data.row_child_gap
-		spacer_2_size := base.Vec2{spacer_2_width, MOCK_LINE_HEIGHT}
-
-		// spacer_1 has no space to grow into
-		spacer_1_size := base.Vec2{0, MOCK_LINE_HEIGHT}
-
-		main_size := base.Vec2 {
-			data.main_padding.left + data.main_padding.right + row_1_size.x,
-			data.main_padding.top +
-			data.main_padding.bottom +
-			row_1_size.y +
-			row_2_stretched_size.y +
-			data.main_child_gap,
-		}
-
-		main_pos := base.Vec2{0, 0}
-		row_1_pos := base.Vec2 {
-			main_pos.x + data.main_padding.left,
-			main_pos.y + data.main_padding.top,
-		}
-		row_2_pos := base.Vec2{row_1_pos.x, row_1_pos.y + row_1_size.y + data.main_child_gap}
-
-		text_1_pos := base.Vec2 {
-			row_1_pos.x + data.row_padding.left,
-			row_1_pos.y + data.row_padding.top,
-		}
-		spacer_1_pos := base.Vec2{text_1_pos.x + text_1_size.x + data.row_child_gap, text_1_pos.y}
-
-		text_2_pos := base.Vec2 {
-			row_2_pos.x + data.row_padding.left,
-			row_2_pos.y + data.row_padding.top,
-		}
-		spacer_2_pos := base.Vec2{text_2_pos.x + text_2_size.x + data.row_child_gap, text_2_pos.y}
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
+			children = {
 				{
-					id = "main",
-					pos = main_pos,
-					size = main_size,
-					children = []Expected_Element {
+					id = "row_1",
+					style = {padding = padding_all(5), child_gap = 2},
+					children = {
+						{id = "text_1", text = "AAAA"},
 						{
-							id = "row_1",
-							pos = row_1_pos,
-							size = row_1_size,
-							children = {
-								{id = "text_1", pos = text_1_pos, size = text_1_size},
-								{id = "spacer_1", pos = spacer_1_pos, size = spacer_1_size},
-							},
+							id = "grow_1",
+							style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 						},
+					},
+				},
+				{
+					id = "row_2",
+					style = {padding = padding_all(5), child_gap = 2},
+					children = {
+						{id = "text_2", text = "AA"},
 						{
-							id = "row_2",
-							pos = row_2_pos,
-							size = row_2_stretched_size,
-							children = {
-								{id = "text_2", pos = text_2_pos, size = text_2_size},
-								{id = "spacer_2", pos = spacer_2_pos, size = spacer_2_size},
-							},
+							id = "grow_2",
+							style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 						},
 					},
 				},
 			},
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+		},
+		Expected_Element {
+			id = "main",
+			pos = {0, 0},
+			size = {72, 65},
+			children = {
+				{
+					id = "row_1",
+					pos = {10, 10},
+					size = {52, 20},
+					children = {
+						{id = "text_1", pos = {15, 15}, size = {40, 10}},
+						{id = "grow_1", pos = {57, 15}, size = {0, 10}},
+					},
+				},
+				{
+					id = "row_2",
+					pos = {10, 35},
+					size = {52, 20},
+					children = {
+						{id = "text_2", pos = {15, 40}, size = {20, 10}},
+						{id = "grow_2", pos = {37, 40}, size = {20, 10}},
+					},
+				},
+			},
+		},
+	)
 }
 
 // TODO(Thomas): Add other tests where we overflow the max sizing within and outside
 // of a fit sizing container.
-// TODO(Thomas): This test has a text_fit_wrapper container
-// to make sure that it doesn't have to deal with the root's
-// fixed size. I'm not sure if that's exactly what we want.
+// TODO(Thomas): The tests below that use a text_fit_wrapper container do so to
+// make sure the element doesn't have to deal with the root's fixed size. I'm not
+// sure if that's exactly what we want.
 
 @(test)
 test_basic_text_element_sizing :: proc(t: ^testing.T) {
-
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		text_min_width: f32,
-		text_max_width: f32,
-	}
-
-	test_data := Test_Data {
-		text_min_width = 50,
-		text_max_width = 100,
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		container(
-			ctx,
-			"text_fit_wrapper",
-			Style{sizing_x = sizing_fit(), sizing_y = sizing_fit()},
-			data,
-			proc(ctx: ^Context, data: ^Test_Data) {
-				text(
-					ctx,
-					"text",
-					"012345",
-					Style {
-						sizing_x = Sizing {
-							kind = .Grow,
-							min_value = data.text_min_width,
-							max_value = data.text_max_width,
-						},
-						sizing_y = Sizing{kind = .Grow},
-					},
-				)
-			},
-		)
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-		text_width: f32 = 6 * MOCK_CHAR_WIDTH
-		text_height: f32 = MOCK_LINE_HEIGHT
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
+	// A grow text sizes to the text it holds. Here min=50 and max=100 both leave
+	// "012345" alone at 6 * 10 = 60 wide.
+	check_layout(
+		t,
+		Element_Spec {
+			id = "text_fit_wrapper",
+			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
+			children = {
 				{
-					id = "text_fit_wrapper",
-					pos = {0, 0},
-					size = {text_width, text_height},
-					children = []Expected_Element {
-						{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+					id = "text",
+					text = "012345",
+					style = {
+						sizing_x = Sizing{kind = .Grow, min_value = 50, max_value = 100},
+						sizing_y = Sizing{kind = .Grow},
 					},
 				},
 			},
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+		},
+		Expected_Element {
+			id = "text_fit_wrapper",
+			pos = {0, 0},
+			size = {60, 10},
+			children = {{id = "text", pos = {0, 0}, size = {60, 10}}},
+		},
+	)
 }
 
 
-// TODO(Thomas): This test has a text_fit_wrapper container
-// to make sure that it doesn't have to deal with the root's
-// fixed size. I'm not sure if that's exactly what we want.
-
 @(test)
 test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		id:   string,
-		text: string,
-	}
-
-	test_data := Test_Data {
-		id   = "text",
-		text = "One\nTwo",
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		container(
-			ctx,
-			"text_fit_wrapper",
-			Style{sizing_x = sizing_fit(), sizing_y = sizing_fit()},
-			data,
-			proc(ctx: ^Context, data: ^Test_Data) {
-				text(ctx, data.id, data.text)
-			},
-		)
-
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-		text_width: f32 = 3 * MOCK_CHAR_WIDTH
-		text_height: f32 = 2 * MOCK_LINE_HEIGHT
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
-				{
-					id = "text_fit_wrapper",
-					pos = {0, 0},
-					size = {text_width, text_height},
-					children = []Expected_Element {
-						{id = data.id, pos = {0, 0}, size = {text_width, text_height}},
-					},
-				},
-			},
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+	// A newline starts a new row. The width comes from the widest row and not
+	// from the sum of the rows. The height is one line per row.
+	check_layout(
+		t,
+		Element_Spec {
+			id = "text_fit_wrapper",
+			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
+			children = {{id = "text", text = "One\nTwo"}},
+		},
+		Expected_Element {
+			id = "text_fit_wrapper",
+			pos = {0, 0},
+			size = {30, 20},
+			children = {{id = "text", pos = {0, 0}, size = {30, 20}}},
+		},
+	)
 }
 
 
@@ -289,237 +136,111 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapping :: proc(
 	t: ^testing.T,
 ) {
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		container_id:      string,
-		container_padding: Padding,
-		text_id:           string,
-		text:              string,
-	}
-
-	test_data := Test_Data {
-		container_id      = "container",
-		container_padding = padding_all(10),
-		text_id           = "text",
-		text              = "Button 1",
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		container(
-			ctx,
-			data.container_id,
-			Style {
+	// Text wraps to fit the space its parent leaves it. The container is fixed at
+	// 60 wide with 10 of padding on each side. That leaves 40 for "Button 1"
+	// which needs 80. So it takes two rows and the Fit height grows to hold them.
+	check_layout(
+		t,
+		Element_Spec {
+			id = "container",
+			style = {
 				sizing_x = sizing_fixed(60),
 				sizing_y = sizing_fit(),
-				padding = data.container_padding,
+				padding = padding_all(10),
 			},
-			data,
-			proc(ctx: ^Context, data: ^Test_Data) {
-				text(ctx, data.text_id, data.text, Style{text_wrap_mode = .Wrap})
-			},
-		)
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-		padding := data.container_padding
-		container_size := base.Vec2{60, 2 * MOCK_LINE_HEIGHT + padding.top + padding.bottom}
-
-		// Space for text is size of the text minus paddings
-		text_size := base.Vec2 {
-			6 * MOCK_CHAR_WIDTH - padding.left - padding.right,
-			2 * MOCK_LINE_HEIGHT,
-		}
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
-				{
-					data.container_id,
-					{0, 0},
-					container_size,
-					{{data.text_id, {padding.left, padding.top}, text_size, {}}},
-				},
-			},
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+			children = {{id = "text", text = "Button 1", style = {text_wrap_mode = .Wrap}}},
+		},
+		Expected_Element {
+			id = "container",
+			pos = {0, 0},
+			size = {60, 40},
+			children = {{id = "text", pos = {10, 10}, size = {40, 20}}},
+		},
+	)
 }
-
-// TODO(Thomas): This test has a text_fit_wrapper container
-// to make sure that it doesn't have to deal with the root's
-// fixed size. I'm not sure if that's exactly what we want.
 
 @(test)
 test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
-
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		text_min_width:  f32,
-		text_min_height: f32,
-	}
-
-	test_data := Test_Data {
-		text_min_width  = 50,
-		text_min_height = 20,
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-
-		container(
-			ctx,
-			"text_fit_wrapper",
-			Style{sizing_x = sizing_fit(), sizing_y = sizing_fit()},
-			data,
-			proc(ctx: ^Context, data: ^Test_Data) {
-				text(
-					ctx,
-					"text",
-					"01",
-					Style {
-						sizing_x = Sizing{kind = .Grow, min_value = data.text_min_width},
-						sizing_y = Sizing{kind = .Grow, min_value = data.text_min_height},
-					},
-				)
-			},
-		)
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-		text_width: f32 = data.text_min_width
-		text_height: f32 = data.text_min_height
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
+	// A min on a grow text clamps it up when the text is smaller. "01" measures
+	// only {20, 10}. Both mins bind here and the Fit wrapper follows the clamp.
+	check_layout(
+		t,
+		Element_Spec {
+			id = "text_fit_wrapper",
+			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
+			children = {
 				{
-					id = "text_fit_wrapper",
-					pos = {0, 0},
-					size = {text_width, text_height},
-					children = []Expected_Element {
-						{id = "text", pos = {0, 0}, size = {text_width, text_height}},
+					id = "text",
+					text = "01",
+					style = {
+						sizing_x = Sizing{kind = .Grow, min_value = 50},
+						sizing_y = Sizing{kind = .Grow, min_value = 20},
 					},
 				},
 			},
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+		},
+		Expected_Element {
+			id = "text_fit_wrapper",
+			pos = {0, 0},
+			size = {50, 20},
+			children = {{id = "text", pos = {0, 0}, size = {50, 20}}},
+		},
+	)
 }
 
 
 @(test)
 test_iterated_texts_layout :: proc(t: ^testing.T) {
-	// --- 1. Define the Test-Specific Context Data ---
-	Test_Data :: struct {
-		items: [5]string,
-	}
-
-	test_data := Test_Data {
-		items = {"One", "Two", "Three", "Four", "Five"},
-	}
-
-	// --- 2. Define the UI Building Logic ---
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		container(
-			ctx,
-			"parent",
-			Style{sizing_x = sizing_fit(), sizing_y = sizing_fit()},
-			data,
-			proc(ctx: ^Context, data: ^Test_Data) {
-
-				for item in data.items {
-					text(ctx, item, item)
-				}
+	// A Fit parent sums up its children. These text siblings have no gap between
+	// them so they sit flush against each other. Each one is as wide as its own
+	// text.
+	check_layout(
+		t,
+		Element_Spec {
+			id = "parent",
+			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
+			children = {
+				{id = "One", text = "One"},
+				{id = "Two", text = "Two"},
+				{id = "Three", text = "Three"},
+				{id = "Four", text = "Four"},
+				{id = "Five", text = "Five"},
 			},
-		)
-	}
-
-	// --- 3. Define the Verification Logic ---
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-		expected_elements: [5]Expected_Element
-		width_offset: f32 = 0
-		for item, idx in data.items {
-			width := f32(len(item) * MOCK_CHAR_WIDTH)
-			expected_elements[idx] = Expected_Element {
-				id   = item,
-				pos  = {width_offset, 0},
-				size = {width, MOCK_LINE_HEIGHT},
-			}
-
-			width_offset += width
-		}
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = expected_elements[:],
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-	}
-
-	// --- 4. Run the Test ---
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+		},
+		Expected_Element {
+			id = "parent",
+			pos = {0, 0},
+			size = {190, 10},
+			children = {
+				{id = "One", pos = {0, 0}, size = {30, 10}},
+				{id = "Two", pos = {30, 0}, size = {30, 10}},
+				{id = "Three", pos = {60, 0}, size = {50, 10}},
+				{id = "Four", pos = {110, 0}, size = {40, 10}},
+				{id = "Five", pos = {150, 0}, size = {40, 10}},
+			},
+		},
+	)
 }
 
 @(test)
 test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
-	Test_Data :: struct {
-		parent_size: base.Vec2,
-		text:        string,
-	}
-
-	test_data := Test_Data {
-		parent_size = {4 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-		text        = "12345",
-	}
-
-	build_ui_proc :: proc(ctx: ^Context, data: ^Test_Data) {
-		begin_container(
-			ctx,
-			"parent",
-			Style {
+	// Wrap mode .None means the text never wraps. It keeps its full width of 50
+	// and overflows the fixed 40 wide parent instead.
+	check_layout(
+		t,
+		Element_Spec {
+			id = "parent",
+			style = {
 				sizing_x = sizing_fixed(4 * MOCK_CHAR_WIDTH),
 				sizing_y = sizing_fixed(MOCK_LINE_HEIGHT),
 			},
-		)
-		text(ctx, "text", data.text, Style{text_wrap_mode = .None})
-		end_container(ctx)
-
-	}
-
-	verify_proc :: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^Test_Data) {
-
-		text_width: f32 = f32(len(data.text) * MOCK_CHAR_WIDTH)
-		text_height: f32 = MOCK_LINE_HEIGHT
-
-		expected_layout_tree := Expected_Element {
-			id       = "root",
-			children = []Expected_Element {
-				{
-					id = "parent",
-					pos = {0, 0},
-					size = {data.parent_size.x, data.parent_size.y},
-					children = []Expected_Element {
-						{id = "text", pos = {0, 0}, size = {text_width, text_height}},
-					},
-				},
-			},
-		}
-
-		expect_layout(t, ctx, expected_layout_tree.children[0])
-
-	}
-
-	run_ui_test(t, build_ui_proc, verify_proc, &test_data)
+			children = {{id = "text", text = "12345", style = {text_wrap_mode = .None}}},
+		},
+		Expected_Element {
+			id = "parent",
+			pos = {0, 0},
+			size = {40, 10},
+			children = {{id = "text", pos = {0, 0}, size = {50, 10}}},
+		},
+	)
 }
