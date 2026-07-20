@@ -5,9 +5,7 @@ import "core:testing"
 
 @(test)
 test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
-	// Adjacent sibling margins add along the main (x) axis instead of
-	// collapsing, while each child's cross-axis offset comes from its own top
-	// margin.
+	// Sibling margins add along the main axis instead of collapsing (LTR).
 	check_layout(
 		t,
 		Element_Spec {
@@ -61,9 +59,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 
 @(test)
 test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
-	// Adjacent sibling margins add along the main (y) axis instead of
-	// collapsing, while each child's cross-axis offset comes from its own left
-	// margin.
+	// Sibling margins add along the main axis instead of collapsing (TTB).
 	check_layout(
 		t,
 		Element_Spec {
@@ -108,9 +104,7 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 
 @(test)
 test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
-	// A parent's margin offsets it inside its container but does not shrink its
-	// own content area. Only padding does that, so the child is placed from the
-	// parent's padding alone.
+	// A parent's margin offsets it but does not shrink its content area.
 	check_layout(
 		t,
 		Element_Spec {
@@ -153,8 +147,7 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 
 @(test)
 test_asymmetric_margins :: proc(t: ^testing.T) {
-	// Margins that differ per side, with no parent padding, so child_1 lands at
-	// exactly its own left and top margin.
+	// A child with no parent padding lands at its own left and top margin.
 	check_layout(
 		t,
 		Element_Spec {

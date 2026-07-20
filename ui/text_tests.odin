@@ -5,12 +5,7 @@ import "core:testing"
 
 @(test)
 test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: proc(t: ^testing.T) {
-	// A grow element only gets space if its parent has space to give.
-	// Both rows are Fit and hold a text plus a grow element. The panel takes its
-	// width from the widest row. So grow_1 collapses to 0. row_2 is stretched to
-	// that same width and its shorter text leaves room for grow_2.
-	//
-	// grow_2 = 52 row - 5+5 pad - 20 text - 2 gap = 20
+	// A grow element inside a Fit row only takes the space that row has to give.
 	check_layout(
 		t,
 		Element_Spec {
@@ -83,8 +78,7 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 
 @(test)
 test_basic_text_element_sizing :: proc(t: ^testing.T) {
-	// A grow text sizes to the text it holds. Here min=50 and max=100 both leave
-	// "012345" alone at 6 * 10 = 60 wide.
+	// A grow text sizes to its own text when min and max do not bind.
 	check_layout(
 		t,
 		Element_Spec {
@@ -113,8 +107,7 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 
 @(test)
 test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
-	// A newline starts a new row. The width comes from the widest row and not
-	// from the sum of the rows. The height is one line per row.
+	// A newline splits text into rows and the width is the widest row.
 	check_layout(
 		t,
 		Element_Spec {
@@ -136,9 +129,7 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapping :: proc(
 	t: ^testing.T,
 ) {
-	// Text wraps to fit the space its parent leaves it. The container is fixed at
-	// 60 wide with 10 of padding on each side. That leaves 40 for "Button 1"
-	// which needs 80. So it takes two rows and the Fit height grows to hold them.
+	// Text wraps to fit the width its parent leaves after padding.
 	check_layout(
 		t,
 		Element_Spec {
@@ -161,8 +152,7 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapp
 
 @(test)
 test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
-	// A min on a grow text clamps it up when the text is smaller. "01" measures
-	// only {20, 10}. Both mins bind here and the Fit wrapper follows the clamp.
+	// A min clamps a grow text up when its own text is smaller.
 	check_layout(
 		t,
 		Element_Spec {
@@ -191,9 +181,7 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 
 @(test)
 test_iterated_texts_layout :: proc(t: ^testing.T) {
-	// A Fit parent sums up its children. These text siblings have no gap between
-	// them so they sit flush against each other. Each one is as wide as its own
-	// text.
+	// A Fit parent sums the widths of its text children.
 	check_layout(
 		t,
 		Element_Spec {
@@ -224,8 +212,7 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 
 @(test)
 test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
-	// Wrap mode .None means the text never wraps. It keeps its full width of 50
-	// and overflows the fixed 40 wide parent instead.
+	// Wrap mode .None keeps the full text width and overflows the parent.
 	check_layout(
 		t,
 		Element_Spec {
