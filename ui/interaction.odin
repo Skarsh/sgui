@@ -226,7 +226,7 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				case .Buffer_Full:
 					log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
 				case .Out_Of_Memory:
-					log.error("Cannot paste becuase of Out Of Memory error:", text_insert_err)
+					log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
 				case:
 					panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
 				}
