@@ -289,17 +289,11 @@ layout_rows_wrapped :: proc(
 					break_at_idx = max(i - 1, row_start)
 				}
 
-				// Find the row width
+				// Find the row widths
 				content_width, advance_width := measure_row_widths(
 					glyphs[row_start:break_at_idx + 1],
 				)
 
-				// TODO(Thomas): What to do with trailing whitespace here?
-				// We have cases where we overflow on whitespace, meaning that width of the
-				// row then will be larger than the max size.
-				// We should probably have two different sizes here, one that is the size including the
-				// trailing whitespace for calculating hit tests etc, and one for the content width which
-				// would be used in cases where you don't want to show trailling whitespace.
 				append(
 					rows,
 					Positioned_Row {
