@@ -54,11 +54,13 @@ Linebreak_Candidate :: struct {
 	glyph_idx: int,
 }
 
-// TODO(Thomas): Add field to track size that's without trailing whitespace
 Positioned_Row :: struct {
-	pos:         base.Vec2,
-	size:        base.Vec2,
-	glyph_range: base.Range,
+	pos:           base.Vec2,
+	// The size of the visual content (width without trailing whitespace)
+	size:          base.Vec2,
+	// The width of the row, counting trailing whitespace
+	advance_width: f32,
+	glyph_range:   base.Range,
 }
 
 Text_Layout :: struct {
@@ -186,11 +188,25 @@ find_linebreak_candidates :: proc(
 	return nil
 }
 
+// Produces the content_width (the width of the visual content without trailling whitespace),
+// and the advance_width (the width of all the glyphs on the row, with trailing whitespace).
+measure_row_widths :: proc(glyphs: []Glyph) -> (content_width: f32, advance_width: f32) {
+	for glyph in glyphs {
+		advance_width += glyph.metrics.width
+		if !unicode.is_white_space(glyph.codepoint) {
+			content_width = advance_width
+		}
+	}
+
+	return
+}
+
 // TODO(Thomas): Epsilon is for f32 accumulation error,
 // the proper fix is integer/fixed-point glyph metrics (e.g. FreeType 26.6 or Pango units).
 @(private = "file")
 DEFAULT_EPSILON :: 0.001
 
+// TODO(Thomas): There are several questions about how this should work for .Truncate
 layout_rows_unwrapped :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
@@ -203,6 +219,7 @@ layout_rows_unwrapped :: proc(
 	line_height_offset: f32 = 0
 	for paragraph in paragraphs {
 		row_width: f32 = 0
+		// TODO(Thomas): Use measure_row_widths helper here
 		for i in paragraph.glyph_range.start ..< paragraph.glyph_range.end {
 			glyph_width := glyphs[i].metrics.width
 
@@ -219,6 +236,7 @@ layout_rows_unwrapped :: proc(
 			Positioned_Row {
 				pos = {0, line_height_offset},
 				size = {row_width, line_height},
+				advance_width = row_width,
 				glyph_range = paragraph.glyph_range,
 			},
 		) or_return
@@ -272,10 +290,9 @@ layout_rows_wrapped :: proc(
 				}
 
 				// Find the row width
-				actual_row_width: f32 = 0
-				for j in row_start ..= break_at_idx {
-					actual_row_width += glyphs[j].metrics.width
-				}
+				content_width, advance_width := measure_row_widths(
+					glyphs[row_start:break_at_idx + 1],
+				)
 
 				// TODO(Thomas): What to do with trailing whitespace here?
 				// We have cases where we overflow on whitespace, meaning that width of the
@@ -287,7 +304,8 @@ layout_rows_wrapped :: proc(
 					rows,
 					Positioned_Row {
 						pos = {0, line_height_offset},
-						size = {actual_row_width, line_height},
+						size = {content_width, line_height},
+						advance_width = advance_width,
 						glyph_range = {start = row_start, end = break_at_idx + 1},
 					},
 				) or_return
@@ -304,14 +322,20 @@ layout_rows_wrapped :: proc(
 			}
 		}
 
+		content_width, advance_width := measure_row_widths(
+			glyphs[row_start:paragraph.glyph_range.end],
+		)
+
 		append(
 			rows,
 			Positioned_Row {
 				pos = {0, line_height_offset},
-				size = {row_width, line_height},
+				size = {content_width, line_height},
+				advance_width = advance_width,
 				glyph_range = {start = row_start, end = paragraph.glyph_range.end},
 			},
 		) or_return
+
 		line_height_offset += line_height
 	}
 	return nil

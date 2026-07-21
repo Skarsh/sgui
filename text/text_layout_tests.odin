@@ -123,7 +123,8 @@ test_layout_text_no_wrapping_needed :: proc(t: ^testing.T) {
 		expected_rows = {
 			Positioned_Row {
 				pos = {0, 0},
-				size = {1 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				size = {MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = MOCK_CHAR_WIDTH,
 				glyph_range = {0, 1},
 			},
 		},
@@ -140,6 +141,7 @@ test_layout_text_no_wrapping_needed :: proc(t: ^testing.T) {
 			Positioned_Row {
 				pos = {0, 0},
 				size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 10 * MOCK_CHAR_WIDTH,
 				glyph_range = {0, 10},
 			},
 		},
@@ -150,26 +152,22 @@ test_layout_text_no_wrapping_needed :: proc(t: ^testing.T) {
 
 @(test)
 test_layout_text_wraps :: proc(t: ^testing.T) {
-
-	// TODO(Thomas): Think about correctness of this test. We overflow max size with 10
-	// here because we're breaking on the whitespace between words, which is the only
-	// linebreak candidate here, and the whitespace is included.
-	// TODO(Thomas): The proper solution here is to separate content size and element size
-	// somehow.
 	check_layout(
 		t,
 		text = "strawberry accomplish",
-		expected_size = {11 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+		expected_size = {10 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
 		expected_rows = {
 			Positioned_Row {
-				pos = {0, 0},
-				size = {11 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {0, 11},
+				pos           = {0, 0},
+				size          = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 11 * MOCK_CHAR_WIDTH,
+				glyph_range   = {0, 11},
 			},
 			Positioned_Row {
-				pos = {0, MOCK_LINE_HEIGHT},
-				size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {11, 21},
+				pos           = {0, MOCK_LINE_HEIGHT},
+				size          = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 10 * MOCK_CHAR_WIDTH,
+				glyph_range   = {11, 21},
 			},
 		},
 		max_width = 100,
@@ -180,17 +178,19 @@ test_layout_text_wraps :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		text = "one two three",
-		expected_size = {8 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
+		expected_size = {7 * MOCK_CHAR_WIDTH, 2 * MOCK_LINE_HEIGHT},
 		expected_rows = {
 			Positioned_Row {
-				pos = {0, 0},
-				size = {8 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {0, 8},
+				pos           = {0, 0},
+				size          = {7 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 8 * MOCK_CHAR_WIDTH,
+				glyph_range   = {0, 8},
 			},
 			Positioned_Row {
-				pos = {0, MOCK_LINE_HEIGHT},
-				size = {5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {8, 13},
+				pos           = {0, MOCK_LINE_HEIGHT},
+				size          = {5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 5 * MOCK_CHAR_WIDTH,
+				glyph_range   = {8, 13},
 			},
 		},
 		max_width = 100,
@@ -201,22 +201,25 @@ test_layout_text_wraps :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		text = "abc def ghi jkl mno",
-		expected_size = {8 * MOCK_CHAR_WIDTH, 3 * MOCK_LINE_HEIGHT},
+		expected_size = {7 * MOCK_CHAR_WIDTH, 3 * MOCK_LINE_HEIGHT},
 		expected_rows = {
 			Positioned_Row {
-				pos = {0, 0},
-				size = {8 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {0, 8},
+				pos           = {0, 0},
+				size          = {7 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 8 * MOCK_CHAR_WIDTH,
+				glyph_range   = {0, 8},
 			},
 			Positioned_Row {
-				pos = {0, MOCK_LINE_HEIGHT},
-				size = {8 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {8, 16},
+				pos           = {0, MOCK_LINE_HEIGHT},
+				size          = {7 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 8 * MOCK_CHAR_WIDTH,
+				glyph_range   = {8, 16},
 			},
 			Positioned_Row {
-				pos = {0, 2 * MOCK_LINE_HEIGHT},
-				size = {3 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
-				glyph_range = {16, 19},
+				pos           = {0, 2 * MOCK_LINE_HEIGHT},
+				size          = {3 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 3 * MOCK_CHAR_WIDTH,
+				glyph_range   = {16, 19},
 			},
 		},
 		max_width = 100,
@@ -235,11 +238,13 @@ test_layout_text_newlines :: proc(t: ^testing.T) {
 			Positioned_Row {
 				pos = {0, 0},
 				size = {5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 5 * MOCK_CHAR_WIDTH,
 				glyph_range = {0, 6},
 			},
 			Positioned_Row {
 				pos = {0, MOCK_LINE_HEIGHT},
 				size = {5 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 5 * MOCK_CHAR_WIDTH,
 				glyph_range = {6, 11},
 			},
 		},
@@ -253,7 +258,12 @@ test_layout_text_newlines :: proc(t: ^testing.T) {
 		text = "\n",
 		expected_size = {0, MOCK_LINE_HEIGHT},
 		expected_rows = {
-			Positioned_Row{pos = {0, 0}, size = {0, MOCK_LINE_HEIGHT}, glyph_range = {0, 1}},
+			Positioned_Row {
+				pos = {0, 0},
+				size = {0, MOCK_LINE_HEIGHT},
+				advance_width = 0,
+				glyph_range = {0, 1},
+			},
 		},
 		max_width = 100,
 		wrap_mode = .Wrap,
@@ -268,16 +278,19 @@ test_layout_text_newlines :: proc(t: ^testing.T) {
 			Positioned_Row {
 				pos = {0, 0},
 				size = {MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = MOCK_CHAR_WIDTH,
 				glyph_range = {0, 2},
 			},
 			Positioned_Row {
 				pos = {0, MOCK_LINE_HEIGHT},
 				size = {0, MOCK_LINE_HEIGHT},
+				advance_width = 0,
 				glyph_range = {2, 3},
 			},
 			Positioned_Row {
 				pos = {0, 2 * MOCK_LINE_HEIGHT},
 				size = {MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = MOCK_CHAR_WIDTH,
 				glyph_range = {3, 4},
 			},
 		},
@@ -297,6 +310,7 @@ test_layout_text_no_wrap_mode_overflows :: proc(t: ^testing.T) {
 			Positioned_Row {
 				pos = {0, 0},
 				size = {20 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 20 * MOCK_CHAR_WIDTH,
 				glyph_range = {0, 20},
 			},
 		},
@@ -316,6 +330,7 @@ test_layout_text_truncate_mode_stops_at_max_width :: proc(t: ^testing.T) {
 			Positioned_Row {
 				pos = {0, 0},
 				size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 10 * MOCK_CHAR_WIDTH,
 				glyph_range = {0, 20},
 			},
 		},
@@ -334,12 +349,33 @@ test_layout_text_wraps_mid_word_when_no_candidate :: proc(t: ^testing.T) {
 			Positioned_Row {
 				pos = {0, 0},
 				size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 10 * MOCK_CHAR_WIDTH,
 				glyph_range = {0, 10},
 			},
 			Positioned_Row {
 				pos = {0, MOCK_LINE_HEIGHT},
 				size = {10 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+				advance_width = 10 * MOCK_CHAR_WIDTH,
 				glyph_range = {10, 20},
+			},
+		},
+		max_width = 100,
+		wrap_mode = .Wrap,
+	)
+}
+
+@(test)
+test_layout_text_all_whitespace_row :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		text = "     ",
+		expected_size = {0 * MOCK_CHAR_WIDTH, MOCK_LINE_HEIGHT},
+		expected_rows = {
+			Positioned_Row {
+				pos = {0, 0},
+				size = {0, MOCK_LINE_HEIGHT},
+				advance_width = 5 * MOCK_CHAR_WIDTH,
+				glyph_range = {0, 5},
 			},
 		},
 		max_width = 100,
