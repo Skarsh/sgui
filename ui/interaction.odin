@@ -1,11 +1,13 @@
 package ui
 
+import "core:fmt"
 import "core:log"
 import "core:math"
 import "core:mem"
 
 import "../base"
 import textpkg "../text"
+import "../text/fixed_buffer"
 
 Comm :: struct {
 	element:  ^UI_Element,
@@ -137,6 +139,7 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 }
 
 // TODO(Thomas): Find a better way than just pass the frame_allocator here?
+// TODO(Thomas): Clean up error handling here, it's a little messy.
 dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator: mem.Allocator) {
 	if interaction.focused_id != ui_key_null() {
 		state, ok := &interaction.text_input_states[interaction.focused_id]
@@ -146,13 +149,35 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				text := string(
 					interaction.input.text_input.data[:interaction.input.text_input.len],
 				)
-				textpkg.text_edit_insert(&state.state, text)
+				text_buffer_error := textpkg.text_edit_insert(&state.state, text)
+				switch text_buffer_error {
+				case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+				case mem.Allocator_Error.None:
+				case:
+					panic(
+						fmt.tprintf(
+							"Error when inserting text into text buffer: %v",
+							text_buffer_error,
+						),
+					)
+				}
 			}
 
 			// Key handling
 			keymod := interaction.input.keymod_down_bits
 			keys := interaction.input.key_pressed_bits
-			clipboard_command := textpkg.text_edit_handle_keys(&state.state, keys, keymod)
+			clipboard_command, text_handle_keys_error := textpkg.text_edit_handle_keys(
+				&state.state,
+				keys,
+				keymod,
+			)
+			switch text_handle_keys_error {
+			// Fixed buffer errors should be ignored
+			case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+			case mem.Allocator_Error.None:
+			case:
+				panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
+			}
 
 			switch clipboard_command {
 			case .None:
@@ -194,7 +219,17 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				}
 				assert(alloc_err == .None)
 
-				textpkg.text_edit_insert(&state.state, text_to_paste)
+				// We don't crash just because someone tries to copy paste very large text
+				text_insert_err := textpkg.text_edit_insert(&state.state, text_to_paste)
+				switch text_insert_err {
+				case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
+				case .Buffer_Full:
+					log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
+				case .Out_Of_Memory:
+					log.error("Cannot paste becuase of Out Of Memory error:", text_insert_err)
+				case:
+					panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
+				}
 			case .Cut:
 				// TODO(Thomas): Does this really need to be its own thing?
 				// Isn't this just a copy selection but where the selection is deleted / removed before return??

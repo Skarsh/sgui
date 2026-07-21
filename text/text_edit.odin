@@ -49,13 +49,15 @@ text_edit_handle_keys :: proc(
 	state: ^Text_Edit_State,
 	keys: base.Key_Set,
 	keymod: base.Keymod_Set = base.KMOD_NONE,
-) -> Text_Edit_Clipboard_Command {
+) -> (
+	clipboard_command: Text_Edit_Clipboard_Command,
+	text_buffer_error: Text_Buffer_Error,
+) {
 	ctrl_down := base.is_ctrl_down(keymod)
 	shift_down := base.is_shift_down(keymod)
 	word_mod_down := keymod_has_word_move_mod(keymod)
 	line_mod_down := keymod_has_line_move_mod(keymod)
 
-	clipboard_command: Text_Edit_Clipboard_Command = .None
 	for key in keys {
 		#partial switch key {
 		case .A:
@@ -113,11 +115,11 @@ text_edit_handle_keys :: proc(
 			}
 			text_edit_delete_to(state, translation)
 		case .Tab:
-			text_edit_insert(state, "\t")
+			text_edit_insert(state, "\t") or_return
 		}
 	}
 
-	return clipboard_command
+	return clipboard_command, nil
 }
 
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
@@ -146,7 +148,8 @@ text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 // TOOD(Thomas): Add handling of drag and double/triple click
 text_edit_handle_click :: proc(state: ^Text_Edit_State) {}
 
-text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
+@(require_results)
+text_edit_insert :: proc(state: ^Text_Edit_State, text: string) -> Text_Buffer_Error {
 	insert_at := state.selection.active
 	if !is_selection_collapsed(state.selection) {
 		start := selection_start(state.selection)
@@ -158,9 +161,11 @@ text_edit_insert :: proc(state: ^Text_Edit_State, text: string) {
 	current_len := text_buffer_byte_length(state.buffer)
 	if current_len + len(text) <= state.max_len {
 		// TODO(Thomas): Properly handle error
-		_ = text_buffer_insert_at(&state.buffer, insert_at, text)
+		text_buffer_insert_at(&state.buffer, insert_at, text) or_return
 		set_caret(state, insert_at + len(text))
 	}
+
+	return nil
 }
 
 selection_start :: proc(selection: Selection) -> int {

@@ -216,7 +216,8 @@ check_edit_insert :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-		text_edit_insert(&state, insertion)
+		text_buff_err := text_edit_insert(&state, insertion)
+		assert(text_buff_err == nil)
 
 		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
 		assert(alloc_err == .None)
@@ -264,7 +265,8 @@ check_handle_keys :: proc(
 		state := test_text_edit_state(backend, text, selection)
 
 		// TODO(Thomas): Should we use the return command here somehow?
-		_ = text_edit_handle_keys(&state, keys, mods)
+		_, text_buffer_error := text_edit_handle_keys(&state, keys, mods)
+		assert(text_buffer_error == nil)
 
 		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
 		assert(alloc_err == .None)
