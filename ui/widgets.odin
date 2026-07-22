@@ -47,7 +47,7 @@ slider :: proc(
 	id: string,
 	value: ^f32,
 	min_val, max_val: f32,
-	axis: Axis2 = .X,
+	axis: base.Axis2 = .X,
 	style: Style = {},
 	thumb_style: Style = {},
 ) -> Comm {
@@ -140,7 +140,7 @@ scrollbar :: proc(
 	ctx: ^Context,
 	id: string,
 	target_id: string,
-	axis: Axis2 = .Y,
+	axis: base.Axis2 = .Y,
 	style: Style = {},
 ) -> Comm {
 	target, target_ok := get_element_pointer_by_string_id(ctx, target_id)
@@ -151,7 +151,7 @@ scrollbar :: proc(
 	if target_ok {
 
 		axis_sizes: [2]f32
-		cross_axis: Axis2
+		cross_axis: base.Axis2
 
 		if axis == .X {
 			cross_axis = .Y
@@ -208,8 +208,8 @@ scrollbar :: proc(
 					axis,
 					sb_style,
 					Style {
-						sizing_x = sizing_fixed(axis_sizes[Axis2.X]),
-						sizing_y = sizing_fixed(axis_sizes[Axis2.Y]),
+						sizing_x = sizing_fixed(axis_sizes[base.Axis2.X]),
+						sizing_y = sizing_fixed(axis_sizes[base.Axis2.Y]),
 						background_fill = base.fill_color(80, 80, 80),
 						border_fill = base.fill_color(0, 0, 0, 0),
 					},

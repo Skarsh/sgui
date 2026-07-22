@@ -120,10 +120,10 @@ Style :: struct {
 	child_gap:         Maybe(f32),
 	layout_direction:  Maybe(Layout_Direction),
 	relative_position: Maybe(base.Vec2),
-	alignment_x:       Maybe(Alignment_X),
-	alignment_y:       Maybe(Alignment_Y),
-	text_alignment_x:  Maybe(Alignment_X),
-	text_alignment_y:  Maybe(Alignment_Y),
+	alignment_x:       Maybe(base.Alignment_X),
+	alignment_y:       Maybe(base.Alignment_Y),
+	text_alignment_x:  Maybe(base.Alignment_X),
+	text_alignment_y:  Maybe(base.Alignment_Y),
 	text_wrap_mode:    Maybe(textpkg.Text_Wrap_Mode),
 	position_mode:     Maybe(Position_Mode),
 
@@ -160,17 +160,17 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config: Element_Config
 
 	// Layout properties
-	config.layout.sizing[Axis2.X] = s.sizing_x.? or_else Sizing{}
-	config.layout.sizing[Axis2.Y] = s.sizing_y.? or_else Sizing{}
+	config.layout.sizing[base.Axis2.X] = s.sizing_x.? or_else Sizing{}
+	config.layout.sizing[base.Axis2.Y] = s.sizing_y.? or_else Sizing{}
 	config.layout.padding = s.padding.? or_else Padding{}
 	config.layout.margin = s.margin.? or_else Margin{}
 	config.layout.child_gap = s.child_gap.? or_else 0
 	config.layout.layout_direction = s.layout_direction.? or_else Layout_Direction{}
 	config.layout.relative_position = s.relative_position.? or_else base.Vec2{}
-	config.layout.alignment_x = s.alignment_x.? or_else Alignment_X{}
-	config.layout.alignment_y = s.alignment_y.? or_else Alignment_Y{}
-	config.layout.text_alignment_x = s.text_alignment_x.? or_else Alignment_X{}
-	config.layout.text_alignment_y = s.text_alignment_y.? or_else Alignment_Y{}
+	config.layout.alignment_x = s.alignment_x.? or_else base.Alignment_X{}
+	config.layout.alignment_y = s.alignment_y.? or_else base.Alignment_Y{}
+	config.layout.text_alignment_x = s.text_alignment_x.? or_else base.Alignment_X{}
+	config.layout.text_alignment_y = s.text_alignment_y.? or_else base.Alignment_Y{}
 	config.layout.text_wrap_mode = s.text_wrap_mode.? or_else .Wrap
 	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
 	config.layout.border = s.border.? or_else Border{}

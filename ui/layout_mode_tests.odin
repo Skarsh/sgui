@@ -9,8 +9,8 @@ import base "../base"
 test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 	// alignment_x and alignment_y place a child inside its parent.
 	Alignment_Case :: struct {
-		alignment_x:  Alignment_X,
-		alignment_y:  Alignment_Y,
+		alignment_x:  base.Alignment_X,
+		alignment_y:  base.Alignment_Y,
 		expected_pos: base.Vec2,
 	}
 

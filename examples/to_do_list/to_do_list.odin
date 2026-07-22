@@ -63,8 +63,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			ui.Style {
 				sizing_x = ui.sizing_percent(1.0),
 				sizing_y = ui.sizing_percent(1.0),
-				alignment_x = ui.Alignment_X.Center,
-				alignment_y = ui.Alignment_Y.Center,
+				alignment_x = base.Alignment_X.Center,
+				alignment_y = base.Alignment_Y.Center,
 			},
 		)
 
@@ -90,7 +90,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_grow(max = 50),
-				text_alignment_x = ui.Alignment_X.Center,
+				text_alignment_x = base.Alignment_X.Center,
 				background_fill = base.fill_color(0, 0, 0, 0),
 			},
 		)
@@ -140,7 +140,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fit(),
 					layout_direction = ui.Layout_Direction.Left_To_Right,
-					alignment_y = ui.Alignment_Y.Center,
+					alignment_y = base.Alignment_Y.Center,
 					child_gap = 10,
 					padding = ui.padding_all(5),
 				},
@@ -178,8 +178,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				task.text,
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
-					alignment_y = ui.Alignment_Y.Center,
-					text_alignment_y = ui.Alignment_Y.Center,
+					alignment_y = base.Alignment_Y.Center,
+					text_alignment_y = base.Alignment_Y.Center,
 					text_fill = task_text_color,
 				},
 			)

@@ -31,6 +31,23 @@ Rect :: struct {
 	x, y, w, h: i32,
 }
 
+Axis2 :: enum {
+	X,
+	Y,
+}
+
+Alignment_X :: enum {
+	Left,
+	Center,
+	Right,
+}
+
+Alignment_Y :: enum {
+	Top,
+	Center,
+	Bottom,
+}
+
 Vec2 :: [2]f32
 Vector2i32 :: [2]i32
 

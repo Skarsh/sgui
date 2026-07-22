@@ -10,23 +10,6 @@ import textpkg "../text"
 
 EPSILON :: 0.001
 
-Axis2 :: enum {
-	X,
-	Y,
-}
-
-Alignment_X :: enum {
-	Left,
-	Center,
-	Right,
-}
-
-Alignment_Y :: enum {
-	Top,
-	Center,
-	Bottom,
-}
-
 Layout_Direction :: enum {
 	Left_To_Right,
 	Top_To_Bottom,
@@ -81,10 +64,10 @@ Layout_Config :: struct {
 	child_gap:         f32,
 	layout_direction:  Layout_Direction,
 	relative_position: base.Vec2,
-	alignment_x:       Alignment_X,
-	alignment_y:       Alignment_Y,
-	text_alignment_x:  Alignment_X,
-	text_alignment_y:  Alignment_Y,
+	alignment_x:       base.Alignment_X,
+	alignment_y:       base.Alignment_Y,
+	text_alignment_x:  base.Alignment_X,
+	text_alignment_y:  base.Alignment_Y,
 	text_wrap_mode:    textpkg.Text_Wrap_Mode,
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
 	border_radius:     base.Vec4,
@@ -245,7 +228,7 @@ calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
 // TODO(Thomas): This can be simplified further by combining into a Vec2, but not sure if that
 // helps much since the layout algorithm needs to update per axis anyway.
 @(require_results)
-calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) -> f32 {
+calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) -> f32 {
 	assert(element != nil)
 
 	padding := element.config.layout.padding
@@ -403,7 +386,7 @@ container_data_styled :: proc(
 	return comm
 }
 
-fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
+fit_size_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	for child in element.children {
 		fit_size_axis(child, axis)
 	}
@@ -414,7 +397,7 @@ fit_size_axis :: proc(element: ^UI_Element, axis: Axis2) {
 }
 
 // TODO(Thomas): Remove early returns to simplify control flow
-update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	parent := element.parent
 
 	if parent == nil {
@@ -441,7 +424,7 @@ update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis
 	}
 }
 
-calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
+calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	element.size[axis] = calculate_element_size_for_axis(element, axis)
 
 	if element.parent != nil {
@@ -451,7 +434,7 @@ calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: Axis2) {
 
 // TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
 @(require_results)
-calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f32 {
+calc_remaining_size :: #force_inline proc(element: UI_Element, axis: base.Axis2) -> f32 {
 	padding := element.config.layout.padding
 	border := element.config.layout.border
 	padding_sum := get_padding_sum_for_axis(padding, axis)
@@ -468,7 +451,7 @@ calc_remaining_size :: #force_inline proc(element: UI_Element, axis: Axis2) -> f
 }
 
 @(require_results)
-is_main_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
+is_main_axis :: proc(element: UI_Element, axis: base.Axis2) -> bool {
 
 	is_main_axis :=
 		(axis == .X && element.config.layout.layout_direction == .Left_To_Right) ||
@@ -481,8 +464,8 @@ is_main_axis :: proc(element: UI_Element, axis: Axis2) -> bool {
 get_main_and_cross_axis :: proc(
 	layout_direction: Layout_Direction,
 ) -> (
-	main_axis: Axis2,
-	cross_axis: Axis2,
+	main_axis: base.Axis2,
+	cross_axis: base.Axis2,
 ) {
 	if layout_direction == .Left_To_Right {
 		main_axis = .X
@@ -494,7 +477,7 @@ get_main_and_cross_axis :: proc(
 	return main_axis, cross_axis
 }
 
-size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
+size_children_on_cross_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	assert(element != nil)
 
 	if element != nil {
@@ -525,7 +508,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: Axis2) {
 RESIZE_ITER_MAX :: 32
 resolve_grow_sizes_for_children :: proc(
 	element: ^UI_Element,
-	axis: Axis2,
+	axis: base.Axis2,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
 
@@ -633,7 +616,7 @@ resolve_grow_sizes_for_children :: proc(
 	return nil
 }
 
-resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) {
+resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: base.Axis2) {
 	parent_padding := parent.config.layout.padding
 	parent_border := parent.config.layout.border
 	parent_content_available_size := get_available_size(parent.size, parent_padding, parent_border)
@@ -649,7 +632,7 @@ resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: Axis2) 
 
 resolve_dependent_sizes_for_axis :: proc(
 	element: ^UI_Element,
-	axis: Axis2,
+	axis: base.Axis2,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
 	if element == nil {
@@ -883,8 +866,8 @@ get_alignment_factor :: #force_inline proc(align: $E) -> f32 {
 
 @(require_results)
 get_alignment_factors :: #force_inline proc(
-	align_x: Alignment_X,
-	align_y: Alignment_Y,
+	align_x: base.Alignment_X,
+	align_y: base.Alignment_Y,
 ) -> base.Vec2 {
 	return {get_alignment_factor(align_x), get_alignment_factor(align_y)}
 }
@@ -895,7 +878,7 @@ get_axis_padding :: proc(padding: Padding) -> base.Vec2 {
 }
 
 @(require_results)
-get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
+get_padding_for_axis :: proc(padding: Padding, axis: base.Axis2) -> (f32, f32) {
 	if axis == .X {
 		return padding.left, padding.right
 	} else {
@@ -905,7 +888,7 @@ get_padding_for_axis :: proc(padding: Padding, axis: Axis2) -> (f32, f32) {
 
 // Generic helper for summing box values (padding, border, margin) for a given axis
 @(require_results)
-get_box_sum_for_axis :: proc(box: Box, axis: Axis2) -> f32 {
+get_box_sum_for_axis :: proc(box: Box, axis: base.Axis2) -> f32 {
 	if axis == .X {
 		return box.left + box.right
 	} else {
@@ -914,17 +897,17 @@ get_box_sum_for_axis :: proc(box: Box, axis: Axis2) -> f32 {
 }
 
 @(require_results)
-get_padding_sum_for_axis :: proc(padding: Padding, axis: Axis2) -> f32 {
+get_padding_sum_for_axis :: proc(padding: Padding, axis: base.Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(padding), axis)
 }
 
 @(require_results)
-get_border_sum_for_axis :: proc(border: Border, axis: Axis2) -> f32 {
+get_border_sum_for_axis :: proc(border: Border, axis: base.Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(border), axis)
 }
 
 @(require_results)
-get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
+get_border_for_axis :: proc(border: Border, axis: base.Axis2) -> (f32, f32) {
 	if axis == .X {
 		return border.left, border.right
 	} else {
@@ -933,7 +916,7 @@ get_border_for_axis :: proc(border: Border, axis: Axis2) -> (f32, f32) {
 }
 
 @(require_results)
-get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
+get_margin_for_axis :: proc(margin: Margin, axis: base.Axis2) -> (f32, f32) {
 	if axis == .X {
 		return margin.left, margin.right
 	} else {
@@ -942,7 +925,7 @@ get_margin_for_axis :: proc(margin: Margin, axis: Axis2) -> (f32, f32) {
 }
 
 @(require_results)
-get_margin_sum_for_axis :: proc(margin: Margin, axis: Axis2) -> f32 {
+get_margin_sum_for_axis :: proc(margin: Margin, axis: base.Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(margin), axis)
 }
 
