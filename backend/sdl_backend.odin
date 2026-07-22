@@ -259,7 +259,7 @@ sdl_poll_events :: proc(user_data: rawptr, on_event: proc(data: rawptr, event: b
 			}
 			valid = true
 		case .MOUSEBUTTONDOWN, .MOUSEBUTTONUP:
-			btn: base.Mouse
+			btn: base.Mouse_Button
 			switch sdl_event.button.button {
 			case sdl.BUTTON_LEFT:
 				btn = .Left

@@ -120,7 +120,9 @@ process_events :: proc(io: ^Io) {
 			}
 		case base.Text_Input_Event:
 			text := e.text
-			base.handle_text(input, string(cstring(&text[0])))
+			if !base.handle_text(input, string(cstring(&text[0]))) {
+				log.error("Failed to handle text")
+			}
 		case base.Window_Event:
 			io.window_size.x = e.size_x
 			io.window_size.y = e.size_y

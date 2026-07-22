@@ -30,7 +30,7 @@ Mouse_Motion_Event :: struct {
 Mouse_Button_Event :: struct {
 	x:      i32,
 	y:      i32,
-	button: Mouse,
+	button: Mouse_Button,
 	down:   bool,
 }
 
@@ -60,14 +60,14 @@ Quit_Event :: struct {
 	quit: bool,
 }
 
-Mouse :: enum u32 {
+Mouse_Button :: enum u32 {
 	Unknown,
 	Left,
 	Right,
 	Middle,
 }
 
-Mouse_Set :: distinct bit_set[Mouse;u32]
+Mouse_Set :: distinct bit_set[Mouse_Button;u32]
 
 Keymod_Flag :: enum u16 {
 	LSHIFT   = 0x0,
@@ -252,7 +252,7 @@ handle_mouse_move :: proc(input: ^Input, x, y: i32) {
 	input.mouse_pos = {x, y}
 }
 
-handle_mouse_down :: proc(input: ^Input, x, y: i32, btn: Mouse) {
+handle_mouse_down :: proc(input: ^Input, x, y: i32, btn: Mouse_Button) {
 	handle_mouse_move(input, x, y)
 	input.mouse_down_bits += {btn}
 	input.mouse_pressed_bits += {btn}
@@ -263,7 +263,7 @@ handle_scroll :: proc(input: ^Input, x, y: i32) {
 	input.scroll_delta.y += y
 }
 
-handle_mouse_up :: proc(input: ^Input, x, y: i32, btn: Mouse) {
+handle_mouse_up :: proc(input: ^Input, x, y: i32, btn: Mouse_Button) {
 	handle_mouse_move(input, x, y)
 	input.mouse_down_bits -= {btn}
 	input.mouse_released_bits += {btn}
@@ -290,6 +290,7 @@ handle_key_up :: proc(input: ^Input, key: Key) {
 	input.key_down_bits -= {key}
 }
 
+@(require_results)
 handle_text :: proc(input: ^Input, text: string) -> bool {
 	text_input := &input.text_input
 	available := len(text_input.data) - text_input.len
@@ -304,42 +305,52 @@ handle_text :: proc(input: ^Input, text: string) -> bool {
 	return true
 }
 
-is_mouse_down :: proc(input: Input, mouse: Mouse) -> bool {
+@(require_results)
+is_mouse_down :: proc(input: Input, mouse: Mouse_Button) -> bool {
 	return mouse in input.mouse_down_bits
 }
 
-is_mouse_pressed :: proc(input: Input, mouse: Mouse) -> bool {
+@(require_results)
+is_mouse_pressed :: proc(input: Input, mouse: Mouse_Button) -> bool {
 	return mouse in input.mouse_pressed_bits
 }
 
-is_mouse_released :: proc(input: Input, mouse: Mouse) -> bool {
+@(require_results)
+is_mouse_released :: proc(input: Input, mouse: Mouse_Button) -> bool {
 	return mouse in input.mouse_released_bits
 }
 
+@(require_results)
 is_key_down :: proc(input: Input, key: Key) -> bool {
 	return key in input.key_down_bits
 }
 
+@(require_results)
 is_key_pressed :: proc(input: Input, key: Key) -> bool {
 	return key in input.key_pressed_bits
 }
 
+@(require_results)
 is_keymod_down :: proc(keymod_set: Keymod_Set, keymod: Keymod_Flag) -> bool {
 	return keymod in keymod_set
 }
 
+@(require_results)
 is_shift_down :: proc(keymod_set: Keymod_Set) -> bool {
 	return is_keymod_down(keymod_set, .LSHIFT) || is_keymod_down(keymod_set, .RSHIFT)
 }
 
+@(require_results)
 is_ctrl_down :: proc(keymod_set: Keymod_Set) -> bool {
 	return is_keymod_down(keymod_set, .LCTRL) || is_keymod_down(keymod_set, .RCTRL)
 }
 
+@(require_results)
 is_alt_down :: proc(keymod_set: Keymod_Set) -> bool {
 	return is_keymod_down(keymod_set, .LALT) || is_keymod_down(keymod_set, .RALT)
 }
 
+@(require_results)
 is_gui_down :: proc(keymod_set: Keymod_Set) -> bool {
 	return is_keymod_down(keymod_set, .LGUI) || is_keymod_down(keymod_set, .RGUI)
 }
