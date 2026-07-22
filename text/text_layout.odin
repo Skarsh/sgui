@@ -211,8 +211,9 @@ layout_rows_unwrapped :: proc(
 	paragraphs: []Paragraph,
 	glyphs: []Glyph,
 	rows: ^[dynamic]Positioned_Row,
-	max_width: f32,
+	available_width: f32,
 	line_height: f32,
+	alignment_x: base.Alignment_X,
 	text_wrap_mode: Text_Wrap_Mode,
 	epsilon: f32,
 ) -> mem.Allocator_Error {
@@ -226,7 +227,7 @@ layout_rows_unwrapped :: proc(
 			// TODO(Thomas): For .Truncate we should stop at first overflow,
 			// if not we can end up with adding a later glyph that actually fits, which
 			// most definitely is unintended behaviour.
-			if text_wrap_mode == .None || row_width + glyph_width <= max_width + epsilon {
+			if text_wrap_mode == .None || row_width + glyph_width <= available_width + epsilon {
 				row_width += glyph_width
 			}
 		}
@@ -250,8 +251,9 @@ layout_rows_wrapped :: proc(
 	glyphs: []Glyph,
 	linebreak_candidates: []Linebreak_Candidate,
 	rows: ^[dynamic]Positioned_Row,
-	max_width: f32,
+	available_width: f32,
 	line_height: f32,
+	alignment_x: base.Alignment_X,
 	epsilon: f32,
 ) -> mem.Allocator_Error {
 
@@ -281,7 +283,7 @@ layout_rows_wrapped :: proc(
 				candidate_cursor += 1
 			}
 
-			if row_width + glyph.metrics.width > max_width + epsilon {
+			if row_width + glyph.metrics.width > available_width + epsilon {
 				break_at_idx: int
 				if break_candidate_idx >= row_start {
 					break_at_idx = break_candidate_idx
@@ -340,8 +342,9 @@ layout_rows :: proc(
 	glyphs: []Glyph,
 	linebreak_candidates: []Linebreak_Candidate,
 	rows: ^[dynamic]Positioned_Row,
-	max_width: f32,
+	available_width: f32,
 	line_height: f32,
+	alignment_x: base.Alignment_X,
 	text_wrap_mode: Text_Wrap_Mode,
 	epsilon: f32 = DEFAULT_EPSILON,
 ) -> mem.Allocator_Error {
@@ -351,8 +354,9 @@ layout_rows :: proc(
 			paragraphs,
 			glyphs,
 			rows,
-			max_width,
+			available_width,
 			line_height,
+			alignment_x,
 			text_wrap_mode,
 			epsilon,
 		) or_return
@@ -362,8 +366,9 @@ layout_rows :: proc(
 			glyphs,
 			linebreak_candidates,
 			rows,
-			max_width,
+			available_width,
 			line_height,
+			alignment_x,
 			epsilon,
 		) or_return
 	}
@@ -373,6 +378,7 @@ layout_rows :: proc(
 Text_Layout_Params :: struct {
 	available_width: f32,
 	font_handle:     Font_Handle,
+	alignment_x:     base.Alignment_X,
 	wrap_mode:       Text_Wrap_Mode,
 }
 
@@ -435,6 +441,7 @@ layout_text :: proc(
 		&rows,
 		params.available_width,
 		text_metrics.line_height,
+		params.alignment_x,
 		params.wrap_mode,
 	) or_return
 

@@ -154,7 +154,12 @@ element_equip_text :: proc(
 	// Measure text to record intrinsic content size
 	text_layout := textpkg.layout_text(
 		text,
-		{math.F32_MAX, ctx.font_id, element.config.layout.text_wrap_mode},
+		{
+			math.F32_MAX,
+			ctx.font_id,
+			element.config.layout.text_alignment_x,
+			element.config.layout.text_wrap_mode,
+		},
 		ctx.interaction.text_measurement^,
 		ctx.frame_allocator,
 	) or_return
@@ -693,7 +698,7 @@ wrap_text :: proc(
 
 		text_layout := textpkg.layout_text(
 			text,
-			{wrap_width, ctx.font_id, text_wrap_mode},
+			{wrap_width, ctx.font_id, element.config.layout.text_alignment_x, text_wrap_mode},
 			ctx.interaction.text_measurement^,
 			allocator,
 		) or_return
