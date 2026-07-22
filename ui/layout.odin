@@ -171,11 +171,9 @@ element_equip_text :: proc(
 	// Measure text to record intrinsic content size
 	text_layout := textpkg.layout_text(
 		text,
-		math.F32_MAX,
-		ctx.font_id,
+		{math.F32_MAX, ctx.font_id, element.config.layout.text_wrap_mode},
 		ctx.interaction.text_measurement^,
 		ctx.frame_allocator,
-		element.config.layout.text_wrap_mode,
 	) or_return
 
 	// Calculate total content size including padding and border
@@ -710,15 +708,11 @@ wrap_text :: proc(
 			}
 		}
 
-		// TODO(Thomas): If the wrap mode is extend, this should probably grow the ui element.
-		// How should that work?
 		text_layout := textpkg.layout_text(
 			text,
-			wrap_width,
-			ctx.font_id,
+			{wrap_width, ctx.font_id, text_wrap_mode},
 			ctx.interaction.text_measurement^,
 			allocator,
-			text_wrap_mode,
 		) or_return
 
 		element.config.content.text_data.text_layout = text_layout

@@ -370,6 +370,13 @@ layout_rows :: proc(
 	return nil
 }
 
+Text_Layout_Params :: struct {
+	available_width: f32,
+	font_handle:     Font_Handle,
+	wrap_mode:       Text_Wrap_Mode,
+}
+
+
 // TODO(Thomas): We need to think about good allocation strategies here,
 // can we get away with an arena, e.g. the frame arena?
 // TODO(Thomas): Too much allocation going on here would like to have pre-allocated, upper bounded
@@ -377,15 +384,11 @@ layout_rows :: proc(
 // Don't return an instance of Text_Layout here? Take in ^Text_Layout instead?
 // It holds a slice into the rows, which is allocated by the passed in allocator,
 // so that lifetime needs to be made explicit and obvious at least.
-// TODO(Thomas): Alot of the font stuff and callbacks here could be grouped into something
-// somehow.
 layout_text :: proc(
 	text: string,
-	available_width: f32,
-	font_handle: Font_Handle,
+	params: Text_Layout_Params,
 	text_measurement: Text_Measurement,
 	allocator: mem.Allocator,
-	text_wrap_mode: Text_Wrap_Mode,
 ) -> (
 	layout: Text_Layout,
 	alloc_err: mem.Allocator_Error,
@@ -394,7 +397,7 @@ layout_text :: proc(
 	// TODO(Thomas): This should be cached of course.
 	text_metrics := text_measurement.measure_text_proc(
 		text,
-		font_handle,
+		params.font_handle,
 		text_measurement.font_user_data,
 	)
 
@@ -430,9 +433,9 @@ layout_text :: proc(
 		glyphs[:],
 		linebreak_candidates[:],
 		&rows,
-		available_width,
+		params.available_width,
 		text_metrics.line_height,
-		text_wrap_mode,
+		params.wrap_mode,
 	) or_return
 
 	// TODO(Thomas): This could be done in layout_rows instead so we don't have
