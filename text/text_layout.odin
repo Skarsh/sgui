@@ -38,8 +38,9 @@ Style_Range :: struct {
 // TODO(Thomas): codepoint isn't really a rune, this should probably be something else.
 // Not sure what yet though.
 Glyph :: struct {
-	codepoint: rune,
-	metrics:   Codepoint_Metrics,
+	codepoint:  rune,
+	byte_range: base.Range,
+	metrics:    Codepoint_Metrics,
 }
 
 Linebreak_Kind :: enum {
@@ -142,14 +143,24 @@ shaping :: proc(
 		runs := text_runs[paragraph.text_run_range.start:paragraph.text_run_range.end]
 		for run in runs {
 			sub := text[run.range.start:run.range.end]
-			// TODO(Thomas): BIG HACK - Glyph end idx using byte idx in the sub here is VERY temporary
-			// just to make something work for ASCII to have the pipeline up and running.
-			// Not sure how we should deal with this, but this is probably where the meat of the shaping is coming in
-			for r in sub {
+			// TODO(Thomas): We emit one glyph per rune here. Real shaping needs grapheme
+			// clusters and ligatures, where runes and glyphs are not one to one.
+			for r, i in sub {
 				glyph_end += 1
+
+				byte_start := run.range.start + i
+				byte_end := byte_start + utf8.rune_size(r)
+
 				// TODO(Thomas): This will have to be cached of course.
 				codepoint_metrics := measure_codepoint_proc(r, FONT_ID, font_user_data)
-				append(glyphs, Glyph{codepoint = r, metrics = codepoint_metrics}) or_return
+				append(
+					glyphs,
+					Glyph {
+						codepoint = r,
+						byte_range = {start = byte_start, end = byte_end},
+						metrics = codepoint_metrics,
+					},
+				) or_return
 			}
 		}
 		paragraph.glyph_range = base.Range {
