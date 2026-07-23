@@ -190,6 +190,7 @@ find_linebreak_candidates :: proc(
 
 // Produces the content_width (the width of the visual content without trailling whitespace),
 // and the advance_width (the width of all the glyphs on the row, with trailing whitespace).
+@(private)
 measure_row_widths :: proc(glyphs: []Glyph) -> (content_width: f32, advance_width: f32) {
 	for glyph in glyphs {
 		advance_width += glyph.metrics.width
@@ -200,6 +201,27 @@ measure_row_widths :: proc(glyphs: []Glyph) -> (content_width: f32, advance_widt
 
 	return
 }
+
+@(private)
+@(require_results)
+calc_aligned_row_x_pos :: proc(
+	alignment_x: base.Alignment_X,
+	available_width: f32,
+	row_width: f32,
+) -> f32 {
+
+	row_x: f32
+	switch alignment_x {
+	case .Left:
+	// Do nothing
+	case .Center:
+		row_x = (available_width - row_width) / 2
+	case .Right:
+		row_x = available_width - row_width
+	}
+	return row_x
+}
+
 
 // TODO(Thomas): Epsilon is for f32 accumulation error,
 // the proper fix is integer/fixed-point glyph metrics (e.g. FreeType 26.6 or Pango units).
@@ -232,15 +254,17 @@ layout_rows_unwrapped :: proc(
 			}
 		}
 
+		row_x := calc_aligned_row_x_pos(alignment_x, available_width, row_width)
 		append(
 			rows,
 			Positioned_Row {
-				pos = {0, line_height_offset},
+				pos = {row_x, line_height_offset},
 				size = {row_width, line_height},
 				advance_width = row_width,
 				glyph_range = paragraph.glyph_range,
 			},
 		) or_return
+
 		line_height_offset += line_height
 	}
 	return nil
@@ -296,10 +320,11 @@ layout_rows_wrapped :: proc(
 					glyphs[row_start:break_at_idx + 1],
 				)
 
+				row_x := calc_aligned_row_x_pos(alignment_x, available_width, content_width)
 				append(
 					rows,
 					Positioned_Row {
-						pos = {0, line_height_offset},
+						pos = {row_x, line_height_offset},
 						size = {content_width, line_height},
 						advance_width = advance_width,
 						glyph_range = {start = row_start, end = break_at_idx + 1},
@@ -322,10 +347,11 @@ layout_rows_wrapped :: proc(
 			glyphs[row_start:paragraph.glyph_range.end],
 		)
 
+		row_x := calc_aligned_row_x_pos(alignment_x, available_width, content_width)
 		append(
 			rows,
 			Positioned_Row {
-				pos = {0, line_height_offset},
+				pos = {row_x, line_height_offset},
 				size = {content_width, line_height},
 				advance_width = advance_width,
 				glyph_range = {start = row_start, end = paragraph.glyph_range.end},

@@ -233,7 +233,6 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 			padding := element.config.layout.padding
 			content_area_x := element.position.x + padding.left
 			content_area_y := element.position.y + padding.top
-			content_area_w := element.size.x - padding.left - padding.right
 			content_area_h := element.size.y - padding.top - padding.bottom
 
 			text_layout := element.config.content.text_data.text_layout
@@ -254,17 +253,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 			current_y := start_y
 
 			for row in text_layout.rows {
-				start_x: f32 = content_area_x
-				switch element.config.layout.text_alignment_x {
-				case .Left:
-					// Default, no change
-					start_x = content_area_x
-				case .Center:
-					start_x = content_area_x + (content_area_w - row.size.x) / 2
-				case .Right:
-					start_x = content_area_x + (content_area_w - row.size.x)
-				}
-
+				start_x := content_area_x + row.pos.x
 				draw_text(
 					draw_state,
 					start_x,

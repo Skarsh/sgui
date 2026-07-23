@@ -108,6 +108,8 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				text_alignment_x = data.align_x,
 				text_alignment_y = data.align_y,
 				text_wrap_mode = data.wrap_mode,
+				padding = ui.padding_all(20),
+				border = ui.border_all(10),
 				background_fill = base.fill_color(60, 60, 60),
 			},
 		)
