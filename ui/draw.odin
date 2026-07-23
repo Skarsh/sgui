@@ -231,9 +231,11 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 
 		if .Text in cap_flags {
 			padding := element.config.layout.padding
-			content_area_x := element.position.x + padding.left
-			content_area_y := element.position.y + padding.top
-			content_area_h := element.size.y - padding.top - padding.bottom
+			border := element.config.layout.border
+			content_area_x := element.position.x + padding.left + border.left
+			content_area_y := element.position.y + padding.top + border.top
+			content_area_h :=
+				element.size.y - padding.top - padding.bottom - border.top - border.bottom
 
 			text_layout := element.config.content.text_data.text_layout
 

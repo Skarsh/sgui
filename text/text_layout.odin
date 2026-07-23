@@ -202,6 +202,11 @@ measure_row_widths :: proc(glyphs: []Glyph) -> (content_width: f32, advance_widt
 	return
 }
 
+// Sentinel width that means "no width constraint", used when measuring intrinsic size.
+// TODO(Thomas): We could use a Maybe(f32) instead, so the no-constraint case is
+// enforced by the type instead of a sentinel value.
+UNBOUNDED_WIDTH :: max(f32)
+
 @(private)
 @(require_results)
 calc_aligned_row_x_pos :: proc(
@@ -209,6 +214,12 @@ calc_aligned_row_x_pos :: proc(
 	available_width: f32,
 	row_width: f32,
 ) -> f32 {
+
+	// Alignment needs a bounded width to align within. With no width constraint there
+	// is no box edge, so we treat it as left aligned.
+	if available_width == UNBOUNDED_WIDTH {
+		return 0
+	}
 
 	row_x: f32
 	switch alignment_x {

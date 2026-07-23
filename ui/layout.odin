@@ -151,11 +151,11 @@ element_equip_text :: proc(
 		text = text,
 	}
 
-	// Measure text to record intrinsic content size
+	// Measure text to record intrinsic content size.
 	text_layout := textpkg.layout_text(
 		text,
 		{
-			math.F32_MAX,
+			textpkg.UNBOUNDED_WIDTH,
 			ctx.font_id,
 			element.config.layout.text_alignment_x,
 			element.config.layout.text_wrap_mode,
