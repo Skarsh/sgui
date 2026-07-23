@@ -502,3 +502,28 @@ layout_text :: proc(
 	}
 	return Text_Layout{size = layout_size, rows = rows[:], glyphs = glyphs[:]}, nil
 }
+
+@(require_results)
+text_layout_byte_pos_from_point :: proc(layout: Text_Layout, pos: base.Vec2) -> (byte_pos: int) {
+
+	// Outline of the algorithm
+	// Find y-offset / row that is closest to the pos.y
+	// Then walk the row to find the glyph that is closest to pos.x
+
+	if len(layout.rows) > 0 {
+		// Find the closest row
+		row_idx := len(layout.rows) - 1
+		for row, i in layout.rows {
+			if pos.y < row.pos.y + row.size.y {
+				row_idx = i
+				break
+			}
+		}
+
+		// Find glyphs that are hittable, meaning remove trailing newline glyphs
+		// since hit testing against them will not result in wanted byte pos.
+
+	}
+
+	return
+}
