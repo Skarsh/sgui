@@ -226,4 +226,78 @@ test_text_edit_handle_keys :: proc(t: ^testing.T) {
 		"ab cd ef",
 		{active = 8, anchor = 0},
 	)
+
+	// Home
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 2, anchor = 2},
+		{.Home},
+		base.KMOD_NONE,
+		"abc",
+		{active = 0, anchor = 0},
+	)
+
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 2, anchor = 2},
+		{.Home},
+		base.KMOD_SHIFT,
+		"abc",
+		{active = 0, anchor = 2},
+	)
+
+	// End
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 1, anchor = 1},
+		{.End},
+		base.KMOD_NONE,
+		"abc",
+		{active = 3, anchor = 3},
+	)
+
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 1, anchor = 1},
+		{.End},
+		base.KMOD_SHIFT,
+		"abc",
+		{active = 3, anchor = 1},
+	)
+
+	// Delete
+	check_handle_keys(
+		t,
+		"abc",
+		{active = 1, anchor = 1},
+		{.Delete},
+		base.KMOD_NONE,
+		"ac",
+		{active = 1, anchor = 1},
+	)
+
+	check_handle_keys(
+		t,
+		"ab cd ef",
+		{active = 0, anchor = 0},
+		{.Delete},
+		base.KMOD_CTRL,
+		"cd ef",
+		{active = 0, anchor = 0},
+	)
+
+	// Tab
+	check_handle_keys(
+		t,
+		"ab",
+		{active = 1, anchor = 1},
+		{.Tab},
+		base.KMOD_NONE,
+		"a\tb",
+		{active = 2, anchor = 2},
+	)
 }

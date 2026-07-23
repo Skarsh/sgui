@@ -33,6 +33,34 @@ Text_Edit_Clipboard_Command :: enum {
 	Cut,
 }
 
+Cmd_Move :: struct {
+	translation: Translation,
+	select:      bool,
+}
+
+Cmd_Set_Caret :: struct {
+	byte_pos: int,
+	extend:   bool,
+}
+
+Cmd_Insert :: struct {
+	text: string,
+}
+
+Cmd_Delete :: struct {
+	translation: Translation,
+}
+
+Cmd_Select_All :: struct {}
+
+Text_Edit_Command :: union {
+	Cmd_Move,
+	Cmd_Set_Caret,
+	Cmd_Insert,
+	Cmd_Delete,
+	Cmd_Select_All,
+}
+
 text_edit_init :: proc(state: ^Text_Edit_State, buffer: Text_Buffer, max_len: int = max(int)) {
 	state.buffer = buffer
 	state.selection = {}
@@ -43,8 +71,8 @@ text_edit_deinit :: proc(state: ^Text_Edit_State) {
 	text_buffer_deinit(&state.buffer)
 }
 
-// TODO(Thomas): Pretty sure this can be simplified in a good way.
-// TODO(Thomas): Expand command wiring for more shortcuts (select-all, clipboard, undo/redo).
+// Editing keys go through translate_key and text_edit_apply.
+// TODO(Thomas): Move clipboard and undo/redo out to the ui/glue layer.
 text_edit_handle_keys :: proc(
 	state: ^Text_Edit_State,
 	keys: base.Key_Set,
@@ -54,84 +82,90 @@ text_edit_handle_keys :: proc(
 	text_buffer_error: Text_Buffer_Error,
 ) {
 	ctrl_down := base.is_ctrl_down(keymod)
-	shift_down := base.is_shift_down(keymod)
-	word_mod_down := keymod_has_word_move_mod(keymod)
-	line_mod_down := keymod_has_line_move_mod(keymod)
 
 	for key in keys {
-		#partial switch key {
-		case .A:
-			if ctrl_down {
-				start := 0
-				end := text_buffer_byte_length(state.buffer)
-				state.selection.anchor = start
-				state.selection.active = end
-			}
-		case .C:
-			if ctrl_down {
-				// TODO(Thomas): Copy selection
+		// Editing keys go through the command pipeline.
+		if cmd, ok := translate_key(key, keymod); ok {
+			text_edit_apply(state, cmd) or_return
+		} else if ctrl_down {
+			// The rest are clipboard and undo/redo, still returned outward via the enum.
+			#partial switch key {
+			case .C:
 				clipboard_command = .Copy
-			}
-		case .V:
-			if ctrl_down {
-				// TODO(Thomas): Paste selection
+			case .V:
 				clipboard_command = .Paste
-			}
-		case .X:
-			if ctrl_down {
-				// TODO(Thomas): Cut selection
-				// TODO(Thomas): Does this really need its own clipboard command??
-				// In practice its just copy but, but the selection is deleted?
+			case .X:
 				clipboard_command = .Cut
+			case .Y:
+			// TODO(Thomas): Redo
+			case .Z:
+			// TODO(Thomas): Undo
 			}
-		case .Y:
-			if ctrl_down {
-				// TODO(Thomas): Redo
-			}
-		case .Z:
-			if ctrl_down {
-				// TODO(Thomas): Undo
-			}
-		case .Left:
-			translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
-			apply_move_or_select(state, translation, shift_down)
-		case .Right:
-			translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
-			apply_move_or_select(state, translation, shift_down)
-		case .Home:
-			apply_move_or_select(state, .Start, shift_down)
-		case .End:
-			apply_move_or_select(state, .End, shift_down)
-		case .Backspace:
-			translation: Translation = .Left
-			if word_mod_down {
-				translation = .Prev_Word
-			}
-			text_edit_delete_to(state, translation)
-		case .Delete:
-			translation: Translation = .Right
-			if word_mod_down {
-				translation = .Next_Word
-			}
-			text_edit_delete_to(state, translation)
-		case .Tab:
-			text_edit_insert(state, "\t") or_return
 		}
 	}
 
 	return clipboard_command, nil
 }
 
+// Maps a key press and its modifiers to an editing command.
+// Returns ok=false for keys we don't handle here, like clipboard and undo/redo.
+@(private)
+translate_key :: proc(
+	key: base.Key,
+	keymod: base.Keymod_Set,
+) -> (
+	cmd: Text_Edit_Command,
+	ok: bool,
+) {
+	shift_down := base.is_shift_down(keymod)
+	ctrl_down := base.is_ctrl_down(keymod)
+	word_mod_down := keymod_has_word_move_mod(keymod)
+	line_mod_down := keymod_has_line_move_mod(keymod)
+
+	#partial switch key {
+	case .A:
+		if ctrl_down {
+			return Cmd_Select_All{}, true
+		}
+	case .Left, .Right:
+		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
+		return Cmd_Move{translation = translation, select = shift_down}, true
+	case .Home:
+		return Cmd_Move{translation = .Start, select = shift_down}, true
+	case .End:
+		return Cmd_Move{translation = .End, select = shift_down}, true
+	case .Backspace:
+		translation: Translation = .Left
+		if word_mod_down {
+			translation = .Prev_Word
+		}
+		return Cmd_Delete{translation = translation}, true
+	case .Delete:
+		translation: Translation = .Right
+		if word_mod_down {
+			translation = .Next_Word
+		}
+		return Cmd_Delete{translation = translation}, true
+	case .Tab:
+		return Cmd_Insert{text = "\t"}, true
+	}
+
+	return nil, false
+}
+
+@(private)
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	target := translated_pos(state, translation, true)
 	set_caret(state, target)
 }
 
+@(private)
 text_edit_select_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	target := translated_pos(state, translation, false)
 	set_active(state, target)
 }
 
+@(private)
 text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	if is_selection_collapsed(state.selection) {
 		text_edit_select_to(state, translation)
@@ -145,8 +179,29 @@ text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	set_caret(state, start)
 }
 
-// TOOD(Thomas): Add handling of drag and double/triple click
-text_edit_handle_click :: proc(state: ^Text_Edit_State) {}
+// Applies a single editing command to the state.
+// Keyboard and mouse input both translate into commands and go through here.
+@(require_results)
+text_edit_apply :: proc(state: ^Text_Edit_State, cmd: Text_Edit_Command) -> Text_Buffer_Error {
+	switch c in cmd {
+	case Cmd_Move:
+		apply_move_or_select(state, c.translation, c.select)
+	case Cmd_Set_Caret:
+		if c.extend {
+			set_active(state, c.byte_pos)
+		} else {
+			set_caret(state, c.byte_pos)
+		}
+	case Cmd_Insert:
+		text_edit_insert(state, c.text) or_return
+	case Cmd_Delete:
+		text_edit_delete_to(state, c.translation)
+	case Cmd_Select_All:
+		state.selection.anchor = 0
+		state.selection.active = text_buffer_byte_length(state.buffer)
+	}
+	return nil
+}
 
 @(require_results)
 text_edit_insert :: proc(state: ^Text_Edit_State, text: string) -> Text_Buffer_Error {
