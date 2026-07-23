@@ -230,32 +230,27 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 		}
 
 		if .Text in cap_flags {
-			padding := element.config.layout.padding
-			border := element.config.layout.border
-			content_area_x := element.position.x + padding.left + border.left
-			content_area_y := element.position.y + padding.top + border.top
-			content_area_h :=
-				element.size.y - padding.top - padding.bottom - border.top - border.bottom
+			box := content_box(element^)
 
 			text_layout := element.config.content.text_data.text_layout
 
 			// Calculate the initial vertical offset for the whole block based on Aligment_Y
-			start_y: f32 = content_area_y
+			start_y := box.origin.y
 			switch element.config.layout.text_alignment_y {
 			case .Top:
 				// Default, no change
-				start_y = content_area_y
+				start_y = box.origin.y
 			case .Center:
-				start_y = content_area_y + (content_area_h - text_layout.size.y) / 2
+				start_y = box.origin.y + (box.size.y - text_layout.size.y) / 2
 			case .Bottom:
-				start_y = content_area_y + (content_area_h - text_layout.size.y)
+				start_y = box.origin.y + (box.size.y - text_layout.size.y)
 			}
 
 			// Iterate through each line and draw it with the correct X and Y
 			current_y := start_y
 
 			for row in text_layout.rows {
-				start_x := content_area_x + row.pos.x
+				start_x := box.origin.x + row.pos.x
 				draw_text(
 					draw_state,
 					start_x,

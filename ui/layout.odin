@@ -946,6 +946,23 @@ get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) ->
 	return result
 }
 
+// The inner content box of an element, inset by padding and border.
+// origin is the top left where content starts, size is the space available for it.
+Content_Box :: struct {
+	origin: base.Vec2,
+	size:   base.Vec2,
+}
+
+@(require_results)
+content_box :: proc(element: UI_Element) -> Content_Box {
+	padding := element.config.layout.padding
+	border := element.config.layout.border
+	return Content_Box {
+		origin = element.position + {padding.left + border.left, padding.top + border.top},
+		size = get_available_size(element.size, padding, border),
+	}
+}
+
 @(require_results)
 has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 	result := false
@@ -959,15 +976,7 @@ has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 }
 
 layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
-	padding := parent.config.layout.padding
-	border := parent.config.layout.border
-
-	content_origin := base.Vec2 {
-		parent.position.x + padding.left + border.left,
-		parent.position.y + padding.top + border.top,
-	}
-
-	available := get_available_size(parent.size, padding, border)
+	box := content_box(parent^)
 
 	child_margin := child.config.layout.margin
 	relative_position := child.config.layout.relative_position
@@ -987,34 +996,24 @@ layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 	// when .Right for alignment_x. Same for .Top and .Bottom for alignment_y.
 	remaining :=
 		base.Vec2{child_margin.left, child_margin.top} +
-		(available - child.size - margin_size) * factors
+		(box.size - child.size - margin_size) * factors
 
-	child.position = content_origin + remaining + relative_position
+	child.position = box.origin + remaining + relative_position
 }
 
 layout_children_in_flow :: proc(parent: ^UI_Element) {
 	if has_flow_children(parent^) {
 
-		padding := parent.config.layout.padding
-		border := parent.config.layout.border
 		dir := parent.config.layout.layout_direction
 
 		// Setup Axes
 		main_axis, cross_axis := get_main_and_cross_axis(dir)
 
-		// Resolve padding for axes
-		pad_main_start, _ := get_padding_for_axis(padding, main_axis)
-		pad_cross_start, _ := get_padding_for_axis(padding, cross_axis)
+		box := content_box(parent^)
+		available_size := box.size
 
-		// Resolve border for axes
-		border_main_start, _ := get_border_for_axis(border, main_axis)
-		border_cross_start, _ := get_border_for_axis(border, cross_axis)
-
-		// Calculate available content space
-		available_size := get_available_size(parent.size, padding, border)
-
-		start_pos_main := parent.position[main_axis] + pad_main_start + border_main_start
-		start_pos_cross := parent.position[cross_axis] + pad_cross_start + border_cross_start
+		start_pos_main := box.origin[main_axis]
+		start_pos_cross := box.origin[cross_axis]
 
 		// Measure children (including margins)
 		total_children_main: f32 = 0
