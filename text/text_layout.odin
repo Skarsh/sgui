@@ -558,3 +558,56 @@ text_layout_byte_pos_from_point :: proc(layout: Text_Layout, pos: base.Vec2) -> 
 
 	return
 }
+
+text_layout_caret_pos :: proc(
+	layout: Text_Layout,
+	byte_pos: int,
+) -> (
+	pos: base.Vec2,
+	height: f32,
+) {
+
+	rows := layout.rows
+	row_len := len(rows)
+	if row_len > 0 {
+		// Pick the row where the caret range holds byte_pos, clamping at the last row
+		row_idx := row_len - 1
+
+		// We find which row the byte_pos is in by checking against the byte_pos of the
+		// last glyph, with handling of whether it's a trailing newline or not.
+		for row, i in rows {
+			row_glyphs := layout.glyphs[row.glyph_range.start:row.glyph_range.end]
+
+			caret_end := 0
+			row_glyphs_len := len(row_glyphs)
+			if row_glyphs_len > 0 {
+				last := row_glyphs[row_glyphs_len - 1]
+				if last.codepoint == '\n' {
+					caret_end = last.byte_range.start
+				} else {
+					caret_end = last.byte_range.end
+				}
+			}
+
+			// We know that since byte_pos <= caret_end, byte_pos must be on this row.
+			if byte_pos <= caret_end {
+				row_idx = i
+				break
+			}
+		}
+
+		row := rows[row_idx]
+
+		// Walk the glyphs left-to-right, to the caret x position
+		caret_x := row.pos.x
+		for glyph in layout.glyphs[row.glyph_range.start:row.glyph_range.end] {
+			if byte_pos <= glyph.byte_range.start {
+				break
+			}
+			caret_x += glyph.metrics.width
+		}
+		return {caret_x, row.pos.y}, row.size.y
+	}
+
+	return
+}
