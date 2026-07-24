@@ -508,7 +508,9 @@ text_layout_byte_pos_from_point :: proc(layout: Text_Layout, pos: base.Vec2) -> 
 
 	// Outline of the algorithm
 	// Find y-offset / row that is closest to the pos.y
+	// Find subslice of the row without trailing newline if there is any
 	// Then walk the row to find the glyph that is closest to pos.x
+	// Resolve whether to put byte pos on the start or end of the last glyph.
 
 	if len(layout.rows) > 0 {
 		// Find the closest row
@@ -522,7 +524,36 @@ text_layout_byte_pos_from_point :: proc(layout: Text_Layout, pos: base.Vec2) -> 
 
 		// Find glyphs that are hittable, meaning remove trailing newline glyphs
 		// since hit testing against them will not result in wanted byte pos.
+		row := layout.rows[row_idx]
+		row_glyphs := layout.glyphs[row.glyph_range.start:row.glyph_range.end]
+		// A trailing newline is a line boundary, so exclude it and the caret stays on this line.
+		hit_glyphs := row_glyphs
+		row_len := len(row_glyphs)
+		if row_len > 0 {
+			if row_glyphs[row_len - 1].codepoint == '\n' {
+				hit_glyphs = row_glyphs[:row_len - 1]
+			}
 
+			// Walk the glyphs left to right and snap to whichever side of a glyph pos.x is closest to
+			cursor_x := row.pos.x
+			for glyph in hit_glyphs {
+				// Using glyph.metrics.width / 2 to find which side of the glyph is closest
+				if pos.x < cursor_x + glyph.metrics.width / 2 {
+					return glyph.byte_range.start
+				} else {
+					cursor_x += glyph.metrics.width
+				}
+			}
+
+			// pos.x is past the last hit glyph, so the caret goes to the line end
+			if len(hit_glyphs) < row_len {
+				// Byte pos is placed before the trailing newline, if there was any
+				byte_pos = row_glyphs[row_len - 1].byte_range.start
+			} else {
+				// No trailing newline, byte pos is at the end.
+				byte_pos = row_glyphs[row_len - 1].byte_range.end
+			}
+		}
 	}
 
 	return
