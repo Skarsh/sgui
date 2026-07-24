@@ -31,6 +31,10 @@ Rect :: struct {
 	x, y, w, h: i32,
 }
 
+Rect_F32 :: struct {
+	x, y, w, h: f32,
+}
+
 Axis2 :: enum {
 	X,
 	Y,
@@ -60,4 +64,13 @@ Vector4i32 :: [4]i32
 Range :: struct {
 	start: int,
 	end:   int,
+}
+
+@(require_results)
+slice_from_range :: proc(slice: $T, range: Range) -> T {
+	assert(range.start >= 0)
+	assert(range.end <= len(slice))
+	assert(range.start <= range.end)
+
+	return slice[range.start:range.end]
 }

@@ -525,7 +525,7 @@ text_layout_byte_pos_from_point :: proc(layout: Text_Layout, pos: base.Vec2) -> 
 		// Find glyphs that are hittable, meaning remove trailing newline glyphs
 		// since hit testing against them will not result in wanted byte pos.
 		row := layout.rows[row_idx]
-		row_glyphs := layout.glyphs[row.glyph_range.start:row.glyph_range.end]
+		row_glyphs := base.slice_from_range(layout.glyphs, row.glyph_range)
 		// A trailing newline is a line boundary, so exclude it and the caret stays on this line.
 		hit_glyphs := row_glyphs
 		row_len := len(row_glyphs)
@@ -559,6 +559,7 @@ text_layout_byte_pos_from_point :: proc(layout: Text_Layout, pos: base.Vec2) -> 
 	return
 }
 
+@(require_results)
 text_layout_caret_pos :: proc(
 	layout: Text_Layout,
 	byte_pos: int,
@@ -576,7 +577,7 @@ text_layout_caret_pos :: proc(
 		// We find which row the byte_pos is in by checking against the byte_pos of the
 		// last glyph, with handling of whether it's a trailing newline or not.
 		for row, i in rows {
-			row_glyphs := layout.glyphs[row.glyph_range.start:row.glyph_range.end]
+			row_glyphs := base.slice_from_range(layout.glyphs, row.glyph_range)
 
 			caret_end := 0
 			row_glyphs_len := len(row_glyphs)
@@ -599,15 +600,74 @@ text_layout_caret_pos :: proc(
 		row := rows[row_idx]
 
 		// Walk the glyphs left-to-right, to the caret x position
-		caret_x := row.pos.x
-		for glyph in layout.glyphs[row.glyph_range.start:row.glyph_range.end] {
-			if byte_pos <= glyph.byte_range.start {
-				break
-			}
-			caret_x += glyph.metrics.width
-		}
+		caret_x := row_x_at_byte(
+			base.slice_from_range(layout.glyphs, row.glyph_range),
+			row.pos.x,
+			byte_pos,
+		)
+
 		return {caret_x, row.pos.y}, row.size.y
 	}
 
 	return
+}
+
+@(private = "file")
+@(require_results)
+row_x_at_byte :: proc(row_glyphs: []Glyph, row_x: f32, byte_pos: int) -> f32 {
+	x := row_x
+	for glyph in row_glyphs {
+		if byte_pos <= glyph.byte_range.start {
+			break
+		}
+		x += glyph.metrics.width
+	}
+	return x
+}
+
+// It is the caller's responsibility to clear dyn_rects before calling.
+@(require_results)
+text_layout_selection_rects :: proc(
+	layout: Text_Layout,
+	selection: Selection,
+	dyn_rects: ^[dynamic]base.Rect_F32,
+) -> mem.Allocator_Error {
+
+	sel_start := selection_start(selection)
+	sel_end := selection_end(selection)
+
+	// Only a non-collapsed selection is meaningful
+	if sel_start != sel_end {
+		for row in layout.rows {
+			row_glyphs := base.slice_from_range(layout.glyphs, row.glyph_range)
+			row_glyphs_len := len(row_glyphs)
+			if row_glyphs_len > 0 {
+				row_start_byte := row_glyphs[0].byte_range.start
+				last := row_glyphs[row_glyphs_len - 1]
+				row_caret_end := last.byte_range.end
+
+				// If the last glyph is a trailling newline, we put the caret
+				// right before it.
+				if last.codepoint == '\n' {
+					row_caret_end = last.byte_range.start
+				}
+
+				// Clip the selection to this row's byte span
+				lo := max(sel_start, row_start_byte)
+				hi := min(sel_end, row_caret_end)
+
+				if lo < hi {
+					x_lo := row_x_at_byte(row_glyphs, row.pos.x, lo)
+					x_hi := row_x_at_byte(row_glyphs, row.pos.x, hi)
+
+					append(
+						dyn_rects,
+						base.Rect_F32{x = x_lo, y = row.pos.y, w = x_hi - x_lo, h = row.size.y},
+					) or_return
+				}
+			}
+		}
+	}
+
+	return nil
 }
