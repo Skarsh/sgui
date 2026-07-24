@@ -138,6 +138,51 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
+// TODO(Thomas): This implementation is very temporary until we've found a better
+// structure for the text_input element widget, i.e. probably making it a single
+// element so that we don't have to get the text child.
+dispatch_mouse_to_focused :: proc(ctx: ^Context) {
+	if ctx.interaction.focused_id != ui_key_null() {
+		state, ok := &ctx.interaction.text_input_states[ctx.interaction.focused_id]
+		if ok {
+			if base.is_mouse_pressed(ctx.interaction.input^, .Left) {
+				focused_element, focused_found := get_element_by_key(
+					ctx,
+					ctx.interaction.focused_id,
+				)
+				if focused_found {
+
+					// TODO(Thomas): This is HORRIBLE
+					text_element_id := fmt.tprintf("%s_text", focused_element.id_string)
+					text_element, text_found := get_element_by_string_id(ctx, text_element_id)
+
+					if text_found {
+						mouse_pos := base.Vec2 {
+							f32(ctx.interaction.input.mouse_pos.x),
+							f32(ctx.interaction.input.mouse_pos.y),
+						}
+
+						box := content_box(text_element)
+						// TODO(Thomas): Is scroll offset required?
+						byte_pos := textpkg.text_layout_byte_pos_from_point(
+							text_element.config.content.text_data.text_layout,
+							{mouse_pos.x - box.origin.x, mouse_pos.y - box.origin.y},
+						)
+
+						err := textpkg.text_edit_apply(
+							&state.state,
+							textpkg.Cmd_Set_Caret{byte_pos, false},
+						)
+
+						assert(err == nil)
+
+					}
+				}
+			}
+		}
+	}
+}
+
 // TODO(Thomas): Find a better way than just pass the frame_allocator here?
 // TODO(Thomas): Clean up error handling here, it's a little messy.
 dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator: mem.Allocator) {
@@ -286,24 +331,20 @@ tween_animations :: proc(interaction: ^Interaction, dt: f32) {
 
 
 // TODO(Thomas): Find a better way than just passing the frame allocator here?
-process_interaction :: proc(
-	interaction: ^Interaction,
-	root_element: ^UI_Element,
-	dt: f32,
-	frame_allocator: mem.Allocator,
-) {
+process_interaction :: proc(ctx: ^Context) {
 	// find hits
-	mouse_pos := interaction.input.mouse_pos
-	hit_result := hit_test(root_element, mouse_pos)
+	mouse_pos := ctx.interaction.input.mouse_pos
+	hit_result := hit_test(ctx.root_element, mouse_pos)
 
 	// update interaction ids, e.g. hot, pressed, focused
-	update_interaction_ids(interaction, hit_result)
+	update_interaction_ids(&ctx.interaction, hit_result)
 
-	dispatch_keyboard_to_focused(interaction, frame_allocator)
+	dispatch_mouse_to_focused(ctx)
+	dispatch_keyboard_to_focused(&ctx.interaction, ctx.frame_allocator)
 
-	apply_scroll(interaction, hit_result.scrollable)
+	apply_scroll(&ctx.interaction, hit_result.scrollable)
 
-	tween_animations(interaction, dt)
+	tween_animations(&ctx.interaction, ctx.dt)
 }
 
 build_comm :: proc(
