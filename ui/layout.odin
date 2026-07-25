@@ -1001,15 +1001,15 @@ layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 	child.position = box.origin + remaining + relative_position
 }
 
-layout_children_in_flow :: proc(parent: ^UI_Element) {
-	if has_flow_children(parent^) {
+layout_children_in_flow :: proc(element: ^UI_Element) {
+	if has_flow_children(element^) {
 
-		dir := parent.config.layout.layout_direction
+		dir := element.config.layout.layout_direction
 
 		// Setup Axes
 		main_axis, cross_axis := get_main_and_cross_axis(dir)
 
-		box := content_box(parent^)
+		box := content_box(element^)
 		available_size := box.size
 
 		start_pos_main := box.origin[main_axis]
@@ -1019,7 +1019,7 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 		total_children_main: f32 = 0
 		max_children_cross: f32 = 0
 
-		for child in parent.children {
+		for child in element.children {
 			if child.config.layout.position_mode == .Flow {
 				child_margin := child.config.layout.margin
 				margin_main := get_margin_sum_for_axis(child_margin, main_axis)
@@ -1031,66 +1031,66 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 		}
 
 		// Apply child gap
-		gap_size := calc_child_gap(parent^)
+		gap_size := calc_child_gap(element^)
 		total_children_main += gap_size
 
 		// Update Scroll region and clamp offsets
 		// We always calculate bounds and clamp. If not scrollable, clear the scroll_region.
-		parent_flags := parent.config.capability_flags
+		element_flags := element.config.capability_flags
 
-		if .Scrollable_X in parent_flags || .Scrollable_Y in parent_flags {
-			parent.scroll_region.content_size[main_axis] = total_children_main
-			parent.scroll_region.content_size[cross_axis] = max_children_cross
+		if .Scrollable_X in element_flags || .Scrollable_Y in element_flags {
+			element.scroll_region.content_size[main_axis] = total_children_main
+			element.scroll_region.content_size[cross_axis] = max_children_cross
 
 			max_offset_main := max(0.0, total_children_main - available_size[main_axis])
 			max_offset_cross := max(0.0, max_children_cross - available_size[cross_axis])
 
-			parent.scroll_region.max_offset[main_axis] = max_offset_main
-			parent.scroll_region.max_offset[cross_axis] = max_offset_cross
+			element.scroll_region.max_offset[main_axis] = max_offset_main
+			element.scroll_region.max_offset[cross_axis] = max_offset_cross
 
 			// We always set the offset for both main axis and cross axis, even though
 			// one of the axis might not have the Scrollable capability set.
-			parent.scroll_region.offset[main_axis] = clamp(
-				parent.scroll_region.offset[main_axis],
+			element.scroll_region.offset[main_axis] = clamp(
+				element.scroll_region.offset[main_axis],
 				0,
 				max_offset_main,
 			)
 
-			parent.scroll_region.offset[cross_axis] = clamp(
-				parent.scroll_region.offset[cross_axis],
+			element.scroll_region.offset[cross_axis] = clamp(
+				element.scroll_region.offset[cross_axis],
 				0,
 				max_offset_cross,
 			)
 
-			parent.scroll_region.target_offset[main_axis] = clamp(
-				parent.scroll_region.target_offset[main_axis],
+			element.scroll_region.target_offset[main_axis] = clamp(
+				element.scroll_region.target_offset[main_axis],
 				0,
 				max_offset_main,
 			)
 
-			parent.scroll_region.target_offset[cross_axis] = clamp(
-				parent.scroll_region.target_offset[cross_axis],
+			element.scroll_region.target_offset[cross_axis] = clamp(
+				element.scroll_region.target_offset[cross_axis],
 				0,
 				max_offset_cross,
 			)
 
 			// Clear offset if one of them is not set, only one can not be set at a time.
-			if .Scrollable_X not_in parent_flags {
-				parent.scroll_region.offset.x = 0
-				parent.scroll_region.target_offset.x = 0
-			} else if .Scrollable_Y not_in parent_flags {
-				parent.scroll_region.offset.y = 0
-				parent.scroll_region.target_offset.y = 0
+			if .Scrollable_X not_in element_flags {
+				element.scroll_region.offset.x = 0
+				element.scroll_region.target_offset.x = 0
+			} else if .Scrollable_Y not_in element_flags {
+				element.scroll_region.offset.y = 0
+				element.scroll_region.target_offset.y = 0
 			}
 
 		} else {
-			parent.scroll_region = Scroll_Region{}
+			element.scroll_region = Scroll_Region{}
 		}
 
 		// Determine starting position
 		align_factors := get_alignment_factors(
-			parent.config.layout.alignment_x,
-			parent.config.layout.alignment_y,
+			element.config.layout.alignment_x,
+			element.config.layout.alignment_y,
 		)
 
 		remaining_space_main := available_size[main_axis] - total_children_main
@@ -1098,10 +1098,10 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 		main_pos := start_pos_main + (remaining_space_main * align_factors[main_axis])
 
 		// Adjust for scroll
-		main_pos -= parent.scroll_region.offset[main_axis]
+		main_pos -= element.scroll_region.offset[main_axis]
 
 		// Position children
-		for child in parent.children {
+		for child in element.children {
 			if child.config.layout.position_mode == .Flow {
 				child_margin := child.config.layout.margin
 				margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
@@ -1116,7 +1116,7 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 					child.size[main_axis] +
 					margin_main_start +
 					margin_main_end +
-					parent.config.layout.child_gap
+					element.config.layout.child_gap
 
 				// Cross axis (apply start margin)
 				remaining_space_cross :=
@@ -1129,7 +1129,7 @@ layout_children_in_flow :: proc(parent: ^UI_Element) {
 					start_pos_cross +
 					margin_cross_start +
 					(remaining_space_cross * align_factors[cross_axis]) -
-					parent.scroll_region.offset[cross_axis]
+					element.scroll_region.offset[cross_axis]
 
 			}
 		}
