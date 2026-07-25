@@ -111,6 +111,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				padding = ui.padding_all(20),
 				border = ui.border_all(10),
 				background_fill = base.fill_color(60, 60, 60),
+				capability_flags = ui.Capability_Flags{.Scrollable_Y},
 			},
 		)
 
