@@ -1,16 +1,24 @@
 # TODOs
 
 ## Active
-* Look into returning errors properly, i.e. procedures that takes an allocator should return `Allocator_Error`.
+* Make `text_input` widget be a single element, with text just equipped, this has a few pre-requisites.
+    This will simplify the `text_input` widget code quite a lot, not having to having to find it's text element
+    child and so on.
+    - Single text elements must be scrollable, this is a good addition for several reasons
+        - When making text elements scrollable, we should try to do this in a way such that the scrolling system
+            has a unified way of handling this. This means that it should probably only look at the content size 
+            of the thing that is scrollable, and whether that content is overflowing or not. Then it shouldn't matter
+            whether that content is text on a single element, or a bunch of children for another, if they have content
+            that overflows one of the axes marked as scrollable, it should just work.
+
+## Bugs
+
+## Backlog
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
     - Font caching?
     - Layout caching?
-
-## Bugs
-
-## Backlog
 * Very few / if any layout sizing tests really tests border and margin.
 * Don't use f32 for time, should be something like nanoseconds instead.
 * Use integer / fixed point glyph metrics instead of f32 (same as FreeType, Pango) etc
