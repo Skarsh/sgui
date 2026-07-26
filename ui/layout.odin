@@ -975,7 +975,7 @@ has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 	return result
 }
 
-layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
+position_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 	box := content_box(parent^)
 
 	child_margin := child.config.layout.margin
@@ -1001,7 +1001,7 @@ layout_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
 	child.position = box.origin + remaining + relative_position
 }
 
-layout_children_in_flow :: proc(element: ^UI_Element) {
+position_children_in_flow :: proc(element: ^UI_Element) {
 
 	if has_flow_children(element^) {
 
@@ -1015,32 +1015,32 @@ layout_children_in_flow :: proc(element: ^UI_Element) {
 
 		start_pos := box.origin
 
-		// Measure children (including margins)
-		total_children_main: f32 = 0
-		max_children_cross: f32 = 0
+		// Content size
+		content_size: base.Vec2
 
+		// Measure children (including margins)
 		for child in element.children {
 			if child.config.layout.position_mode == .Flow {
 				child_margin := child.config.layout.margin
 				margin_main := get_margin_sum_for_axis(child_margin, main_axis)
 				margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
 
-				total_children_main += child.size[main_axis] + margin_main
-				max_children_cross = max(max_children_cross, child.size[cross_axis] + margin_cross)
+				content_size[main_axis] += child.size[main_axis] + margin_main
+				content_size[cross_axis] = max(
+					content_size[cross_axis],
+					child.size[cross_axis] + margin_cross,
+				)
 			}
 		}
 
 		// Apply child gap
 		gap_size := calc_child_gap(element^)
-		total_children_main += gap_size
-
-		// Content size
-		content_size: base.Vec2
-		content_size[main_axis] = total_children_main
-		content_size[cross_axis] = max_children_cross
+		content_size[main_axis] += gap_size
 
 		element_flags := element.config.capability_flags
 
+		// TODO(Thomas): Not sure if this is the right way to approach making text elements
+		// scrollable at all. This is just WIP, and can be deleted at any time.
 		// If element is a text element, we set the content_size to it's text_layout size
 		// so that scrolling will work if the content size is overflowing available size.
 		if .Text in element_flags {
@@ -1094,7 +1094,7 @@ layout_children_in_flow :: proc(element: ^UI_Element) {
 			element.config.layout.alignment_y,
 		)
 
-		remaining_space_main := available_size[main_axis] - total_children_main
+		remaining_space_main := available_size[main_axis] - content_size[main_axis]
 
 		main_pos := start_pos[main_axis] + (remaining_space_main * align_factors[main_axis])
 
@@ -1151,11 +1151,11 @@ calculate_positions_and_alignment :: proc(element: ^UI_Element, dt: f32) {
 		// Reset scroll content size for this frame
 		element.scroll_region.content_size = {}
 
-		layout_children_in_flow(element)
+		position_children_in_flow(element)
 
 		for child in element.children {
 			if child.config.layout.position_mode == .Anchored {
-				layout_child_anchored(element, child)
+				position_child_anchored(element, child)
 			}
 		}
 
