@@ -981,7 +981,6 @@ has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 }
 
 position_anchored_children :: proc(element: ^UI_Element) {
-
 	for child in element.children {
 		if child.config.layout.position_mode == .Anchored {
 
@@ -1012,60 +1011,61 @@ position_anchored_children :: proc(element: ^UI_Element) {
 	}
 }
 
-position_flow_children :: proc(element: ^UI_Element) {
-	// Setup Axes
-	dir := element.config.layout.layout_direction
-	main_axis, cross_axis := get_main_and_cross_axis(dir)
+@(require_results)
+measure_flow_content_size :: proc(element: UI_Element) -> (content_size: base.Vec2) {
+	if has_flow_children(element) {
 
-	box := content_box(element^)
-	available_size := box.size
+		dir := element.config.layout.layout_direction
+		main_axis, cross_axis := get_main_and_cross_axis(dir)
 
-	start_pos := box.origin
+		// Measure children (including margins)
+		for child in element.children {
+			if child.config.layout.position_mode == .Flow {
+				child_margin := child.config.layout.margin
+				margin_main := get_margin_sum_for_axis(child_margin, main_axis)
+				margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
 
-	// Content size
-	content_size: base.Vec2
-
-	// Measure children (including margins)
-	for child in element.children {
-		if child.config.layout.position_mode == .Flow {
-			child_margin := child.config.layout.margin
-			margin_main := get_margin_sum_for_axis(child_margin, main_axis)
-			margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
-
-			content_size[main_axis] += child.size[main_axis] + margin_main
-			content_size[cross_axis] = max(
-				content_size[cross_axis],
-				child.size[cross_axis] + margin_cross,
-			)
+				content_size[main_axis] += child.size[main_axis] + margin_main
+				content_size[cross_axis] = max(
+					content_size[cross_axis],
+					child.size[cross_axis] + margin_cross,
+				)
+			}
 		}
+
+		// Apply child gap
+		gap_size := calc_child_gap(element)
+		content_size[main_axis] += gap_size
 	}
 
-	// Apply child gap
-	gap_size := calc_child_gap(element^)
-	content_size[main_axis] += gap_size
+	return
+}
 
-	element_flags := element.config.capability_flags
+update_scroll_region :: proc(element: ^UI_Element) {
+	flags := element.config.capability_flags
 
-	// TODO(Thomas): Not sure if this is the right way to approach making text elements
-	// scrollable at all. This is just WIP, and can be deleted at any time.
-	// If element is a text element, we set the content_size to it's text_layout size
-	// so that scrolling will work if the content size is overflowing available size.
-	if .Text in element_flags {
-		text_size := element.config.content.text_data.text_layout.size
-		content_size[main_axis] = max(content_size[main_axis], text_size[main_axis])
-		content_size[cross_axis] = max(content_size[cross_axis], text_size[cross_axis])
-	}
+	if .Scrollable_X in flags || .Scrollable_Y in flags {
+		// Reset scroll_region content_size
+		element.scroll_region.content_size = {}
 
-	if .Scrollable_X in element_flags || .Scrollable_Y in element_flags {
+		available_size := content_box(element^).size
+		content_size := measure_flow_content_size(element^)
+
+		if .Text in flags {
+			text_size := element.config.content.text_data.text_layout.size
+			content_size.x = max(content_size.x, text_size.x)
+			content_size.y = max(content_size.y, text_size.y)
+		}
+
 		max_offset := base.Vec2{}
-		max_offset[main_axis] = max(0.0, content_size[main_axis] - available_size[main_axis])
-		max_offset[cross_axis] = max(0.0, content_size[cross_axis] - available_size[cross_axis])
+		max_offset.x = max(0.0, content_size.x - available_size.x)
+		max_offset.y = max(0.0, content_size.y - available_size.y)
+
+		if .Scrollable_X not_in flags do max_offset.x = 0
+		if .Scrollable_Y not_in flags do max_offset.y = 0
 
 		element.scroll_region.content_size = content_size
 		element.scroll_region.max_offset = max_offset
-
-		// We always set the offset for both axes, even though
-		// one of the axis might not have the Scrollable capability set.
 		for axis in base.Axis2 {
 			element.scroll_region.offset[axis] = clamp(
 				element.scroll_region.offset[axis],
@@ -1078,29 +1078,28 @@ position_flow_children :: proc(element: ^UI_Element) {
 				max_offset[axis],
 			)
 		}
-
-		// Clear offset if one of them is not set, only one can not be set at a time.
-		if .Scrollable_X not_in element_flags {
-			element.scroll_region.offset.x = 0
-			element.scroll_region.target_offset.x = 0
-		} else if .Scrollable_Y not_in element_flags {
-			element.scroll_region.offset.y = 0
-			element.scroll_region.target_offset.y = 0
-		}
-
-	} else {
-		element.scroll_region = Scroll_Region{}
 	}
+}
 
+position_flow_children :: proc(element: ^UI_Element) {
 	if has_flow_children(element^) {
+		// Setup Axes
+		dir := element.config.layout.layout_direction
+		main_axis, cross_axis := get_main_and_cross_axis(dir)
+
+		box := content_box(element^)
+		available_size := box.size
+
+		// Content size
+		content_size := measure_flow_content_size(element^)
+		remaining_space_main := available_size[main_axis] - content_size[main_axis]
+
 		// Determine starting position
+		start_pos := box.origin
 		align_factors := get_alignment_factors(
 			element.config.layout.alignment_x,
 			element.config.layout.alignment_y,
 		)
-
-		remaining_space_main := available_size[main_axis] - content_size[main_axis]
-
 		main_pos := start_pos[main_axis] + (remaining_space_main * align_factors[main_axis])
 
 		// Adjust for scroll
@@ -1152,11 +1151,8 @@ calculate_positions_and_alignment :: proc(element: ^UI_Element, dt: f32) {
 			20.0,
 		)
 
-		// Reset scroll content size for this frame
-		element.scroll_region.content_size = {}
-
+		update_scroll_region(element)
 		position_flow_children(element)
-
 		position_anchored_children(element)
 
 		// Recursive step
