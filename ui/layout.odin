@@ -621,16 +621,16 @@ resolve_grow_sizes_for_children :: proc(
 	return nil
 }
 
-resolve_percentage_sizes_for_children :: proc(parent: ^UI_Element, axis: base.Axis2) {
-	parent_padding := parent.config.layout.padding
-	parent_border := parent.config.layout.border
-	parent_content_available_size := get_available_size(parent.size, parent_padding, parent_border)
+resolve_percentage_sizes_for_children :: proc(element: ^UI_Element, axis: base.Axis2) {
+	padding := element.config.layout.padding
+	border := element.config.layout.border
+	content_available_size := get_available_size(element.size, padding, border)
 
-	for child in parent.children {
+	for child in element.children {
 		sizing_info := child.config.layout.sizing[axis]
 		if sizing_info.kind == .Percentage {
 			percentage := clamp(sizing_info.value, 0.0, 1.0)
-			child.size[axis] = parent_content_available_size[axis] * percentage
+			child.size[axis] = content_available_size[axis] * percentage
 		}
 	}
 }
