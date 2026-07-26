@@ -975,33 +975,39 @@ has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 	return result
 }
 
-position_child_anchored :: proc(parent: ^UI_Element, child: ^UI_Element) {
-	box := content_box(parent^)
+position_anchored_children :: proc(element: ^UI_Element) {
 
-	child_margin := child.config.layout.margin
-	relative_position := child.config.layout.relative_position
+	for child in element.children {
+		if child.config.layout.position_mode == .Anchored {
 
-	factors := get_alignment_factors(
-		child.config.layout.alignment_x,
-		child.config.layout.alignment_y,
-	)
+			box := content_box(element^)
 
-	margin_size := base.Vec2 {
-		child_margin.left + child_margin.right,
-		child_margin.top + child_margin.bottom,
+			child_margin := child.config.layout.margin
+			relative_position := child.config.layout.relative_position
+
+			factors := get_alignment_factors(
+				child.config.layout.alignment_x,
+				child.config.layout.alignment_y,
+			)
+
+			margin_size := base.Vec2 {
+				child_margin.left + child_margin.right,
+				child_margin.top + child_margin.bottom,
+			}
+
+			// Gives natural alignment, e.g. left side of child is aligned with left side of parent
+			// when .Left for alignment_x, and right side of child is aligned with right side of parent
+			// when .Right for alignment_x. Same for .Top and .Bottom for alignment_y.
+			remaining :=
+				base.Vec2{child_margin.left, child_margin.top} +
+				(box.size - child.size - margin_size) * factors
+
+			child.position = box.origin + remaining + relative_position
+		}
 	}
-
-	// Gives natural alignment, e.g. left side of child is aligned with left side of parent
-	// when .Left for alignment_x, and right side of child is aligned with right side of parent
-	// when .Right for alignment_x. Same for .Top and .Bottom for alignment_y.
-	remaining :=
-		base.Vec2{child_margin.left, child_margin.top} +
-		(box.size - child.size - margin_size) * factors
-
-	child.position = box.origin + remaining + relative_position
 }
 
-position_children_in_flow :: proc(element: ^UI_Element) {
+position_flow_children :: proc(element: ^UI_Element) {
 
 	if has_flow_children(element^) {
 
@@ -1151,13 +1157,9 @@ calculate_positions_and_alignment :: proc(element: ^UI_Element, dt: f32) {
 		// Reset scroll content size for this frame
 		element.scroll_region.content_size = {}
 
-		position_children_in_flow(element)
+		position_flow_children(element)
 
-		for child in element.children {
-			if child.config.layout.position_mode == .Anchored {
-				position_child_anchored(element, child)
-			}
-		}
+		position_anchored_children(element)
 
 		// Recursive step
 		for child in element.children {
