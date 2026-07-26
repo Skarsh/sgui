@@ -235,19 +235,18 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 			text_layout := element.config.content.text_data.text_layout
 
 			// Calculate the initial vertical offset for the whole block based on Aligment_Y
-			start_y := box.origin.y
+			start_pos := content_origin_scrolled(element^)
 			switch element.config.layout.text_alignment_y {
 			case .Top:
-				// Default, no change
-				start_y = box.origin.y
+			// Default, no change
 			case .Center:
-				start_y = box.origin.y + (box.size.y - text_layout.size.y) / 2
+				start_pos.y = start_pos.y + (box.size.y - text_layout.size.y) / 2
 			case .Bottom:
-				start_y = box.origin.y + (box.size.y - text_layout.size.y)
+				start_pos.y = start_pos.y + (box.size.y - text_layout.size.y)
 			}
 
 			// Iterate through each line and draw it with the correct X and Y
-			current_y := start_y
+			current_y := start_pos.y
 
 			for row in text_layout.rows {
 				start_x := box.origin.x + row.pos.x
@@ -255,7 +254,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 					draw_state,
 					start_x,
 					current_y,
-					text_layout.glyphs[row.glyph_range.start:row.glyph_range.end],
+					base.slice_from_range(text_layout.glyphs, row.glyph_range),
 					element.config.text_fill,
 					z_offset = 0,
 				)

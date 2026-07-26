@@ -23,7 +23,7 @@ Data :: struct {
 	wrap_mode:      textpkg.Text_Wrap_Mode,
 }
 
-SAMPLE_TEXT :: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.\nSphinx of black quartz, judge my vow.\nHow vexingly quick daft zebras jump!"
+SAMPLE_TEXT :: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
 
 cycle_enum :: proc(v: $T) -> T where intrinsics.type_is_enum(T) {
 	return T((int(v) + 1) % len(T))
