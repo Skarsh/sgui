@@ -142,40 +142,42 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 // structure for the text_input element widget, i.e. probably making it a single
 // element so that we don't have to get the text child.
 dispatch_mouse_to_focused :: proc(ctx: ^Context) {
-	if ctx.interaction.focused_id != ui_key_null() {
-		state, ok := &ctx.interaction.text_input_states[ctx.interaction.focused_id]
+	it := &ctx.interaction
+	if it.focused_id != ui_key_null() {
+		state, ok := &it.text_input_states[it.focused_id]
 		if ok {
-			if base.is_mouse_pressed(ctx.interaction.input^, .Left) {
-				focused_element, focused_found := get_element_by_key(
-					ctx,
-					ctx.interaction.focused_id,
-				)
-				if focused_found {
+			focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
+			if focused_found {
 
-					// TODO(Thomas): This is HORRIBLE
-					text_element_id := fmt.tprintf("%s_text", focused_element.id_string)
-					text_element, text_found := get_element_by_string_id(ctx, text_element_id)
+				// TODO(Thomas): This is HORRIBLE
+				// We will make text_input be a single element soon, meaning that it just
+				// equips it's text, so we don't have to find this.
+				text_element_id := fmt.tprintf("%s_text", focused_element.id_string)
+				text_element, text_found := get_element_by_string_id(ctx, text_element_id)
 
-					if text_found {
-						mouse_pos := base.Vec2 {
-							f32(ctx.interaction.input.mouse_pos.x),
-							f32(ctx.interaction.input.mouse_pos.y),
-						}
+				if text_found {
 
+					// Press sets the caret (collapsing the selection);
+					// holding / dragging extends it.
+					pressed := base.is_mouse_pressed(it.input^, .Left)
+					held := base.is_mouse_down(it.input^, .Left)
+
+					if pressed || held {
 						box := content_box(text_element)
-						// TODO(Thomas): Is scroll offset required?
 						byte_pos := textpkg.text_layout_byte_pos_from_point(
 							text_element.config.content.text_data.text_layout,
-							{mouse_pos.x - box.origin.x, mouse_pos.y - box.origin.y},
+							{
+								f32(it.input.mouse_pos.x) - box.origin.x,
+								f32(it.input.mouse_pos.y) - box.origin.y,
+							},
 						)
 
 						err := textpkg.text_edit_apply(
 							&state.state,
-							textpkg.Cmd_Set_Caret{byte_pos, false},
+							textpkg.Cmd_Set_Caret{byte_pos, !pressed},
 						)
 
 						assert(err == nil)
-
 					}
 				}
 			}
