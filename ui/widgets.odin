@@ -227,6 +227,18 @@ scrollbar :: proc(
 	return comm
 }
 
+// Issue found with text_layout when doing selection rects:
+// The text_layout from the previous frame gets deallocated due to frame_allocator
+// being used in the text_layout pass. Potenatially two questions we need to answer:
+// 1. Can we use the Text_Layout produced from the text_layout pass element_equip_text?
+// This could maybe work because text_input does not require the wrap_text pass to be done?
+// Then all we would need is to set the Text_Layout struct produced on the element.
+// 2. If it's for some reason not viable to use the Text_Layout from the equip_element_text
+// pass, then we need to figure out a way to use the last frames' Text_Layout by allocating
+// it in a way that will persist between frames. Then we get the issue of pruning it etc.
+// NOTE(Thomas): I think that using the element_equip_text produced Text_Layout is not
+// the best option, probably that whole pass is a bad idea, and in the near future we want
+// selection to work in a unified way for all text that is supposed to be selectable.
 text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 
@@ -336,47 +348,38 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 				)
 			}
 
-			// Selection container
+			// Selection
 			selection_id := fmt.tprintf("%s_selection", id)
 			selection := state.state.selection
-			selection_start := textpkg.selection_start(selection)
-			selection_end := textpkg.selection_end(selection)
-
-			selection_offset_text := text_view[:selection_start]
-
-			// TODO(Thomas): HACK - Same measurement argument as above
-			selection_offset_metrics := ctx.interaction.text_measurement.measure_text_proc(
-				selection_offset_text,
-				ctx.font_id,
-				ctx.interaction.text_measurement.font_user_data,
+			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
+			rects_alloc_err := textpkg.text_layout_selection_rects(
+				element.config.content.text_data.text_layout,
+				selection,
+				&selection_rects,
 			)
 
-			selected_text := text_view[selection_start:selection_end]
-			// TODO(Thomas): HACK - Same measurement argument as above
-			selection_metrics := ctx.interaction.text_measurement.measure_text_proc(
-				selected_text,
-				ctx.font_id,
-				ctx.interaction.text_measurement.font_user_data,
-			)
+			assert(rects_alloc_err == .None)
+			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
 
-			// TODO(Thomas): Selection should be stylable
-			container(
-				ctx,
-				selection_id,
-				Style {
-					sizing_x = sizing_fixed(selection_metrics.width),
-					sizing_y = sizing_fixed(caret_height),
-					alignment_x = .Left,
-					alignment_y = .Center,
-					relative_position = base.Vec2 {
-						selection_offset_metrics.width - element.scroll_region.offset.x,
-						0,
+			if len(selection_rects) == 1 {
+				container(
+					ctx,
+					selection_id,
+					Style {
+						sizing_x = sizing_fixed(selection_rects[0].w),
+						sizing_y = sizing_fixed(caret_height),
+						alignment_x = .Left,
+						alignment_y = .Center,
+						relative_position = base.Vec2 {
+							selection_rects[0].x - element.scroll_region.offset.x,
+							0,
+						},
+						background_fill = base.fill_color(255, 255, 255, 128),
+						capability_flags = Capability_Flags{.Background},
+						position_mode = .Anchored,
 					},
-					background_fill = base.fill_color(255, 255, 255, 128),
-					capability_flags = Capability_Flags{.Background},
-					position_mode = .Anchored,
-				},
-			)
+				)
+			}
 		}
 
 		element.last_comm.text = text_view

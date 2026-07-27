@@ -126,6 +126,8 @@ Element_Config :: struct {
 	content:          Element_Content,
 }
 
+// TODO(Thomas): I don't think a text layout pass here is necessary, nor a good idea.
+// Need to think about whether we can avoid it, and if a sizing pass here is necessary.
 // Attaches text content to an element and records its intrinsic size.
 // The element's sizing mode (Fit, Fixed, Grow) determines how the text affects layout:
 // - Fit: Element sizes to fit text content
@@ -172,6 +174,10 @@ element_equip_text :: proc(
 		text_layout.size.x + padding.left + padding.right + border.left + border.right,
 		text_layout.size.y + padding.top + padding.bottom + border.top + border.bottom,
 	}
+
+	// TODO(Thomas): HACK?? I don't think this is a good idea, this is a temporary solution
+	// to make selection work for text_input.
+	element.config.content.text_data.text_layout = text_layout
 
 	// Set initial element size based on text content (for Fit/Grow sizing)
 	// Fixed sizing keeps its specified size
