@@ -138,9 +138,6 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
-// TODO(Thomas): This implementation is very temporary until we've found a better
-// structure for the text_input element widget, i.e. probably making it a single
-// element so that we don't have to get the text child.
 dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 	it := &ctx.interaction
 	if it.focused_id != ui_key_null() {
