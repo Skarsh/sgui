@@ -249,7 +249,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 			current_y := start_pos.y
 
 			for row in text_layout.rows {
-				start_x := box.origin.x + row.pos.x
+				start_x := start_pos.x + row.pos.x
 				draw_text(
 					draw_state,
 					start_x,

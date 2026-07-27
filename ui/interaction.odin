@@ -149,36 +149,27 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 			focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
 			if focused_found {
 
-				// TODO(Thomas): This is HORRIBLE
-				// We will make text_input be a single element soon, meaning that it just
-				// equips it's text, so we don't have to find this.
-				text_element_id := fmt.tprintf("%s_text", focused_element.id_string)
-				text_element, text_found := get_element_by_string_id(ctx, text_element_id)
+				// Press sets the caret (collapsing the selection);
+				// holding / dragging extends it.
+				pressed := base.is_mouse_pressed(it.input^, .Left)
+				held := base.is_mouse_down(it.input^, .Left)
 
-				if text_found {
+				if pressed || held {
+					origin := content_origin_scrolled(focused_element)
+					byte_pos := textpkg.text_layout_byte_pos_from_point(
+						focused_element.config.content.text_data.text_layout,
+						{
+							f32(it.input.mouse_pos.x) - origin.x,
+							f32(it.input.mouse_pos.y) - origin.y,
+						},
+					)
 
-					// Press sets the caret (collapsing the selection);
-					// holding / dragging extends it.
-					pressed := base.is_mouse_pressed(it.input^, .Left)
-					held := base.is_mouse_down(it.input^, .Left)
+					err := textpkg.text_edit_apply(
+						&state.state,
+						textpkg.Cmd_Set_Caret{byte_pos, !pressed},
+					)
 
-					if pressed || held {
-						box := content_box(text_element)
-						byte_pos := textpkg.text_layout_byte_pos_from_point(
-							text_element.config.content.text_data.text_layout,
-							{
-								f32(it.input.mouse_pos.x) - box.origin.x,
-								f32(it.input.mouse_pos.y) - box.origin.y,
-							},
-						)
-
-						err := textpkg.text_edit_apply(
-							&state.state,
-							textpkg.Cmd_Set_Caret{byte_pos, !pressed},
-						)
-
-						assert(err == nil)
-					}
+					assert(err == nil)
 				}
 			}
 		}

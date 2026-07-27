@@ -263,19 +263,19 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		}
 		assert(text_alloc_err == .None)
 
-		// TODO(Thomas): Better id here?
-		text_element_id := fmt.tprintf("%s_text", id)
+		// NOTE(Thomas): We need to store the size from the previous frame so that
+		// we have the size of the proper laid out text_input element. After `element_equip_text`
+		// runs that will have the size of the text that it equips until the layout passes has
+		// been run.
+		last_frame_size := element.size
+
 		// TODO(Thomas): Styling should be flexible
-		text(
-			ctx,
-			text_element_id,
-			text_view,
-			Style{text_wrap_mode = .None, background_fill = base.Color{0, 0, 0, 0}},
-		)
+		element_equip_text(ctx, element, text_view)
 
 		if element.key == ctx.interaction.focused_id {
 			state.caret_blink_timer += ctx.dt
 			CARET_BLINK_PERIOD :: 1.0
+			CARET_WIDTH :: 2.0
 
 			cursor_pos := state.state.selection.active
 			text_before_cursor := text_view[:cursor_pos]
@@ -298,8 +298,9 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			start := element.scroll_region.offset.x
 			padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
 			border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
-			end := start + (element.size.x - padding_sum - border_sum)
+			end := start + (last_frame_size.x - padding_sum - border_sum)
 
+			// TODO(Thomas): What about the width of the caret here?
 			if caret_x_offset > end {
 				diff := caret_x_offset - end
 				element.scroll_region.offset.x += diff
@@ -313,7 +314,6 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			// TODO(Thomas): This way of doing the blinking is really bad.
 			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
 				// TODO(Thomas): Caret should be stylable
-				CARET_WIDTH :: 2.0
 				caret_id := fmt.tprintf("%s_caret", id)
 
 				// Caret container
