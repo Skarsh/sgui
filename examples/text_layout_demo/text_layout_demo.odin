@@ -54,12 +54,23 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			},
 		)
 
+
+		// NOTE(Thomas): This isn't affected by text alignment yet.
+		ui.text(ctx, "text_input_label", "Text Input")
+		ui.text_input(
+			ctx,
+			"text_input",
+			data.text_input_buf,
+			ui.Style{background_fill = base.fill_color(20, 20, 20)},
+		)
+
+		ui.text(ctx, "controls_label", "Sample Text Controls")
+
 		ui.begin_container(
 			ctx,
 			"controls",
 			ui.Style{child_gap = 10, layout_direction = .Left_To_Right},
 		)
-
 		ui.push_style(ctx, ui.Style{background_fill = base.fill_color(80, 80, 80)})
 		if ui.button(ctx, "cycle_align_x", "align x").clicked {
 			data.align_x = cycle_enum(data.align_x)
@@ -86,17 +97,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		)
 		ui.text(ctx, "status", status_str)
 
-		// NOTE(Thomas): This isn't affected by text alignment yet.
-		ui.text_input(
-			ctx,
-			"text_input",
-			data.text_input_buf,
-			ui.Style {
-				text_alignment_x = data.align_x,
-				text_alignment_y = data.align_y,
-				background_fill = base.fill_color(20, 20, 20),
-			},
-		)
 
 		ui.text(
 			ctx,
@@ -151,7 +151,7 @@ main :: proc() {
 
 	config := app.App_Config {
 		title = "Text Playground App",
-		window_size = {1280, 720},
+		window_size = {1280, 1080},
 		font_path = "",
 		font_id = 0,
 		font_size = 48,
