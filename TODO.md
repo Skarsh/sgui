@@ -1,15 +1,9 @@
 # TODOs
 
 ## Active
-* Make `text_input` widget be a single element, with text just equipped, this has a few pre-requisites.
-    This will simplify the `text_input` widget code quite a lot, not having to having to find it's text element
-    child and so on.
-    - Single text elements must be scrollable, this is a good addition for several reasons
-        - When making text elements scrollable, we should try to do this in a way such that the scrolling system
-            has a unified way of handling this. This means that it should probably only look at the content size 
-            of the thing that is scrollable, and whether that content is overflowing or not. Then it shouldn't matter
-            whether that content is text on a single element, or a bunch of children for another, if they have content
-            that overflows one of the axes marked as scrollable, it should just work.
+* Improved text selection
+    - Use `text_layout_selection_rects` to produce the selection rects for `text_input`
+    - Make text selection work on normal text elements
 
 ## Bugs
 
