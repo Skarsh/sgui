@@ -4,6 +4,7 @@
 * Improved text selection
     - Use `text_layout_selection_rects` to produce the selection rects for `text_input`
     - Make text selection work on normal text elements
+    - Evaluate whether `element_equip_text` should do a `text_layout` pass or not.
 
 ## Bugs
 
