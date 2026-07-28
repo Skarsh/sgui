@@ -12,7 +12,6 @@ Shape_Kind :: enum u8 {
 Draw_State :: struct {
 	current_clip_rect: base.Rect,
 	command_counter:   u64,
-	current_z_index:   i32,
 	command_queue:     [dynamic]Draw_Command,
 }
 
@@ -25,16 +24,15 @@ init_draw_state :: proc(draw_state: ^Draw_State, allocator: mem.Allocator) -> me
 
 reset_draw_state :: proc(draw_state: ^Draw_State, window_size: base.Vector2i32) {
 	draw_state.command_counter = 0
-	draw_state.current_z_index = 0
 	draw_state.current_clip_rect = base.Rect{0, 0, window_size.x, window_size.y}
 	clear_dynamic_array(&draw_state.command_queue)
 }
 
-push_draw_command :: proc(draw_state: ^Draw_State, command: Command, z_offset: i32) {
+push_draw_command :: proc(draw_state: ^Draw_State, command: Command, z_index: i32) {
 	draw_state.command_counter += 1
 
 	draw_cmd := Draw_Command {
-		z_index   = draw_state.current_z_index + z_offset,
+		z_index   = z_index,
 		cmd_idx   = draw_state.command_counter,
 		clip_rect = draw_state.current_clip_rect,
 		command   = command,
@@ -210,7 +208,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 				element.config.layout.border_radius,
 				border = Border{},
 				border_fill = base.fill_color(0, 0, 0, 0),
-				z_offset = 0,
+				z_index = 0,
 			)
 		}
 
@@ -224,7 +222,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 					element.size.y,
 					texture_id,
 					// Base layer
-					z_offset = 0,
+					z_index = 0,
 				)
 			}
 		}
@@ -256,7 +254,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 					current_y,
 					base.slice_from_range(text_layout.glyphs, row.glyph_range),
 					element.config.text_fill,
-					z_offset = 0,
+					z_index = 0,
 				)
 				current_y += row.size.y
 			}
@@ -272,7 +270,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 					i32(element.size.y),
 				},
 				element.config.content.shape_data,
-				z_offset = 0,
+				z_index = 0,
 			)
 		}
 
@@ -292,7 +290,7 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 				element.config.layout.border_radius,
 				element.config.layout.border,
 				element.config.border_fill,
-				z_offset = 1,
+				z_index = 1,
 			)
 		}
 
@@ -315,10 +313,10 @@ draw_rect :: proc(
 	border_radius: base.Vec4,
 	border: Border,
 	border_fill: base.Fill,
-	z_offset: i32 = 0,
+	z_index: i32 = 0,
 ) {
 	cmd := Command_Rect{rect, fill, border_fill, border, border_radius}
-	push_draw_command(draw_state, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_index)
 }
 
 draw_text :: proc(
@@ -326,23 +324,23 @@ draw_text :: proc(
 	x, y: f32,
 	glyphs: []textpkg.Glyph,
 	color: base.Fill,
-	z_offset: i32 = 0,
+	z_index: i32 = 0,
 ) {
 	cmd := Command_Text{x, y, glyphs, color}
-	push_draw_command(draw_state, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_index)
 }
 
 draw_image :: proc(
 	draw_state: ^Draw_State,
 	x, y, w, h: f32,
 	texture_id: Texture_Id,
-	z_offset: i32 = 0,
+	z_index: i32 = 0,
 ) {
 	cmd := Command_Image{x, y, w, h, texture_id}
-	push_draw_command(draw_state, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_index)
 }
 
-draw_shape :: proc(draw_state: ^Draw_State, rect: base.Rect, data: Shape_Data, z_offset: i32 = 0) {
+draw_shape :: proc(draw_state: ^Draw_State, rect: base.Rect, data: Shape_Data, z_index: i32 = 0) {
 	cmd := Command_Shape{rect, data}
-	push_draw_command(draw_state, cmd, z_offset)
+	push_draw_command(draw_state, cmd, z_index)
 }
