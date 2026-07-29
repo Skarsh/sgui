@@ -73,85 +73,85 @@ text_edit_deinit :: proc(state: ^Text_Edit_State) {
 
 // Editing keys go through translate_key and text_edit_apply.
 // TODO(Thomas): Move clipboard and undo/redo out to the ui/glue layer.
-text_edit_handle_keys :: proc(
-	state: ^Text_Edit_State,
-	keys: base.Key_Set,
-	keymod: base.Keymod_Set = base.KMOD_NONE,
-) -> (
-	clipboard_command: Text_Edit_Clipboard_Command,
-	text_buffer_error: Text_Buffer_Error,
-) {
-	ctrl_down := base.is_ctrl_down(keymod)
-
-	for key in keys {
-		// Editing keys go through the command pipeline.
-		if cmd, ok := translate_key(key, keymod); ok {
-			text_edit_apply(state, cmd) or_return
-		} else if ctrl_down {
-			// The rest are clipboard and undo/redo, still returned outward via the enum.
-			#partial switch key {
-			case .C:
-				clipboard_command = .Copy
-			case .V:
-				clipboard_command = .Paste
-			case .X:
-				clipboard_command = .Cut
-			case .Y:
-			// TODO(Thomas): Redo
-			case .Z:
-			// TODO(Thomas): Undo
-			}
-		}
-	}
-
-	return clipboard_command, nil
-}
+//text_edit_handle_keys :: proc(
+//	state: ^Text_Edit_State,
+//	keys: base.Key_Set,
+//	keymod: base.Keymod_Set = base.KMOD_NONE,
+//) -> (
+//	clipboard_command: Text_Edit_Clipboard_Command,
+//	text_buffer_error: Text_Buffer_Error,
+//) {
+//	ctrl_down := base.is_ctrl_down(keymod)
+//
+//	for key in keys {
+//		// Editing keys go through the command pipeline.
+//		if cmd, ok := translate_key(key, keymod); ok {
+//			text_edit_apply(state, cmd) or_return
+//		} else if ctrl_down {
+//			// The rest are clipboard and undo/redo, still returned outward via the enum.
+//			#partial switch key {
+//			case .C:
+//				clipboard_command = .Copy
+//			case .V:
+//				clipboard_command = .Paste
+//			case .X:
+//				clipboard_command = .Cut
+//			case .Y:
+//			// TODO(Thomas): Redo
+//			case .Z:
+//			// TODO(Thomas): Undo
+//			}
+//		}
+//	}
+//
+//	return clipboard_command, nil
+//}
 
 // Maps a key press and its modifiers to an editing command.
 // Returns ok=false for keys we don't handle here, like clipboard and undo/redo.
-@(private)
-translate_key :: proc(
-	key: base.Key,
-	keymod: base.Keymod_Set,
-) -> (
-	cmd: Text_Edit_Command,
-	ok: bool,
-) {
-	shift_down := base.is_shift_down(keymod)
-	ctrl_down := base.is_ctrl_down(keymod)
-	word_mod_down := keymod_has_word_move_mod(keymod)
-	line_mod_down := keymod_has_line_move_mod(keymod)
-
-	#partial switch key {
-	case .A:
-		if ctrl_down {
-			return Cmd_Select_All{}, true
-		}
-	case .Left, .Right:
-		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
-		return Cmd_Move{translation = translation, select = shift_down}, true
-	case .Home:
-		return Cmd_Move{translation = .Start, select = shift_down}, true
-	case .End:
-		return Cmd_Move{translation = .End, select = shift_down}, true
-	case .Backspace:
-		translation: Translation = .Left
-		if word_mod_down {
-			translation = .Prev_Word
-		}
-		return Cmd_Delete{translation = translation}, true
-	case .Delete:
-		translation: Translation = .Right
-		if word_mod_down {
-			translation = .Next_Word
-		}
-		return Cmd_Delete{translation = translation}, true
-	case .Tab:
-		return Cmd_Insert{text = "\t"}, true
-	}
-
-	return nil, false
-}
+//@(private)
+//translate_key :: proc(
+//	key: base.Key,
+//	keymod: base.Keymod_Set,
+//) -> (
+//	cmd: Text_Edit_Command,
+//	ok: bool,
+//) {
+//	shift_down := base.is_shift_down(keymod)
+//	ctrl_down := base.is_ctrl_down(keymod)
+//	word_mod_down := keymod_has_word_move_mod(keymod)
+//	line_mod_down := keymod_has_line_move_mod(keymod)
+//
+//	#partial switch key {
+//	case .A:
+//		if ctrl_down {
+//			return Cmd_Select_All{}, true
+//		}
+//	case .Left, .Right:
+//		translation := translation_for_horizontal_key(key, word_mod_down, line_mod_down)
+//		return Cmd_Move{translation = translation, select = shift_down}, true
+//	case .Home:
+//		return Cmd_Move{translation = .Start, select = shift_down}, true
+//	case .End:
+//		return Cmd_Move{translation = .End, select = shift_down}, true
+//	case .Backspace:
+//		translation: Translation = .Left
+//		if word_mod_down {
+//			translation = .Prev_Word
+//		}
+//		return Cmd_Delete{translation = translation}, true
+//	case .Delete:
+//		translation: Translation = .Right
+//		if word_mod_down {
+//			translation = .Next_Word
+//		}
+//		return Cmd_Delete{translation = translation}, true
+//	case .Tab:
+//		return Cmd_Insert{text = "\t"}, true
+//	}
+//
+//	return nil, false
+//}
 
 @(private)
 text_edit_move_to :: proc(state: ^Text_Edit_State, translation: Translation) {
@@ -179,29 +179,30 @@ text_edit_delete_to :: proc(state: ^Text_Edit_State, translation: Translation) {
 	set_caret(state, start)
 }
 
+
 // Applies a single editing command to the state.
 // Keyboard and mouse input both translate into commands and go through here.
-@(require_results)
-text_edit_apply :: proc(state: ^Text_Edit_State, cmd: Text_Edit_Command) -> Text_Buffer_Error {
-	switch c in cmd {
-	case Cmd_Move:
-		apply_move_or_select(state, c.translation, c.select)
-	case Cmd_Set_Caret:
-		if c.extend {
-			set_active(state, c.byte_pos)
-		} else {
-			set_caret(state, c.byte_pos)
-		}
-	case Cmd_Insert:
-		text_edit_insert(state, c.text) or_return
-	case Cmd_Delete:
-		text_edit_delete_to(state, c.translation)
-	case Cmd_Select_All:
-		state.selection.anchor = 0
-		state.selection.active = text_buffer_byte_length(state.buffer)
-	}
-	return nil
-}
+//@(require_results)
+//text_edit_apply :: proc(state: ^Text_Edit_State, cmd: Text_Edit_Command) -> Text_Buffer_Error {
+//	switch c in cmd {
+//	case Cmd_Move:
+//		apply_move_or_select(state, c.translation, c.select)
+//	case Cmd_Set_Caret:
+//		if c.extend {
+//			set_active(state, c.byte_pos)
+//		} else {
+//			set_caret(state, c.byte_pos)
+//		}
+//	case Cmd_Insert:
+//		text_edit_insert(state, c.text) or_return
+//	case Cmd_Delete:
+//		text_edit_delete_to(state, c.translation)
+//	case Cmd_Select_All:
+//		state.selection.anchor = 0
+//		state.selection.active = text_buffer_byte_length(state.buffer)
+//	}
+//	return nil
+//}
 
 @(require_results)
 text_edit_insert :: proc(state: ^Text_Edit_State, text: string) -> Text_Buffer_Error {

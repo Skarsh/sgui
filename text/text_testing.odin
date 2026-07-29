@@ -265,8 +265,10 @@ check_handle_keys :: proc(
 		state := test_text_edit_state(backend, text, selection)
 
 		// TODO(Thomas): Should we use the return command here somehow?
-		_, text_buffer_error := text_edit_handle_keys(&state, keys, mods)
-		assert(text_buffer_error == nil)
+		//_, text_buffer_error := text_edit_handle_keys(&state, keys, mods)
+		//assert(text_buffer_error == nil)
+
+		_ = text_cursor_handle_keys(&state, keys, mods)
 
 		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
 		assert(alloc_err == .None)

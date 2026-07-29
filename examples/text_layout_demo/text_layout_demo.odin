@@ -98,7 +98,24 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.text(ctx, "status", status_str)
 
 
-		ui.text(
+		//ui.text(
+		//	ctx,
+		//	"label",
+		//	SAMPLE_TEXT,
+		//	ui.Style {
+		//		sizing_x = ui.sizing_fixed(700),
+		//		sizing_y = ui.sizing_fixed(400),
+		//		text_alignment_x = data.align_x,
+		//		text_alignment_y = data.align_y,
+		//		text_wrap_mode = data.wrap_mode,
+		//		padding = ui.padding_all(20),
+		//		border = ui.border_all(10),
+		//		background_fill = base.fill_color(60, 60, 60),
+		//		capability_flags = ui.Capability_Flags{.Scrollable_Y},
+		//	},
+		//)
+
+		ui.selectable_text(
 			ctx,
 			"label",
 			SAMPLE_TEXT,
@@ -114,6 +131,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				capability_flags = ui.Capability_Flags{.Scrollable_Y},
 			},
 		)
+
 
 		// main container
 		ui.end_container(ctx)

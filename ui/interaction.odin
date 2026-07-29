@@ -1,7 +1,7 @@
 package ui
 
 import "core:fmt"
-import "core:log"
+//import "core:log"
 import "core:math"
 import "core:mem"
 
@@ -24,12 +24,17 @@ Text_Input_State :: struct {
 	caret_blink_timer: f32,
 }
 
+Text_Element_State :: struct {
+	state: textpkg.Text_Read_Only_State,
+}
+
 Interaction :: struct {
 	// input is owned by app
 	input:               ^base.Input,
 	// text_measurement is owned by app
 	text_measurement:    ^textpkg.Text_Measurement,
 	text_input_states:   map[UI_Key]Text_Input_State,
+	text_element_states: map[UI_Key]Text_Element_State,
 	active_element:      ^UI_Element,
 	hot_id:              UI_Key,
 	pressed_id:          UI_Key,
@@ -45,6 +50,7 @@ init_interaction :: proc(
 	// TODO(Thomas): make(map) does not return an Allocator_Error in this Odin
 	// version (unlike make([dynamic])), so there is nothing to propagate here yet.
 	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
+	interaction.text_element_states = make(map[UI_Key]Text_Element_State, allocator)
 	interaction.animatable_elements = make([dynamic]^UI_Element, allocator) or_return
 	return nil
 }
@@ -55,6 +61,7 @@ deinit_interaction :: proc(interaction: ^Interaction) {
 		textpkg.text_buffer_deinit(&state.state.buffer)
 	}
 	delete(interaction.text_input_states)
+	delete(interaction.text_element_states)
 	delete(interaction.animatable_elements)
 }
 
@@ -161,12 +168,15 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 						},
 					)
 
-					err := textpkg.text_edit_apply(
-						&state.state,
-						textpkg.Cmd_Set_Caret{byte_pos, !pressed},
-					)
+					//err := textpkg.text_edit_apply(
+					//	&state.state,
+					//	textpkg.Cmd_Set_Caret{byte_pos, !pressed},
+					//)
 
-					assert(err == nil)
+					textpkg.text_cursor_apply(
+						&state.state,
+						textpkg.Cursor_Set_Caret{byte_pos, !pressed},
+					)
 				}
 			}
 		}
@@ -201,75 +211,78 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 			// Key handling
 			keymod := interaction.input.keymod_down_bits
 			keys := interaction.input.key_pressed_bits
-			clipboard_command, text_handle_keys_error := textpkg.text_edit_handle_keys(
-				&state.state,
-				keys,
-				keymod,
-			)
-			switch text_handle_keys_error {
-			// Fixed buffer errors should be ignored
-			case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
-			case mem.Allocator_Error.None:
-			case:
-				panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
-			}
 
-			switch clipboard_command {
-			case .None:
-			case .Copy:
-				selection := state.state.selection
+			_ = textpkg.text_cursor_handle_keys(&state.state, keys, keymod)
 
-				//NOTE(Thomas): This will be freed when the frame_allocator is freed
-				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
-				//very large text. We can think about using a fallback strategy of
-				//persistent allocator or some general purpose allocator in those cases
-				//when it has first failed with the frame allocator
-				text, text_alloc_err := textpkg.text_buffer_text(
-					state.state.buffer,
-					frame_allocator,
-				)
-				if text_alloc_err != .None {
-					log.error("Error when trying to get text from text buffer: ", text_alloc_err)
-				}
-				assert(text_alloc_err == .None)
+			//clipboard_command, text_handle_keys_error := textpkg.text_edit_handle_keys(
+			//	&state.state,
+			//	keys,
+			//	keymod,
+			//)
+			//switch text_handle_keys_error {
+			//// Fixed buffer errors should be ignored
+			//case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+			//case mem.Allocator_Error.None:
+			//case:
+			//	panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
+			//}
 
-				selection_start := textpkg.selection_start(selection)
-				selection_end := textpkg.selection_end(selection)
-				selection_text := text[selection_start:selection_end]
+			//switch clipboard_command {
+			//case .None:
+			//case .Copy:
+			//	selection := state.state.selection
 
-				interaction.input.clipboard_text_procs.set_clipboard_text_proc(
-					selection_text,
-					frame_allocator,
-				)
+			//	//NOTE(Thomas): This will be freed when the frame_allocator is freed
+			//	//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+			//	//very large text. We can think about using a fallback strategy of
+			//	//persistent allocator or some general purpose allocator in those cases
+			//	//when it has first failed with the frame allocator
+			//	text, text_alloc_err := textpkg.text_buffer_text(
+			//		state.state.buffer,
+			//		frame_allocator,
+			//	)
+			//	if text_alloc_err != .None {
+			//		log.error("Error when trying to get text from text buffer: ", text_alloc_err)
+			//	}
+			//	assert(text_alloc_err == .None)
 
-			case .Paste:
-				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
-				//very large text. We can think about using a fallback strategy of
-				//persistent allocator or some general purpose allocator in those cases
-				//when it has first failed with the frame allocator
-				text_to_paste, alloc_err :=
-					interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
-				if alloc_err != .None {
-					log.error("Eerror when trying to get clipboard text: ", alloc_err)
-				}
-				assert(alloc_err == .None)
+			//	selection_start := textpkg.selection_start(selection)
+			//	selection_end := textpkg.selection_end(selection)
+			//	selection_text := text[selection_start:selection_end]
 
-				// We don't crash just because someone tries to copy paste very large text
-				text_insert_err := textpkg.text_edit_insert(&state.state, text_to_paste)
-				switch text_insert_err {
-				case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
-				case .Buffer_Full:
-					log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
-				case .Out_Of_Memory:
-					log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
-				case:
-					panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
-				}
-			case .Cut:
-				// TODO(Thomas): Does this really need to be its own thing?
-				// Isn't this just a copy selection but where the selection is deleted / removed before return??
-				log.info("Cut clipboard command")
-			}
+			//	interaction.input.clipboard_text_procs.set_clipboard_text_proc(
+			//		selection_text,
+			//		frame_allocator,
+			//	)
+
+			//case .Paste:
+			//	//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+			//	//very large text. We can think about using a fallback strategy of
+			//	//persistent allocator or some general purpose allocator in those cases
+			//	//when it has first failed with the frame allocator
+			//	text_to_paste, alloc_err :=
+			//		interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
+			//	if alloc_err != .None {
+			//		log.error("Eerror when trying to get clipboard text: ", alloc_err)
+			//	}
+			//	assert(alloc_err == .None)
+
+			//	// We don't crash just because someone tries to copy paste very large text
+			//	text_insert_err := textpkg.text_edit_insert(&state.state, text_to_paste)
+			//	switch text_insert_err {
+			//	case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
+			//	case .Buffer_Full:
+			//		log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
+			//	case .Out_Of_Memory:
+			//		log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
+			//	case:
+			//		panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
+			//	}
+			//case .Cut:
+			//	// TODO(Thomas): Does this really need to be its own thing?
+			//	// Isn't this just a copy selection but where the selection is deleted / removed before return??
+			//	log.info("Cut clipboard command")
+			//}
 		}
 	}
 }

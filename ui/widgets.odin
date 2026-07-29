@@ -25,6 +25,87 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	if open_ok {
 		equip_alloc_err := element_equip_text(ctx, element, text)
 		assert(equip_alloc_err == .None)
+
+		close_element(ctx)
+	}
+}
+
+// TODO(Thomas): This should probably just be the text_widget and depending on
+// the capabilities specified, it does the text selectable stuff or not.
+// This is temporary to make things work without breaking text() widget.
+selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
+
+	// TODO(Thomas): Clean up this when done
+	// Making a custom style just to make this work for now
+	new_style := style
+	new_style.clip = Clip_Config{{true, true}}
+	new_style.capability_flags = Capability_Flags{.Clickable, .Focusable, .Scrollable_Y}
+	element, open_ok := open_element(ctx, id, new_style)
+
+	if open_ok {
+		equip_alloc_err := element_equip_text(ctx, element, text)
+		assert(equip_alloc_err == .None)
+		if element.key == ctx.interaction.focused_id {
+
+			key := element.key
+			state, state_exists := &ctx.interaction.text_element_states[key]
+
+			if !state_exists {
+				new_state := Text_Element_State{}
+
+				ctx.interaction.text_element_states[key] = new_state
+				ok: bool
+				state, ok = &ctx.interaction.text_element_states[key]
+				assert(ok)
+			}
+
+
+			// TODO(Thomas): @Perf This should be cached, coming from the text layout
+			// system probably.
+			line_metrics := ctx.interaction.text_measurement.measure_text_proc(
+				"",
+				ctx.font_id,
+				ctx.interaction.text_measurement.font_user_data,
+			)
+
+			caret_height := line_metrics.line_height
+
+			// Selection
+			selection_id := fmt.tprintf("%s_selection", id)
+			selection := state.state.selection
+			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
+			rects_alloc_err := textpkg.text_layout_selection_rects(
+				element.config.content.text_data.text_layout,
+				selection,
+				&selection_rects,
+			)
+
+			assert(rects_alloc_err == .None)
+			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
+
+			log.info("selection_rects: ", selection_rects)
+
+			if len(selection_rects) == 1 {
+				container(
+					ctx,
+					selection_id,
+					Style {
+						sizing_x = sizing_fixed(selection_rects[0].w),
+						sizing_y = sizing_fixed(caret_height),
+						alignment_x = .Left,
+						alignment_y = .Center,
+						relative_position = base.Vec2 {
+							selection_rects[0].x - element.scroll_region.offset.x,
+							0,
+						},
+						background_fill = base.fill_color(255, 255, 255, 128),
+						capability_flags = Capability_Flags{.Background},
+						position_mode = .Anchored,
+					},
+				)
+			}
+
+		}
 		close_element(ctx)
 	}
 }
