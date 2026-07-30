@@ -42,6 +42,7 @@ test_text_buffer :: proc(backend: Test_Backend, text: string) -> Text_Buffer {
 	return tb
 }
 
+// TODO(Thomas): Rewrite to use text_cursor_apply()
 // Test only helper which checks that inserting into initial at pos yields expected on every backend.
 @(private)
 check_insert :: proc(
@@ -112,7 +113,10 @@ check_move :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-		text_edit_move_to(&state, translation)
+		//text_edit_move_to(&state, translation)
+
+		text_cursor_apply(&state, Cursor_Move{translation = translation})
+
 		testing.expectf(
 			t,
 			state.selection == expected_selection,
@@ -141,7 +145,10 @@ check_select :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-		text_edit_select_to(&state, translation)
+		//text_edit_select_to(&state, translation)
+		// TODO(Thomas): This should have been using text_cursor_apply with
+		// a Cursor_Select command instead??
+		text_cursor_select_to(&state, translation = translation)
 		testing.expectf(
 			t,
 			state.selection == expected_selection,
@@ -171,7 +178,8 @@ check_delete :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-		text_edit_delete_to(&state, translation)
+		//text_edit_delete_to(&state, translation)
+		text_cursor_apply(&state, Cursor_Delete{translation = translation})
 
 		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
 		assert(alloc_err == .None)
@@ -216,8 +224,10 @@ check_edit_insert :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-		text_buff_err := text_edit_insert(&state, insertion)
-		assert(text_buff_err == nil)
+		//text_buff_err := text_edit_insert(&state, insertion)
+		//assert(text_buff_err == nil)
+
+		text_cursor_apply(&state, Cursor_Insert{text = insertion})
 
 		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
 		assert(alloc_err == .None)

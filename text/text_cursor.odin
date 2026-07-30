@@ -4,15 +4,6 @@ import "core:unicode/utf8"
 
 import "../base"
 
-// The idea here is to provide an abstraction on top of Text_Buffer and string for
-// text selection / cursor movement. For text buffer this will call the proper
-// text_edit procedures, for editiing commands, and for string it will do non-edit
-// text selection / cursor commands.
-// If possible it would be nice to not have 2 separate command types, e.g. Text_Edit_Cmd
-// and Text_Cursor_Cmd, but one unified one, where edit commands (insert, delete) become no-ops in
-// the string (non-edit) cases.
-
-
 Text_Source :: union {
 	Text_Buffer,
 	string,
@@ -162,32 +153,14 @@ text_cursor_translate_key :: proc(
 // I think this should just call a text_edit_move() procedure.
 // Will do it like this until we have verified that it behaves the same as before.
 text_cursor_move :: proc(state: Text_State, cmd: Cursor_Move) {
-	switch v in state {
-	case ^Text_Edit_State:
-		apply_move_or_select(v, cmd.translation, cmd.select)
-	case ^Text_Read_Only_State:
-		// TODO(Thomas): Implement this!
-		unreachable()
-	}
+	text_cursor_apply_move_or_select(state, cmd.translation, cmd.select)
 }
 
-// TODO(Thomas): Should be possible to have a unified way of doing this,
-// preventing the need for a switch? That will probably need a common type
-// wrapping Selection and Text_Buffer / string? Not sure if worth.
-// TODO(Thomas): If not able to unify, this should call a text_edit_set_caret procedure isntead
-// of calling set_caret direclty here. This is only until we have verified
-// that it behaves the same as before.
 text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
-	switch v in state {
-	case ^Text_Edit_State:
-		if cmd.extend {
-			set_active(v, cmd.byte_pos)
-		} else {
-			set_caret(v, cmd.byte_pos)
-		}
-	case ^Text_Read_Only_State:
-		// TODO(Thomas): Implement this!
-		unreachable()
+	if cmd.extend {
+		set_active(state, cmd.byte_pos)
+	} else {
+		set_caret(state, cmd.byte_pos)
 	}
 }
 
@@ -195,7 +168,24 @@ text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) {
 	switch v in state {
 	case ^Text_Edit_State:
 		// TODO(Thomas): Handle error
-		_ = text_edit_insert(v, cmd.text)
+		//_ = text_edit_insert(v, cmd.text)
+
+		insert_at := v.selection.active
+		if !is_selection_collapsed(v.selection) {
+			start := selection_start(v.selection)
+			end := selection_end(v.selection)
+			text_buffer_delete_range(&v.buffer, start, end - start)
+			insert_at = start
+		}
+
+		current_len := text_buffer_byte_length(v.buffer)
+		if current_len + len(cmd.text) <= v.max_len {
+			// TODO(Thomas): Properly handle error
+			_ = text_buffer_insert_at(&v.buffer, insert_at, cmd.text)
+			set_caret(state, insert_at + len(cmd.text))
+		}
+
+
 	case ^Text_Read_Only_State:
 		// TODO(Thomas): Remove the unreachable when time is ready, this should just be a no-op
 		// since its the read-only case.
@@ -206,27 +196,28 @@ text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) {
 text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {
 	switch v in state {
 	case ^Text_Edit_State:
-		text_edit_delete_to(v, cmd.translation)
+		if is_selection_collapsed(v.selection) {
+			text_cursor_select_to(state, cmd.translation)
+		}
+
+		start := selection_start(v.selection)
+		end := selection_end(v.selection)
+
+		if start != end {
+			text_buffer_delete_range(&v.buffer, start, end - start)
+		}
+		set_caret(v, start)
 	case ^Text_Read_Only_State:
-		// TODO(Thomas): Remove the unreachable when time is ready, this should just be a no-op
-		// since its the read-only case.
+		// TODO(Thomas): This shouldn't call unreachable probably, just no-op?
 		unreachable()
 	}
 }
 
-// TODO(Thomas): Should be possible to have a unified way of doing this,
-// preventing the need for a switch? That will probably need a common type
-// wrapping Selection and Text_Buffer / string? Not sure if worth.
-// TODO(Thomas): If not able to unify, this should call a text_edit_select_all procedure.
+@(private)
 text_cursor_select_all :: proc(state: Text_State, cmd: Cursor_Select_All) {
-	switch v in state {
-	case ^Text_Edit_State:
-		v.selection.anchor = 0
-		v.selection.active = text_buffer_byte_length(v.buffer)
-	case ^Text_Read_Only_State:
-		// TODO(Thomas): Implement this!
-		unreachable()
-	}
+	source, selection := text_state_parts(state)
+	selection.anchor = 0
+	selection.active = text_source_byte_length(source)
 }
 
 @(private)
@@ -298,4 +289,116 @@ text_cursor_next_word_byte_pos :: proc(source: Text_Source, pos: int) -> int {
 		return byte_idx
 	}
 	return 0
+}
+
+
+@(private)
+@(require_results)
+text_source_byte_length :: proc(source: Text_Source) -> int {
+	switch v in source {
+	case Text_Buffer:
+		return text_buffer_byte_length(v)
+	case string:
+		return len(v)
+	}
+
+	return -1
+}
+
+@(private)
+@(require_results)
+clamp_byte_pos_to_text_source_range :: proc(source: Text_Source, byte_pos: int) -> int {
+	max_pos := text_source_byte_length(source)
+	clamped := clamp(byte_pos, 0, max_pos)
+	return clamped
+}
+
+@(private)
+set_caret :: proc(state: Text_State, byte_pos: int) {
+	source, selection := text_state_parts(state)
+	clamped := clamp_byte_pos_to_text_source_range(source, byte_pos)
+	selection.active = clamped
+	selection.anchor = clamped
+}
+
+@(private)
+set_active :: proc(state: Text_State, byte_pos: int) {
+	source, selection := text_state_parts(state)
+	clamped := clamp_byte_pos_to_text_source_range(source, byte_pos)
+	selection.active = clamped
+}
+
+@(private)
+text_cursor_move_to :: proc(state: Text_State, translation: Translation) {
+	target := text_cursor_translated_pos(state, translation, true)
+	set_caret(state, target)
+}
+
+@(private)
+text_cursor_select_to :: proc(state: Text_State, translation: Translation) {
+	target := text_cursor_translated_pos(state, translation, false)
+	set_active(state, target)
+}
+
+@(private)
+@(require_results)
+text_cursor_translated_pos :: proc(
+	state: Text_State,
+	translation: Translation,
+	collapse_selection_lr: bool,
+) -> int {
+
+	source, selection := text_state_parts(state)
+
+	switch translation {
+	case .Left:
+		if collapse_selection_lr && !is_selection_collapsed(selection^) {
+			return selection_start(selection^)
+		}
+		_, width := text_cursor_get_prev_rune(source, selection.active)
+		return selection.active - width
+	case .Right:
+		if collapse_selection_lr && !is_selection_collapsed(selection^) {
+			return selection_end(selection^)
+		}
+		_, width := text_cursor_peek_rune_at_byte_offset(source, selection.active)
+		return selection.active + width
+	case .Next_Word:
+		return text_cursor_next_word_byte_pos(source, selection.active)
+
+	case .Prev_Word:
+		return text_cursor_prev_word_byte_pos(source, selection.active)
+	case .Start:
+		return 0
+	case .End:
+		return text_source_byte_length(source)
+	}
+
+	return 0
+}
+
+@(private)
+text_cursor_apply_move_or_select :: proc(
+	state: Text_State,
+	translation: Translation,
+	select: bool,
+) {
+	if select {
+		text_cursor_select_to(state, translation)
+	} else {
+		text_cursor_move_to(state, translation)
+	}
+}
+
+@(private)
+text_state_parts :: proc(state: Text_State) -> (source: Text_Source, selection: ^Selection) {
+	switch v in state {
+	case ^Text_Edit_State:
+		source = v.buffer
+		selection = &v.selection
+	case ^Text_Read_Only_State:
+		source = v.text
+		selection = &v.selection
+	}
+	return
 }

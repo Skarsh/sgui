@@ -51,7 +51,9 @@ selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 			state, state_exists := &ctx.interaction.text_element_states[key]
 
 			if !state_exists {
-				new_state := Text_Element_State{}
+				new_state := Text_Element_State {
+					state = textpkg.Text_Read_Only_State{text = text},
+				}
 
 				ctx.interaction.text_element_states[key] = new_state
 				ok: bool
@@ -83,28 +85,27 @@ selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 			assert(rects_alloc_err == .None)
 			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
 
+			log.info("text_layout.rows: ", element.config.content.text_data.text_layout.rows)
 			log.info("selection_rects: ", selection_rects)
 
-			if len(selection_rects) == 1 {
+			for sel_rect in selection_rects {
 				container(
 					ctx,
 					selection_id,
 					Style {
-						sizing_x = sizing_fixed(selection_rects[0].w),
+						sizing_x = sizing_fixed(sel_rect.w),
 						sizing_y = sizing_fixed(caret_height),
 						alignment_x = .Left,
-						alignment_y = .Center,
-						relative_position = base.Vec2 {
-							selection_rects[0].x - element.scroll_region.offset.x,
-							0,
-						},
+						alignment_y = .Top,
+						relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
+						element.scroll_region.offset,
 						background_fill = base.fill_color(255, 255, 255, 128),
 						capability_flags = Capability_Flags{.Background},
 						position_mode = .Anchored,
 					},
 				)
-			}
 
+			}
 		}
 		close_element(ctx)
 	}
