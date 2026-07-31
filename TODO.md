@@ -1,8 +1,6 @@
 # TODOs
 
 ## Active
-* Make copy/paste work again
-* Clean up `text_testing` after introducing `text_cursor`
 
 ## Bugs
 
