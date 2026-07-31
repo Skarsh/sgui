@@ -90,7 +90,6 @@ Clipboard_Command :: enum {
 	Cut,
 }
 
-// TODO(Thomas): Error handling
 text_cursor_handle_keys :: proc(
 	state: Text_State,
 	keys: base.Key_Set,
@@ -125,6 +124,101 @@ text_cursor_handle_keys :: proc(
 	return
 }
 
+
+text_cursor_move :: proc(state: Text_State, cmd: Cursor_Move) {
+	target := text_cursor_translated_pos(state, cmd.translation, !cmd.select)
+	if cmd.select {
+		set_active(state, target)
+	} else {
+		set_caret(state, target)
+	}
+}
+
+text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
+	if cmd.extend {
+		set_active(state, cmd.byte_pos)
+	} else {
+		set_caret(state, cmd.byte_pos)
+	}
+}
+
+@(require_results)
+text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) -> Text_Buffer_Error {
+	switch v in state {
+	case ^Text_Edit_State:
+		insert_at := v.selection.active
+		if !is_selection_collapsed(v.selection) {
+			start := selection_start(v.selection)
+			end := selection_end(v.selection)
+			text_buffer_delete_range(&v.buffer, start, end - start)
+			insert_at = start
+		}
+
+		current_len := text_buffer_byte_length(v.buffer)
+		if current_len + len(cmd.text) <= v.max_len {
+			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return
+			set_caret(state, insert_at + len(cmd.text))
+		}
+	case ^Text_Read_Only_State:
+	// no-op
+	}
+	return nil
+}
+
+text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {
+	switch v in state {
+	case ^Text_Edit_State:
+		if is_selection_collapsed(v.selection) {
+			text_cursor_move(state, Cursor_Move{translation = cmd.translation, select = true})
+		}
+
+		start := selection_start(v.selection)
+		end := selection_end(v.selection)
+
+		if start != end {
+			text_buffer_delete_range(&v.buffer, start, end - start)
+		}
+		set_caret(v, start)
+	case ^Text_Read_Only_State:
+	// no-op
+	}
+}
+
+
+selection_start :: proc(selection: Selection) -> int {
+	return min(selection.active, selection.anchor)
+}
+
+selection_end :: proc(selection: Selection) -> int {
+	return max(selection.active, selection.anchor)
+}
+
+@(require_results)
+text_cursor_get_text :: proc(
+	state: Text_State,
+	allocator: mem.Allocator,
+) -> (
+	string,
+	mem.Allocator_Error,
+) {
+	source, _ := text_state_parts(state)
+	switch v in source {
+	case Text_Buffer:
+		return text_buffer_text(v, allocator)
+	case string:
+		return v, nil
+	}
+
+	return "", nil
+}
+
+@(require_results)
+text_cursor_get_selection :: proc(state: Text_State) -> Selection {
+	_, selection := text_state_parts(state)
+	return selection^
+}
+
+@(private)
 @(require_results)
 text_cursor_apply :: proc(state: Text_State, cmd: Text_Cursor_Cmd) -> Text_Buffer_Error {
 	switch v in cmd {
@@ -140,14 +234,6 @@ text_cursor_apply :: proc(state: Text_State, cmd: Text_Cursor_Cmd) -> Text_Buffe
 		text_cursor_select_all(state, v)
 	}
 	return nil
-}
-
-selection_start :: proc(selection: Selection) -> int {
-	return min(selection.active, selection.anchor)
-}
-
-selection_end :: proc(selection: Selection) -> int {
-	return max(selection.active, selection.anchor)
 }
 
 @(private)
@@ -192,88 +278,6 @@ text_cursor_translate_key :: proc(
 	}
 
 	return nil, false
-}
-
-// TODO(Thomas): I don't really like that this is calls apply_move_or_select here,
-// I think this should just call a text_edit_move() procedure.
-// Will do it like this until we have verified that it behaves the same as before.
-text_cursor_move :: proc(state: Text_State, cmd: Cursor_Move) {
-	text_cursor_apply_move_or_select(state, cmd.translation, cmd.select)
-}
-
-text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
-	if cmd.extend {
-		set_active(state, cmd.byte_pos)
-	} else {
-		set_caret(state, cmd.byte_pos)
-	}
-}
-
-@(require_results)
-text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) -> Text_Buffer_Error {
-	switch v in state {
-	case ^Text_Edit_State:
-		insert_at := v.selection.active
-		if !is_selection_collapsed(v.selection) {
-			start := selection_start(v.selection)
-			end := selection_end(v.selection)
-			text_buffer_delete_range(&v.buffer, start, end - start)
-			insert_at = start
-		}
-
-		current_len := text_buffer_byte_length(v.buffer)
-		if current_len + len(cmd.text) <= v.max_len {
-			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return
-			set_caret(state, insert_at + len(cmd.text))
-		}
-	case ^Text_Read_Only_State:
-	// no-op
-	}
-	return nil
-}
-
-text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {
-	switch v in state {
-	case ^Text_Edit_State:
-		if is_selection_collapsed(v.selection) {
-			text_cursor_select_to(state, cmd.translation)
-		}
-
-		start := selection_start(v.selection)
-		end := selection_end(v.selection)
-
-		if start != end {
-			text_buffer_delete_range(&v.buffer, start, end - start)
-		}
-		set_caret(v, start)
-	case ^Text_Read_Only_State:
-	// no-op
-	}
-}
-
-@(require_results)
-text_cursor_get_text :: proc(
-	state: Text_State,
-	allocator: mem.Allocator,
-) -> (
-	string,
-	mem.Allocator_Error,
-) {
-	source, _ := text_state_parts(state)
-	switch v in source {
-	case Text_Buffer:
-		return text_buffer_text(v, allocator)
-	case string:
-		return v, nil
-	}
-
-	return "", nil
-}
-
-@(require_results)
-text_cursor_get_selection :: proc(state: Text_State) -> Selection {
-	_, selection := text_state_parts(state)
-	return selection^
 }
 
 @(private)
@@ -455,18 +459,6 @@ set_active :: proc(state: Text_State, byte_pos: int) {
 }
 
 @(private)
-text_cursor_move_to :: proc(state: Text_State, translation: Translation) {
-	target := text_cursor_translated_pos(state, translation, true)
-	set_caret(state, target)
-}
-
-@(private)
-text_cursor_select_to :: proc(state: Text_State, translation: Translation) {
-	target := text_cursor_translated_pos(state, translation, false)
-	set_active(state, target)
-}
-
-@(private)
 @(require_results)
 text_cursor_translated_pos :: proc(
 	state: Text_State,
@@ -501,19 +493,6 @@ text_cursor_translated_pos :: proc(
 	}
 
 	return 0
-}
-
-@(private)
-text_cursor_apply_move_or_select :: proc(
-	state: Text_State,
-	translation: Translation,
-	select: bool,
-) {
-	if select {
-		text_cursor_select_to(state, translation)
-	} else {
-		text_cursor_move_to(state, translation)
-	}
 }
 
 @(private)

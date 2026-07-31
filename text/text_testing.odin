@@ -147,7 +147,8 @@ check_select :: proc(
 		//text_edit_select_to(&state, translation)
 		// TODO(Thomas): This should have been using text_cursor_apply with
 		// a Cursor_Select command instead??
-		text_cursor_select_to(&state, translation = translation)
+		//text_cursor_select_to(&state, translation = translation)
+		text_cursor_move(&state, Cursor_Move{translation = translation, select = true})
 		testing.expectf(
 			t,
 			state.selection == expected_selection,

@@ -193,11 +193,10 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 						},
 					)
 
-					err := textpkg.text_cursor_apply(
+					textpkg.text_cursor_set_caret(
 						state,
 						textpkg.Cursor_Set_Caret{byte_pos, !pressed},
 					)
-					assert(err == nil)
 				}
 			}
 		}
@@ -219,7 +218,7 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 					interaction.input.text_input.data[:interaction.input.text_input.len],
 				)
 
-				text_buffer_error := textpkg.text_cursor_apply(
+				text_buffer_error := textpkg.text_cursor_insert(
 					state,
 					textpkg.Cursor_Insert{text = text},
 				)
