@@ -1,21 +1,54 @@
 package text
 
+// Based on this RXI article
+// https://rxi.github.io/textbox_behaviour.html
+
 import "core:unicode/utf8"
 
 import "../base"
+
+Translation :: enum {
+	Left,
+	Right,
+	Next_Word,
+	Prev_Word,
+	Start,
+	End,
+}
+
+// Byte indexes
+Selection :: struct {
+	active: int,
+	anchor: int,
+}
 
 Text_Source :: union {
 	Text_Buffer,
 	string,
 }
 
-// TODO(Thomas): Better name??
+
+Text_Edit_State :: struct {
+	buffer:    Text_Buffer,
+	selection: Selection,
+	max_len:   int,
+}
+
+text_edit_init :: proc(state: ^Text_Edit_State, buffer: Text_Buffer, max_len: int = max(int)) {
+	state.buffer = buffer
+	state.selection = {}
+	state.max_len = max_len
+}
+
+text_edit_deinit :: proc(state: ^Text_Edit_State) {
+	text_buffer_deinit(&state.buffer)
+}
+
 Text_Read_Only_State :: struct {
 	text:      string,
 	selection: Selection,
 }
 
-// TODO(Thomas): Better name??
 Text_State :: union {
 	^Text_Edit_State,
 	^Text_Read_Only_State,
@@ -105,6 +138,14 @@ text_cursor_apply :: proc(state: Text_State, cmd: Text_Cursor_Cmd) {
 	}
 }
 
+selection_start :: proc(selection: Selection) -> int {
+	return min(selection.active, selection.anchor)
+}
+
+selection_end :: proc(selection: Selection) -> int {
+	return max(selection.active, selection.anchor)
+}
+
 @(private)
 text_cursor_translate_key :: proc(
 	key: base.Key,
@@ -167,9 +208,6 @@ text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
 text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) {
 	switch v in state {
 	case ^Text_Edit_State:
-		// TODO(Thomas): Handle error
-		//_ = text_edit_insert(v, cmd.text)
-
 		insert_at := v.selection.active
 		if !is_selection_collapsed(v.selection) {
 			start := selection_start(v.selection)
@@ -255,9 +293,40 @@ text_cursor_peek_rune_at_byte_offset :: proc(source: Text_Source, byte_idx: int)
 @(private)
 @(require_results)
 text_cursor_prev_word_byte_pos :: proc(source: Text_Source, pos: int) -> int {
+	// For the text buffer case we need to check if the byte we're trying
+	// to go backwards to is valid.
+	// For the string case we assume that it is valid.
 	switch v in source {
 	case Text_Buffer:
-		return prev_word_byte_pos(v, pos)
+		byte_idx := clamp(pos, 0, text_buffer_byte_length(v))
+
+		for byte_idx > 0 {
+			b, ok := text_buffer_get_byte_at(v, byte_idx - 1)
+			if !ok {
+				break
+			}
+
+			if !is_space(b) {
+				break
+			}
+
+			byte_idx -= 1
+		}
+
+		for byte_idx > 0 {
+			b, ok := text_buffer_get_byte_at(v, byte_idx - 1)
+			if !ok {
+				break
+			}
+
+			if is_space(b) {
+				break
+			}
+
+			byte_idx -= 1
+		}
+
+		return byte_idx
 	case string:
 		byte_idx := clamp(pos, 0, len(v))
 		for byte_idx > 0 && is_space(v[byte_idx - 1]) {
@@ -274,9 +343,41 @@ text_cursor_prev_word_byte_pos :: proc(source: Text_Source, pos: int) -> int {
 @(private)
 @(require_results)
 text_cursor_next_word_byte_pos :: proc(source: Text_Source, pos: int) -> int {
+	// For the text buffer case we need to check if the byte we're trying
+	// to go to next is valid.
+	// For the string case we assume that it is valid.
 	switch v in source {
 	case Text_Buffer:
-		return next_word_byte_pos(v, pos)
+		buf_byte_len := text_buffer_byte_length(v)
+		byte_idx := clamp(pos, 0, buf_byte_len)
+
+		for byte_idx < buf_byte_len {
+			b, ok := text_buffer_get_byte_at(v, byte_idx)
+			if !ok {
+				break
+			}
+
+			if is_space(b) {
+				break
+			}
+
+			byte_idx += 1
+		}
+
+		for byte_idx < buf_byte_len {
+			b, ok := text_buffer_get_byte_at(v, byte_idx)
+			if !ok {
+				break
+			}
+
+			if !is_space(b) {
+				break
+			}
+
+			byte_idx += 1
+		}
+
+		return byte_idx
 	case string:
 		byte_len := len(v)
 		byte_idx := clamp(pos, 0, byte_len)
@@ -401,4 +502,55 @@ text_state_parts :: proc(state: Text_State) -> (source: Text_Source, selection: 
 		selection = &v.selection
 	}
 	return
+}
+
+@(private)
+is_space :: proc(b: u8) -> bool {
+	return b == ' ' || b == '\t' || b == '\n'
+}
+
+@(private)
+clamp_byte_pos_to_text_buffer_range :: proc(buffer: Text_Buffer, byte_pos: int) -> int {
+	max_pos := text_buffer_byte_length(buffer)
+	clamped := clamp(byte_pos, 0, max_pos)
+	return clamped
+}
+
+@(private)
+is_selection_collapsed :: proc(selection: Selection) -> bool {
+	return selection.active == selection.anchor
+}
+
+@(private)
+keymod_has_word_move_mod :: proc(keymod: base.Keymod_Set) -> bool {
+	return base.is_ctrl_down(keymod) || base.is_alt_down(keymod)
+}
+
+@(private)
+keymod_has_line_move_mod :: proc(keymod: base.Keymod_Set) -> bool {
+	return base.is_gui_down(keymod)
+}
+
+@(private)
+translation_for_horizontal_key :: proc(
+	key: base.Key,
+	word_mod_down, line_mod_down: bool,
+) -> Translation {
+	is_left := key == .Left
+	if line_mod_down {
+		if is_left {
+			return .Start
+		}
+		return .End
+	}
+	if word_mod_down {
+		if is_left {
+			return .Prev_Word
+		}
+		return .Next_Word
+	}
+	if is_left {
+		return .Left
+	}
+	return .Right
 }

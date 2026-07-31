@@ -154,7 +154,6 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 
 		state: textpkg.Text_State
 
-		// TODO(Thomas): What about just having a map[Text_State] for both instead??
 		text_input_state, text_input_state_found := &it.text_input_states[it.focused_id]
 		found := false
 		if text_input_state_found {
@@ -193,40 +192,6 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 				}
 			}
 		}
-
-
-		//state, ok := &it.text_input_states[it.focused_id]
-		//if ok {
-		//	focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
-		//	if focused_found {
-
-		//		// Press sets the caret (collapsing the selection);
-		//		// holding / dragging extends it.
-		//		pressed := base.is_mouse_pressed(it.input^, .Left)
-		//		held := base.is_mouse_down(it.input^, .Left)
-
-		//		if pressed || held {
-		//			origin := content_origin_scrolled(focused_element)
-		//			byte_pos := textpkg.text_layout_byte_pos_from_point(
-		//				focused_element.config.content.text_data.text_layout,
-		//				{
-		//					f32(it.input.mouse_pos.x) - origin.x,
-		//					f32(it.input.mouse_pos.y) - origin.y,
-		//				},
-		//			)
-
-		//			//err := textpkg.text_edit_apply(
-		//			//	&state.state,
-		//			//	textpkg.Cmd_Set_Caret{byte_pos, !pressed},
-		//			//)
-
-		//			textpkg.text_cursor_apply(
-		//				&state.state,
-		//				textpkg.Cursor_Set_Caret{byte_pos, !pressed},
-		//			)
-		//		}
-		//	}
-		//}
 	}
 }
 
