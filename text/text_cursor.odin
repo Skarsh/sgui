@@ -223,16 +223,11 @@ text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) -> Text_Buffer
 
 		current_len := text_buffer_byte_length(v.buffer)
 		if current_len + len(cmd.text) <= v.max_len {
-			// TODO(Thomas): Properly handle error
 			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return
 			set_caret(state, insert_at + len(cmd.text))
 		}
-
-
 	case ^Text_Read_Only_State:
-		// TODO(Thomas): Remove the unreachable when time is ready, this should just be a no-op
-		// since its the read-only case.
-		unreachable()
+	// no-op
 	}
 	return nil
 }
@@ -252,8 +247,7 @@ text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {
 		}
 		set_caret(v, start)
 	case ^Text_Read_Only_State:
-		// TODO(Thomas): This shouldn't call unreachable probably, just no-op?
-		unreachable()
+	// no-op
 	}
 }
 
