@@ -299,7 +299,7 @@ text_cursor_get_prev_rune :: proc(source: Text_Source, byte_idx: int) -> (rune, 
 	case Text_Buffer:
 		r, width = get_prev_rune(v, byte_idx)
 	case string:
-		r, width = utf8.decode_rune_in_string(v[:byte_idx])
+		r, width = utf8.decode_last_rune_in_string(v[:byte_idx])
 	}
 
 	return r, width
@@ -538,13 +538,6 @@ text_state_parts :: proc(state: Text_State) -> (source: Text_Source, selection: 
 @(private)
 is_space :: proc(b: u8) -> bool {
 	return b == ' ' || b == '\t' || b == '\n'
-}
-
-@(private)
-clamp_byte_pos_to_text_buffer_range :: proc(buffer: Text_Buffer, byte_pos: int) -> int {
-	max_pos := text_buffer_byte_length(buffer)
-	clamped := clamp(byte_pos, 0, max_pos)
-	return clamped
 }
 
 @(private)
