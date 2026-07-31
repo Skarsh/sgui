@@ -151,24 +151,26 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
+@(private)
+focused_text_state :: proc(interaction: ^Interaction) -> (textpkg.Text_State, bool) {
+	if interaction.focused_id != ui_key_null() {
+		if s, ok := &interaction.text_input_states[interaction.focused_id]; ok {
+			return &s.state, true
+		}
+
+		if s, ok := &interaction.text_element_states[interaction.focused_id]; ok {
+			return &s.state, true
+		}
+	}
+
+	return nil, false
+}
+
 dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 	it := &ctx.interaction
 	if it.focused_id != ui_key_null() {
 
-		state: textpkg.Text_State
-
-		text_input_state, text_input_state_found := &it.text_input_states[it.focused_id]
-		found := false
-		if text_input_state_found {
-			state = &text_input_state.state
-			found = true
-		} else {
-			text_element_state, text_element_state_found := &it.text_element_states[it.focused_id]
-			if text_element_state_found {
-				state = &text_element_state.state
-				found = true
-			}
-		}
+		state, found := focused_text_state(it)
 
 		if found {
 			focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
@@ -207,8 +209,10 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 // TODO(Thomas): @Speed This runs every frame when an element is focused, which most likely is wasteful
 dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator: mem.Allocator) {
 	if interaction.focused_id != ui_key_null() {
-		state, ok := &interaction.text_input_states[interaction.focused_id]
-		if ok {
+
+		state, found := focused_text_state(interaction)
+
+		if found {
 			// Text Input
 			if interaction.input.text_input.len > 0 {
 				text := string(
@@ -216,7 +220,7 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				)
 
 				text_buffer_error := textpkg.text_cursor_apply(
-					&state.state,
+					state,
 					textpkg.Cursor_Insert{text = text},
 				)
 
@@ -238,7 +242,7 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 			keys := interaction.input.key_pressed_bits
 
 			clipboard_command, text_handle_keys_error := textpkg.text_cursor_handle_keys(
-				&state.state,
+				state,
 				keys,
 				keymod,
 			)
@@ -254,22 +258,19 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 			switch clipboard_command {
 			case .None:
 			case .Copy:
-				selection := state.state.selection
-
 				//NOTE(Thomas): This will be freed when the frame_allocator is freed
 				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
 				//very large text. We can think about using a fallback strategy of
 				//persistent allocator or some general purpose allocator in those cases
 				//when it has first failed with the frame allocator
-				text, text_alloc_err := textpkg.text_buffer_text(
-					state.state.buffer,
-					frame_allocator,
-				)
+				text, text_alloc_err := textpkg.text_cursor_get_text(state, frame_allocator)
+
 				if text_alloc_err != .None {
 					log.error("Error when trying to get text from text buffer: ", text_alloc_err)
 				}
 				assert(text_alloc_err == .None)
 
+				selection := textpkg.text_cursor_get_selection(state)
 				selection_start := textpkg.selection_start(selection)
 				selection_end := textpkg.selection_end(selection)
 				selection_text := text[selection_start:selection_end]
@@ -287,13 +288,13 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				text_to_paste, alloc_err :=
 					interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
 				if alloc_err != .None {
-					log.error("Eerror when trying to get clipboard text: ", alloc_err)
+					log.error("Error when trying to get clipboard text: ", alloc_err)
 				}
 				assert(alloc_err == .None)
 
 				// We don't crash just because someone tries to copy paste very large text
 				text_insert_err := textpkg.text_cursor_insert(
-					&state.state,
+					state,
 					textpkg.Cursor_Insert{text = text_to_paste},
 				)
 				switch text_insert_err {

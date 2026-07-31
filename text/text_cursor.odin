@@ -3,6 +3,7 @@ package text
 // Based on this RXI article
 // https://rxi.github.io/textbox_behaviour.html
 
+import "core:mem"
 import "core:unicode/utf8"
 
 import "../base"
@@ -254,6 +255,31 @@ text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {
 		// TODO(Thomas): This shouldn't call unreachable probably, just no-op?
 		unreachable()
 	}
+}
+
+@(require_results)
+text_cursor_get_text :: proc(
+	state: Text_State,
+	allocator: mem.Allocator,
+) -> (
+	string,
+	mem.Allocator_Error,
+) {
+	source, _ := text_state_parts(state)
+	switch v in source {
+	case Text_Buffer:
+		return text_buffer_text(v, allocator)
+	case string:
+		return v, nil
+	}
+
+	return "", nil
+}
+
+@(require_results)
+text_cursor_get_selection :: proc(state: Text_State) -> Selection {
+	_, selection := text_state_parts(state)
+	return selection^
 }
 
 @(private)
