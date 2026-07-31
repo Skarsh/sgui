@@ -72,41 +72,44 @@ selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 
 			caret_height := line_metrics.line_height
 
-			// Selection
-			selection_id := fmt.tprintf("%s_selection", id)
-			selection := state.state.selection
-			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-			rects_alloc_err := textpkg.text_layout_selection_rects(
-				element.config.content.text_data.text_layout,
-				selection,
-				&selection_rects,
-			)
+			text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+			if found_text_layout {
+				// TODO(Thomas): I really don't think we should draw the selection containers like this.
+				// This will work as a start at least. Alternative would be to put something in draw.odin for this.
+				// Selection
+				selection_id := fmt.tprintf("%s_selection", id)
+				selection := state.state.selection
+				selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
 
-			assert(rects_alloc_err == .None)
-			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
-
-			log.info("text_layout.rows: ", element.config.content.text_data.text_layout.rows)
-			log.info("selection_rects: ", selection_rects)
-
-			for sel_rect in selection_rects {
-				container(
-					ctx,
-					selection_id,
-					Style {
-						sizing_x = sizing_fixed(sel_rect.w),
-						sizing_y = sizing_fixed(caret_height),
-						alignment_x = .Left,
-						alignment_y = .Top,
-						relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
-						element.scroll_region.offset,
-						background_fill = base.fill_color(255, 255, 255, 128),
-						capability_flags = Capability_Flags{.Background},
-						position_mode = .Anchored,
-					},
+				rects_alloc_err := textpkg.text_layout_selection_rects(
+					text_layout,
+					selection,
+					&selection_rects,
 				)
 
+				assert(rects_alloc_err == .None)
+
+				for sel_rect, idx in selection_rects {
+					rect_sel_id := fmt.tprintf("%v_sel_rect_%d", selection_id, idx)
+					container(
+						ctx,
+						rect_sel_id,
+						Style {
+							sizing_x = sizing_fixed(sel_rect.w),
+							sizing_y = sizing_fixed(caret_height),
+							alignment_x = .Left,
+							alignment_y = .Top,
+							relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
+							element.scroll_region.offset,
+							background_fill = base.fill_color(255, 255, 255, 128),
+							capability_flags = Capability_Flags{.Background},
+							position_mode = .Anchored,
+						},
+					)
+				}
 			}
 		}
+
 		close_element(ctx)
 	}
 }
@@ -430,37 +433,44 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 				)
 			}
 
-			// Selection
-			selection_id := fmt.tprintf("%s_selection", id)
-			selection := state.state.selection
-			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-			rects_alloc_err := textpkg.text_layout_selection_rects(
-				element.config.content.text_data.text_layout,
-				selection,
-				&selection_rects,
-			)
+			text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
 
-			assert(rects_alloc_err == .None)
-			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
+			if found_text_layout {
+				// TODO(Thomas): I really don't think we should draw the selection containers like this.
+				// This will work as a start at least. Alternative would be to put something in draw.odin for this.
+				// Selection
+				selection_id := fmt.tprintf("%s_selection", id)
+				selection := state.state.selection
+				selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
 
-			if len(selection_rects) == 1 {
-				container(
-					ctx,
-					selection_id,
-					Style {
-						sizing_x = sizing_fixed(selection_rects[0].w),
-						sizing_y = sizing_fixed(caret_height),
-						alignment_x = .Left,
-						alignment_y = .Center,
-						relative_position = base.Vec2 {
-							selection_rects[0].x - element.scroll_region.offset.x,
-							0,
-						},
-						background_fill = base.fill_color(255, 255, 255, 128),
-						capability_flags = Capability_Flags{.Background},
-						position_mode = .Anchored,
-					},
+				rects_alloc_err := textpkg.text_layout_selection_rects(
+					text_layout,
+					selection,
+					&selection_rects,
 				)
+
+				assert(rects_alloc_err == .None)
+				assert(len(selection_rects) == 0 || len(selection_rects) == 1)
+
+				if len(selection_rects) == 1 {
+					container(
+						ctx,
+						selection_id,
+						Style {
+							sizing_x = sizing_fixed(selection_rects[0].w),
+							sizing_y = sizing_fixed(caret_height),
+							alignment_x = .Left,
+							alignment_y = .Center,
+							relative_position = base.Vec2 {
+								selection_rects[0].x - element.scroll_region.offset.x,
+								0,
+							},
+							background_fill = base.fill_color(255, 255, 255, 128),
+							capability_flags = Capability_Flags{.Background},
+							position_mode = .Anchored,
+						},
+					)
+				}
 			}
 		}
 

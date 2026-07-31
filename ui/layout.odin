@@ -41,8 +41,7 @@ Border :: distinct Box
 Margin :: distinct Box
 
 Text_Data :: struct {
-	text:        string,
-	text_layout: textpkg.Text_Layout,
+	text: string,
 }
 
 Shape_Data :: struct {
@@ -174,10 +173,6 @@ element_equip_text :: proc(
 		text_layout.size.x + padding.left + padding.right + border.left + border.right,
 		text_layout.size.y + padding.top + padding.bottom + border.top + border.bottom,
 	}
-
-	// TODO(Thomas): HACK?? I don't think this is a good idea, this is a temporary solution
-	// to make selection work for text_input.
-	element.config.content.text_data.text_layout = text_layout
 
 	// Set initial element size based on text content (for Fit/Grow sizing)
 	// Fixed sizing keeps its specified size
@@ -514,7 +509,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 
 
 // Target-based distribution: elements are sized to match their factor ratios
-// e.g., factors 1:2:1 in 400px → sizes 100:200:100
+// e.g., factors 1:2:1 in 400px -> sizes 100:200:100
 // The caller passing in the allocator has the responsibility of freeing the allocated memory.
 RESIZE_ITER_MAX :: 32
 resolve_grow_sizes_for_children :: proc(
@@ -702,14 +697,17 @@ wrap_text :: proc(
 			}
 		}
 
+		// TODO(Thomas): This leaks like crazy right now
 		text_layout := textpkg.layout_text(
 			text,
 			{wrap_width, ctx.font_id, element.config.layout.text_alignment_x, text_wrap_mode},
 			ctx.interaction.text_measurement^,
-			allocator,
+			ctx.persistent_allocator,
 		) or_return
 
-		element.config.content.text_data.text_layout = text_layout
+
+		new_layout := text_layout
+		ctx.interaction.text_layouts[element.key] = new_layout
 
 		// Update text_content_size.y based on wrapped height
 		final_height :=
@@ -1047,7 +1045,7 @@ measure_flow_content_size :: proc(element: UI_Element) -> (content_size: base.Ve
 	return
 }
 
-update_scroll_region :: proc(element: ^UI_Element) {
+update_scroll_region :: proc(ctx: ^Context, element: ^UI_Element) {
 	flags := element.config.capability_flags
 
 	if .Scrollable_X in flags || .Scrollable_Y in flags {
@@ -1058,7 +1056,11 @@ update_scroll_region :: proc(element: ^UI_Element) {
 		content_size := measure_flow_content_size(element^)
 
 		if .Text in flags {
-			text_size := element.config.content.text_data.text_layout.size
+			text_size := base.Vec2{}
+			// TODO(Thomas): Will come from some proper text layout cache instead eventually
+			if text_layout, found := ctx.interaction.text_layouts[element.key]; found {
+				text_size = text_layout.size
+			}
 			content_size.x = max(content_size.x, text_size.x)
 			content_size.y = max(content_size.y, text_size.y)
 		}
@@ -1146,7 +1148,7 @@ position_flow_children :: proc(element: ^UI_Element) {
 	}
 }
 
-calculate_positions_and_alignment :: proc(element: ^UI_Element, dt: f32) {
+calculate_positions_and_alignment :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
 	assert(element != nil)
 
 	if element != nil {
@@ -1157,13 +1159,13 @@ calculate_positions_and_alignment :: proc(element: ^UI_Element, dt: f32) {
 			20.0,
 		)
 
-		update_scroll_region(element)
+		update_scroll_region(ctx, element)
 		position_flow_children(element)
 		position_anchored_children(element)
 
 		// Recursive step
 		for child in element.children {
-			calculate_positions_and_alignment(child, dt)
+			calculate_positions_and_alignment(ctx, child, dt)
 		}
 	}
 }

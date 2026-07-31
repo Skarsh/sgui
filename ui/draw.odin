@@ -82,7 +82,8 @@ Command_Shape :: struct {
 	data: Shape_Data,
 }
 
-draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
+draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
+	draw_state := &ctx.draw_state
 	assert(draw_state != nil)
 	assert(element != nil)
 
@@ -230,33 +231,34 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 		if .Text in cap_flags {
 			box := content_box(element^)
 
-			text_layout := element.config.content.text_data.text_layout
+			text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+			if found_text_layout {
+				// Calculate the initial vertical offset for the whole block based on Aligment_Y
+				start_pos := content_origin_scrolled(element^)
+				switch element.config.layout.text_alignment_y {
+				case .Top:
+				// Default, no change
+				case .Center:
+					start_pos.y = start_pos.y + (box.size.y - text_layout.size.y) / 2
+				case .Bottom:
+					start_pos.y = start_pos.y + (box.size.y - text_layout.size.y)
+				}
 
-			// Calculate the initial vertical offset for the whole block based on Aligment_Y
-			start_pos := content_origin_scrolled(element^)
-			switch element.config.layout.text_alignment_y {
-			case .Top:
-			// Default, no change
-			case .Center:
-				start_pos.y = start_pos.y + (box.size.y - text_layout.size.y) / 2
-			case .Bottom:
-				start_pos.y = start_pos.y + (box.size.y - text_layout.size.y)
-			}
+				// Iterate through each line and draw it with the correct X and Y
+				current_y := start_pos.y
 
-			// Iterate through each line and draw it with the correct X and Y
-			current_y := start_pos.y
-
-			for row in text_layout.rows {
-				start_x := start_pos.x + row.pos.x
-				draw_text(
-					draw_state,
-					start_x,
-					current_y,
-					base.slice_from_range(text_layout.glyphs, row.glyph_range),
-					element.config.text_fill,
-					z_index = 0,
-				)
-				current_y += row.size.y
+				for row in text_layout.rows {
+					start_x := start_pos.x + row.pos.x
+					draw_text(
+						draw_state,
+						start_x,
+						current_y,
+						base.slice_from_range(text_layout.glyphs, row.glyph_range),
+						element.config.text_fill,
+						z_index = 0,
+					)
+					current_y += row.size.y
+				}
 			}
 		}
 
@@ -295,15 +297,15 @@ draw_element :: proc(draw_state: ^Draw_State, element: ^UI_Element) {
 		}
 
 		for child in element.children {
-			draw_element(draw_state, child)
+			draw_element(ctx, child)
 		}
 
 		draw_state.current_clip_rect = prev_clip_rect
 	}
 }
 
-draw_all_elements :: proc(draw_state: ^Draw_State, root_element: ^UI_Element) {
-	draw_element(draw_state, root_element)
+draw_all_elements :: proc(ctx: ^Context) {
+	draw_element(ctx, ctx.root_element)
 }
 
 draw_rect :: proc(

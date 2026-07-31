@@ -228,11 +228,11 @@ end :: proc(ctx: ^Context) {
 	)
 	assert(resolve_height_alloc_err == .None)
 
-	calculate_positions_and_alignment(ctx.root_element, ctx.dt)
+	calculate_positions_and_alignment(ctx, ctx.root_element, ctx.dt)
 
 	process_interaction(ctx)
 
-	draw_all_elements(&ctx.draw_state, ctx.root_element)
+	draw_all_elements(ctx)
 
 	base.clear_input(ctx.interaction.input)
 
