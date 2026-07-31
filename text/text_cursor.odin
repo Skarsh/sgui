@@ -96,12 +96,13 @@ text_cursor_handle_keys :: proc(
 	keymod: base.Keymod_Set = base.KMOD_NONE,
 ) -> (
 	clipboard_command: Clipboard_Command,
+	error: Text_Buffer_Error,
 ) {
 	ctrl_down := base.is_ctrl_down(keymod)
 
 	for key in keys {
 		if cmd, ok := text_cursor_translate_key(key, keymod); ok {
-			text_cursor_apply(state, cmd)
+			text_cursor_apply(state, cmd) or_return
 		} else if ctrl_down {
 
 			// The rest are clipboard and undo/redo, still returned outward via the enum.
@@ -123,19 +124,21 @@ text_cursor_handle_keys :: proc(
 	return
 }
 
-text_cursor_apply :: proc(state: Text_State, cmd: Text_Cursor_Cmd) {
+@(require_results)
+text_cursor_apply :: proc(state: Text_State, cmd: Text_Cursor_Cmd) -> Text_Buffer_Error {
 	switch v in cmd {
 	case Cursor_Move:
 		text_cursor_move(state, v)
 	case Cursor_Set_Caret:
 		text_cursor_set_caret(state, v)
 	case Cursor_Insert:
-		text_cursor_insert(state, v)
+		text_cursor_insert(state, v) or_return
 	case Cursor_Delete:
 		text_cursor_delete(state, v)
 	case Cursor_Select_All:
 		text_cursor_select_all(state, v)
 	}
+	return nil
 }
 
 selection_start :: proc(selection: Selection) -> int {
@@ -205,7 +208,8 @@ text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
 	}
 }
 
-text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) {
+@(require_results)
+text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) -> Text_Buffer_Error {
 	switch v in state {
 	case ^Text_Edit_State:
 		insert_at := v.selection.active
@@ -219,7 +223,7 @@ text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) {
 		current_len := text_buffer_byte_length(v.buffer)
 		if current_len + len(cmd.text) <= v.max_len {
 			// TODO(Thomas): Properly handle error
-			_ = text_buffer_insert_at(&v.buffer, insert_at, cmd.text)
+			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return
 			set_caret(state, insert_at + len(cmd.text))
 		}
 
@@ -229,6 +233,7 @@ text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) {
 		// since its the read-only case.
 		unreachable()
 	}
+	return nil
 }
 
 text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {

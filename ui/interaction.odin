@@ -1,10 +1,13 @@
 package ui
 
+import "core:fmt"
+import "core:log"
 import "core:math"
 import "core:mem"
 
 import "../base"
 import textpkg "../text"
+import "../text/fixed_buffer"
 
 Comm :: struct {
 	element:  ^UI_Element,
@@ -188,7 +191,11 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 						},
 					)
 
-					textpkg.text_cursor_apply(state, textpkg.Cursor_Set_Caret{byte_pos, !pressed})
+					err := textpkg.text_cursor_apply(
+						state,
+						textpkg.Cursor_Set_Caret{byte_pos, !pressed},
+					)
+					assert(err == nil)
 				}
 			}
 		}
@@ -197,6 +204,7 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 
 // TODO(Thomas): Find a better way than just pass the frame_allocator here?
 // TODO(Thomas): Clean up error handling here, it's a little messy.
+// TODO(Thomas): @Speed This runs every frame when an element is focused, which most likely is wasteful
 dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator: mem.Allocator) {
 	if interaction.focused_id != ui_key_null() {
 		state, ok := &interaction.text_input_states[interaction.focused_id]
@@ -206,99 +214,102 @@ dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator:
 				text := string(
 					interaction.input.text_input.data[:interaction.input.text_input.len],
 				)
-				//text_buffer_error := textpkg.text_edit_insert(&state.state, text)
-				//textpkg.text_cursor_insert(&state.state, {text=})
 
-				textpkg.text_cursor_apply(&state.state, textpkg.Cursor_Insert{text = text})
+				text_buffer_error := textpkg.text_cursor_apply(
+					&state.state,
+					textpkg.Cursor_Insert{text = text},
+				)
 
-				//switch text_buffer_error {
-				//case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
-				//case mem.Allocator_Error.None:
-				//case:
-				//	panic(
-				//		fmt.tprintf(
-				//			"Error when inserting text into text buffer: %v",
-				//			text_buffer_error,
-				//		),
-				//	)
-				//}
+				switch text_buffer_error {
+				case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+				case mem.Allocator_Error.None:
+				case:
+					panic(
+						fmt.tprintf(
+							"Error when inserting text into text buffer: %v",
+							text_buffer_error,
+						),
+					)
+				}
 			}
 
 			// Key handling
 			keymod := interaction.input.keymod_down_bits
 			keys := interaction.input.key_pressed_bits
 
-			_ = textpkg.text_cursor_handle_keys(&state.state, keys, keymod)
+			clipboard_command, text_handle_keys_error := textpkg.text_cursor_handle_keys(
+				&state.state,
+				keys,
+				keymod,
+			)
 
-			//clipboard_command, text_handle_keys_error := textpkg.text_edit_handle_keys(
-			//	&state.state,
-			//	keys,
-			//	keymod,
-			//)
-			//switch text_handle_keys_error {
-			//// Fixed buffer errors should be ignored
-			//case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
-			//case mem.Allocator_Error.None:
-			//case:
-			//	panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
-			//}
+			switch text_handle_keys_error {
+			// Fixed buffer errors should be ignored
+			case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+			case mem.Allocator_Error.None:
+			case:
+				panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
+			}
 
-			//switch clipboard_command {
-			//case .None:
-			//case .Copy:
-			//	selection := state.state.selection
+			switch clipboard_command {
+			case .None:
+			case .Copy:
+				selection := state.state.selection
 
-			//	//NOTE(Thomas): This will be freed when the frame_allocator is freed
-			//	//TODO(Thomas): This can cause OOM for the frame_allocator if copying
-			//	//very large text. We can think about using a fallback strategy of
-			//	//persistent allocator or some general purpose allocator in those cases
-			//	//when it has first failed with the frame allocator
-			//	text, text_alloc_err := textpkg.text_buffer_text(
-			//		state.state.buffer,
-			//		frame_allocator,
-			//	)
-			//	if text_alloc_err != .None {
-			//		log.error("Error when trying to get text from text buffer: ", text_alloc_err)
-			//	}
-			//	assert(text_alloc_err == .None)
+				//NOTE(Thomas): This will be freed when the frame_allocator is freed
+				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+				//very large text. We can think about using a fallback strategy of
+				//persistent allocator or some general purpose allocator in those cases
+				//when it has first failed with the frame allocator
+				text, text_alloc_err := textpkg.text_buffer_text(
+					state.state.buffer,
+					frame_allocator,
+				)
+				if text_alloc_err != .None {
+					log.error("Error when trying to get text from text buffer: ", text_alloc_err)
+				}
+				assert(text_alloc_err == .None)
 
-			//	selection_start := textpkg.selection_start(selection)
-			//	selection_end := textpkg.selection_end(selection)
-			//	selection_text := text[selection_start:selection_end]
+				selection_start := textpkg.selection_start(selection)
+				selection_end := textpkg.selection_end(selection)
+				selection_text := text[selection_start:selection_end]
 
-			//	interaction.input.clipboard_text_procs.set_clipboard_text_proc(
-			//		selection_text,
-			//		frame_allocator,
-			//	)
+				interaction.input.clipboard_text_procs.set_clipboard_text_proc(
+					selection_text,
+					frame_allocator,
+				)
 
-			//case .Paste:
-			//	//TODO(Thomas): This can cause OOM for the frame_allocator if copying
-			//	//very large text. We can think about using a fallback strategy of
-			//	//persistent allocator or some general purpose allocator in those cases
-			//	//when it has first failed with the frame allocator
-			//	text_to_paste, alloc_err :=
-			//		interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
-			//	if alloc_err != .None {
-			//		log.error("Eerror when trying to get clipboard text: ", alloc_err)
-			//	}
-			//	assert(alloc_err == .None)
+			case .Paste:
+				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+				//very large text. We can think about using a fallback strategy of
+				//persistent allocator or some general purpose allocator in those cases
+				//when it has first failed with the frame allocator
+				text_to_paste, alloc_err :=
+					interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
+				if alloc_err != .None {
+					log.error("Eerror when trying to get clipboard text: ", alloc_err)
+				}
+				assert(alloc_err == .None)
 
-			//	// We don't crash just because someone tries to copy paste very large text
-			//	text_insert_err := textpkg.text_edit_insert(&state.state, text_to_paste)
-			//	switch text_insert_err {
-			//	case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
-			//	case .Buffer_Full:
-			//		log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
-			//	case .Out_Of_Memory:
-			//		log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
-			//	case:
-			//		panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
-			//	}
-			//case .Cut:
-			//	// TODO(Thomas): Does this really need to be its own thing?
-			//	// Isn't this just a copy selection but where the selection is deleted / removed before return??
-			//	log.info("Cut clipboard command")
-			//}
+				// We don't crash just because someone tries to copy paste very large text
+				text_insert_err := textpkg.text_cursor_insert(
+					&state.state,
+					textpkg.Cursor_Insert{text = text_to_paste},
+				)
+				switch text_insert_err {
+				case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
+				case .Buffer_Full:
+					log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
+				case .Out_Of_Memory:
+					log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
+				case:
+					panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
+				}
+			case .Cut:
+				// TODO(Thomas): Does this really need to be its own thing?
+				// Isn't this just a copy selection but where the selection is deleted / removed before return??
+				log.info("Cut clipboard command")
+			}
 		}
 	}
 }
