@@ -1,14 +1,13 @@
 # TODOs
 
 ## Active
-* Improved text selection
-    - Use `text_layout_selection_rects` to produce the selection rects for `text_input`
-    - Make text selection work on normal text elements
-    - Evaluate whether `element_equip_text` should do a `text_layout` pass or not.
+* Make copy/paste work again
+* Clean up `text_testing` after introducing `text_cursor`
 
 ## Bugs
 
 ## Backlog
+* Evaluate whether `element_equip_text` should do a `text_layout` pass or not.
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
