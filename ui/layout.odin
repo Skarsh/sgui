@@ -1188,9 +1188,13 @@ get_element_pointer_by_string_id :: proc(ctx: ^Context, id: string) -> (^UI_Elem
 // Helper to get an element in element cache by key.
 // The returned UI_Element will be a copy of the on in the element cache.
 @(require_results)
-get_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> (UI_Element, bool) {
-	element, ok := ctx.element_cache[key]
-	return element^, ok
+get_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> (element: UI_Element, ok: bool) {
+	element_ptr, found := ctx.element_cache[key]
+	if found {
+		element = element_ptr^
+		ok = true
+	}
+	return
 }
 
 // Helper to get a pointer to an element in element cache by key.

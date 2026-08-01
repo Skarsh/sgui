@@ -9,6 +9,16 @@ import base "../base"
 // * Frame-to-frame persistence (Caching)
 
 @(test)
+test_get_element_by_key_for_missing_key :: proc(t: ^testing.T) {
+	test_env := setup_test_environment(DEFAULT_TESTING_WINDOW_SIZE)
+	defer cleanup_test_environment(test_env)
+	ctx := &test_env.ctx
+
+	_, ok := get_element_by_key(ctx, ui_key_hash("never_built"))
+	testing.expect(t, !ok)
+}
+
+@(test)
 test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	// 1. Manual Setup
 	test_env := setup_test_environment(DEFAULT_TESTING_WINDOW_SIZE)
