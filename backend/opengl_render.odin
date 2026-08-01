@@ -421,7 +421,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			start_x := x
 			start_y := y + render_data.font_atlas.metrics.ascent
 
-			if type_of(val.fill) == base.Gradient {
+			if _, is_gradient := val.fill.(base.Gradient); is_gradient {
 				panic("TODO: Implement gradient text")
 			}
 
