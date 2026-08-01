@@ -6,6 +6,12 @@ import "core:unicode/utf8"
 
 import stbtt "vendor:stb/truetype"
 
+// The atlas packs one contiguous codepoint range, so packed_chars[i] always
+// holds the glyph for codepoint FIRST_PACKED_CODEPOINT + i. The range covers
+// ASCII printables and the Latin-1 supplement (32 ..= 287).
+FIRST_PACKED_CODEPOINT :: 32
+NUM_PACKED_CODEPOINTS :: 256
+
 // Ascent, descent and line_gap are stored
 // as scaled to pixel values.
 Font_Metrics :: struct {
@@ -54,7 +60,7 @@ init_font_atlas :: proc(
 	atlas.font_info = font_info
 	atlas.font_data = font_data
 	atlas.pack_ctx = stbtt.pack_context{}
-	num_chars: i32 = 256
+	num_chars: i32 = NUM_PACKED_CODEPOINTS
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
 	atlas.bitmap = make([]u8, atlas_width * atlas_height, allocator)
 
@@ -69,7 +75,7 @@ init_font_atlas :: proc(
 	atlas.metrics = get_font_metrics(atlas.font_info, atlas.font_size)
 
 	// TODO(Thomas): What about passing in an alloc_context here?
-	pack_ok := pack_font_glyphs(atlas, 32, num_chars, 0, 1, 1)
+	pack_ok := pack_font_glyphs(atlas, FIRST_PACKED_CODEPOINT, num_chars, 0, 1, 1)
 	if !pack_ok {
 		log.error("Failed to pack font range")
 		return false
@@ -143,7 +149,7 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	// Cache ASCII printable characters
 	for i in 0 ..< 95 {
 		r := rune(32 + i)
-		pc_idx := i32(i)
+		pc_idx := i32(int(r) - FIRST_PACKED_CODEPOINT)
 		pc := atlas.packed_chars[int(pc_idx)]
 
 		glyph := Font_Data {
@@ -162,9 +168,11 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	}
 
 	// Cache Latin-1 supplement characters
+	// NOTE(Thomas): The range was packed starting at FIRST_PACKED_CODEPOINT, so
+	// packed_chars[i] holds the glyph for codepoint FIRST_PACKED_CODEPOINT + i.
 	for i in 0 ..< 96 {
 		r := rune(160 + i)
-		pc_idx := i32(95 + i)
+		pc_idx := i32(int(r) - FIRST_PACKED_CODEPOINT)
 		pc := atlas.packed_chars[int(pc_idx)]
 
 		glyph := Font_Data {
