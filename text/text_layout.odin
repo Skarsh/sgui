@@ -442,7 +442,8 @@ layout_text :: proc(
 	text: string,
 	params: Text_Layout_Params,
 	text_measurement: Text_Measurement,
-	allocator: mem.Allocator,
+	persistent_allocator: mem.Allocator,
+	frame_allocator: mem.Allocator,
 ) -> (
 	layout: Text_Layout,
 	alloc_err: mem.Allocator_Error,
@@ -456,13 +457,13 @@ layout_text :: proc(
 	)
 
 	// Minimal pipeline for now
-	paragraphs := make([dynamic]Paragraph, allocator) or_return
+	paragraphs := make([dynamic]Paragraph, frame_allocator) or_return
 	paragraph_segmentation(text, &paragraphs) or_return
 
-	text_runs := make([dynamic]Text_Run, allocator) or_return
+	text_runs := make([dynamic]Text_Run, frame_allocator) or_return
 	style_analysis(paragraphs[:], &text_runs) or_return
 
-	glyphs := make([dynamic]Glyph, allocator) or_return
+	glyphs := make([dynamic]Glyph, persistent_allocator) or_return
 
 	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
 	bidi_analysis()
@@ -478,10 +479,10 @@ layout_text :: proc(
 
 	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
 	// and not on glyphs
-	linebreak_candidates := make([dynamic]Linebreak_Candidate, allocator) or_return
+	linebreak_candidates := make([dynamic]Linebreak_Candidate, frame_allocator) or_return
 	find_linebreak_candidates(paragraphs[:], glyphs[:], &linebreak_candidates) or_return
 
-	rows := make([dynamic]Positioned_Row, allocator) or_return
+	rows := make([dynamic]Positioned_Row, persistent_allocator) or_return
 	layout_rows(
 		paragraphs[:],
 		glyphs[:],

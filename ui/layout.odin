@@ -153,6 +153,11 @@ element_equip_text :: proc(
 	}
 
 	// Measure text to record intrinsic content size.
+	// TODO(Thomas): This is leaking like crazy now.
+	// TODO(Thomas): We should really try to do this in a way that won't
+	// go through the text layout system if not necessary. The reason being that
+	// this will cause cache invalidation to happen all the time, because the wrap_text
+	// wil have another Text_Layout_Parameter for the same UI_Key.
 	text_layout := textpkg.layout_text(
 		text,
 		{
@@ -162,6 +167,7 @@ element_equip_text :: proc(
 			element.config.layout.text_wrap_mode,
 		},
 		ctx.interaction.text_measurement^,
+		ctx.persistent_allocator,
 		ctx.frame_allocator,
 	) or_return
 
@@ -703,6 +709,7 @@ wrap_text :: proc(
 			{wrap_width, ctx.font_id, element.config.layout.text_alignment_x, text_wrap_mode},
 			ctx.interaction.text_measurement^,
 			ctx.persistent_allocator,
+			ctx.frame_allocator,
 		) or_return
 
 

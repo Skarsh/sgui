@@ -51,7 +51,13 @@ check_layout :: proc(
 	params: Text_Layout_Params,
 	loc := #caller_location,
 ) {
-	layout, alloc_err := layout_text(text, params, mock_text_measurement, context.temp_allocator)
+	layout, alloc_err := layout_text(
+		text,
+		params,
+		mock_text_measurement,
+		context.temp_allocator,
+		context.temp_allocator,
+	)
 	assert(alloc_err == .None)
 
 	testing.expectf(
