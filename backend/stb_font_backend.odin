@@ -89,8 +89,19 @@ stb_measure_codepoint :: proc(
 	ctx := cast(^STB_Font_Context)user_data
 	font_metrics := ctx.font_metrics
 	scale := font_metrics.scale
-
 	advance_width, left_side_bearing: i32
+
+	// Handle tab, this is important for other parts relying on the width for rendering
+	// glyphs, caret position etc.
+	if codepoint == '\t' {
+		stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
+		space_width := f32(advance_width) * scale
+		return textpkg.Codepoint_Metrics {
+			width = base.calculate_tab_width(space_width),
+			left_bearing = f32(left_side_bearing),
+		}
+	}
+
 	stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
 	width := f32(advance_width) * scale
 
