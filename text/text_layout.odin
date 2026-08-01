@@ -672,3 +672,49 @@ text_layout_selection_rects :: proc(
 
 	return nil
 }
+
+@(require_results)
+measure_text_intrinsic :: proc(
+	text: string,
+	font_handle: Font_Handle,
+	text_measurement: Text_Measurement,
+) -> base.Vec2 {
+
+	size := base.Vec2{}
+	if len(text) > 0 {
+		metrics := text_measurement.measure_text_proc(
+			text,
+			font_handle,
+			text_measurement.font_user_data,
+		)
+
+		line_height := metrics.line_height
+
+		row_width: f32
+
+		for r in text {
+			// TODO(Thomas): @Speed Cache codepoint metrics, same as the shaping TODO.
+			cm := text_measurement.measure_codepoint_proc(
+				r,
+				font_handle,
+				text_measurement.font_user_data,
+			)
+
+			row_width += cm.width
+
+			if r == '\n' {
+				size.x = max(size.x, row_width)
+				size.y += line_height
+				row_width = 0
+			}
+		}
+
+		// Final line if the text didn't end with a newline
+		if row_width > 0 {
+			size.x = max(size.x, row_width)
+			size.y += line_height
+		}
+	}
+
+	return size
+}

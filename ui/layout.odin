@@ -125,19 +125,12 @@ Element_Config :: struct {
 	content:          Element_Content,
 }
 
-// TODO(Thomas): I don't think a text layout pass here is necessary, nor a good idea.
-// Need to think about whether we can avoid it, and if a sizing pass here is necessary.
-// Attaches text content to an element and records its intrinsic size.
-// The element's sizing mode (Fit, Fixed, Grow) determines how the text affects layout:
-// - Fit: Element sizes to fit text content
-// - Fixed: Element uses specified size, text renders within
-// - Grow: Element can grow/shrink, text wraps as needed
 element_equip_text :: proc(
 	ctx: ^Context,
 	element: ^UI_Element,
 	text: string,
 	text_fill: base.Fill = {},
-) -> mem.Allocator_Error {
+) {
 	element.config.capability_flags |= {.Text}
 
 	if element.config.text_fill == nil {
@@ -151,56 +144,6 @@ element_equip_text :: proc(
 	element.config.content.text_data = Text_Data {
 		text = text,
 	}
-
-	// Measure text to record intrinsic content size.
-	// TODO(Thomas): This is leaking like crazy now.
-	// TODO(Thomas): We should really try to do this in a way that won't
-	// go through the text layout system if not necessary. The reason being that
-	// this will cause cache invalidation to happen all the time, because the wrap_text
-	// wil have another Text_Layout_Parameter for the same UI_Key.
-	text_layout := textpkg.layout_text(
-		text,
-		{
-			textpkg.UNBOUNDED_WIDTH,
-			ctx.font_id,
-			element.config.layout.text_alignment_x,
-			element.config.layout.text_wrap_mode,
-		},
-		ctx.interaction.text_measurement^,
-		ctx.persistent_allocator,
-		ctx.frame_allocator,
-	) or_return
-
-	// Calculate total content size including padding and border
-	padding := element.config.layout.padding
-	border := element.config.layout.border
-
-	element.text_content_size = base.Vec2 {
-		text_layout.size.x + padding.left + padding.right + border.left + border.right,
-		text_layout.size.y + padding.top + padding.bottom + border.top + border.bottom,
-	}
-
-	// Set initial element size based on text content (for Fit/Grow sizing)
-	// Fixed sizing keeps its specified size
-	sizing_x := element.config.layout.sizing.x
-	sizing_y := element.config.layout.sizing.y
-
-	if sizing_x.kind != .Fixed {
-		element.size.x = math.clamp(
-			element.text_content_size.x,
-			element.min_size.x,
-			element.max_size.x,
-		)
-	}
-
-	if sizing_y.kind != .Fixed {
-		element.size.y = math.clamp(
-			element.text_content_size.y,
-			element.min_size.y,
-			element.max_size.y,
-		)
-	}
-	return nil
 }
 
 element_equip_shape :: proc(element: ^UI_Element, shape_data: Shape_Data) {
@@ -658,6 +601,50 @@ resolve_dependent_sizes_for_axis :: proc(
 		resolve_dependent_sizes_for_axis(child, axis, allocator) or_return
 	}
 	return nil
+}
+
+// TODO(Thomas): @Speed This could probably check if the element has fit sizing on
+// any of the axes, because I'm pretty sure that's the only case where this really matters.
+// The element's sizing mode (Fit, Fixed, Grow) determines how the text affects layout:
+// - Fit: Element sizes to fit text content
+// - Fixed: Element uses specified size, text renders within
+// - Grow: Element can grow/shrink, text wraps as needed
+measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
+	if .Text in element.config.capability_flags {
+		intrinsic := textpkg.measure_text_intrinsic(
+			element.config.content.text_data.text,
+			ctx.font_id,
+			ctx.interaction.text_measurement^,
+		)
+
+		padding := element.config.layout.padding
+		border := element.config.layout.border
+
+		element.text_content_size = base.Vec2 {
+			intrinsic.x + padding.left + padding.right + border.left + border.right,
+			intrinsic.y + padding.top + padding.bottom + border.top + border.bottom,
+		}
+
+		if element.config.layout.sizing.x.kind != .Fixed {
+			element.size.x = math.clamp(
+				element.text_content_size.x,
+				element.min_size.x,
+				element.max_size.x,
+			)
+		}
+
+		if element.config.layout.sizing.y.kind != .Fixed {
+			element.size.y = math.clamp(
+				element.text_content_size.y,
+				element.min_size.y,
+				element.max_size.y,
+			)
+		}
+	}
+
+	for child in element.children {
+		measure_text_sizes(ctx, child)
+	}
 }
 
 wrap_text :: proc(

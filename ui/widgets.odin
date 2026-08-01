@@ -23,9 +23,7 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	assert(open_ok)
 
 	if open_ok {
-		equip_alloc_err := element_equip_text(ctx, element, text)
-		assert(equip_alloc_err == .None)
-
+		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
 }
@@ -43,8 +41,7 @@ selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	element, open_ok := open_element(ctx, id, new_style)
 
 	if open_ok {
-		equip_alloc_err := element_equip_text(ctx, element, text)
-		assert(equip_alloc_err == .None)
+		element_equip_text(ctx, element, text)
 		if element.key == ctx.interaction.focused_id {
 
 			key := element.key
@@ -119,8 +116,7 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 	assert(open_ok)
 
 	if open_ok {
-		equip_alloc_err := element_equip_text(ctx, element, text)
-		assert(equip_alloc_err == .None)
+		element_equip_text(ctx, element, text)
 		close_element(ctx)
 	}
 
@@ -312,18 +308,6 @@ scrollbar :: proc(
 	return comm
 }
 
-// Issue found with text_layout when doing selection rects:
-// The text_layout from the previous frame gets deallocated due to frame_allocator
-// being used in the text_layout pass. Potenatially two questions we need to answer:
-// 1. Can we use the Text_Layout produced from the text_layout pass element_equip_text?
-// This could maybe work because text_input does not require the wrap_text pass to be done?
-// Then all we would need is to set the Text_Layout struct produced on the element.
-// 2. If it's for some reason not viable to use the Text_Layout from the equip_element_text
-// pass, then we need to figure out a way to use the last frames' Text_Layout by allocating
-// it in a way that will persist between frames. Then we get the issue of pruning it etc.
-// NOTE(Thomas): I think that using the element_equip_text produced Text_Layout is not
-// the best option, probably that whole pass is a bad idea, and in the near future we want
-// selection to work in a unified way for all text that is supposed to be selectable.
 text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
 	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
 
@@ -360,12 +344,6 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		}
 		assert(text_alloc_err == .None)
 
-		// NOTE(Thomas): We need to store the size from the previous frame so that
-		// we have the size of the proper laid out text_input element. After `element_equip_text`
-		// runs that will have the size of the text that it equips until the layout passes has
-		// been run.
-		last_frame_size := element.size
-
 		// TODO(Thomas): Styling should be flexible
 		element_equip_text(ctx, element, text_view)
 
@@ -395,7 +373,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			start := element.scroll_region.offset.x
 			padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
 			border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
-			end := start + (last_frame_size.x - padding_sum - border_sum)
+			end := start + (element.size.x - padding_sum - border_sum)
 
 			// TODO(Thomas): What about the width of the caret here?
 			if caret_x_offset > end {

@@ -181,20 +181,24 @@ begin :: proc(ctx: ^Context) -> bool {
 
 end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
-	// 1. Fit sizing widths
-	// 2. Update children cross axis widths
-	// 3. Resolve dependent sizes widths
-	// 4. Wrap text
-	// 5. Fit sizing heights
-	// 6. Update chilren cross axis heights
-	// 7. Resolve dependent sizes heights
-	// 8. Positions
-	// 9. Process interactions
-	// 10. Draw commands
+	// 1.  Measure text sizes
+	// 2.  Fit sizing widths
+	// 3.  Update children cross axis widths
+	// 4.  Resolve dependent sizes widths
+	// 5.  Wrap text
+	// 6.  Fit sizing heights
+	// 7.  Update chilren cross axis heights
+	// 8.  Resolve dependent sizes heights
+	// 9.  Positions
+	// 10. Process interactions
+	// 11. Draw commands
 
 	// Close the root element
 	close_element(ctx)
 	assert(ctx.current_parent == nil)
+
+	// Measure text sizes, intrinsic sizes of the text elements
+	measure_text_sizes(ctx, ctx.root_element)
 
 	// Fit sizing widths
 	fit_size_axis(ctx.root_element, .X)
