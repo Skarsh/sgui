@@ -291,18 +291,17 @@ handle_key_up :: proc(input: ^Input, key: Key) {
 }
 
 @(require_results)
-handle_text :: proc(input: ^Input, text: string) -> bool {
+handle_text :: proc(input: ^Input, text: string) -> (ok: bool) {
 	text_input := &input.text_input
 	available := len(text_input.data) - text_input.len
-	assert(len(text) < available)
 
-	if len(text) > available {
-		return false
+	if len(text) <= available {
+		copy(text_input.data[text_input.len:], text)
+		text_input.len += len(text)
+		ok = true
 	}
 
-	copy(text_input.data[text_input.len:], text)
-	text_input.len += len(text)
-	return true
+	return
 }
 
 @(require_results)
