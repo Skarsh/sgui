@@ -1,11 +1,12 @@
 # TODOs
 
 ## Active
+* Selectable text elements needs to be clickable, but clickable will cause hot / active animation, which
+is not necessarily what you want when just selecting text. Figure out how this should work.
 
 ## Bugs
 
 ## Backlog
-* Evaluate whether `element_equip_text` should do a `text_layout` pass or not.
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
