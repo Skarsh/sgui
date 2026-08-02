@@ -5,15 +5,19 @@ import "core:mem"
 
 Text_Layout_Cache_Request :: struct {
 	key:              u64,
+	frame_idx:        u64,
 	text:             string,
 	params:           Text_Layout_Params,
 	text_measurement: Text_Measurement,
 }
 
 Text_Layout_Cache_Entry :: struct {
-	text_hash: u64,
-	params:    Text_Layout_Params,
-	layout:    Text_Layout,
+	text_hash:      u64,
+	params:         Text_Layout_Params,
+	// The frame the entry was last requested on, used by prune_text_layout_cache
+	// to drop entries whose element has stopped being built.
+	last_frame_idx: u64,
+	layout:         Text_Layout,
 }
 
 @(require_results)
@@ -39,10 +43,11 @@ layout_text_cached :: proc(
 	alloc_err: mem.Allocator_Error,
 ) {
 	text_hash := hash.fnv64a(transmute([]u8)req.text)
-	entry, found := cache[req.key]
+	entry, found := &cache[req.key]
 
 	if found && entry.text_hash == text_hash && entry.params == req.params {
 		// Request and entry match, so the cached layout is still valid.
+		entry.last_frame_idx = req.frame_idx
 		layout = entry.layout
 		return
 	}
@@ -58,11 +63,41 @@ layout_text_cached :: proc(
 	) or_return
 
 	if found {
-		free_entry(&entry, persistent_allocator)
+		free_entry(entry, persistent_allocator)
 	}
 
-	cache[req.key] = Text_Layout_Cache_Entry{text_hash, req.params, layout}
+	cache[req.key] = Text_Layout_Cache_Entry {
+		text_hash      = text_hash,
+		params         = req.params,
+		last_frame_idx = req.frame_idx,
+		layout         = layout,
+	}
 	return
+}
+
+// Frees entreis that weren't requested on the last frame.
+prune_text_layout_cache :: proc(
+	cache: ^map[u64]Text_Layout_Cache_Entry,
+	frame_idx: u64,
+	persistent_allocator: mem.Allocator,
+	frame_allocator: mem.Allocator,
+) {
+	// Cannot alter the map while iterating, so we collect the dead keys first.
+	dead_keys, alloc_err := make([dynamic]u64, frame_allocator)
+	assert(alloc_err == .None)
+
+	for key, entry in cache {
+		if entry.last_frame_idx < frame_idx - 1 {
+			_, alloc_err = append(&dead_keys, key)
+			assert(alloc_err == .None)
+		}
+	}
+
+	for key in dead_keys {
+		entry := cache[key]
+		free_entry(&entry, persistent_allocator)
+		delete_key(cache, key)
+	}
 }
 
 @(private)

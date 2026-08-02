@@ -272,6 +272,13 @@ end :: proc(ctx: ^Context) {
 		ctx.frame_allocator,
 	)
 
+	textpkg.prune_text_layout_cache(
+		&ctx.text_layout_cache,
+		ctx.frame_idx,
+		ctx.persistent_allocator,
+		ctx.frame_allocator,
+	)
+
 }
 
 // Prunes dead elements from the cache and the hierarchy

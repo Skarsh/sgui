@@ -683,6 +683,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			&ctx.text_layout_cache,
 			{
 				key = element.key.hash,
+				frame_idx = ctx.frame_idx,
 				text = text,
 				params = {
 					wrap_width,

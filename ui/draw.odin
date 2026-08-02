@@ -1,5 +1,6 @@
 package ui
 
+import "core:fmt"
 import "core:mem"
 
 import "../base"
@@ -38,7 +39,10 @@ push_draw_command :: proc(draw_state: ^Draw_State, command: Command, z_index: i3
 		command   = command,
 	}
 	_, alloc_err := append(&draw_state.command_queue, draw_cmd)
-	assert(alloc_err == .None)
+	assert(
+		alloc_err == .None,
+		fmt.tprintf("allocation error when appending to draw command queue: %v", alloc_err),
+	)
 }
 
 Draw_Command :: struct {
