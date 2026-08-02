@@ -1,5 +1,6 @@
 package ui
 
+import "core:fmt"
 import "core:log"
 import "core:math"
 import "core:mem"
@@ -747,9 +748,7 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 		// Non-cached / Temporary Element
 		err: mem.Allocator_Error
 		element, err = new(UI_Element, ctx.frame_allocator)
-		if err != .None {
-			log.panicf("failed to allocate UI_Element: %v", err)
-		}
+		assert(err == .None, fmt.tprintf("failed to allocate UI_Element: %v", err))
 
 		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
 		// The alternative is to put the responsibility of ensuring the lifetime of the string
@@ -758,14 +757,13 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 		str_clone_err: mem.Allocator_Error
 		element.id_string, str_clone_err = strings.clone(id, ctx.frame_allocator)
 		element.key = key
-		if str_clone_err != .None {
-			log.panicf("failed to allocate memory for cloning id string: %v", str_clone_err)
-		}
+		assert(
+			str_clone_err == .None,
+			fmt.tprintf("failed to allocate memory for cloning id string: %v", str_clone_err),
+		)
 
 		element.children, err = make([dynamic]^UI_Element, ctx.frame_allocator)
-		if err != .None {
-			log.panicf("failed to allocate UI_Element children: %v", err)
-		}
+		assert(err == .None, fmt.tprintf("failed to allocate UI_element children: %v", err))
 
 	} else {
 		// Cached Element
