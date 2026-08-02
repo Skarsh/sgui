@@ -46,6 +46,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 	)
+	defer ui.pop_style(ctx)
 
 	ui.begin_container(
 		ctx,

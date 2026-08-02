@@ -27,8 +27,3 @@ ui_key_hash :: proc(str: string, seed: u64 = 0xcbf29ce484222325) -> UI_Key {
 
 	return UI_Key{hash = h}
 }
-
-@(require_results)
-ui_key_match :: proc(a, b: UI_Key) -> bool {
-	return a.hash == b.hash
-}

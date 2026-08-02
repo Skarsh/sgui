@@ -434,7 +434,7 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 }
 
 // TODO(Thomas): Should the .Shape capability always be added
-// but whether it's visible is set through alhpa value?
+// but whether it's visible is set through alpha value?
 // Phase in/out animation?
 checkbox :: proc(
 	ctx: ^Context,

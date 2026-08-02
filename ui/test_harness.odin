@@ -168,6 +168,7 @@ expect_layout :: proc(
 			expected.id,
 			expected.size,
 			element.size,
+			loc = loc,
 		)
 
 		// Testing children count
@@ -178,6 +179,7 @@ expect_layout :: proc(
 			expected.id,
 			len(expected.children),
 			len(element.children),
+			loc = loc,
 		)
 
 		// Testing children layout

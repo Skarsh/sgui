@@ -199,7 +199,7 @@ find_linebreak_candidates :: proc(
 	return nil
 }
 
-// Produces the content_width (the width of the visual content without trailling whitespace),
+// Produces the content_width (the width of the visual content without trailing whitespace),
 // and the advance_width (the width of all the glyphs on the row, with trailing whitespace).
 @(private)
 measure_row_widths :: proc(glyphs: []Glyph) -> (content_width: f32, advance_width: f32) {
@@ -647,7 +647,7 @@ text_layout_selection_rects :: proc(
 				last := row_glyphs[row_glyphs_len - 1]
 				row_caret_end := last.byte_range.end
 
-				// If the last glyph is a trailling newline, we put the caret
+				// If the last glyph is a trailing newline, we put the caret
 				// right before it.
 				if last.codepoint == '\n' {
 					row_caret_end = last.byte_range.start

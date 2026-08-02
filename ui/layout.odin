@@ -544,7 +544,7 @@ resolve_grow_sizes_for_children :: proc(
 			remaining_size := calc_remaining_size(element^, axis)
 			// Cross axis
 			for child in element.children {
-				// In then non-primary axis case, the child should just grow
+				// In the non-primary axis case, the child should just grow
 				// or shrink to match the size of the parent in that direction.
 				size_kind := child.config.layout.sizing[axis].kind
 				if size_kind == .Grow {
@@ -639,11 +639,7 @@ measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
 	}
 }
 
-wrap_text :: proc(
-	ctx: ^Context,
-	element: ^UI_Element,
-	allocator: mem.Allocator,
-) -> mem.Allocator_Error {
+wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 	if .Text in element.config.capability_flags {
 		border := element.config.layout.border
 		padding := element.config.layout.padding
@@ -708,7 +704,7 @@ wrap_text :: proc(
 	}
 
 	for child in element.children {
-		wrap_text(ctx, child, allocator) or_return
+		wrap_text(ctx, child) or_return
 	}
 	return nil
 }
@@ -757,7 +753,7 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 
 		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
 		// The alternative is to put the responsibility of ensuring the lifetime of the string
-		// is valid over onto the user?? The id string is really unly used to calculuate the hash
+		// is valid over onto the user?? The id string is really only used to calculate the hash
 		// so keeping it alive in the element is mostly for debugging purposes.
 		str_clone_err: mem.Allocator_Error
 		element.id_string, str_clone_err = strings.clone(id, ctx.frame_allocator)
@@ -790,7 +786,7 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 
 			// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
 			// The alternative is to put the responsibility of ensuring the lifetime of the string
-			// is valid over onto the user?? The id string is really unly used to calculuate the hash
+			// is valid over onto the user?? The id string is really only used to calculate the hash
 			// so keeping it alive in the element is mostly for debugging purposes.
 			str_clone_err: mem.Allocator_Error
 			element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
@@ -809,7 +805,7 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 
 
 	// TODO(Thomas): I don't think this is very clean.
-	// This has to happen before the incremeting in update_element_configuration
+	// This has to happen before the incrementing in update_element_configuration
 	// This makes sure that elements that were not present this frame gets their
 	// animations reset, so the don't "freeze" if being hidden etc.
 	was_absent := element.last_frame_idx < ctx.frame_idx - 1
@@ -859,20 +855,6 @@ get_alignment_factors :: #force_inline proc(
 	return {get_alignment_factor(align_x), get_alignment_factor(align_y)}
 }
 
-@(require_results)
-get_axis_padding :: proc(padding: Padding) -> base.Vec2 {
-	return base.Vec2{padding.left + padding.right, padding.top + padding.bottom}
-}
-
-@(require_results)
-get_padding_for_axis :: proc(padding: Padding, axis: base.Axis2) -> (f32, f32) {
-	if axis == .X {
-		return padding.left, padding.right
-	} else {
-		return padding.top, padding.bottom
-	}
-}
-
 // Generic helper for summing box values (padding, border, margin) for a given axis
 @(require_results)
 get_box_sum_for_axis :: proc(box: Box, axis: base.Axis2) -> f32 {
@@ -891,15 +873,6 @@ get_padding_sum_for_axis :: proc(padding: Padding, axis: base.Axis2) -> f32 {
 @(require_results)
 get_border_sum_for_axis :: proc(border: Border, axis: base.Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(border), axis)
-}
-
-@(require_results)
-get_border_for_axis :: proc(border: Border, axis: base.Axis2) -> (f32, f32) {
-	if axis == .X {
-		return border.left, border.right
-	} else {
-		return border.top, border.bottom
-	}
 }
 
 @(require_results)
@@ -1170,7 +1143,7 @@ get_element_pointer_by_string_id :: proc(ctx: ^Context, id: string) -> (^UI_Elem
 }
 
 // Helper to get an element in element cache by key.
-// The returned UI_Element will be a copy of the on in the element cache.
+// The returned UI_Element will be a copy of the one in the element cache.
 @(require_results)
 get_element_by_key :: proc(ctx: ^Context, key: UI_Key) -> (element: UI_Element, ok: bool) {
 	element_ptr, found := ctx.element_cache[key]

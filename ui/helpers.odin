@@ -365,10 +365,12 @@ merge_styles :: proc(a, b: Style) -> Style {
 // Push a Style onto the style stack.
 // Use with defer pop_style(ctx) to ensure proper cleanup.
 push_style :: proc(ctx: ^Context, style: Style) {
-	push(&ctx.style_stack, style)
+	push_ok := push(&ctx.style_stack, style)
+	assert(push_ok, "style nesting is deeper than STYLE_STACK_SIZE allows")
 }
 
 // Pop a Style from the style stack.
 pop_style :: proc(ctx: ^Context) {
-	pop(&ctx.style_stack)
+	_, pop_ok := pop(&ctx.style_stack)
+	assert(pop_ok, "pop_style without a matching push_style")
 }

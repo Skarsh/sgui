@@ -63,7 +63,7 @@ init_interaction :: proc(
 deinit_interaction :: proc(interaction: ^Interaction) {
 	for key in interaction.text_input_states {
 		state := &interaction.text_input_states[key]
-		textpkg.text_buffer_deinit(&state.state.buffer)
+		textpkg.text_edit_deinit(&state.state)
 	}
 	delete(interaction.text_input_states)
 	delete(interaction.text_element_states)
@@ -90,7 +90,7 @@ hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result 
 		assert(element != nil)
 		assert(out != nil)
 		if base.point_in_rect(pos, element_rect(element^)) {
-			// chlidren drawn last are on top, so we visit in reverse
+			// children drawn last are on top, so we visit in reverse
 			#reverse for child in element.children {
 				hit_test_recurse(child, pos, out)
 			}

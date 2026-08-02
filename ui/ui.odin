@@ -231,7 +231,7 @@ end :: proc(ctx: ^Context) {
 	assert(resolve_width_alloc_err == .None)
 
 	// Wrap text
-	wrap_text_alloc_err := wrap_text(ctx, ctx.root_element, ctx.frame_allocator)
+	wrap_text_alloc_err := wrap_text(ctx, ctx.root_element)
 	assert(wrap_text_alloc_err == .None)
 
 	// Fit sizing heights
@@ -240,7 +240,7 @@ end :: proc(ctx: ^Context) {
 	// Update the cross axis size
 	size_children_on_cross_axis(ctx.root_element, .Y)
 
-	// Reolve dependent heights
+	// Resolve dependent heights
 	resolve_height_alloc_err := resolve_dependent_sizes_for_axis(
 		ctx.root_element,
 		.Y,
