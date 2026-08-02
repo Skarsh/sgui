@@ -249,11 +249,7 @@ open_element :: proc(
 ) -> ^UI_Element {
 	final_config := resolve_style(ctx, style, default_style)
 
-	element, element_ok := make_element(ctx, id, final_config)
-	assert(element_ok)
-	if !element_ok {
-		panic("Cannot proceed when failing to make_element, panic")
-	}
+	element := make_element(ctx, id, final_config)
 
 	if push(&ctx.element_stack, element) {
 		element.z_index = ctx.element_stack.top
@@ -717,15 +713,9 @@ wrap_text :: proc(
 	return nil
 }
 
+// Always returns a usable element, will panic if failed to allocate.
 @(require_results)
-make_element :: proc(
-	ctx: ^Context,
-	id: string,
-	element_config: Element_Config,
-) -> (
-	^UI_Element,
-	bool,
-) {
+make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> ^UI_Element {
 
 	update_element_configuration :: proc(element: ^UI_Element, config: Element_Config, idx: u64) {
 		element.last_frame_idx = idx
@@ -761,12 +751,9 @@ make_element :: proc(
 		// Non-cached / Temporary Element
 		err: mem.Allocator_Error
 		element, err = new(UI_Element, ctx.frame_allocator)
-		assert(err == .None)
 		if err != .None {
-			log.error("failed to allocate UI_Element")
-			return nil, false
+			log.panicf("failed to allocate UI_Element: %v", err)
 		}
-
 
 		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
 		// The alternative is to put the responsibility of ensuring the lifetime of the string
@@ -775,15 +762,14 @@ make_element :: proc(
 		str_clone_err: mem.Allocator_Error
 		element.id_string, str_clone_err = strings.clone(id, ctx.frame_allocator)
 		element.key = key
-		assert(str_clone_err == .None)
 		if str_clone_err != .None {
-			log.error("failed to allocate memory for cloning id string")
-			return nil, false
+			log.panicf("failed to allocate memory for cloning id string: %v", str_clone_err)
 		}
 
-
 		element.children, err = make([dynamic]^UI_Element, ctx.frame_allocator)
-		assert(err == .None)
+		if err != .None {
+			log.panicf("failed to allocate UI_Element children: %v", err)
+		}
 
 	} else {
 		// Cached Element
@@ -798,10 +784,8 @@ make_element :: proc(
 		} else {
 			err: mem.Allocator_Error
 			element, err = new(UI_Element, ctx.persistent_allocator)
-			assert(err == .None)
 			if err != .None {
-				log.error("failed to allocate UI_Element")
-				return nil, false
+				log.panicf("failed to allocate UI_Element: %v", err)
 			}
 
 			// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
@@ -811,13 +795,14 @@ make_element :: proc(
 			str_clone_err: mem.Allocator_Error
 			element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
 			element.key = key
-			assert(str_clone_err == .None)
 			if str_clone_err != .None {
-				log.error("failed to allocate memory for cloning id string")
-				return nil, false
+				log.panicf("failed to allocate memory for cloning id string: %v", str_clone_err)
 			}
+
 			element.children, err = make([dynamic]^UI_Element, ctx.persistent_allocator)
-			assert(err == .None)
+			if err != .None {
+				log.panicf("failed to allocate UI_Element children: %v", err)
+			}
 			ctx.element_cache[key] = element
 		}
 	}
@@ -838,10 +823,13 @@ make_element :: proc(
 	element.parent = ctx.current_parent
 	clear_dynamic_array(&element.children)
 	if element.parent != nil {
-		append(&element.parent.children, element)
+		_, append_err := append(&element.parent.children, element)
+		if append_err != .None {
+			log.panicf("failed to append element to its parent: %v", append_err)
+		}
 	}
 
-	return element, true
+	return element
 }
 
 @(require_results)
