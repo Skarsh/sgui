@@ -679,7 +679,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			}
 		}
 
-		text_layout := textpkg.get_text_layout_cache(
+		text_layout := textpkg.layout_text_cached(
 			&ctx.text_layout_cache,
 			{
 				key = element.key.hash,

@@ -1,18 +1,19 @@
 package text
 
+import "core:hash"
 import "core:mem"
 
 Text_Layout_Cache_Request :: struct {
 	key:              u64,
 	text:             string,
 	params:           Text_Layout_Params,
-	// TODO(Thomas): Not sure about this one
 	text_measurement: Text_Measurement,
 }
 
 Text_Layout_Cache_Entry :: struct {
-	req:    Text_Layout_Cache_Request,
-	layout: Text_Layout,
+	text_hash: u64,
+	params:    Text_Layout_Params,
+	layout:    Text_Layout,
 }
 
 @(require_results)
@@ -27,10 +28,8 @@ read_text_layout_cache :: proc(
 	return entry.layout, found
 }
 
-// TODO(Thomas): Better name that makes it clear that this will invalidate
-// cache etc.
 @(require_results)
-get_text_layout_cache :: proc(
+layout_text_cached :: proc(
 	cache: ^map[u64]Text_Layout_Cache_Entry,
 	req: Text_Layout_Cache_Request,
 	persistent_allocator: mem.Allocator,
@@ -39,44 +38,30 @@ get_text_layout_cache :: proc(
 	layout: Text_Layout,
 	alloc_err: mem.Allocator_Error,
 ) {
-
+	text_hash := hash.fnv64a(transmute([]u8)req.text)
 	entry, found := cache[req.key]
 
-	if found {
-		// TODO(Thomas): Compare text_measurement as well?
-		// Compare cache request fields to see if it has changed from
-		if entry.req.text == req.text && entry.req.params == req.params {
-
-			// Caching parameters in the request and the entry are equal
-			// so we set the layout to the layout on the entry.
-			layout = entry.layout
-
-		} else {
-			// Free the previous entry
-			free_entry(&entry, persistent_allocator)
-
-			// Cache is invalidated, compute new layout and insert.
-			layout, alloc_err = layout_text(
-				req.text,
-				req.params,
-				req.text_measurement,
-				persistent_allocator,
-				frame_allocator,
-			)
-			cache[req.key] = Text_Layout_Cache_Entry{req, layout}
-		}
-	} else {
-		// Entry doesn't exist, create layout and set entry
-		layout, alloc_err = layout_text(
-			req.text,
-			req.params,
-			req.text_measurement,
-			persistent_allocator,
-			frame_allocator,
-		)
-		cache[req.key] = Text_Layout_Cache_Entry{req, layout}
+	if found && entry.text_hash == text_hash && entry.params == req.params {
+		// Request and entry match, so the cached layout is still valid.
+		layout = entry.layout
+		return
 	}
 
+	// Cache is invalidated, we build the replacement layout before freeing, so that in case the allocation fails
+	// we will still hold a entry in the cache.
+	layout = layout_text(
+		req.text,
+		req.params,
+		req.text_measurement,
+		persistent_allocator,
+		frame_allocator,
+	) or_return
+
+	if found {
+		free_entry(&entry, persistent_allocator)
+	}
+
+	cache[req.key] = Text_Layout_Cache_Entry{text_hash, req.params, layout}
 	return
 }
 
