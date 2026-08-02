@@ -52,6 +52,7 @@ Capability :: enum {
 	Hot_Animation,
 	Clickable,
 	Focusable,
+	Selectable,
 	Scrollable_X,
 	Scrollable_Y,
 }

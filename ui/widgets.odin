@@ -16,90 +16,57 @@ spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
 text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	element := open_element(ctx, id, style, default_theme().text)
 	element_equip_text(ctx, element, text)
-	close_element(ctx)
-}
 
-// TODO(Thomas): This should probably just be the text_widget and depending on
-// the capabilities specified, it does the text selectable stuff or not.
-// This is temporary to make things work without breaking text() widget.
-selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
+	if .Selectable in element.config.capability_flags {
+		// TODO(Thomas): Think about whether changing the capabilities
+		// like a side-effect here is good, or if we just assert / log instead?
+		// Selection needs to be able to click and take focuse for hit testing
+		element.config.capability_flags |= {.Clickable, .Focusable}
 
-	// TODO(Thomas): Clean up this when done
-	// Making a custom style just to make this work for now
-	new_style := style
-	new_style.clip = Clip_Config{{true, true}}
-	new_style.capability_flags = Capability_Flags{.Clickable, .Focusable, .Scrollable_Y}
-	element := open_element(ctx, id, new_style)
+		if element.key == ctx.interaction.focused_id {
+			key := element.key
+			state, state_exists := &ctx.interaction.text_element_states[key]
 
-	element_equip_text(ctx, element, text)
-	if element.key == ctx.interaction.focused_id {
+			if !state_exists {
+				new_state := Text_Element_State {
+					state = textpkg.Text_Read_Only_State{text = text},
+				}
 
-		key := element.key
-		state, state_exists := &ctx.interaction.text_element_states[key]
-
-		if !state_exists {
-			new_state := Text_Element_State {
-				state = textpkg.Text_Read_Only_State{text = text},
+				ctx.interaction.text_element_states[key] = new_state
+				ok: bool
+				state, ok = &ctx.interaction.text_element_states[key]
+				assert(ok)
 			}
 
-			ctx.interaction.text_element_states[key] = new_state
-			ok: bool
-			state, ok = &ctx.interaction.text_element_states[key]
-			assert(ok)
-		}
-
-
-		// TODO(Thomas): @Perf This should be cached, coming from the text layout
-		// system probably.
-		line_metrics := ctx.interaction.text_measurement.measure_text_proc(
-			"",
-			ctx.font_id,
-			ctx.interaction.text_measurement.font_user_data,
-		)
-
-		caret_height := line_metrics.line_height
-
-		text_layout, found_text_layout := textpkg.read_text_layout_cache(
-			ctx.text_layout_cache,
-			element.key.hash,
-		)
-
-		if found_text_layout {
-			// TODO(Thomas): I really don't think we should draw the selection containers like this.
-			// This will work as a start at least. Alternative would be to put something in draw.odin for this.
-			// Selection
-			selection_id := fmt.tprintf("%s_selection", id)
-			selection := state.state.selection
-			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-
-			rects_alloc_err := textpkg.text_layout_selection_rects(
-				text_layout,
-				selection,
-				&selection_rects,
+			// TODO(Thomas): @Perf This should be cached, coming from the text layout
+			// system probably.
+			line_metrics := ctx.interaction.text_measurement.measure_text_proc(
+				"",
+				ctx.font_id,
+				ctx.interaction.text_measurement.font_user_data,
 			)
 
-			assert(rects_alloc_err == .None)
+			caret_height := line_metrics.line_height
 
-			for sel_rect, idx in selection_rects {
-				rect_sel_id := fmt.tprintf("%v_sel_rect_%d", selection_id, idx)
-				container(
+			text_layout, found_text_layout := textpkg.read_text_layout_cache(
+				ctx.text_layout_cache,
+				element.key.hash,
+			)
+
+			if found_text_layout {
+				build_selection(
 					ctx,
-					rect_sel_id,
-					Style {
-						sizing_x = sizing_fixed(sel_rect.w),
-						sizing_y = sizing_fixed(caret_height),
-						alignment_x = .Left,
-						alignment_y = .Top,
-						relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
-						element.scroll_region.offset,
-						background_fill = base.fill_color(255, 255, 255, 128),
-						capability_flags = Capability_Flags{.Background},
-						position_mode = .Anchored,
-					},
+					element,
+					id,
+					state.state.selection,
+					text_layout,
+					caret_height,
+					.Top,
 				)
 			}
 		}
 	}
+
 
 	close_element(ctx)
 }
@@ -396,41 +363,15 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		)
 
 		if found_text_layout {
-			// TODO(Thomas): I really don't think we should draw the selection containers like this.
-			// This will work as a start at least. Alternative would be to put something in draw.odin for this.
-			// Selection
-			selection_id := fmt.tprintf("%s_selection", id)
-			selection := state.state.selection
-			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-
-			rects_alloc_err := textpkg.text_layout_selection_rects(
+			build_selection(
+				ctx,
+				element,
+				id,
+				state.state.selection,
 				text_layout,
-				selection,
-				&selection_rects,
+				caret_height,
+				.Center,
 			)
-
-			assert(rects_alloc_err == .None)
-			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
-
-			if len(selection_rects) == 1 {
-				container(
-					ctx,
-					selection_id,
-					Style {
-						sizing_x = sizing_fixed(selection_rects[0].w),
-						sizing_y = sizing_fixed(caret_height),
-						alignment_x = .Left,
-						alignment_y = .Center,
-						relative_position = base.Vec2 {
-							selection_rects[0].x - element.scroll_region.offset.x,
-							0,
-						},
-						background_fill = base.fill_color(255, 255, 255, 128),
-						capability_flags = Capability_Flags{.Background},
-						position_mode = .Anchored,
-					},
-				)
-			}
 		}
 	}
 
@@ -477,4 +418,48 @@ image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = 
 	close_element(ctx)
 
 	return element.last_comm
+}
+
+// TODO(Thomas): I really don't think we should draw the selection containers like this.
+// This will work as a start at least. Alternative would be to put something in draw.odin for this.
+@(private)
+build_selection :: proc(
+	ctx: ^Context,
+	element: ^UI_Element,
+	id: string,
+	selection: textpkg.Selection,
+	text_layout: textpkg.Text_Layout,
+	caret_height: f32,
+	alignment_y: base.Alignment_Y,
+) {
+
+	selection_id := fmt.tprintf("%s_selection", id)
+	selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
+
+	rects_alloc_err := textpkg.text_layout_selection_rects(
+		text_layout,
+		selection,
+		&selection_rects,
+	)
+
+	assert(rects_alloc_err == .None)
+
+	for sel_rect, idx in selection_rects {
+		rect_sel_id := fmt.tprintf("%v_sel_rect_%d", selection_id, idx)
+		container(
+			ctx,
+			rect_sel_id,
+			Style {
+				sizing_x = sizing_fixed(sel_rect.w),
+				sizing_y = sizing_fixed(caret_height),
+				alignment_x = .Left,
+				alignment_y = alignment_y,
+				relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
+				element.scroll_region.offset,
+				background_fill = base.fill_color(255, 255, 255, 128),
+				capability_flags = Capability_Flags{.Background},
+				position_mode = .Anchored,
+			},
+		)
+	}
 }
