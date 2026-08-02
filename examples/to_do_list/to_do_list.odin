@@ -44,229 +44,228 @@ add_new_task :: proc(data: ^Data, text: string) {
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
-	if ui.begin(ctx) {
-		// --- Global Style Scope ---
-		ui.push_style(
-			ctx,
-			ui.Style {
-				background_fill = WINDOW_BG,
-				capability_flags = ui.Capability_Flags{.Background},
-				text_fill = TEXT_COLOR,
-			},
-		)
+	ui.begin(ctx)
+	// --- Global Style Scope ---
+	ui.push_style(
+		ctx,
+		ui.Style {
+			background_fill = WINDOW_BG,
+			capability_flags = ui.Capability_Flags{.Background},
+			text_fill = TEXT_COLOR,
+		},
+	)
+	defer ui.pop_style(ctx)
+
+	// --- Main Panel (centered) ---
+	ui.begin_container(
+		ctx,
+		"main_panel",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			alignment_x = base.Alignment_X.Center,
+			alignment_y = base.Alignment_Y.Center,
+		},
+	)
+
+	// --- Inner content panel ---
+	ui.begin_container(
+		ctx,
+		"panel",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			padding = ui.padding_all(25),
+			border_radius = ui.border_radius_all(10),
+			layout_direction = ui.Layout_Direction.Top_To_Bottom,
+			child_gap = 15,
+			background_fill = PANEL_BG,
+		},
+	)
+	// --- Title ---
+	ui.text(
+		ctx,
+		"title",
+		"Odin To-Do List",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(max = 50),
+			text_alignment_x = base.Alignment_X.Center,
+			background_fill = base.fill_color(0, 0, 0, 0),
+		},
+	)
+
+	// -- Task List Wrapper
+	ui.begin_container(
+		ctx,
+		"task_list_wrapper",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(max = 350),
+			layout_direction = ui.Layout_Direction.Left_To_Right,
+			child_gap = 5,
+			border = ui.Border{top = 8, right = 7, bottom = 10, left = 5},
+			padding = ui.padding_all(5),
+			background_fill = base.fill_color(50, 50, 55),
+			border_fill = base.fill_color(100, 69, 69),
+		},
+	)
+
+	// --- Task List ---
+	task_list_id := "task_list"
+	ui.begin_container(
+		ctx,
+		task_list_id,
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(max = 300),
+			layout_direction = ui.Layout_Direction.Top_To_Bottom,
+			child_gap = 8,
+			padding = ui.padding_all(10),
+			capability_flags = ui.Capability_Flags{.Scrollable_Y},
+			clip = ui.Clip_Config{clip_axes = {true, true}},
+		},
+	)
+
+	for &task, i in data.tasks {
+
+		// --- Task Row ---
+		ui.push_style(ctx, ui.Style{background_fill = ROW_BG})
 		defer ui.pop_style(ctx)
 
-		// --- Main Panel (centered) ---
 		ui.begin_container(
 			ctx,
-			"main_panel",
-			ui.Style {
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				alignment_x = base.Alignment_X.Center,
-				alignment_y = base.Alignment_Y.Center,
-			},
-		)
-
-		// --- Inner content panel ---
-		ui.begin_container(
-			ctx,
-			"panel",
-			ui.Style {
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				padding = ui.padding_all(25),
-				border_radius = ui.border_radius_all(10),
-				layout_direction = ui.Layout_Direction.Top_To_Bottom,
-				child_gap = 15,
-				background_fill = PANEL_BG,
-			},
-		)
-		// --- Title ---
-		ui.text(
-			ctx,
-			"title",
-			"Odin To-Do List",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_grow(max = 50),
-				text_alignment_x = base.Alignment_X.Center,
-				background_fill = base.fill_color(0, 0, 0, 0),
-			},
-		)
-
-		// -- Task List Wrapper
-		ui.begin_container(
-			ctx,
-			"task_list_wrapper",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fit(max = 350),
-				layout_direction = ui.Layout_Direction.Left_To_Right,
-				child_gap = 5,
-				border = ui.Border{top = 8, right = 7, bottom = 10, left = 5},
-				padding = ui.padding_all(5),
-				background_fill = base.fill_color(50, 50, 55),
-				border_fill = base.fill_color(100, 69, 69),
-			},
-		)
-
-		// --- Task List ---
-		task_list_id := "task_list"
-		ui.begin_container(
-			ctx,
-			task_list_id,
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_fit(max = 300),
-				layout_direction = ui.Layout_Direction.Top_To_Bottom,
-				child_gap = 8,
-				padding = ui.padding_all(10),
-				capability_flags = ui.Capability_Flags{.Scrollable_Y},
-				clip = ui.Clip_Config{clip_axes = {true, true}},
-			},
-		)
-
-		for &task, i in data.tasks {
-
-			// --- Task Row ---
-			ui.push_style(ctx, ui.Style{background_fill = ROW_BG})
-			defer ui.pop_style(ctx)
-
-			ui.begin_container(
-				ctx,
-				fmt.tprintf("task_row_%d", i),
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					sizing_y = ui.sizing_fit(),
-					layout_direction = ui.Layout_Direction.Left_To_Right,
-					alignment_y = base.Alignment_Y.Center,
-					child_gap = 10,
-					padding = ui.padding_all(5),
-				},
-			)
-
-			// --- Checkbox Button ---
-			current_checkbox_color := CHECKBOX_EMPTY_BG
-			if task.completed {
-				current_checkbox_color = CHECKBOX_DONE_BG
-			}
-
-			ui.checkbox(
-				ctx,
-				fmt.tprintf("tasks_checkbox_%d", i),
-				&task.completed,
-				ui.Shape_Data{ui.Shape_Kind.Checkmark, base.fill_color(255, 255, 255), 2.0},
-				ui.Style {
-					sizing_x = ui.sizing_fixed(36),
-					sizing_y = ui.sizing_fixed(36),
-					background_fill = current_checkbox_color,
-				},
-			)
-
-			// --- Task Text ---
-			task_id := fmt.tprintf("task_text_%d", i)
-
-			task_text_color := TEXT_COLOR
-			if task.completed {
-				task_text_color = COMPLETED_TEXT_COLOR
-			}
-
-			ui.text(
-				ctx,
-				task_id,
-				task.text,
-				ui.Style {
-					sizing_x = ui.sizing_grow(),
-					alignment_y = base.Alignment_Y.Center,
-					text_alignment_y = base.Alignment_Y.Center,
-					text_fill = task_text_color,
-				},
-			)
-
-			// --- Delete Button ---
-			delete_button_id := fmt.tprintf("task_delete_button_%d", i)
-			delete_comm := ui.button(
-				ctx,
-				delete_button_id,
-				"Delete",
-				ui.Style {
-					sizing_x = ui.sizing_fit(),
-					sizing_y = ui.sizing_fit(),
-					border_radius = ui.border_radius_all(3.0),
-					background_fill = DELETE_BUTTON_COLOR,
-				},
-			)
-			if delete_comm.clicked {
-				ordered_remove(&data.tasks, i)
-			}
-
-			ui.end_container(ctx)
-
-		}
-
-		ui.end_container(ctx)
-
-
-		ui.scrollbar(
-			ctx,
-			"task_list_scrollbar",
-			task_list_id,
-			.Y,
-			ui.Style {
-				sizing_x = ui.sizing_fixed(12),
-				sizing_y = ui.sizing_grow(),
-				border_radius = ui.border_radius_all(6.0),
-				background_fill = base.fill_color(0, 0, 0, 0),
-				position_mode = .Flow,
-			},
-		)
-
-		ui.end_container(ctx)
-
-
-		ui.spacer(ctx, style = ui.Style{background_fill = base.fill_color(0, 0, 0, 0)})
-
-		// --- Add Task Panel ---
-		input_comm, add_button_comm: ui.Comm
-		ui.begin_container(
-			ctx,
-			"add_task_panel",
+			fmt.tprintf("task_row_%d", i),
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_fit(),
 				layout_direction = ui.Layout_Direction.Left_To_Right,
+				alignment_y = base.Alignment_Y.Center,
 				child_gap = 10,
+				padding = ui.padding_all(5),
 			},
 		)
-		// --- Text Input field ---
-		input_comm = ui.text_input(
+
+		// --- Checkbox Button ---
+		current_checkbox_color := CHECKBOX_EMPTY_BG
+		if task.completed {
+			current_checkbox_color = CHECKBOX_DONE_BG
+		}
+
+		ui.checkbox(
 			ctx,
-			"new_task_input",
-			data.new_task_buf,
-			style = ui.Style{background_fill = ITEM_BG},
+			fmt.tprintf("tasks_checkbox_%d", i),
+			&task.completed,
+			ui.Shape_Data{ui.Shape_Kind.Checkmark, base.fill_color(255, 255, 255), 2.0},
+			ui.Style {
+				sizing_x = ui.sizing_fixed(36),
+				sizing_y = ui.sizing_fixed(36),
+				background_fill = current_checkbox_color,
+			},
 		)
 
-		// --- Add Button ---
-		add_button_comm = ui.button(
+		// --- Task Text ---
+		task_id := fmt.tprintf("task_text_%d", i)
+
+		task_text_color := TEXT_COLOR
+		if task.completed {
+			task_text_color = COMPLETED_TEXT_COLOR
+		}
+
+		ui.text(
 			ctx,
-			"add_task_button",
-			"Add",
-			ui.Style{background_fill = ADD_BUTTON_COLOR},
+			task_id,
+			task.text,
+			ui.Style {
+				sizing_x = ui.sizing_grow(),
+				alignment_y = base.Alignment_Y.Center,
+				text_alignment_y = base.Alignment_Y.Center,
+				text_fill = task_text_color,
+			},
 		)
 
-		if add_button_comm.clicked {
-			add_new_task(data, input_comm.text)
+		// --- Delete Button ---
+		delete_button_id := fmt.tprintf("task_delete_button_%d", i)
+		delete_comm := ui.button(
+			ctx,
+			delete_button_id,
+			"Delete",
+			ui.Style {
+				sizing_x = ui.sizing_fit(),
+				sizing_y = ui.sizing_fit(),
+				border_radius = ui.border_radius_all(3.0),
+				background_fill = DELETE_BUTTON_COLOR,
+			},
+		)
+		if delete_comm.clicked {
+			ordered_remove(&data.tasks, i)
 		}
 
 		ui.end_container(ctx)
 
-		ui.end_container(ctx)
-
-		ui.end_container(ctx)
-
-		ui.end(ctx)
 	}
+
+	ui.end_container(ctx)
+
+
+	ui.scrollbar(
+		ctx,
+		"task_list_scrollbar",
+		task_list_id,
+		.Y,
+		ui.Style {
+			sizing_x = ui.sizing_fixed(12),
+			sizing_y = ui.sizing_grow(),
+			border_radius = ui.border_radius_all(6.0),
+			background_fill = base.fill_color(0, 0, 0, 0),
+			position_mode = .Flow,
+		},
+	)
+
+	ui.end_container(ctx)
+
+
+	ui.spacer(ctx, style = ui.Style{background_fill = base.fill_color(0, 0, 0, 0)})
+
+	// --- Add Task Panel ---
+	input_comm, add_button_comm: ui.Comm
+	ui.begin_container(
+		ctx,
+		"add_task_panel",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_fit(),
+			layout_direction = ui.Layout_Direction.Left_To_Right,
+			child_gap = 10,
+		},
+	)
+	// --- Text Input field ---
+	input_comm = ui.text_input(
+		ctx,
+		"new_task_input",
+		data.new_task_buf,
+		style = ui.Style{background_fill = ITEM_BG},
+	)
+
+	// --- Add Button ---
+	add_button_comm = ui.button(
+		ctx,
+		"add_task_button",
+		"Add",
+		ui.Style{background_fill = ADD_BUTTON_COLOR},
+	)
+
+	if add_button_comm.clicked {
+		add_new_task(data, input_comm.text)
+	}
+
+	ui.end_container(ctx)
+
+	ui.end_container(ctx)
+
+	ui.end_container(ctx)
+
+	ui.end(ctx)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {

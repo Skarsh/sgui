@@ -30,114 +30,113 @@ cycle_enum :: proc(v: $T) -> T where intrinsics.type_is_enum(T) {
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
-	if ui.begin(ctx) {
+	ui.begin(ctx)
 
-		ui.push_style(
-			ctx,
-			ui.Style {
-				background_fill = base.fill_color(40, 40, 40),
-				capability_flags = ui.Capability_Flags{.Background},
-			},
-		)
-		defer ui.pop_style(ctx)
+	ui.push_style(
+		ctx,
+		ui.Style {
+			background_fill = base.fill_color(40, 40, 40),
+			capability_flags = ui.Capability_Flags{.Background},
+		},
+	)
+	defer ui.pop_style(ctx)
 
-		ui.begin_container(
-			ctx,
-			"main_container",
-			ui.Style {
-				alignment_x = .Center,
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				padding = ui.padding_all(10),
-				child_gap = 40,
-				layout_direction = .Top_To_Bottom,
-			},
-		)
-
-
-		// NOTE(Thomas): This isn't affected by text alignment yet.
-		ui.text(ctx, "text_input_label", "Text Input")
-		ui.text_input(
-			ctx,
-			"text_input",
-			data.text_input_buf,
-			ui.Style{background_fill = base.fill_color(20, 20, 20)},
-		)
-
-		ui.text(ctx, "controls_label", "Sample Text Controls")
-
-		ui.begin_container(
-			ctx,
-			"controls",
-			ui.Style{child_gap = 10, layout_direction = .Left_To_Right},
-		)
-		ui.push_style(ctx, ui.Style{background_fill = base.fill_color(80, 80, 80)})
-		if ui.button(ctx, "cycle_align_x", "align x").clicked {
-			data.align_x = cycle_enum(data.align_x)
-		}
-
-		if ui.button(ctx, "cycle_align_y", "align y").clicked {
-			data.align_y = cycle_enum(data.align_y)
-		}
-
-		if ui.button(ctx, "cycle_wrap_mode", "wrap mode").clicked {
-			data.wrap_mode = cycle_enum(data.wrap_mode)
-		}
-		ui.pop_style(ctx)
-
-		// controls
-		ui.end_container(ctx)
-
-		status_str := fmt.bprintf(
-			data.status_str_buf,
-			"align_x: %v | align_y: %v | wrap: %v",
-			data.align_x,
-			data.align_y,
-			data.wrap_mode,
-		)
-		ui.text(ctx, "status", status_str)
+	ui.begin_container(
+		ctx,
+		"main_container",
+		ui.Style {
+			alignment_x = .Center,
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			padding = ui.padding_all(10),
+			child_gap = 40,
+			layout_direction = .Top_To_Bottom,
+		},
+	)
 
 
-		//ui.text(
-		//	ctx,
-		//	"label",
-		//	SAMPLE_TEXT,
-		//	ui.Style {
-		//		sizing_x = ui.sizing_fixed(700),
-		//		sizing_y = ui.sizing_fixed(400),
-		//		text_alignment_x = data.align_x,
-		//		text_alignment_y = data.align_y,
-		//		text_wrap_mode = data.wrap_mode,
-		//		padding = ui.padding_all(20),
-		//		border = ui.border_all(10),
-		//		background_fill = base.fill_color(60, 60, 60),
-		//		capability_flags = ui.Capability_Flags{.Scrollable_Y},
-		//	},
-		//)
+	// NOTE(Thomas): This isn't affected by text alignment yet.
+	ui.text(ctx, "text_input_label", "Text Input")
+	ui.text_input(
+		ctx,
+		"text_input",
+		data.text_input_buf,
+		ui.Style{background_fill = base.fill_color(20, 20, 20)},
+	)
 
-		ui.selectable_text(
-			ctx,
-			"label",
-			SAMPLE_TEXT,
-			ui.Style {
-				sizing_x = ui.sizing_fixed(700),
-				sizing_y = ui.sizing_fixed(400),
-				text_alignment_x = data.align_x,
-				text_alignment_y = data.align_y,
-				text_wrap_mode = data.wrap_mode,
-				padding = ui.padding_all(20),
-				border = ui.border_all(10),
-				background_fill = base.fill_color(60, 60, 60),
-				capability_flags = ui.Capability_Flags{.Scrollable_Y},
-			},
-		)
+	ui.text(ctx, "controls_label", "Sample Text Controls")
 
-
-		// main container
-		ui.end_container(ctx)
-
-		ui.end(ctx)
+	ui.begin_container(
+		ctx,
+		"controls",
+		ui.Style{child_gap = 10, layout_direction = .Left_To_Right},
+	)
+	ui.push_style(ctx, ui.Style{background_fill = base.fill_color(80, 80, 80)})
+	if ui.button(ctx, "cycle_align_x", "align x").clicked {
+		data.align_x = cycle_enum(data.align_x)
 	}
+
+	if ui.button(ctx, "cycle_align_y", "align y").clicked {
+		data.align_y = cycle_enum(data.align_y)
+	}
+
+	if ui.button(ctx, "cycle_wrap_mode", "wrap mode").clicked {
+		data.wrap_mode = cycle_enum(data.wrap_mode)
+	}
+	ui.pop_style(ctx)
+
+	// controls
+	ui.end_container(ctx)
+
+	status_str := fmt.bprintf(
+		data.status_str_buf,
+		"align_x: %v | align_y: %v | wrap: %v",
+		data.align_x,
+		data.align_y,
+		data.wrap_mode,
+	)
+	ui.text(ctx, "status", status_str)
+
+
+	//ui.text(
+	//	ctx,
+	//	"label",
+	//	SAMPLE_TEXT,
+	//	ui.Style {
+	//		sizing_x = ui.sizing_fixed(700),
+	//		sizing_y = ui.sizing_fixed(400),
+	//		text_alignment_x = data.align_x,
+	//		text_alignment_y = data.align_y,
+	//		text_wrap_mode = data.wrap_mode,
+	//		padding = ui.padding_all(20),
+	//		border = ui.border_all(10),
+	//		background_fill = base.fill_color(60, 60, 60),
+	//		capability_flags = ui.Capability_Flags{.Scrollable_Y},
+	//	},
+	//)
+
+	ui.selectable_text(
+		ctx,
+		"label",
+		SAMPLE_TEXT,
+		ui.Style {
+			sizing_x = ui.sizing_fixed(700),
+			sizing_y = ui.sizing_fixed(400),
+			text_alignment_x = data.align_x,
+			text_alignment_y = data.align_y,
+			text_wrap_mode = data.wrap_mode,
+			padding = ui.padding_all(20),
+			border = ui.border_all(10),
+			background_fill = base.fill_color(60, 60, 60),
+			capability_flags = ui.Capability_Flags{.Scrollable_Y},
+		},
+	)
+
+
+	// main container
+	ui.end_container(ctx)
+
+	ui.end(ctx)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {

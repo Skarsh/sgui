@@ -9,23 +9,14 @@ import textpkg "../text"
 import fixed_buffer "../text/fixed_buffer"
 
 spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
-	_, open_ok := open_element(ctx, id, style, default_theme().spacer)
-
-	assert(open_ok)
-
-	if open_ok {
-		close_element(ctx)
-	}
+	_ = open_element(ctx, id, style, default_theme().spacer)
+	close_element(ctx)
 }
 
 text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
-	element, open_ok := open_element(ctx, id, style, default_theme().text)
-	assert(open_ok)
-
-	if open_ok {
-		element_equip_text(ctx, element, text)
-		close_element(ctx)
-	}
+	element := open_element(ctx, id, style, default_theme().text)
+	element_equip_text(ctx, element, text)
+	close_element(ctx)
 }
 
 // TODO(Thomas): This should probably just be the text_widget and depending on
@@ -38,87 +29,81 @@ selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	new_style := style
 	new_style.clip = Clip_Config{{true, true}}
 	new_style.capability_flags = Capability_Flags{.Clickable, .Focusable, .Scrollable_Y}
-	element, open_ok := open_element(ctx, id, new_style)
+	element := open_element(ctx, id, new_style)
 
-	if open_ok {
-		element_equip_text(ctx, element, text)
-		if element.key == ctx.interaction.focused_id {
+	element_equip_text(ctx, element, text)
+	if element.key == ctx.interaction.focused_id {
 
-			key := element.key
-			state, state_exists := &ctx.interaction.text_element_states[key]
+		key := element.key
+		state, state_exists := &ctx.interaction.text_element_states[key]
 
-			if !state_exists {
-				new_state := Text_Element_State {
-					state = textpkg.Text_Read_Only_State{text = text},
-				}
-
-				ctx.interaction.text_element_states[key] = new_state
-				ok: bool
-				state, ok = &ctx.interaction.text_element_states[key]
-				assert(ok)
+		if !state_exists {
+			new_state := Text_Element_State {
+				state = textpkg.Text_Read_Only_State{text = text},
 			}
 
-
-			// TODO(Thomas): @Perf This should be cached, coming from the text layout
-			// system probably.
-			line_metrics := ctx.interaction.text_measurement.measure_text_proc(
-				"",
-				ctx.font_id,
-				ctx.interaction.text_measurement.font_user_data,
-			)
-
-			caret_height := line_metrics.line_height
-
-			text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
-			if found_text_layout {
-				// TODO(Thomas): I really don't think we should draw the selection containers like this.
-				// This will work as a start at least. Alternative would be to put something in draw.odin for this.
-				// Selection
-				selection_id := fmt.tprintf("%s_selection", id)
-				selection := state.state.selection
-				selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-
-				rects_alloc_err := textpkg.text_layout_selection_rects(
-					text_layout,
-					selection,
-					&selection_rects,
-				)
-
-				assert(rects_alloc_err == .None)
-
-				for sel_rect, idx in selection_rects {
-					rect_sel_id := fmt.tprintf("%v_sel_rect_%d", selection_id, idx)
-					container(
-						ctx,
-						rect_sel_id,
-						Style {
-							sizing_x = sizing_fixed(sel_rect.w),
-							sizing_y = sizing_fixed(caret_height),
-							alignment_x = .Left,
-							alignment_y = .Top,
-							relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
-							element.scroll_region.offset,
-							background_fill = base.fill_color(255, 255, 255, 128),
-							capability_flags = Capability_Flags{.Background},
-							position_mode = .Anchored,
-						},
-					)
-				}
-			}
+			ctx.interaction.text_element_states[key] = new_state
+			ok: bool
+			state, ok = &ctx.interaction.text_element_states[key]
+			assert(ok)
 		}
 
-		close_element(ctx)
+
+		// TODO(Thomas): @Perf This should be cached, coming from the text layout
+		// system probably.
+		line_metrics := ctx.interaction.text_measurement.measure_text_proc(
+			"",
+			ctx.font_id,
+			ctx.interaction.text_measurement.font_user_data,
+		)
+
+		caret_height := line_metrics.line_height
+
+		text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+		if found_text_layout {
+			// TODO(Thomas): I really don't think we should draw the selection containers like this.
+			// This will work as a start at least. Alternative would be to put something in draw.odin for this.
+			// Selection
+			selection_id := fmt.tprintf("%s_selection", id)
+			selection := state.state.selection
+			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
+
+			rects_alloc_err := textpkg.text_layout_selection_rects(
+				text_layout,
+				selection,
+				&selection_rects,
+			)
+
+			assert(rects_alloc_err == .None)
+
+			for sel_rect, idx in selection_rects {
+				rect_sel_id := fmt.tprintf("%v_sel_rect_%d", selection_id, idx)
+				container(
+					ctx,
+					rect_sel_id,
+					Style {
+						sizing_x = sizing_fixed(sel_rect.w),
+						sizing_y = sizing_fixed(caret_height),
+						alignment_x = .Left,
+						alignment_y = .Top,
+						relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
+						element.scroll_region.offset,
+						background_fill = base.fill_color(255, 255, 255, 128),
+						capability_flags = Capability_Flags{.Background},
+						position_mode = .Anchored,
+					},
+				)
+			}
+		}
 	}
+
+	close_element(ctx)
 }
 
 button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().button)
-	assert(open_ok)
-
-	if open_ok {
-		element_equip_text(ctx, element, text)
-		close_element(ctx)
-	}
+	element := open_element(ctx, id, style, default_theme().button)
+	element_equip_text(ctx, element, text)
+	close_element(ctx)
 
 	return element.last_comm
 }
@@ -161,58 +146,53 @@ slider :: proc(
 	track_style.sizing_x = is_vert ? sizing_fixed(thumb_size.x) : sizing_grow()
 	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
 
-	track, track_ok := open_element(ctx, id, style, track_style)
+	track := open_element(ctx, id, style, track_style)
 	slider_comm := track.last_comm
-	if track_ok {
 
-		// Make thumb
-		thumb, thumb_ok := open_element(
-			ctx,
-			fmt.aprintf("%s_thumb", id, allocator = ctx.frame_allocator),
-			resolved_thumb,
-		)
-		if thumb_ok {
+	// Make thumb
+	thumb := open_element(
+		ctx,
+		fmt.aprintf("%s_thumb", id, allocator = ctx.frame_allocator),
+		resolved_thumb,
+	)
 
-			padding := track.config.layout.padding
-			border := track.config.layout.border
+	padding := track.config.layout.padding
+	border := track.config.layout.border
 
-			start_space := is_vert ? (padding.top + border.top) : (padding.left + border.left)
-			end_space :=
-				is_vert ? (padding.bottom + border.bottom) : (padding.right + border.right)
+	start_space := is_vert ? (padding.top + border.top) : (padding.left + border.left)
+	end_space := is_vert ? (padding.bottom + border.bottom) : (padding.right + border.right)
 
-			axis_idx := int(axis)
-			travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
+	axis_idx := int(axis)
+	travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
 
-			range := max_val - min_val
-			if (track.last_comm.clicked || thumb.last_comm.held) && travel_len > 0 {
-				mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
-				mouse_rel := mouse_val - track.position[axis_idx] - start_space
+	range := max_val - min_val
+	if (track.last_comm.clicked || thumb.last_comm.held) && travel_len > 0 {
+		mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
+		mouse_rel := mouse_val - track.position[axis_idx] - start_space
 
-				// Calculate ratio (centering thumb on mouse)
-				ratio := (mouse_rel - thumb_size[axis_idx] * 0.5) / travel_len
-				value^ = min_val + (math.clamp(ratio, 0, 1) * range)
-			}
-
-			// Visual Positioning
-			ratio := range != 0 ? math.clamp((value^ - min_val) / range, 0, 1) : 0.0
-			offset := ratio * travel_len
-
-			if is_vert {
-				thumb.config.layout.relative_position = {0, offset}
-			} else {
-				thumb.config.layout.relative_position = {offset, 0}
-			}
-
-			slider_comm.held |= thumb.last_comm.held
-			slider_comm.clicked |= thumb.last_comm.clicked
-			slider_comm.active |= thumb.last_comm.active
-			slider_comm.hovering |= thumb.last_comm.hovering
-
-			close_element(ctx)
-		}
-
-		close_element(ctx)
+		// Calculate ratio (centering thumb on mouse)
+		ratio := (mouse_rel - thumb_size[axis_idx] * 0.5) / travel_len
+		value^ = min_val + (math.clamp(ratio, 0, 1) * range)
 	}
+
+	// Visual Positioning
+	ratio := range != 0 ? math.clamp((value^ - min_val) / range, 0, 1) : 0.0
+	offset := ratio * travel_len
+
+	if is_vert {
+		thumb.config.layout.relative_position = {0, offset}
+	} else {
+		thumb.config.layout.relative_position = {offset, 0}
+	}
+
+	slider_comm.held |= thumb.last_comm.held
+	slider_comm.clicked |= thumb.last_comm.clicked
+	slider_comm.active |= thumb.last_comm.active
+	slider_comm.hovering |= thumb.last_comm.hovering
+
+	close_element(ctx) // thumb
+
+	close_element(ctx) // track
 
 	return slider_comm
 }
@@ -309,152 +289,146 @@ scrollbar :: proc(
 }
 
 text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().text_input)
+	element := open_element(ctx, id, style, default_theme().text_input)
 
-	if open_ok {
+	key := element.key
+	state, state_exists := &ctx.interaction.text_input_states[key]
 
-		key := element.key
-		state, state_exists := &ctx.interaction.text_input_states[key]
+	if !state_exists {
+		new_state := Text_Input_State{}
 
-		if !state_exists {
-			new_state := Text_Input_State{}
-
-			fixed_buf := fixed_buffer.Fixed_Buffer {
-				buf = buf,
-				len = 0,
-			}
-			text_buffer := textpkg.Text_Buffer {
-				buf = fixed_buf,
-			}
-
-			textpkg.text_edit_init(&new_state.state, text_buffer)
-
-			ctx.interaction.text_input_states[key] = new_state
-			state = &ctx.interaction.text_input_states[key]
+		fixed_buf := fixed_buffer.Fixed_Buffer {
+			buf = buf,
+			len = 0,
+		}
+		text_buffer := textpkg.Text_Buffer {
+			buf = fixed_buf,
 		}
 
-		//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
-		// which will free at the beginning of the next frame.
-		text_view, text_alloc_err := textpkg.text_buffer_text(
-			state.state.buffer,
-			ctx.frame_allocator,
+		textpkg.text_edit_init(&new_state.state, text_buffer)
+
+		ctx.interaction.text_input_states[key] = new_state
+		state = &ctx.interaction.text_input_states[key]
+	}
+
+	//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
+	// which will free at the beginning of the next frame.
+	text_view, text_alloc_err := textpkg.text_buffer_text(state.state.buffer, ctx.frame_allocator)
+	if text_alloc_err != .None {
+		log.error("Error when trying to get text buffer text: ", text_alloc_err)
+	}
+	assert(text_alloc_err == .None)
+
+	// TODO(Thomas): Styling should be flexible
+	element_equip_text(ctx, element, text_view)
+
+	if element.key == ctx.interaction.focused_id {
+		state.caret_blink_timer += ctx.dt
+		CARET_BLINK_PERIOD :: 1.0
+		CARET_WIDTH :: 2.0
+
+		cursor_pos := state.state.selection.active
+		text_before_cursor := text_view[:cursor_pos]
+
+		// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
+		// use cached sizes from the text layout system.
+		metrics := ctx.interaction.text_measurement.measure_text_proc(
+			text_before_cursor,
+			ctx.font_id,
+			ctx.interaction.text_measurement.font_user_data,
 		)
-		if text_alloc_err != .None {
-			log.error("Error when trying to get text buffer text: ", text_alloc_err)
+		line_metrics := ctx.interaction.text_measurement.measure_text_proc(
+			"",
+			ctx.font_id,
+			ctx.interaction.text_measurement.font_user_data,
+		)
+		caret_x_offset := metrics.width
+		caret_height := line_metrics.line_height
+
+		start := element.scroll_region.offset.x
+		padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
+		border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
+		end := start + (element.size.x - padding_sum - border_sum)
+
+		// TODO(Thomas): What about the width of the caret here?
+		if caret_x_offset > end {
+			diff := caret_x_offset - end
+			element.scroll_region.offset.x += diff
+			element.scroll_region.target_offset.x += diff
+		} else if caret_x_offset < start {
+			diff := start - caret_x_offset
+			element.scroll_region.offset.x -= diff
+			element.scroll_region.target_offset.x -= diff
 		}
-		assert(text_alloc_err == .None)
 
-		// TODO(Thomas): Styling should be flexible
-		element_equip_text(ctx, element, text_view)
+		// TODO(Thomas): This way of doing the blinking is really bad.
+		if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
+			// TODO(Thomas): Caret should be stylable
+			caret_id := fmt.tprintf("%s_caret", id)
 
-		if element.key == ctx.interaction.focused_id {
-			state.caret_blink_timer += ctx.dt
-			CARET_BLINK_PERIOD :: 1.0
-			CARET_WIDTH :: 2.0
-
-			cursor_pos := state.state.selection.active
-			text_before_cursor := text_view[:cursor_pos]
-
-			// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
-			// use cached sizes from the text layout system.
-			metrics := ctx.interaction.text_measurement.measure_text_proc(
-				text_before_cursor,
-				ctx.font_id,
-				ctx.interaction.text_measurement.font_user_data,
+			// Caret container
+			container(
+				ctx,
+				caret_id,
+				Style {
+					sizing_x = sizing_fixed(CARET_WIDTH),
+					sizing_y = sizing_fixed(caret_height),
+					alignment_x = .Left,
+					alignment_y = .Center,
+					relative_position = base.Vec2 {
+						caret_x_offset - element.scroll_region.offset.x,
+						0,
+					},
+					background_fill = default_color_style[.Text],
+					capability_flags = Capability_Flags{.Background},
+					position_mode = .Anchored,
+				},
 			)
-			line_metrics := ctx.interaction.text_measurement.measure_text_proc(
-				"",
-				ctx.font_id,
-				ctx.interaction.text_measurement.font_user_data,
+		}
+
+		text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+
+		if found_text_layout {
+			// TODO(Thomas): I really don't think we should draw the selection containers like this.
+			// This will work as a start at least. Alternative would be to put something in draw.odin for this.
+			// Selection
+			selection_id := fmt.tprintf("%s_selection", id)
+			selection := state.state.selection
+			selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
+
+			rects_alloc_err := textpkg.text_layout_selection_rects(
+				text_layout,
+				selection,
+				&selection_rects,
 			)
-			caret_x_offset := metrics.width
-			caret_height := line_metrics.line_height
 
-			start := element.scroll_region.offset.x
-			padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
-			border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
-			end := start + (element.size.x - padding_sum - border_sum)
+			assert(rects_alloc_err == .None)
+			assert(len(selection_rects) == 0 || len(selection_rects) == 1)
 
-			// TODO(Thomas): What about the width of the caret here?
-			if caret_x_offset > end {
-				diff := caret_x_offset - end
-				element.scroll_region.offset.x += diff
-				element.scroll_region.target_offset.x += diff
-			} else if caret_x_offset < start {
-				diff := start - caret_x_offset
-				element.scroll_region.offset.x -= diff
-				element.scroll_region.target_offset.x -= diff
-			}
-
-			// TODO(Thomas): This way of doing the blinking is really bad.
-			if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
-				// TODO(Thomas): Caret should be stylable
-				caret_id := fmt.tprintf("%s_caret", id)
-
-				// Caret container
+			if len(selection_rects) == 1 {
 				container(
 					ctx,
-					caret_id,
+					selection_id,
 					Style {
-						sizing_x = sizing_fixed(CARET_WIDTH),
+						sizing_x = sizing_fixed(selection_rects[0].w),
 						sizing_y = sizing_fixed(caret_height),
 						alignment_x = .Left,
 						alignment_y = .Center,
 						relative_position = base.Vec2 {
-							caret_x_offset - element.scroll_region.offset.x,
+							selection_rects[0].x - element.scroll_region.offset.x,
 							0,
 						},
-						background_fill = default_color_style[.Text],
+						background_fill = base.fill_color(255, 255, 255, 128),
 						capability_flags = Capability_Flags{.Background},
 						position_mode = .Anchored,
 					},
 				)
 			}
-
-			text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
-
-			if found_text_layout {
-				// TODO(Thomas): I really don't think we should draw the selection containers like this.
-				// This will work as a start at least. Alternative would be to put something in draw.odin for this.
-				// Selection
-				selection_id := fmt.tprintf("%s_selection", id)
-				selection := state.state.selection
-				selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-
-				rects_alloc_err := textpkg.text_layout_selection_rects(
-					text_layout,
-					selection,
-					&selection_rects,
-				)
-
-				assert(rects_alloc_err == .None)
-				assert(len(selection_rects) == 0 || len(selection_rects) == 1)
-
-				if len(selection_rects) == 1 {
-					container(
-						ctx,
-						selection_id,
-						Style {
-							sizing_x = sizing_fixed(selection_rects[0].w),
-							sizing_y = sizing_fixed(caret_height),
-							alignment_x = .Left,
-							alignment_y = .Center,
-							relative_position = base.Vec2 {
-								selection_rects[0].x - element.scroll_region.offset.x,
-								0,
-							},
-							background_fill = base.fill_color(255, 255, 255, 128),
-							capability_flags = Capability_Flags{.Background},
-							position_mode = .Anchored,
-						},
-					)
-				}
-			}
 		}
-
-		element.last_comm.text = text_view
-		close_element(ctx)
 	}
+
+	element.last_comm.text = text_view
+	close_element(ctx)
 
 	return element.last_comm
 }
@@ -469,34 +443,31 @@ checkbox :: proc(
 	shape_data: Shape_Data,
 	style: Style = {},
 ) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().checkbox)
-	if open_ok {
 
-		if element.last_comm.clicked {
-			if checked^ {
-				checked^ = false
-			} else {
-				checked^ = true
-			}
-		}
+	element := open_element(ctx, id, style, default_theme().checkbox)
 
+	if element.last_comm.clicked {
 		if checked^ {
-			element_equip_shape(element, shape_data)
+			checked^ = false
+		} else {
+			checked^ = true
 		}
-
-		close_element(ctx)
 	}
+
+	if checked^ {
+		element_equip_shape(element, shape_data)
+	}
+
+	close_element(ctx)
 
 	return element.last_comm
 }
 
 image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style, default_theme().image)
 
-	if open_ok {
-		element_equip_image(element, texture_id)
-		close_element(ctx)
-	}
+	element := open_element(ctx, id, style, default_theme().image)
+	element_equip_image(element, texture_id)
+	close_element(ctx)
 
 	return element.last_comm
 }

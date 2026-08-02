@@ -19,43 +19,42 @@ WINDOW_BG :: base.Color{30, 30, 30, 255}
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
-	if ui.begin(ctx) {
-		// --- Global Style Scope ---
+	ui.begin(ctx)
+	// --- Global Style Scope ---
 
-		ui.push_style(ctx, ui.Style{background_fill = WINDOW_BG})
-		defer ui.pop_style(ctx)
+	ui.push_style(ctx, ui.Style{background_fill = WINDOW_BG})
+	defer ui.pop_style(ctx)
 
-		// --- Main Panel (centered) ---
-		ui.begin_container(
-			ctx,
-			"main_panel",
-			ui.Style {
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				alignment_x = .Center,
-				alignment_y = .Center,
-				capability_flags = ui.Capability_Flags{.Background},
-				padding = ui.padding_all(15),
-			},
-		)
+	// --- Main Panel (centered) ---
+	ui.begin_container(
+		ctx,
+		"main_panel",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			alignment_x = .Center,
+			alignment_y = .Center,
+			capability_flags = ui.Capability_Flags{.Background},
+			padding = ui.padding_all(15),
+		},
+	)
 
-		// --- Image widget ---
-		ui.image(
-			ctx,
-			"image",
-			data.tex_id,
-			style = ui.Style {
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				background_fill = base.fill_color(255, 165, 0),
-				capability_flags = ui.Capability_Flags{.Background},
-			},
-		)
+	// --- Image widget ---
+	ui.image(
+		ctx,
+		"image",
+		data.tex_id,
+		style = ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			background_fill = base.fill_color(255, 165, 0),
+			capability_flags = ui.Capability_Flags{.Background},
+		},
+	)
 
-		ui.end_container(ctx)
+	ui.end_container(ctx)
 
-		ui.end(ctx)
-	}
+	ui.end(ctx)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {

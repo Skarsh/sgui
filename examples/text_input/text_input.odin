@@ -38,64 +38,62 @@ make_info_str :: proc(
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
-	if ui.begin(ctx) {
-		ui.push_style(
-			ctx,
-			ui.Style {
-				background_fill = base.fill_color(20, 20, 20),
-				capability_flags = ui.Capability_Flags{.Background},
-			},
-		)
+	ui.begin(ctx)
+	ui.push_style(
+		ctx,
+		ui.Style {
+			background_fill = base.fill_color(20, 20, 20),
+			capability_flags = ui.Capability_Flags{.Background},
+		},
+	)
 
-		ui.begin_container(
-			ctx,
-			"main_container",
-			ui.Style {
-				alignment_x = .Center,
-				alignment_y = .Center,
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				padding = ui.padding_all(10),
-				child_gap = 10,
-				background_fill = base.fill_color(40, 40, 40),
-				layout_direction = .Top_To_Bottom,
-			},
-		)
+	ui.begin_container(
+		ctx,
+		"main_container",
+		ui.Style {
+			alignment_x = .Center,
+			alignment_y = .Center,
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			padding = ui.padding_all(10),
+			child_gap = 10,
+			background_fill = base.fill_color(40, 40, 40),
+			layout_direction = .Top_To_Bottom,
+		},
+	)
 
-		text_input_comm := ui.text_input(ctx, "text_input", data.buf)
-		text_input_scroll_region := text_input_comm.element.scroll_region
+	text_input_comm := ui.text_input(ctx, "text_input", data.buf)
+	text_input_scroll_region := text_input_comm.element.scroll_region
 
-		ui.begin_container(
-			ctx,
-			"stats_wrapper",
-			ui.Style {
-				sizing_x = ui.sizing_grow(),
-				sizing_y = ui.sizing_grow(),
-				background_fill = base.fill_color(60, 60, 60),
-				alignment_y = .Center,
-			},
-		)
-		ui.text(
-			ctx,
-			"scroll_stats",
-			make_info_str(
-				data.scroll_region_str_buf,
-				"text_input",
-				text_input_comm.element.size,
-				text_input_scroll_region,
-			),
-			ui.Style{background_fill = base.fill_color(60, 60, 60), alignment_x = .Center},
-		)
+	ui.begin_container(
+		ctx,
+		"stats_wrapper",
+		ui.Style {
+			sizing_x = ui.sizing_grow(),
+			sizing_y = ui.sizing_grow(),
+			background_fill = base.fill_color(60, 60, 60),
+			alignment_y = .Center,
+		},
+	)
+	ui.text(
+		ctx,
+		"scroll_stats",
+		make_info_str(
+			data.scroll_region_str_buf,
+			"text_input",
+			text_input_comm.element.size,
+			text_input_scroll_region,
+		),
+		ui.Style{background_fill = base.fill_color(60, 60, 60), alignment_x = .Center},
+	)
 
-		// stats_wrapper
-		ui.end_container(ctx)
+	// stats_wrapper
+	ui.end_container(ctx)
 
-		// main_container
-		ui.end_container(ctx)
+	// main_container
+	ui.end_container(ctx)
 
-
-		ui.end(ctx)
-	}
+	ui.end(ctx)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {

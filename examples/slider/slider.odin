@@ -15,34 +15,33 @@ Data :: struct {
 }
 
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
-	if ui.begin(ctx) {
-		ui.push_style(
-			ctx,
-			ui.Style {
-				background_fill = base.fill_color(20, 20, 20),
-				capability_flags = ui.Capability_Flags{.Background},
-			},
-		)
+	ui.begin(ctx)
+	ui.push_style(
+		ctx,
+		ui.Style {
+			background_fill = base.fill_color(20, 20, 20),
+			capability_flags = ui.Capability_Flags{.Background},
+		},
+	)
 
-		ui.begin_container(
-			ctx,
-			"main_container",
-			ui.Style {
-				alignment_x = .Center,
-				alignment_y = .Center,
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				padding = ui.padding_all(10),
-				background_fill = base.fill_color(40, 40, 40),
-			},
-		)
+	ui.begin_container(
+		ctx,
+		"main_container",
+		ui.Style {
+			alignment_x = .Center,
+			alignment_y = .Center,
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			padding = ui.padding_all(10),
+			background_fill = base.fill_color(40, 40, 40),
+		},
+	)
 
-		ui.slider(ctx, "slider", &data.slider_val, 0, 100, .X)
+	ui.slider(ctx, "slider", &data.slider_val, 0, 100, .X)
 
-		ui.end_container(ctx)
+	ui.end_container(ctx)
 
-		ui.end(ctx)
-	}
+	ui.end(ctx)
 }
 
 update_and_draw :: proc(ctx: ^ui.Context, data: ^Data) -> bool {

@@ -246,10 +246,7 @@ open_element :: proc(
 	id: string,
 	style: Style = {},
 	default_style: Style = {},
-) -> (
-	^UI_Element,
-	bool,
-) {
+) -> ^UI_Element {
 	final_config := resolve_style(ctx, style, default_style)
 
 	element, element_ok := make_element(ctx, id, final_config)
@@ -261,7 +258,7 @@ open_element :: proc(
 	if push(&ctx.element_stack, element) {
 		element.z_index = ctx.element_stack.top
 	} else {
-		return {}, false
+		panic("Unable to push element onto stack, panic")
 	}
 	ctx.current_parent = element
 
@@ -269,12 +266,11 @@ open_element :: proc(
 	assert(comm_alloc_err == .None)
 	element.last_comm = comm
 
-	return element, true
+	return element
 }
 
 begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
-	element, open_ok := open_element(ctx, id, style)
-	assert(open_ok)
+	element := open_element(ctx, id, style)
 	return element.last_comm
 }
 

@@ -88,33 +88,32 @@ Data :: struct {
 build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	theme := get_theme(data.dark_mode)
 
-	if ui.begin(ctx) {
-		// Main layout container (ui.begin already creates implicit root)
-		ui.begin_container(
-			ctx,
-			"layout",
-			ui.Style {
-				sizing_x = ui.sizing_percent(1.0),
-				sizing_y = ui.sizing_percent(1.0),
-				background_fill = theme.bg_main,
-				capability_flags = ui.Capability_Flags{.Background},
-				layout_direction = .Left_To_Right,
-			},
-		)
-		// ==========================================
-		// SIDEBAR (1 part) - demonstrates 1:4 ratio
-		// ==========================================
-		build_sidebar(ctx, data, theme)
+	ui.begin(ctx)
+	// Main layout container (ui.begin already creates implicit root)
+	ui.begin_container(
+		ctx,
+		"layout",
+		ui.Style {
+			sizing_x = ui.sizing_percent(1.0),
+			sizing_y = ui.sizing_percent(1.0),
+			background_fill = theme.bg_main,
+			capability_flags = ui.Capability_Flags{.Background},
+			layout_direction = .Left_To_Right,
+		},
+	)
+	// ==========================================
+	// SIDEBAR (1 part) - demonstrates 1:4 ratio
+	// ==========================================
+	build_sidebar(ctx, data, theme)
 
-		// ==========================================
-		// MAIN CONTENT (4 parts)
-		// ==========================================
-		build_main_content(ctx, data, theme)
+	// ==========================================
+	// MAIN CONTENT (4 parts)
+	// ==========================================
+	build_main_content(ctx, data, theme)
 
-		ui.end_container(ctx)
+	ui.end_container(ctx)
 
-		ui.end(ctx)
-	}
+	ui.end(ctx)
 }
 
 build_sidebar :: proc(ctx: ^ui.Context, data: ^Data, theme: Theme) {

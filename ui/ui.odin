@@ -143,7 +143,7 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 	}
 }
 
-begin :: proc(ctx: ^Context) -> bool {
+begin :: proc(ctx: ^Context) {
 	ctx.frame_idx += 1
 
 	free_frame_alloc_err := free_all(ctx.frame_allocator)
@@ -156,7 +156,7 @@ begin :: proc(ctx: ^Context) -> bool {
 	reset_draw_state(&ctx.draw_state, ctx.window_size)
 
 	// Open the root element
-	_, root_open_ok := open_element(
+	root_element := open_element(
 		ctx,
 		"root",
 		Style {
@@ -165,8 +165,6 @@ begin :: proc(ctx: ^Context) -> bool {
 			background_fill = base.fill_color(128, 128, 128),
 		},
 	)
-	assert(root_open_ok)
-	root_element, _ := peek(&ctx.element_stack)
 
 	//NOTE(Thomas): Root element size needs to be updated every frame, meaning not cached like other elements.
 	// TODO(Thomas): We can maybe remove this special case by making the root be a NULL key type element, like a spacer.
@@ -176,7 +174,6 @@ begin :: proc(ctx: ^Context) -> bool {
 	}
 
 	ctx.root_element = root_element
-	return root_open_ok
 }
 
 end :: proc(ctx: ^Context) {
