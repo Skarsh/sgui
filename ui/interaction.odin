@@ -35,10 +35,6 @@ Interaction :: struct {
 	text_measurement:    ^textpkg.Text_Measurement,
 	text_input_states:   map[UI_Key]Text_Input_State,
 	text_element_states: map[UI_Key]Text_Element_State,
-	// TODO(Thomas): I don't think text_layouts belong here, temporary for
-	// getting selection working. It should probably come from some Text_Layout_Cache
-	// or something eventually.
-	text_layouts:        map[UI_Key]textpkg.Text_Layout,
 	active_element:      ^UI_Element,
 	hot_id:              UI_Key,
 	pressed_id:          UI_Key,
@@ -55,7 +51,7 @@ init_interaction :: proc(
 	// version (unlike make([dynamic])), so there is nothing to propagate here yet.
 	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
 	interaction.text_element_states = make(map[UI_Key]Text_Element_State, allocator)
-	interaction.text_layouts = make(map[UI_Key]textpkg.Text_Layout, allocator)
+
 	interaction.animatable_elements = make([dynamic]^UI_Element, allocator) or_return
 	return nil
 }
@@ -67,7 +63,6 @@ deinit_interaction :: proc(interaction: ^Interaction) {
 	}
 	delete(interaction.text_input_states)
 	delete(interaction.text_element_states)
-	delete(interaction.text_layouts)
 	delete(interaction.animatable_elements)
 }
 
@@ -181,22 +176,27 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 				pressed := base.is_mouse_pressed(it.input^, .Left)
 				held := base.is_mouse_down(it.input^, .Left)
 
-				text_layout, _ := it.text_layouts[focused_element.key]
+				text_layout, found_layout := textpkg.read_text_layout_cache(
+					ctx.text_layout_cache,
+					focused_element.key.hash,
+				)
 
-				if pressed || held {
-					origin := content_origin_scrolled(focused_element)
-					byte_pos := textpkg.text_layout_byte_pos_from_point(
-						text_layout,
-						{
-							f32(it.input.mouse_pos.x) - origin.x,
-							f32(it.input.mouse_pos.y) - origin.y,
-						},
-					)
+				if found_layout {
+					if pressed || held {
+						origin := content_origin_scrolled(focused_element)
+						byte_pos := textpkg.text_layout_byte_pos_from_point(
+							text_layout,
+							{
+								f32(it.input.mouse_pos.x) - origin.x,
+								f32(it.input.mouse_pos.y) - origin.y,
+							},
+						)
 
-					textpkg.text_cursor_set_caret(
-						state,
-						textpkg.Cursor_Set_Caret{byte_pos, !pressed},
-					)
+						textpkg.text_cursor_set_caret(
+							state,
+							textpkg.Cursor_Set_Caret{byte_pos, !pressed},
+						)
+					}
 				}
 			}
 		}

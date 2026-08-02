@@ -34,6 +34,7 @@ Context :: struct {
 	root_element:         ^UI_Element,
 	interaction:          Interaction,
 	element_cache:        map[UI_Key]^UI_Element,
+	text_layout_cache:    map[u64]textpkg.Text_Layout_Cache_Entry,
 	frame_idx:            u64,
 	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
@@ -93,6 +94,7 @@ init :: proc(
 	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
 	// and is actually returning the error in an upcoming Odin version?
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
+	ctx.text_layout_cache = make(map[u64]textpkg.Text_Layout_Cache_Entry, persistent_allocator)
 
 	init_draw_state_alloc_err := init_draw_state(&ctx.draw_state, draw_cmd_allocator)
 	if init_draw_state_alloc_err != .None {
@@ -115,8 +117,15 @@ window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
 // this can become better / cleaner.
 deinit :: proc(ctx: ^Context) {
 
+	// Deinit interaction
 	deinit_interaction(&ctx.interaction)
 
+	// Free text layout cache entries and delete cache map
+	textpkg.free_text_layout_cache_entries(ctx.text_layout_cache, ctx.persistent_allocator)
+	delete(ctx.text_layout_cache)
+
+
+	// Freeing Elements
 	free_list, alloc_err := make([dynamic]^UI_Element, context.temp_allocator)
 	assert(alloc_err == .None)
 	defer free_all(context.temp_allocator)

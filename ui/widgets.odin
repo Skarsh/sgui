@@ -59,7 +59,11 @@ selectable_text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 
 		caret_height := line_metrics.line_height
 
-		text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+		text_layout, found_text_layout := textpkg.read_text_layout_cache(
+			ctx.text_layout_cache,
+			element.key.hash,
+		)
+
 		if found_text_layout {
 			// TODO(Thomas): I really don't think we should draw the selection containers like this.
 			// This will work as a start at least. Alternative would be to put something in draw.odin for this.
@@ -386,7 +390,10 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			)
 		}
 
-		text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+		text_layout, found_text_layout := textpkg.read_text_layout_cache(
+			ctx.text_layout_cache,
+			element.key.hash,
+		)
 
 		if found_text_layout {
 			// TODO(Thomas): I really don't think we should draw the selection containers like this.

@@ -231,7 +231,10 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		if .Text in cap_flags {
 			box := content_box(element^)
 
-			text_layout, found_text_layout := ctx.interaction.text_layouts[element.key]
+			text_layout, found_text_layout := textpkg.read_text_layout_cache(
+				ctx.text_layout_cache,
+				element.key.hash,
+			)
 			if found_text_layout {
 				// Calculate the initial vertical offset for the whole block based on Aligment_Y
 				start_pos := content_origin_scrolled(element^)

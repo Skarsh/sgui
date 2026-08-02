@@ -679,18 +679,23 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			}
 		}
 
-		// TODO(Thomas): This leaks like crazy right now
-		text_layout := textpkg.layout_text(
-			text,
-			{wrap_width, ctx.font_id, element.config.layout.text_alignment_x, text_wrap_mode},
-			ctx.interaction.text_measurement^,
+		text_layout := textpkg.get_text_layout_cache(
+			&ctx.text_layout_cache,
+			{
+				key = element.key.hash,
+				text = text,
+				params = {
+					wrap_width,
+					ctx.font_id,
+					element.config.layout.text_alignment_x,
+					text_wrap_mode,
+				},
+				text_measurement = ctx.interaction.text_measurement^,
+			},
 			ctx.persistent_allocator,
 			ctx.frame_allocator,
 		) or_return
 
-
-		new_layout := text_layout
-		ctx.interaction.text_layouts[element.key] = new_layout
 
 		// Update text_content_size.y based on wrapped height
 		final_height :=
@@ -1006,10 +1011,14 @@ update_scroll_region :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		if .Text in flags {
 			text_size := base.Vec2{}
-			// TODO(Thomas): Will come from some proper text layout cache instead eventually
-			if text_layout, found := ctx.interaction.text_layouts[element.key]; found {
+
+			if text_layout, found := textpkg.read_text_layout_cache(
+				ctx.text_layout_cache,
+				element.key.hash,
+			); found {
 				text_size = text_layout.size
 			}
+
 			content_size.x = max(content_size.x, text_size.x)
 			content_size.y = max(content_size.y, text_size.y)
 		}
