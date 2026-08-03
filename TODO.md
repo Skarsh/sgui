@@ -1,8 +1,6 @@
 # TODOs
 
 ## Active
-* Selectable text elements needs to be clickable, but clickable will cause hot / active animation, which
-is not necessarily what you want when just selecting text. Figure out how this should work.
 
 ## Bugs
 
