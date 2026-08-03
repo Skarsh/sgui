@@ -147,7 +147,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				color = base.lerp_color(color, active_color, element.active)
 			}
 
-			if .Clickable in cap_flags {
+			if .Click_Animation in cap_flags {
 				if last_comm.held {
 					color = default_color_style[.Click]
 				}
@@ -180,7 +180,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				)
 			}
 
-			if .Clickable in cap_flags {
+			if .Click_Animation in cap_flags {
 				if last_comm.held {
 					click_color := default_color_style[.Click]
 					final_bg_fill = click_color

@@ -50,6 +50,7 @@ Capability :: enum {
 	Shape,
 	Active_Animation,
 	Hot_Animation,
+	Click_Animation,
 	Clickable,
 	Focusable,
 	Selectable,

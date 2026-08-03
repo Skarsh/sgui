@@ -247,7 +247,12 @@ default_theme :: proc() -> Theme {
 			background_fill = base.fill_color(60, 60, 65),
 			text_fill = base.fill_color(230, 230, 230),
 			border_radius = border_radius_all(4),
-			capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Click_Animation,
+				.Hot_Animation,
+			},
 			clip = Clip_Config{clip_axes = {true, true}},
 		},
 		checkbox = Style {
@@ -257,7 +262,12 @@ default_theme :: proc() -> Theme {
 			border = border_all(2),
 			border_fill = base.fill_color(80, 80, 85),
 			border_radius = border_radius_all(4),
-			capability_flags = Capability_Flags{.Background, .Clickable, .Hot_Animation},
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Click_Animation,
+				.Hot_Animation,
+			},
 		},
 		image = Style {
 			padding = padding_all(16),
@@ -284,6 +294,7 @@ default_theme :: proc() -> Theme {
 			capability_flags = Capability_Flags {
 				.Background,
 				.Clickable,
+				.Click_Animation,
 				.Focusable,
 				.Hot_Animation,
 			},
@@ -294,7 +305,12 @@ default_theme :: proc() -> Theme {
 			background_fill = base.fill_color(255, 200, 200),
 			border_fill = base.fill_color(240, 240, 240),
 			border_radius = border_radius_all(10),
-			capability_flags = Capability_Flags{.Background, .Clickable, .Focusable},
+			capability_flags = Capability_Flags {
+				.Background,
+				.Clickable,
+				.Click_Animation,
+				.Focusable,
+			},
 			position_mode = .Anchored,
 		},
 		spacer = Style{sizing_x = sizing_grow(), sizing_y = sizing_grow()},
@@ -303,6 +319,7 @@ default_theme :: proc() -> Theme {
 			text_alignment_y = .Top,
 			text_wrap_mode = .Wrap,
 			text_fill = base.fill_color(255, 255, 255),
+			capability_flags = Capability_Flags{.Selectable},
 			clip = Clip_Config{clip_axes = {true, true}},
 		},
 		text_input = Style {
