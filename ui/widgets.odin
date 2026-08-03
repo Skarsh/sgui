@@ -35,36 +35,8 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 			}
 
 			textpkg.text_read_only_set_text(&state.state, text)
-
-			// TODO(Thomas): @Perf This should be cached, coming from the text layout
-			// system probably.
-			line_metrics := ctx.interaction.text_measurement.measure_text_proc(
-				"",
-				ctx.font_id,
-				ctx.interaction.text_measurement.font_user_data,
-			)
-
-			caret_height := line_metrics.line_height
-
-			text_layout, found_text_layout := textpkg.read_text_layout_cache(
-				ctx.text_layout_cache,
-				element.key.hash,
-			)
-
-			if found_text_layout {
-				build_selection(
-					ctx,
-					element,
-					id,
-					state.state.selection,
-					text_layout,
-					caret_height,
-					.Top,
-				)
-			}
 		}
 	}
-
 
 	close_element(ctx)
 }
@@ -354,23 +326,6 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 				},
 			)
 		}
-
-		text_layout, found_text_layout := textpkg.read_text_layout_cache(
-			ctx.text_layout_cache,
-			element.key.hash,
-		)
-
-		if found_text_layout {
-			build_selection(
-				ctx,
-				element,
-				id,
-				state.state.selection,
-				text_layout,
-				caret_height,
-				.Center,
-			)
-		}
 	}
 
 	element.last_comm.text = text_view
@@ -416,48 +371,4 @@ image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = 
 	close_element(ctx)
 
 	return element.last_comm
-}
-
-// TODO(Thomas): I really don't think we should draw the selection containers like this.
-// This will work as a start at least. Alternative would be to put something in draw.odin for this.
-@(private)
-build_selection :: proc(
-	ctx: ^Context,
-	element: ^UI_Element,
-	id: string,
-	selection: textpkg.Selection,
-	text_layout: textpkg.Text_Layout,
-	caret_height: f32,
-	alignment_y: base.Alignment_Y,
-) {
-
-	selection_id := fmt.tprintf("%s_selection", id)
-	selection_rects := make([dynamic]base.Rect_F32, ctx.frame_allocator)
-
-	rects_alloc_err := textpkg.text_layout_selection_rects(
-		text_layout,
-		selection,
-		&selection_rects,
-	)
-
-	assert(rects_alloc_err == .None)
-
-	for sel_rect, idx in selection_rects {
-		rect_sel_id := fmt.tprintf("%v_sel_rect_%d", selection_id, idx)
-		container(
-			ctx,
-			rect_sel_id,
-			Style {
-				sizing_x = sizing_fixed(sel_rect.w),
-				sizing_y = sizing_fixed(caret_height),
-				alignment_x = .Left,
-				alignment_y = alignment_y,
-				relative_position = base.Vec2{sel_rect.x, sel_rect.y} -
-				element.scroll_region.offset,
-				background_fill = base.fill_color(255, 255, 255, 128),
-				capability_flags = Capability_Flags{.Background},
-				position_mode = .Anchored,
-			},
-		)
-	}
 }

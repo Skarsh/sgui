@@ -254,7 +254,41 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				// Iterate through each line and draw it with the correct X and Y
 				current_y := start_pos.y
 
+				// Get the selection if the current element is focused.
+				// We do this outside of the loop because selection doesn't
+				// change until new input from the user.
+				selection: textpkg.Selection
+				has_selection: bool
+				if ctx.interaction.focused_id == element.key {
+					selection, has_selection = get_text_state_selection(ctx.interaction, element^)
+				}
+
 				for row in text_layout.rows {
+					// Draw selection
+					if has_selection {
+						sel_rect := textpkg.text_layout_row_selection_rect(
+							text_layout,
+							row,
+							selection,
+						)
+
+						draw_rect(
+							draw_state,
+							base.Rect {
+								x = i32(start_pos.x + sel_rect.x),
+								y = i32(start_pos.y + sel_rect.y),
+								w = i32(sel_rect.w),
+								h = i32(sel_rect.h),
+							},
+							base.fill_color(255, 255, 255, 128),
+							border_radius = base.Vec4{},
+							border = Border{},
+							border_fill = base.fill_color(0, 0, 0, 0),
+							z_index = 0,
+						)
+					}
+
+					// Draw text
 					start_x := start_pos.x + row.pos.x
 					draw_text(
 						draw_state,

@@ -626,51 +626,45 @@ row_x_at_byte :: proc(row_glyphs: []Glyph, row_x: f32, byte_pos: int) -> f32 {
 	return x
 }
 
-// It is the caller's responsibility to clear dyn_rects before calling.
+// Only a non-collapsed selection is meaningful
 @(require_results)
-text_layout_selection_rects :: proc(
+text_layout_row_selection_rect :: proc(
 	layout: Text_Layout,
+	row: Positioned_Row,
 	selection: Selection,
-	dyn_rects: ^[dynamic]base.Rect_F32,
-) -> mem.Allocator_Error {
+) -> base.Rect_F32 {
 
 	sel_start := selection_start(selection)
 	sel_end := selection_end(selection)
 
-	// Only a non-collapsed selection is meaningful
 	if sel_start != sel_end {
-		for row in layout.rows {
-			row_glyphs := base.slice_from_range(layout.glyphs, row.glyph_range)
-			row_glyphs_len := len(row_glyphs)
-			if row_glyphs_len > 0 {
-				row_start_byte := row_glyphs[0].byte_range.start
-				last := row_glyphs[row_glyphs_len - 1]
-				row_caret_end := last.byte_range.end
+		row_glyphs := base.slice_from_range(layout.glyphs, row.glyph_range)
+		row_glyphs_len := len(row_glyphs)
 
-				// If the last glyph is a trailing newline, we put the caret
-				// right before it.
-				if last.codepoint == '\n' {
-					row_caret_end = last.byte_range.start
-				}
+		if row_glyphs_len > 0 {
+			row_start_byte := row_glyphs[0].byte_range.start
+			last := row_glyphs[row_glyphs_len - 1]
+			row_caret_end := last.byte_range.end
 
-				// Clip the selection to this row's byte span
-				lo := max(sel_start, row_start_byte)
-				hi := min(sel_end, row_caret_end)
+			// If the last glyph is a trailing newline, we put the caret right before it
+			if last.codepoint == '\n' {
+				row_caret_end = last.byte_range.start
+			}
 
-				if lo < hi {
-					x_lo := row_x_at_byte(row_glyphs, row.pos.x, lo)
-					x_hi := row_x_at_byte(row_glyphs, row.pos.x, hi)
+			// Clip the selection to the row byte span
+			lo := max(sel_start, row_start_byte)
+			hi := min(sel_end, row_caret_end)
 
-					append(
-						dyn_rects,
-						base.Rect_F32{x = x_lo, y = row.pos.y, w = x_hi - x_lo, h = row.size.y},
-					) or_return
-				}
+			if lo < hi {
+				x_lo := row_x_at_byte(row_glyphs, row.pos.x, lo)
+				x_hi := row_x_at_byte(row_glyphs, row.pos.x, hi)
+
+				return base.Rect_F32{x = x_lo, y = row.pos.y, w = x_hi - x_lo, h = row.size.y}
 			}
 		}
 	}
 
-	return nil
+	return {}
 }
 
 @(require_results)
