@@ -39,6 +39,7 @@ Context :: struct {
 	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
 	font_size:            f32,
+	text_system:          textpkg.Text_System,
 	font_id:              textpkg.Font_Handle,
 	window_size:          [2]i32,
 }
@@ -98,16 +99,13 @@ init :: proc(
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 	ctx.text_layout_cache = make(map[u64]textpkg.Text_Layout_Cache_Entry, persistent_allocator)
 
+	ts_err := textpkg.init_text_system(&ctx.text_system, text_measurement^, persistent_allocator)
+	assert(ts_err == .None)
+
 	init_draw_state_alloc_err := init_draw_state(&ctx.draw_state, draw_cmd_allocator)
-	if init_draw_state_alloc_err != .None {
-		log.error("Error when trying to init draw state: ", init_draw_state_alloc_err)
-	}
 	assert(init_draw_state_alloc_err == .None)
 
 	init_interaction_alloc_err := init_interaction(&ctx.interaction, persistent_allocator)
-	if init_interaction_alloc_err != .None {
-		log.error("Error when trying to init interaction state", init_interaction_alloc_err)
-	}
 	assert(init_interaction_alloc_err == .None)
 }
 
@@ -118,6 +116,9 @@ window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
 // TODO(Thomas): When we figure out a better allocation scheme for persistent stuf
 // this can become better / cleaner.
 deinit :: proc(ctx: ^Context) {
+
+	// Deinit text system
+	textpkg.deinit_text_system(&ctx.text_system)
 
 	// Deinit interaction
 	deinit_interaction(&ctx.interaction)
