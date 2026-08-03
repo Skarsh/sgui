@@ -28,15 +28,13 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 			state, state_exists := &ctx.interaction.text_element_states[key]
 
 			if !state_exists {
-				new_state := Text_Element_State {
-					state = textpkg.Text_Read_Only_State{text = text},
-				}
-
-				ctx.interaction.text_element_states[key] = new_state
+				ctx.interaction.text_element_states[key] = Text_Element_State{}
 				ok: bool
 				state, ok = &ctx.interaction.text_element_states[key]
 				assert(ok)
 			}
+
+			textpkg.text_read_only_set_text(&state.state, text)
 
 			// TODO(Thomas): @Perf This should be cached, coming from the text layout
 			// system probably.

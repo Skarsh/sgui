@@ -50,6 +50,15 @@ Text_Read_Only_State :: struct {
 	selection: Selection,
 }
 
+// Text is owned by the caller, and it can be different every frame.
+// This function makes sure that the string in the state points to the
+// right one, and that the selection is clamped to the new string pointed to.
+text_read_only_set_text :: proc(state: ^Text_Read_Only_State, text: string) {
+	state.text = text
+	state.selection.active = clamp(state.selection.active, 0, len(text))
+	state.selection.anchor = clamp(state.selection.anchor, 0, len(text))
+}
+
 Text_State :: union {
 	^Text_Edit_State,
 	^Text_Read_Only_State,
