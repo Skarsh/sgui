@@ -40,6 +40,15 @@ mock_text_measurement :: Text_Measurement {
 	font_user_data         = nil,
 }
 
+
+@(private = "file")
+make_test_text_system :: proc() -> Text_System {
+	ts: Text_System
+	err := init_text_system(&ts, mock_text_measurement, context.temp_allocator)
+	assert(err == .None)
+	return ts
+}
+
 // Test only helper which checks that laying out text at the given width and
 // wrap mode yields the expected size and rows
 @(private = "file")
@@ -51,10 +60,11 @@ check_layout :: proc(
 	params: Text_Layout_Params,
 	loc := #caller_location,
 ) {
+	ts := make_test_text_system()
 	layout, alloc_err := layout_text(
+		&ts,
 		text,
 		params,
-		mock_text_measurement,
 		context.temp_allocator,
 		context.temp_allocator,
 	)

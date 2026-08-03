@@ -131,12 +131,9 @@ shaping :: proc(
 	paragraphs: []Paragraph,
 	text_runs: []Text_Run,
 	glyphs: ^[dynamic]Glyph,
-	measure_codepoint_proc: Measure_Codepoint_Proc,
-	font_user_data: rawptr,
+	ts: ^Text_System,
+	font_handle: Font_Handle,
 ) -> mem.Allocator_Error {
-	// TODO(Thomas): font_id Font_Handle is hardcoded here for now, this should come
-	// in with other contextual stuff that we need, probably / maybe stored on the Text_Run?
-	FONT_ID :: 0
 	glyph_start := 0
 	glyph_end := 0
 	for &paragraph in paragraphs {
@@ -151,8 +148,7 @@ shaping :: proc(
 				byte_start := run.range.start + i
 				byte_end := byte_start + utf8.rune_size(r)
 
-				// TODO(Thomas): This will have to be cached of course.
-				codepoint_metrics := measure_codepoint_proc(r, FONT_ID, font_user_data)
+				codepoint_metrics := glyph_metrics(ts, font_handle, r)
 				append(
 					glyphs,
 					Glyph {
@@ -439,22 +435,15 @@ Text_Layout_Params :: struct {
 // It holds a slice into the rows, which is allocated by the passed in allocator,
 // so that lifetime needs to be made explicit and obvious at least.
 layout_text :: proc(
+	ts: ^Text_System,
 	text: string,
 	params: Text_Layout_Params,
-	text_measurement: Text_Measurement,
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
 ) -> (
 	layout: Text_Layout,
 	alloc_err: mem.Allocator_Error,
 ) {
-
-	// TODO(Thomas): This should be cached of course.
-	text_metrics := text_measurement.measure_text_proc(
-		text,
-		params.font_handle,
-		text_measurement.font_user_data,
-	)
 
 	// Minimal pipeline for now
 	paragraphs := make([dynamic]Paragraph, frame_allocator) or_return
@@ -468,14 +457,7 @@ layout_text :: proc(
 	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
 	bidi_analysis()
 
-	shaping(
-		text,
-		paragraphs[:],
-		text_runs[:],
-		&glyphs,
-		text_measurement.measure_codepoint_proc,
-		text_measurement.font_user_data,
-	) or_return
+	shaping(text, paragraphs[:], text_runs[:], &glyphs, ts, params.font_handle) or_return
 
 	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
 	// and not on glyphs
@@ -489,7 +471,7 @@ layout_text :: proc(
 		linebreak_candidates[:],
 		&rows,
 		params.available_width,
-		text_metrics.line_height,
+		font_line_height(ts, params.font_handle),
 		params.alignment_x,
 		params.wrap_mode,
 	) or_return
@@ -670,29 +652,19 @@ text_layout_row_selection_rect :: proc(
 @(require_results)
 measure_text_intrinsic :: proc(
 	text: string,
+	ts: ^Text_System,
 	font_handle: Font_Handle,
-	text_measurement: Text_Measurement,
 ) -> base.Vec2 {
 
 	size := base.Vec2{}
 	if len(text) > 0 {
-		metrics := text_measurement.measure_text_proc(
-			text,
-			font_handle,
-			text_measurement.font_user_data,
-		)
 
-		line_height := metrics.line_height
+		line_height := font_line_height(ts, font_handle)
 
 		row_width: f32
 
 		for r in text {
-			// TODO(Thomas): @Speed Cache codepoint metrics, same as the shaping TODO.
-			cm := text_measurement.measure_codepoint_proc(
-				r,
-				font_handle,
-				text_measurement.font_user_data,
-			)
+			cm := glyph_metrics(ts, font_handle, r)
 
 			row_width += cm.width
 

@@ -4,11 +4,11 @@ import "core:hash"
 import "core:mem"
 
 Text_Layout_Cache_Request :: struct {
-	key:              u64,
-	frame_idx:        u64,
-	text:             string,
-	params:           Text_Layout_Params,
-	text_measurement: Text_Measurement,
+	key:       u64,
+	frame_idx: u64,
+	text:      string,
+	params:    Text_Layout_Params,
+	ts:        ^Text_System,
 }
 
 Text_Layout_Cache_Entry :: struct {
@@ -34,6 +34,7 @@ read_text_layout_cache :: proc(
 
 @(require_results)
 layout_text_cached :: proc(
+	ts: ^Text_System,
 	cache: ^map[u64]Text_Layout_Cache_Entry,
 	req: Text_Layout_Cache_Request,
 	persistent_allocator: mem.Allocator,
@@ -54,13 +55,7 @@ layout_text_cached :: proc(
 
 	// Cache is invalidated, we build the replacement layout before freeing, so that in case the allocation fails
 	// we will still hold a entry in the cache.
-	layout = layout_text(
-		req.text,
-		req.params,
-		req.text_measurement,
-		persistent_allocator,
-		frame_allocator,
-	) or_return
+	layout = layout_text(ts, req.text, req.params, persistent_allocator, frame_allocator) or_return
 
 	if found {
 		free_entry(entry, persistent_allocator)

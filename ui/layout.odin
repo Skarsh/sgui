@@ -606,8 +606,8 @@ measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
 	if .Text in element.config.capability_flags {
 		intrinsic := textpkg.measure_text_intrinsic(
 			element.config.content.text_data.text,
+			&ctx.text_system,
 			ctx.font_id,
-			ctx.interaction.text_measurement^,
 		)
 
 		padding := element.config.layout.padding
@@ -680,6 +680,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 		}
 
 		text_layout := textpkg.layout_text_cached(
+			&ctx.text_system,
 			&ctx.text_layout_cache,
 			{
 				key = element.key.hash,
@@ -691,7 +692,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 					element.config.layout.text_alignment_x,
 					text_wrap_mode,
 				},
-				text_measurement = ctx.interaction.text_measurement^,
 			},
 			ctx.persistent_allocator,
 			ctx.frame_allocator,
