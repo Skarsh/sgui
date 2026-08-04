@@ -147,7 +147,8 @@ resolve_style :: proc(ctx: ^Context, style: Style, default_style: Style = {}) ->
 	}
 	resolved = merge_styles(resolved, style)
 
-	// Capability flags are additive (OR together from all sources)
+	// Capability flags are additive for default style and style stacks
+	// but are overridden by the user specified one.
 	capability_flags := resolve_capability_flags(ctx, style, default_style)
 
 	// Convert merged Style to Element_Config
@@ -177,7 +178,7 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.position_mode = s.position_mode.? or_else .Flow
 
 
-	// Visual properties (Fill) - use value if set, otherwise empty
+	// Visual properties (Fill), use value if set, otherwise empty
 	if s.background_fill != nil {
 		config.background_fill = s.background_fill
 	}
@@ -213,9 +214,9 @@ resolve_capability_flags :: proc(ctx: ^Context, style, default_style: Style) -> 
 		}
 	}
 
-	// Add user flags
+	// Set user flags, these override the default and style stack flags.
 	if flags, ok := style.capability_flags.?; ok {
-		result |= flags
+		result = flags
 	}
 
 	return result
