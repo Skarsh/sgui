@@ -6,8 +6,9 @@ ASCII_TABLE_LEN :: 128
 
 // TODO(Thomas): Does the fonts have to be [dynamic]
 Text_System :: struct {
-	measurement: Text_Measurement,
-	fonts:       [dynamic]Font_Cache,
+	measurement:  Text_Measurement,
+	fonts:        [dynamic]Font_Cache,
+	layout_cache: map[u64]Text_Layout_Cache_Entry,
 }
 
 @(require_results)
@@ -25,6 +26,8 @@ init_text_system :: proc(
 	fc: Font_Cache
 	init_font_cache(&fc, 0, measurement, allocator) or_return
 	append(&ts.fonts, fc) or_return
+
+	ts.layout_cache = make(map[u64]Text_Layout_Cache_Entry, allocator)
 
 	return nil
 }

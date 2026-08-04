@@ -193,13 +193,13 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 			focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
 			if focused_found {
 
-				// Press sets the caret (collapsing the selection);
+				// Press sets the caret (collapsing the selection)
 				// holding / dragging extends it.
 				pressed := base.is_mouse_pressed(it.input^, .Left)
 				held := base.is_mouse_down(it.input^, .Left)
 
 				text_layout, found_layout := textpkg.read_text_layout_cache(
-					ctx.text_layout_cache,
+					ctx.text_system.layout_cache,
 					focused_element.key.hash,
 				)
 

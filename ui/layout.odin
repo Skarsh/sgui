@@ -681,7 +681,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 
 		text_layout := textpkg.layout_text_cached(
 			&ctx.text_system,
-			&ctx.text_layout_cache,
 			{
 				key = element.key.hash,
 				frame_idx = ctx.frame_idx,
@@ -1014,7 +1013,7 @@ update_scroll_region :: proc(ctx: ^Context, element: ^UI_Element) {
 			text_size := base.Vec2{}
 
 			if text_layout, found := textpkg.read_text_layout_cache(
-				ctx.text_layout_cache,
+				ctx.text_system.layout_cache,
 				element.key.hash,
 			); found {
 				text_size = text_layout.size

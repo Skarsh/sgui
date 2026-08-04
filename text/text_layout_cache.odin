@@ -35,7 +35,6 @@ read_text_layout_cache :: proc(
 @(require_results)
 layout_text_cached :: proc(
 	ts: ^Text_System,
-	cache: ^map[u64]Text_Layout_Cache_Entry,
 	req: Text_Layout_Cache_Request,
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
@@ -44,7 +43,7 @@ layout_text_cached :: proc(
 	alloc_err: mem.Allocator_Error,
 ) {
 	text_hash := hash.fnv64a(transmute([]u8)req.text)
-	entry, found := &cache[req.key]
+	entry, found := &ts.layout_cache[req.key]
 
 	if found && entry.text_hash == text_hash && entry.params == req.params {
 		// Request and entry match, so the cached layout is still valid.
@@ -61,7 +60,7 @@ layout_text_cached :: proc(
 		free_entry(entry, persistent_allocator)
 	}
 
-	cache[req.key] = Text_Layout_Cache_Entry {
+	ts.layout_cache[req.key] = Text_Layout_Cache_Entry {
 		text_hash      = text_hash,
 		params         = req.params,
 		last_frame_idx = req.frame_idx,

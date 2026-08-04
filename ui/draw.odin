@@ -236,7 +236,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			box := content_box(element^)
 
 			text_layout, found_text_layout := textpkg.read_text_layout_cache(
-				ctx.text_layout_cache,
+				ctx.text_system.layout_cache,
 				element.key.hash,
 			)
 			if found_text_layout {
