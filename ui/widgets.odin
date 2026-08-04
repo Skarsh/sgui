@@ -265,67 +265,6 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 
 	if element.key == ctx.interaction.focused_id {
 		state.caret_blink_timer += ctx.dt
-		CARET_BLINK_PERIOD :: 1.0
-		CARET_WIDTH :: 2.0
-
-		cursor_pos := state.state.selection.active
-		text_before_cursor := text_view[:cursor_pos]
-
-		// TODO(Thomas): HACK - All of this text measurement is very temporary, and should
-		// use cached sizes from the text layout system.
-		metrics := ctx.interaction.text_measurement.measure_text_proc(
-			text_before_cursor,
-			ctx.font_id,
-			ctx.interaction.text_measurement.font_user_data,
-		)
-		line_metrics := ctx.interaction.text_measurement.measure_text_proc(
-			"",
-			ctx.font_id,
-			ctx.interaction.text_measurement.font_user_data,
-		)
-		caret_x_offset := metrics.width
-		caret_height := line_metrics.line_height
-
-		start := element.scroll_region.offset.x
-		padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
-		border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
-		end := start + (element.size.x - padding_sum - border_sum)
-
-		// TODO(Thomas): What about the width of the caret here?
-		if caret_x_offset > end {
-			diff := caret_x_offset - end
-			element.scroll_region.offset.x += diff
-			element.scroll_region.target_offset.x += diff
-		} else if caret_x_offset < start {
-			diff := start - caret_x_offset
-			element.scroll_region.offset.x -= diff
-			element.scroll_region.target_offset.x -= diff
-		}
-
-		// TODO(Thomas): This way of doing the blinking is really bad.
-		if math.mod(state.caret_blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
-			// TODO(Thomas): Caret should be stylable
-			caret_id := fmt.tprintf("%s_caret", id)
-
-			// Caret container
-			container(
-				ctx,
-				caret_id,
-				Style {
-					sizing_x = sizing_fixed(CARET_WIDTH),
-					sizing_y = sizing_fixed(caret_height),
-					alignment_x = .Left,
-					alignment_y = .Center,
-					relative_position = base.Vec2 {
-						caret_x_offset - element.scroll_region.offset.x,
-						0,
-					},
-					background_fill = default_color_style[.Text],
-					capability_flags = Capability_Flags{.Background},
-					position_mode = .Anchored,
-				},
-			)
-		}
 	}
 
 	element.last_comm.text = text_view

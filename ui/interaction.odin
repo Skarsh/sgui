@@ -146,9 +146,11 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
+
 @(private)
 @(require_results)
 focused_text_state :: proc(interaction: ^Interaction) -> (textpkg.Text_State, bool) {
+	// TODO(Thomas): Could probably simplify this by pushing this if up to the call site
 	if interaction.focused_id != ui_key_null() {
 		if s, ok := &interaction.text_input_states[interaction.focused_id]; ok {
 			return &s.state, true
@@ -181,6 +183,25 @@ get_text_state_selection :: proc(
 
 	return {}, false
 
+}
+
+
+@(require_results)
+focused_caret :: proc(
+	interaction: Interaction,
+	key: UI_Key,
+) -> (
+	byte_pos: int,
+	blink_timer: f32,
+	ok: bool,
+) {
+	s, found := interaction.text_input_states[key]
+	if found {
+		byte_pos = s.state.selection.active
+		blink_timer = s.caret_blink_timer
+		ok = true
+	}
+	return
 }
 
 dispatch_mouse_to_focused :: proc(ctx: ^Context) {

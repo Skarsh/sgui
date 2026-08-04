@@ -1,6 +1,7 @@
 package ui
 
 import "core:fmt"
+import "core:math"
 import "core:mem"
 
 import "../base"
@@ -259,7 +260,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				// change until new input from the user.
 				selection: textpkg.Selection
 				has_selection: bool
-				if ctx.interaction.focused_id == element.key {
+				is_focused := ctx.interaction.focused_id == element.key
+				if is_focused {
 					selection, has_selection = get_text_state_selection(ctx.interaction, element^)
 				}
 
@@ -299,6 +301,56 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 						z_index = 0,
 					)
 					current_y += row.size.y
+				}
+
+				if has_selection {
+					caret_byte_pos, blink_timer, is_focused_edit := focused_caret(
+						ctx.interaction,
+						element.key,
+					)
+
+					if is_focused_edit {
+
+						// TODO(Thomas): This should be configurable
+						CARET_BLINK_PERIOD :: 1.0
+						CARET_WIDTH :: 2.0
+
+						//  TODO(Thomas): Bad way of doing this I think
+						if math.mod(blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
+							caret_pos, caret_height := textpkg.text_layout_caret_pos(
+								text_layout,
+								caret_byte_pos,
+							)
+
+							// TODO(Thomas): HACK - This is a special case for when there
+							// is no rows, then the start_pos.y doesn't subtract the size
+							// of the text_layout / 2 as far as I can see.
+							// This works, but maybe there is a cleaner solution, something
+							// like paragraphs always producing one row, even if it's empty??
+							if len(text_layout.rows) == 0 {
+								caret_height = textpkg.font_line_height(
+									&ctx.text_system,
+									ctx.font_id,
+								)
+								caret_pos.y -= caret_height / 2
+							}
+
+							draw_rect(
+								draw_state,
+								base.Rect {
+									x = i32(start_pos.x + caret_pos.x),
+									y = i32(start_pos.y + caret_pos.y),
+									w = i32(CARET_WIDTH),
+									h = i32(caret_height),
+								},
+								element.config.text_fill,
+								border_radius = base.Vec4{},
+								border = Border{},
+								border_fill = base.fill_color(0, 0, 0, 0),
+								z_index = 0,
+							)
+						}
+					}
 				}
 			}
 		}
