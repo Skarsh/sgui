@@ -19,22 +19,11 @@ Comm :: struct {
 	text:     string,
 }
 
-Text_Input_State :: struct {
-	state:             textpkg.Text_Edit_State,
-	caret_blink_timer: f32,
-}
-
-Text_Element_State :: struct {
-	state: textpkg.Text_Read_Only_State,
-}
-
 Interaction :: struct {
 	// input is owned by app
 	input:               ^base.Input,
 	// text_measurement is owned by app
 	text_measurement:    ^textpkg.Text_Measurement,
-	text_input_states:   map[UI_Key]Text_Input_State,
-	text_element_states: map[UI_Key]Text_Element_State,
 	active_element:      ^UI_Element,
 	hot_id:              UI_Key,
 	pressed_id:          UI_Key,
@@ -47,22 +36,11 @@ init_interaction :: proc(
 	interaction: ^Interaction,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
-	// TODO(Thomas): make(map) does not return an Allocator_Error in this Odin
-	// version (unlike make([dynamic])), so there is nothing to propagate here yet.
-	interaction.text_input_states = make(map[UI_Key]Text_Input_State, allocator)
-	interaction.text_element_states = make(map[UI_Key]Text_Element_State, allocator)
-
 	interaction.animatable_elements = make([dynamic]^UI_Element, allocator) or_return
 	return nil
 }
 
 deinit_interaction :: proc(interaction: ^Interaction) {
-	for key in interaction.text_input_states {
-		state := &interaction.text_input_states[key]
-		textpkg.text_edit_deinit(&state.state)
-	}
-	delete(interaction.text_input_states)
-	delete(interaction.text_element_states)
 	delete(interaction.animatable_elements)
 }
 
@@ -147,58 +125,58 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 }
 
 
+// TODO(Thomas): Move this?
 @(private)
 @(require_results)
-focused_text_state :: proc(interaction: ^Interaction) -> (textpkg.Text_State, bool) {
+focused_text_state :: proc(
+	interaction: ^Interaction,
+	ts: ^textpkg.Text_System,
+) -> (
+	^textpkg.Text_State,
+	bool,
+) {
 	// TODO(Thomas): Could probably simplify this by pushing this if up to the call site
 	if interaction.focused_id != ui_key_null() {
-		if s, ok := &interaction.text_input_states[interaction.focused_id]; ok {
-			return &s.state, true
-		}
-
-		if s, ok := &interaction.text_element_states[interaction.focused_id]; ok {
-			return &s.state, true
+		if s, ok := &ts.text_states[interaction.focused_id.hash]; ok {
+			return s, true
 		}
 	}
 
 	return nil, false
 }
 
+// TODO(Thomas): Move this? If this take the text system and a key: u64 this
+// can live in the text package, along with the Text_System type probably.
 @(require_results)
 get_text_state_selection :: proc(
-	interaction: Interaction,
+	ts: ^textpkg.Text_System,
 	element: UI_Element,
 ) -> (
 	textpkg.Selection,
 	bool,
 ) {
 
-	if s, ok := interaction.text_input_states[element.key]; ok {
-		return s.state.selection, true
-	}
-
-	if s, ok := interaction.text_element_states[element.key]; ok {
-		return s.state.selection, true
+	if s, ok := ts.text_states[element.key.hash]; ok {
+		return s.selection, true
 	}
 
 	return {}, false
-
 }
 
 
+// TODO(Thomas): Move this?
 @(require_results)
 focused_caret :: proc(
-	interaction: Interaction,
+	ts: ^textpkg.Text_System,
 	key: UI_Key,
 ) -> (
 	byte_pos: int,
 	blink_timer: f32,
 	ok: bool,
 ) {
-	s, found := interaction.text_input_states[key]
+	s, found := ts.text_states[key.hash]
 	if found {
-		byte_pos = s.state.selection.active
-		blink_timer = s.caret_blink_timer
+		byte_pos = s.selection.active
 		ok = true
 	}
 	return
@@ -208,7 +186,7 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 	it := &ctx.interaction
 	if it.focused_id != ui_key_null() {
 
-		state, found := focused_text_state(it)
+		state, found := focused_text_state(it, &ctx.text_system)
 
 		if found {
 			focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
@@ -249,10 +227,14 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 // TODO(Thomas): Find a better way than just pass the frame_allocator here?
 // TODO(Thomas): Clean up error handling here, it's a little messy.
 // TODO(Thomas): @Speed This runs every frame when an element is focused, which most likely is wasteful
-dispatch_keyboard_to_focused :: proc(interaction: ^Interaction, frame_allocator: mem.Allocator) {
+dispatch_keyboard_to_focused :: proc(
+	interaction: ^Interaction,
+	ts: ^textpkg.Text_System,
+	frame_allocator: mem.Allocator,
+) {
 	if interaction.focused_id != ui_key_null() {
 
-		state, found := focused_text_state(interaction)
+		state, found := focused_text_state(interaction, ts)
 
 		if found {
 			// Text Input
@@ -413,7 +395,7 @@ process_interaction :: proc(ctx: ^Context) {
 	update_interaction_ids(&ctx.interaction, hit_result)
 
 	dispatch_mouse_to_focused(ctx)
-	dispatch_keyboard_to_focused(&ctx.interaction, ctx.frame_allocator)
+	dispatch_keyboard_to_focused(&ctx.interaction, &ctx.text_system, ctx.frame_allocator)
 
 	apply_scroll(&ctx.interaction, hit_result.scrollable)
 

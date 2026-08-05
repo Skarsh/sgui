@@ -9,6 +9,7 @@ Text_System :: struct {
 	measurement:  Text_Measurement,
 	fonts:        [dynamic]Font_Cache,
 	layout_cache: map[u64]Text_Layout_Cache_Entry,
+	text_states:  map[u64]Text_State,
 }
 
 @(require_results)
@@ -28,6 +29,7 @@ init_text_system :: proc(
 	append(&ts.fonts, fc) or_return
 
 	ts.layout_cache = make(map[u64]Text_Layout_Cache_Entry, allocator)
+	ts.text_states = make(map[u64]Text_State, allocator)
 
 	return nil
 }

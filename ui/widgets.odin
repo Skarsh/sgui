@@ -25,16 +25,21 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 
 		if element.key == ctx.interaction.focused_id {
 			key := element.key
-			state, state_exists := &ctx.interaction.text_element_states[key]
+			state, state_exists := &ctx.text_system.text_states[key.hash]
 
+			// TODO(Thomas): Can this be simplified?
 			if !state_exists {
-				ctx.interaction.text_element_states[key] = Text_Element_State{}
+				text_read_state := textpkg.Text_Read_Only_State{}
+				text_state := textpkg.Text_State {
+					variant = text_read_state,
+				}
+				ctx.text_system.text_states[key.hash] = text_state
 				ok: bool
-				state, ok = &ctx.interaction.text_element_states[key]
+				state, ok = &ctx.text_system.text_states[key.hash]
 				assert(ok)
 			}
 
-			textpkg.text_read_only_set_text(&state.state, text)
+			textpkg.text_read_only_set_text(&state.variant.(textpkg.Text_Read_Only_State), text)
 		}
 	}
 
@@ -233,10 +238,10 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 	element := open_element(ctx, id, style, default_theme().text_input)
 
 	key := element.key
-	state, state_exists := &ctx.interaction.text_input_states[key]
+	state, state_exists := &ctx.text_system.text_states[key.hash]
 
 	if !state_exists {
-		new_state := Text_Input_State{}
+		new_state := textpkg.Text_State{}
 
 		fixed_buf := fixed_buffer.Fixed_Buffer {
 			buf = buf,
@@ -246,15 +251,20 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 			buf = fixed_buf,
 		}
 
-		textpkg.text_edit_init(&new_state.state, text_buffer)
+		text_edit_state := textpkg.Text_Edit_State{}
+		textpkg.text_edit_init(&text_edit_state, text_buffer)
+		new_state.variant = text_edit_state
 
-		ctx.interaction.text_input_states[key] = new_state
-		state = &ctx.interaction.text_input_states[key]
+		ctx.text_system.text_states[key.hash] = new_state
+		state = &ctx.text_system.text_states[key.hash]
 	}
 
 	//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
 	// which will free at the beginning of the next frame.
-	text_view, text_alloc_err := textpkg.text_buffer_text(state.state.buffer, ctx.frame_allocator)
+	text_view, text_alloc_err := textpkg.text_buffer_text(
+		state.variant.(textpkg.Text_Edit_State).buffer,
+		ctx.frame_allocator,
+	)
 	if text_alloc_err != .None {
 		log.error("Error when trying to get text buffer text: ", text_alloc_err)
 	}
@@ -263,9 +273,10 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 	// TODO(Thomas): Styling should be flexible
 	element_equip_text(ctx, element, text_view)
 
-	if element.key == ctx.interaction.focused_id {
-		state.caret_blink_timer += ctx.dt
-	}
+	// TODO(Thomas): The blinker is really a global thing and can live in interaction??
+	//if element.key == ctx.interaction.focused_id {
+	//state.caret_blink_timer += ctx.dt
+	//}
 
 	element.last_comm.text = text_view
 	close_element(ctx)

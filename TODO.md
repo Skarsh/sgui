@@ -3,6 +3,7 @@
 ## Active
 
 ## Bugs
+* Going past the end doesn't scroll horizontally in `text_input` anymore.
 
 ## Backlog
 * Need a better Glyph type, probably should live in base package.

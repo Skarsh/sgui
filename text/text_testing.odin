@@ -93,10 +93,14 @@ test_text_edit_state :: proc(
 	backend: Test_Backend,
 	text: string,
 	selection: Selection,
-) -> Text_Edit_State {
-	state := Text_Edit_State{}
-	text_edit_init(&state, test_text_buffer(backend, text))
-	state.selection = selection
+) -> Text_State {
+	text_edit_state := Text_Edit_State{}
+	text_edit_init(&text_edit_state, test_text_buffer(backend, text))
+	state := Text_State {
+		selection = selection,
+		variant   = text_edit_state,
+	}
+
 	return state
 }
 
@@ -144,10 +148,6 @@ check_select :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-		//text_edit_select_to(&state, translation)
-		// TODO(Thomas): This should have been using text_cursor_apply with
-		// a Cursor_Select command instead??
-		//text_cursor_select_to(&state, translation = translation)
 		text_cursor_move(&state, Cursor_Move{translation = translation, select = true})
 		testing.expectf(
 			t,
@@ -181,7 +181,10 @@ check_delete :: proc(
 		error := text_cursor_apply(&state, Cursor_Delete{translation = translation})
 		assert(error == nil)
 
-		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
+		actual_text, alloc_err := text_buffer_text(
+			state.variant.(Text_Edit_State).buffer,
+			context.temp_allocator,
+		)
 		assert(alloc_err == .None)
 		testing.expectf(
 			t,
@@ -227,7 +230,10 @@ check_edit_insert :: proc(
 		error := text_cursor_apply(&state, Cursor_Insert{text = insertion})
 		assert(error == nil)
 
-		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
+		actual_text, alloc_err := text_buffer_text(
+			state.variant.(Text_Edit_State).buffer,
+			context.temp_allocator,
+		)
 		assert(alloc_err == .None)
 		testing.expectf(
 			t,
@@ -271,12 +277,14 @@ check_handle_keys :: proc(
 ) {
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, text, selection)
-
 		// TODO(Thomas): Should we use the return command here somehow?
 		_, error := text_cursor_handle_keys(&state, keys, mods)
 		assert(error == nil)
 
-		actual_text, alloc_err := text_buffer_text(state.buffer, context.temp_allocator)
+		actual_text, alloc_err := text_buffer_text(
+			state.variant.(Text_Edit_State).buffer,
+			context.temp_allocator,
+		)
 		assert(alloc_err == .None)
 		testing.expectf(
 			t,

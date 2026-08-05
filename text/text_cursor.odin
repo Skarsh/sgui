@@ -30,14 +30,12 @@ Text_Source :: union {
 
 
 Text_Edit_State :: struct {
-	buffer:    Text_Buffer,
-	selection: Selection,
-	max_len:   int,
+	buffer:  Text_Buffer,
+	max_len: int,
 }
 
 text_edit_init :: proc(state: ^Text_Edit_State, buffer: Text_Buffer, max_len: int = max(int)) {
 	state.buffer = buffer
-	state.selection = {}
 	state.max_len = max_len
 }
 
@@ -59,9 +57,12 @@ text_read_only_set_text :: proc(state: ^Text_Read_Only_State, text: string) {
 	state.selection.anchor = clamp(state.selection.anchor, 0, len(text))
 }
 
-Text_State :: union {
-	^Text_Edit_State,
-	^Text_Read_Only_State,
+Text_State :: struct {
+	selection: Selection,
+	variant:   union {
+		Text_Edit_State,
+		Text_Read_Only_State,
+	},
 }
 
 Cursor_Move :: struct {
@@ -100,7 +101,7 @@ Clipboard_Command :: enum {
 }
 
 text_cursor_handle_keys :: proc(
-	state: Text_State,
+	state: ^Text_State,
 	keys: base.Key_Set,
 	keymod: base.Keymod_Set = base.KMOD_NONE,
 ) -> (
@@ -134,7 +135,7 @@ text_cursor_handle_keys :: proc(
 }
 
 
-text_cursor_move :: proc(state: Text_State, cmd: Cursor_Move) {
+text_cursor_move :: proc(state: ^Text_State, cmd: Cursor_Move) {
 	target := text_cursor_translated_pos(state, cmd.translation, !cmd.select)
 	if cmd.select {
 		set_active(state, target)
@@ -143,7 +144,7 @@ text_cursor_move :: proc(state: Text_State, cmd: Cursor_Move) {
 	}
 }
 
-text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
+text_cursor_set_caret :: proc(state: ^Text_State, cmd: Cursor_Set_Caret) {
 	if cmd.extend {
 		set_active(state, cmd.byte_pos)
 	} else {
@@ -152,13 +153,13 @@ text_cursor_set_caret :: proc(state: Text_State, cmd: Cursor_Set_Caret) {
 }
 
 @(require_results)
-text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) -> Text_Buffer_Error {
-	switch v in state {
-	case ^Text_Edit_State:
-		insert_at := v.selection.active
-		if !is_selection_collapsed(v.selection) {
-			start := selection_start(v.selection)
-			end := selection_end(v.selection)
+text_cursor_insert :: proc(state: ^Text_State, cmd: Cursor_Insert) -> Text_Buffer_Error {
+	switch &v in state.variant {
+	case Text_Edit_State:
+		insert_at := state.selection.active
+		if !is_selection_collapsed(state.selection) {
+			start := selection_start(state.selection)
+			end := selection_end(state.selection)
 			text_buffer_delete_range(&v.buffer, start, end - start)
 			insert_at = start
 		}
@@ -168,27 +169,27 @@ text_cursor_insert :: proc(state: Text_State, cmd: Cursor_Insert) -> Text_Buffer
 			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return
 			set_caret(state, insert_at + len(cmd.text))
 		}
-	case ^Text_Read_Only_State:
+	case Text_Read_Only_State:
 	// no-op
 	}
 	return nil
 }
 
-text_cursor_delete :: proc(state: Text_State, cmd: Cursor_Delete) {
-	switch v in state {
-	case ^Text_Edit_State:
-		if is_selection_collapsed(v.selection) {
+text_cursor_delete :: proc(state: ^Text_State, cmd: Cursor_Delete) {
+	switch &v in state.variant {
+	case Text_Edit_State:
+		if is_selection_collapsed(state.selection) {
 			text_cursor_move(state, Cursor_Move{translation = cmd.translation, select = true})
 		}
 
-		start := selection_start(v.selection)
-		end := selection_end(v.selection)
+		start := selection_start(state.selection)
+		end := selection_end(state.selection)
 
 		if start != end {
 			text_buffer_delete_range(&v.buffer, start, end - start)
 		}
-		set_caret(v, start)
-	case ^Text_Read_Only_State:
+		set_caret(state, start)
+	case Text_Read_Only_State:
 	// no-op
 	}
 }
@@ -204,7 +205,7 @@ selection_end :: proc(selection: Selection) -> int {
 
 @(require_results)
 text_cursor_get_text :: proc(
-	state: Text_State,
+	state: ^Text_State,
 	allocator: mem.Allocator,
 ) -> (
 	string,
@@ -222,14 +223,14 @@ text_cursor_get_text :: proc(
 }
 
 @(require_results)
-text_cursor_get_selection :: proc(state: Text_State) -> Selection {
+text_cursor_get_selection :: proc(state: ^Text_State) -> Selection {
 	_, selection := text_state_parts(state)
 	return selection^
 }
 
 @(private)
 @(require_results)
-text_cursor_apply :: proc(state: Text_State, cmd: Text_Cursor_Cmd) -> Text_Buffer_Error {
+text_cursor_apply :: proc(state: ^Text_State, cmd: Text_Cursor_Cmd) -> Text_Buffer_Error {
 	switch v in cmd {
 	case Cursor_Move:
 		text_cursor_move(state, v)
@@ -290,7 +291,7 @@ text_cursor_translate_key :: proc(
 }
 
 @(private)
-text_cursor_select_all :: proc(state: Text_State, cmd: Cursor_Select_All) {
+text_cursor_select_all :: proc(state: ^Text_State, cmd: Cursor_Select_All) {
 	source, selection := text_state_parts(state)
 	selection.anchor = 0
 	selection.active = text_source_byte_length(source)
@@ -453,7 +454,7 @@ clamp_byte_pos_to_text_source_range :: proc(source: Text_Source, byte_pos: int) 
 }
 
 @(private)
-set_caret :: proc(state: Text_State, byte_pos: int) {
+set_caret :: proc(state: ^Text_State, byte_pos: int) {
 	source, selection := text_state_parts(state)
 	clamped := clamp_byte_pos_to_text_source_range(source, byte_pos)
 	selection.active = clamped
@@ -461,7 +462,7 @@ set_caret :: proc(state: Text_State, byte_pos: int) {
 }
 
 @(private)
-set_active :: proc(state: Text_State, byte_pos: int) {
+set_active :: proc(state: ^Text_State, byte_pos: int) {
 	source, selection := text_state_parts(state)
 	clamped := clamp_byte_pos_to_text_source_range(source, byte_pos)
 	selection.active = clamped
@@ -470,7 +471,7 @@ set_active :: proc(state: Text_State, byte_pos: int) {
 @(private)
 @(require_results)
 text_cursor_translated_pos :: proc(
-	state: Text_State,
+	state: ^Text_State,
 	translation: Translation,
 	collapse_selection_lr: bool,
 ) -> int {
@@ -505,15 +506,14 @@ text_cursor_translated_pos :: proc(
 }
 
 @(private)
-text_state_parts :: proc(state: Text_State) -> (source: Text_Source, selection: ^Selection) {
-	switch v in state {
-	case ^Text_Edit_State:
+text_state_parts :: proc(state: ^Text_State) -> (source: Text_Source, selection: ^Selection) {
+	switch v in state.variant {
+	case Text_Edit_State:
 		source = v.buffer
-		selection = &v.selection
-	case ^Text_Read_Only_State:
+	case Text_Read_Only_State:
 		source = v.text
-		selection = &v.selection
 	}
+	selection = &state.selection
 	return
 }
 

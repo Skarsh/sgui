@@ -262,7 +262,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				has_selection: bool
 				is_focused := ctx.interaction.focused_id == element.key
 				if is_focused {
-					selection, has_selection = get_text_state_selection(ctx.interaction, element^)
+					selection, has_selection = get_text_state_selection(&ctx.text_system, element^)
 				}
 
 				for row in text_layout.rows {
@@ -305,7 +305,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 				if has_selection {
 					caret_byte_pos, blink_timer, is_focused_edit := focused_caret(
-						ctx.interaction,
+						&ctx.text_system,
 						element.key,
 					)
 
