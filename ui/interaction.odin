@@ -166,14 +166,7 @@ get_text_state_selection :: proc(
 
 // TODO(Thomas): Move this?
 @(require_results)
-focused_caret :: proc(
-	ts: ^textpkg.Text_System,
-	key: UI_Key,
-) -> (
-	byte_pos: int,
-	blink_timer: f32,
-	ok: bool,
-) {
+focused_caret :: proc(ts: ^textpkg.Text_System, key: UI_Key) -> (byte_pos: int, ok: bool) {
 	s, found := ts.text_states[key.hash]
 	if found {
 		byte_pos = s.selection.active

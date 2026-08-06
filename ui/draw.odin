@@ -304,52 +304,42 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				}
 
 				if has_selection {
-					caret_byte_pos, blink_timer, is_focused_edit := focused_caret(
-						&ctx.text_system,
-						element.key,
-					)
+					caret_byte_pos, is_focused_edit := focused_caret(&ctx.text_system, element.key)
 
 					if is_focused_edit {
-
 						// TODO(Thomas): This should be configurable
-						CARET_BLINK_PERIOD :: 1.0
 						CARET_WIDTH :: 2.0
 
 						//  TODO(Thomas): Bad way of doing this I think
-						if math.mod(blink_timer, CARET_BLINK_PERIOD) < CARET_BLINK_PERIOD / 2 {
-							caret_pos, caret_height := textpkg.text_layout_caret_pos(
-								text_layout,
-								caret_byte_pos,
-							)
+						caret_pos, caret_height := textpkg.text_layout_caret_pos(
+							text_layout,
+							caret_byte_pos,
+						)
 
-							// TODO(Thomas): HACK - This is a special case for when there
-							// is no rows, then the start_pos.y doesn't subtract the size
-							// of the text_layout / 2 as far as I can see.
-							// This works, but maybe there is a cleaner solution, something
-							// like paragraphs always producing one row, even if it's empty??
-							if len(text_layout.rows) == 0 {
-								caret_height = textpkg.font_line_height(
-									&ctx.text_system,
-									ctx.font_id,
-								)
-								caret_pos.y -= caret_height / 2
-							}
-
-							draw_rect(
-								draw_state,
-								base.Rect {
-									x = i32(start_pos.x + caret_pos.x),
-									y = i32(start_pos.y + caret_pos.y),
-									w = i32(CARET_WIDTH),
-									h = i32(caret_height),
-								},
-								element.config.text_fill,
-								border_radius = base.Vec4{},
-								border = Border{},
-								border_fill = base.fill_color(0, 0, 0, 0),
-								z_index = 0,
-							)
+						// TODO(Thomas): HACK - This is a special case for when there
+						// is no rows, then the start_pos.y doesn't subtract the size
+						// of the text_layout / 2 as far as I can see.
+						// This works, but maybe there is a cleaner solution, something
+						// like paragraphs always producing one row, even if it's empty??
+						if len(text_layout.rows) == 0 {
+							caret_height = textpkg.font_line_height(&ctx.text_system, ctx.font_id)
+							caret_pos.y -= caret_height / 2
 						}
+
+						draw_rect(
+							draw_state,
+							base.Rect {
+								x = i32(start_pos.x + caret_pos.x),
+								y = i32(start_pos.y + caret_pos.y),
+								w = i32(CARET_WIDTH),
+								h = i32(caret_height),
+							},
+							element.config.text_fill,
+							border_radius = base.Vec4{},
+							border = Border{},
+							border_fill = base.fill_color(0, 0, 0, 0),
+							z_index = 0,
+						)
 					}
 				}
 			}

@@ -299,12 +299,6 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		element.scroll_region.target_offset.x -= diff
 	}
 
-
-	// TODO(Thomas): The blinker is really a global thing and can live in interaction??
-	//if element.key == ctx.interaction.focused_id {
-	//state.caret_blink_timer += ctx.dt
-	//}
-
 	element.last_comm.text = text_view
 	close_element(ctx)
 
