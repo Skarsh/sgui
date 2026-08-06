@@ -39,7 +39,7 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 				assert(ok)
 			}
 
-			textpkg.text_read_only_set_text(&state.variant.(textpkg.Text_Read_Only_State), text)
+			textpkg.text_read_only_set_text(state, text)
 		}
 	}
 

@@ -44,15 +44,17 @@ text_edit_deinit :: proc(state: ^Text_Edit_State) {
 }
 
 Text_Read_Only_State :: struct {
-	text:      string,
-	selection: Selection,
+	text: string,
 }
 
 // Text is owned by the caller, and it can be different every frame.
 // This function makes sure that the string in the state points to the
 // right one, and that the selection is clamped to the new string pointed to.
-text_read_only_set_text :: proc(state: ^Text_Read_Only_State, text: string) {
-	state.text = text
+text_read_only_set_text :: proc(state: ^Text_State, text: string) {
+	read_only, is_read_only := &state.variant.(Text_Read_Only_State)
+	assert(is_read_only, "text_read_only_set_text requires a read only text state")
+
+	read_only.text = text
 	state.selection.active = clamp(state.selection.active, 0, len(text))
 	state.selection.anchor = clamp(state.selection.anchor, 0, len(text))
 }

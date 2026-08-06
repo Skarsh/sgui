@@ -1,7 +1,6 @@
 package ui
 
 import "core:fmt"
-import "core:math"
 import "core:mem"
 
 import "../base"
