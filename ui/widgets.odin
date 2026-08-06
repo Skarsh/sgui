@@ -273,6 +273,33 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 	// TODO(Thomas): Styling should be flexible
 	element_equip_text(ctx, element, text_view)
 
+	cursor_pos := state.selection.active
+	text_before_cursor := text_view[:cursor_pos]
+
+	intrinsic_size := textpkg.measure_text_intrinsic(
+		text_before_cursor,
+		&ctx.text_system,
+		ctx.font_id,
+	)
+
+	caret_x_offset := intrinsic_size.x
+
+	start := element.scroll_region.offset.x
+	padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
+	border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
+	end := start + (element.size.x - padding_sum - border_sum)
+
+	if caret_x_offset > end {
+		diff := caret_x_offset - end
+		element.scroll_region.offset.x += diff
+		element.scroll_region.target_offset.x += diff
+	} else if caret_x_offset < start {
+		diff := start - caret_x_offset
+		element.scroll_region.offset.x -= diff
+		element.scroll_region.target_offset.x -= diff
+	}
+
+
 	// TODO(Thomas): The blinker is really a global thing and can live in interaction??
 	//if element.key == ctx.interaction.focused_id {
 	//state.caret_blink_timer += ctx.dt
