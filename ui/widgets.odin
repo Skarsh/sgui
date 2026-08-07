@@ -23,24 +23,22 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 		// Selection needs to be able to click and take focuse for hit testing
 		element.config.capability_flags |= {.Clickable, .Focusable}
 
-		if element.key == ctx.interaction.focused_id {
-			key := element.key
-			state, state_exists := &ctx.text_system.text_states[key.hash]
+		key := element.key
+		state, state_exists := &ctx.text_system.text_states[key.hash]
 
-			// TODO(Thomas): Can this be simplified?
-			if !state_exists {
-				text_read_state := textpkg.Text_Read_Only_State{}
-				text_state := textpkg.Text_State {
-					variant = text_read_state,
-				}
-				ctx.text_system.text_states[key.hash] = text_state
-				ok: bool
-				state, ok = &ctx.text_system.text_states[key.hash]
-				assert(ok)
+		// TODO(Thomas): Can this be simplified?
+		if !state_exists {
+			text_read_state := textpkg.Text_Read_Only_State{}
+			text_state := textpkg.Text_State {
+				variant = text_read_state,
 			}
-
-			textpkg.text_read_only_set_text(state, text)
+			ctx.text_system.text_states[key.hash] = text_state
+			ok: bool
+			state, ok = &ctx.text_system.text_states[key.hash]
+			assert(ok)
 		}
+
+		textpkg.text_read_only_set_text(state, text)
 	}
 
 	close_element(ctx)
