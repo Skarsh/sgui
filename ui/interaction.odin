@@ -27,6 +27,7 @@ Interaction :: struct {
 	active_element:      ^UI_Element,
 	hot_id:              UI_Key,
 	pressed_id:          UI_Key,
+	clicked_id:          UI_Key,
 	focused_id:          UI_Key,
 	animatable_elements: [dynamic]^UI_Element,
 }
@@ -99,6 +100,8 @@ hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result 
 
 
 update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result) {
+	interaction.clicked_id = {}
+
 	// hot_id is simply who is on top this frame, or nothing
 	interaction.hot_id = hit_result.clickable != nil ? hit_result.clickable.key : {}
 
@@ -120,6 +123,13 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 
 	if base.is_mouse_released(interaction.input^, .Left) {
+		// A click is a press and a release on the same element, no matter
+		// how many frames apart they happen.
+		if interaction.pressed_id != ui_key_null() &&
+		   interaction.pressed_id == interaction.hot_id {
+			interaction.clicked_id = interaction.pressed_id
+		}
+
 		interaction.pressed_id = {}
 	}
 }
@@ -402,6 +412,13 @@ build_comm :: proc(
 	comm: Comm,
 	alloc_err: mem.Allocator_Error,
 ) {
+	// The interaction ids use the null key to mean "nothing", so a null-key
+	// element would match them when there is no interaction at all, so we only
+	// set the element and clears the rest in the Comm and return.
+	if element.key == ui_key_null() {
+		return Comm{element = element}, nil
+	}
+
 	is_hot := element.key == interaction.hot_id
 	is_pressed := element.key == interaction.pressed_id
 	is_focused := element.key == interaction.focused_id
@@ -412,7 +429,7 @@ build_comm :: proc(
 		append(&interaction.animatable_elements, element) or_return
 	}
 
-	clicked := is_hot && is_pressed && base.is_mouse_released(interaction.input^, .Left)
+	clicked := element.key == interaction.clicked_id
 
 	return Comm {
 			element = element,

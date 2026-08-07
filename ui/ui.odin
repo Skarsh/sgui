@@ -155,6 +155,14 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 }
 
 begin :: proc(ctx: ^Context) {
+	// Interaction runs against the tree that was laid out last frame.
+	// Widgets see the input from this frame.
+	// It is very important that this is the first thing that happens this frame
+	// to make sure that memory from the preivous frame is valid for this to use.
+	if ctx.root_element != nil {
+		process_interaction(ctx)
+	}
+
 	ctx.frame_idx += 1
 
 	free_frame_alloc_err := free_all(ctx.frame_allocator)
@@ -198,8 +206,7 @@ end :: proc(ctx: ^Context) {
 	// 7.  Update chilren cross axis heights
 	// 8.  Resolve dependent sizes heights
 	// 9.  Positions
-	// 10. Process interactions
-	// 11. Draw commands
+	// 10. Draw commands
 
 	// Only the root element should be left open here. A widget that opens an element
 	// without closing it desyncs the stack for the rest of the frame, so we name the
@@ -259,8 +266,6 @@ end :: proc(ctx: ^Context) {
 	assert(resolve_height_alloc_err == .None)
 
 	calculate_positions_and_alignment(ctx, ctx.root_element, ctx.dt)
-
-	process_interaction(ctx)
 
 	draw_all_elements(ctx)
 
