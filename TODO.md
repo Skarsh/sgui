@@ -3,7 +3,7 @@
 ## Active
 
 ## Bugs
-* Going past the end doesn't scroll horizontally in `text_input` anymore.
+* Selection doesn't work properly in text elements when y-alignment is center or botoom
 
 ## Backlog
 * Need a better Glyph type, probably should live in base package.
