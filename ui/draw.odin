@@ -233,26 +233,13 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		}
 
 		if .Text in cap_flags {
-			box := content_box(element^)
 
 			text_layout, found_text_layout := textpkg.read_text_layout_cache(
 				ctx.text_system.layout_cache,
 				element.key.hash,
 			)
 			if found_text_layout {
-				// Calculate the initial vertical offset for the whole block based on Aligment_Y
-				start_pos := content_origin_scrolled(element^)
-				switch element.config.layout.text_alignment_y {
-				case .Top:
-				// Default, no change
-				case .Center:
-					start_pos.y = start_pos.y + (box.size.y - text_layout.size.y) / 2
-				case .Bottom:
-					start_pos.y = start_pos.y + (box.size.y - text_layout.size.y)
-				}
-
-				// Iterate through each line and draw it with the correct X and Y
-				current_y := start_pos.y
+				start_pos := text_origin(element^, text_layout)
 
 				// Get the selection if the current element is focused.
 				// We do this outside of the loop because selection doesn't
@@ -263,6 +250,8 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				if is_focused {
 					selection, has_selection = get_text_state_selection(&ctx.text_system, element^)
 				}
+
+				current_y := start_pos.y
 
 				for row in text_layout.rows {
 					// Draw selection

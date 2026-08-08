@@ -926,6 +926,22 @@ content_origin_scrolled :: proc(element: UI_Element) -> base.Vec2 {
 	return content_box(element).origin - element.scroll_region.offset
 }
 
+// Text origin in screen space
+@(require_results)
+text_origin :: proc(element: UI_Element, text_layout: textpkg.Text_Layout) -> base.Vec2 {
+	start_pos := content_origin_scrolled(element)
+	box := content_box(element)
+	switch element.config.layout.text_alignment_y {
+	case .Top:
+	// No change
+	case .Center:
+		start_pos.y = start_pos.y + (box.size.y - text_layout.size.y) / 2
+	case .Bottom:
+		start_pos.y = start_pos.y + (box.size.y - text_layout.size.y)
+	}
+	return start_pos
+}
+
 @(require_results)
 has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
 	result := false
