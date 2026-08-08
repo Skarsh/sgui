@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -22,19 +22,19 @@ jobs:
             install-deps: |
               sudo apt-get update
               sudo apt-get install -y libsdl2-dev libsdl2-image-dev
-            exe-ext: ''
+            exe-ext: ""
 
           - os: macOS
             runner: macos-latest
             install-deps: brew install sdl2 sdl2_image
-            exe-ext: ''
+            exe-ext: ""
 
           - os: Windows
             runner: windows-latest
             install-deps: |
               vcpkg install sdl2:x64-windows sdl2-image:x64-windows
               vcpkg integrate install
-            exe-ext: '.exe'
+            exe-ext: ".exe"
 
     steps:
       - name: Checkout code
@@ -57,11 +57,14 @@ jobs:
       - name: Verify Odin installation
         run: odin version
 
+      # Windows releases ship prebuilt vendor/stb/lib/*.lib, and build.bat needs cl,
+      # so we only build stb from source for the Linux and macOS
       - name: Build Odin vendor libraries
+        if: matrix.os != 'Windows'
         shell: bash
         run: |
-          cd $(odin root)
-          make -C vendor/stb/src
+          export ODIN_ROOT="$(odin root)"
+          sh "$ODIN_ROOT/vendor/stb/src/build_stb.sh"
 
       - name: Create build directory
         run: mkdir -p build
