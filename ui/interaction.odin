@@ -208,14 +208,24 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 				if found_layout {
 					if pressed || held {
 						origin := content_origin_scrolled(focused_element)
-						byte_pos := textpkg.text_layout_byte_pos_from_point(
-							text_layout,
-							{
-								f32(it.input.mouse_pos.x) - origin.x,
-								f32(it.input.mouse_pos.y) - origin.y,
-							},
-						)
+						mouse_pos := base.Vec2 {
+							f32(it.input.mouse_pos.x),
+							f32(it.input.mouse_pos.y),
+						}
 
+						start_pos := mouse_pos - origin
+						box := content_box(focused_element)
+
+						switch focused_element.config.layout.text_alignment_y {
+						case .Top:
+						// No change
+						case .Center:
+							start_pos.y = start_pos.y - (box.size.y - text_layout.size.y) / 2
+						case .Bottom:
+							start_pos.y = start_pos.y - (box.size.y - text_layout.size.y)
+						}
+
+						byte_pos := textpkg.text_layout_byte_pos_from_point(text_layout, start_pos)
 						textpkg.text_cursor_set_caret(
 							state,
 							textpkg.Cursor_Set_Caret{byte_pos, !pressed},
