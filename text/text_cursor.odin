@@ -60,11 +60,12 @@ text_read_only_set_text :: proc(state: ^Text_State, text: string) {
 }
 
 Text_State :: struct {
-	selection: Selection,
-	variant:   union {
+	selection:      Selection,
+	variant:        union {
 		Text_Edit_State,
 		Text_Read_Only_State,
 	},
+	last_frame_idx: u64,
 }
 
 deinit_text_state :: proc(state: ^Text_State) {

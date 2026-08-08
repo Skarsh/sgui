@@ -38,6 +38,9 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 			assert(ok)
 		}
 
+		// Last frame idx must be set every frame
+		state.last_frame_idx = ctx.frame_idx
+
 		textpkg.text_read_only_set_text(state, text)
 	}
 
@@ -256,6 +259,9 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 		ctx.text_system.text_states[key.hash] = new_state
 		state = &ctx.text_system.text_states[key.hash]
 	}
+
+	// Last frame idx must be set every frame
+	state.last_frame_idx = ctx.frame_idx
 
 	//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
 	// which will free at the beginning of the next frame.

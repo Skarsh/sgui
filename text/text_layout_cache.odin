@@ -69,21 +69,21 @@ layout_text_cached :: proc(
 	return
 }
 
+// TODO(Thomas): Think about unifying this with pruning text system
 // Frees entreis that weren't requested on the last frame.
+@(require_results)
 prune_text_layout_cache :: proc(
 	cache: ^map[u64]Text_Layout_Cache_Entry,
 	frame_idx: u64,
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
-) {
+) -> mem.Allocator_Error {
 	// Cannot alter the map while iterating, so we collect the dead keys first.
-	dead_keys, alloc_err := make([dynamic]u64, frame_allocator)
-	assert(alloc_err == .None)
+	dead_keys := make([dynamic]u64, frame_allocator) or_return
 
 	for key, entry in cache {
 		if entry.last_frame_idx < frame_idx - 1 {
-			_, alloc_err = append(&dead_keys, key)
-			assert(alloc_err == .None)
+			_ = append(&dead_keys, key) or_return
 		}
 	}
 
@@ -92,6 +92,8 @@ prune_text_layout_cache :: proc(
 		free_entry(&entry, persistent_allocator)
 		delete_key(cache, key)
 	}
+
+	return nil
 }
 
 @(private)
