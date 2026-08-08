@@ -1,11 +1,14 @@
 # TODOs
 
 ## Active
+* Selection past the edges of a text element (the visible part), should result in scrolling
 
 ## Bugs
-* Selection doesn't work properly in text elements when y-alignment is center or botoom
 
 ## Backlog
+* Look into unification / simplification of pruning elements, text layout cache entries and text states
+    The trigger for all of them to be pruned is that there's a new frame where they haven't been laid out
+    or constructed / set. This seems to only really happen when the element is removed from the hierarchy.
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
