@@ -34,11 +34,18 @@ init_text_system :: proc(
 	return nil
 }
 
-deinit_text_system :: proc(ts: ^Text_System) {
+deinit_text_system :: proc(ts: ^Text_System, allocator: mem.Allocator) {
+	free_text_layout_cache_entries(ts.layout_cache, allocator)
+
 	for &fc in ts.fonts {
 		delete(fc.extended)
 	}
 	delete(ts.fonts)
+
+	for _, &state in ts.text_states {
+		deinit_text_state(&state)
+	}
+	delete(ts.text_states)
 }
 
 Font_Cache :: struct {

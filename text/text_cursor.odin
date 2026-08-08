@@ -67,6 +67,16 @@ Text_State :: struct {
 	},
 }
 
+deinit_text_state :: proc(state: ^Text_State) {
+	switch &v in state.variant {
+	case Text_Edit_State:
+		text_edit_deinit(&v)
+
+	case Text_Read_Only_State:
+	// Nothing to free
+	}
+}
+
 Cursor_Move :: struct {
 	translation: Translation,
 	select:      bool,

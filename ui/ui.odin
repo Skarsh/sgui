@@ -116,13 +116,12 @@ window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
 deinit :: proc(ctx: ^Context) {
 
 	// Deinit text system
-	textpkg.deinit_text_system(&ctx.text_system)
+	textpkg.deinit_text_system(&ctx.text_system, ctx.persistent_allocator)
 
 	// Deinit interaction
 	deinit_interaction(&ctx.interaction)
 
 	// Free text layout cache entries and delete cache map
-	textpkg.free_text_layout_cache_entries(ctx.text_system.layout_cache, ctx.persistent_allocator)
 	delete(ctx.text_system.layout_cache)
 
 
