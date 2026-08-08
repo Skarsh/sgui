@@ -26,8 +26,8 @@ Interaction :: struct {
 	text_measurement:    ^textpkg.Text_Measurement,
 	active_element:      ^UI_Element,
 	hot_id:              UI_Key,
-	pressed_id:          UI_Key,
 	clicked_id:          UI_Key,
+	pressed_id:          UI_Key,
 	focused_id:          UI_Key,
 	animatable_elements: [dynamic]^UI_Element,
 }
@@ -98,35 +98,36 @@ hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result 
 	return result
 }
 
-
 update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result) {
+	// Clear clicked id from previous frame
 	interaction.clicked_id = {}
 
-	// hot_id is simply who is on top this frame, or nothing
-	interaction.hot_id = hit_result.clickable != nil ? hit_result.clickable.key : {}
+	// hot_animation
+	if hit_result.hot_animation != nil {
+		interaction.hot_id = hit_result.hot_animation.key
+	} else {
+		interaction.hot_id = {}
+	}
 
 	if base.is_mouse_pressed(interaction.input^, .Left) {
+
+		// clickable
 		if hit_result.clickable != nil {
 			interaction.pressed_id = hit_result.clickable.key
-
-			// Click away: pressing anywhere clears the focused unless we land on a focusable
-			if .Focusable in hit_result.clickable.config.capability_flags {
-				interaction.focused_id = hit_result.clickable.key
-			} else {
-				interaction.focused_id = {}
-			}
 		} else {
-			// Pressed on empty space, clear everything
 			interaction.pressed_id = {}
+		}
+
+		// focusable
+		if hit_result.focusable != nil {
+			interaction.focused_id = hit_result.focusable.key
+		} else {
 			interaction.focused_id = {}
 		}
 	}
 
 	if base.is_mouse_released(interaction.input^, .Left) {
-		// A click is a press and a release on the same element, no matter
-		// how many frames apart they happen.
-		if interaction.pressed_id != ui_key_null() &&
-		   interaction.pressed_id == interaction.hot_id {
+		if interaction.pressed_id == interaction.hot_id {
 			interaction.clicked_id = interaction.pressed_id
 		}
 
@@ -432,6 +433,7 @@ build_comm :: proc(
 	is_hot := element.key == interaction.hot_id
 	is_pressed := element.key == interaction.pressed_id
 	is_focused := element.key == interaction.focused_id
+	is_clicked := element.key == interaction.clicked_id
 
 	flags := element.config.capability_flags
 
@@ -439,12 +441,11 @@ build_comm :: proc(
 		append(&interaction.animatable_elements, element) or_return
 	}
 
-	clicked := element.key == interaction.clicked_id
 
 	return Comm {
 			element = element,
 			held = is_pressed,
-			clicked = clicked,
+			clicked = is_clicked,
 			active = is_focused,
 			hovering = is_hot || is_pressed,
 			hot = base.approx_equal(element.hot, 1.0, 0.001),
