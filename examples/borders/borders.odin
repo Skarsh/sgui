@@ -30,7 +30,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
 
 	ui.begin_container(
 		ctx,
-		"main",
 		ui.Style {
 			sizing_x = main_sizing_x,
 			sizing_y = main_sizing_y,
@@ -39,12 +38,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
 			child_gap = main_child_gap,
 			background_fill = main_bg,
 		},
+		name = "main",
 	)
 
 	// Test 1: Uniform border, uniform corner radii
 	ui.container(
 		ctx,
-		"test1",
 		ui.Style {
 			sizing_x = ui.sizing_fixed(300),
 			sizing_y = ui.sizing_fixed(100),
@@ -54,13 +53,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
 			background_fill = base.fill_color(100, 100, 255),
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "test1",
 	)
 
 	// Test 2: Variable border widths, uniform corner radii
 	// Using asymmetry to make the shift very obvious
 	ui.container(
 		ctx,
-		"test2",
 		ui.Style {
 			sizing_x = ui.sizing_fixed(300),
 			sizing_y = ui.sizing_fixed(100),
@@ -70,12 +69,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
 			background_fill = base.fill_color(255, 200, 100),
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "test2",
 	)
 
 	// Test 3: Thick Top border (should shift content DOWN)
 	ui.container(
 		ctx,
-		"test3",
 		ui.Style {
 			sizing_x = ui.sizing_fixed(300),
 			sizing_y = ui.sizing_fixed(100),
@@ -85,12 +84,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
 			background_fill = base.fill_color(100, 255, 255),
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "test3",
 	)
 
 	// Test 4: Variable border widths AND variable corner radii
 	ui.container(
 		ctx,
-		"test4",
 		ui.Style {
 			sizing_x         = ui.sizing_fixed(300),
 			sizing_y         = ui.sizing_fixed(100),
@@ -100,6 +99,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Test_Data) -> bool {
 			background_fill  = base.fill_color(200, 200, 200),
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "test4",
 	)
 
 	ui.end_container(ctx)

@@ -14,7 +14,7 @@ test_get_element_by_key_for_missing_key :: proc(t: ^testing.T) {
 	defer cleanup_test_environment(test_env)
 	ctx := &test_env.ctx
 
-	_, ok := get_element_by_key(ctx, ui_key_hash("never_built"))
+	_, ok := get_element_by_key(ctx, UI_Key{hash = hash_string("never_built")})
 	testing.expect(t, !ok)
 }
 
@@ -35,8 +35,8 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	build_ui :: proc(ctx: ^Context, data: ^Test_Data) {
 		container(
 			ctx,
-			"resizable_box",
 			Style{sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(data.element_height)},
+			name = "resizable_box",
 		)
 	}
 
@@ -46,10 +46,10 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	end(ctx)
 
 	// Verify Frame 1
-	elem_f1, elem_f1_ok := get_element_by_string_id(ctx, "resizable_box")
-	if !elem_f1_ok {
+	if len(ctx.root_element.children) != 1 {
 		testing.fail_now(t, "Frame 1: Element 'resizable_box' not found")
 	}
+	elem_f1 := ctx.root_element.children[0]
 	testing.expect_value(t, elem_f1.size.y, 100)
 
 	// --- Frame 2: Update Configuration ---
@@ -60,10 +60,10 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 	end(ctx)
 
 	// Verify Frame 2
-	elem_f2, elem_f2_ok := get_element_by_string_id(ctx, "resizable_box")
-	if !elem_f2_ok {
+	if len(ctx.root_element.children) != 1 {
 		testing.fail_now(t, "Frame 2: Element 'resizable_box' not found")
 	}
+	elem_f2 := ctx.root_element.children[0]
 
 	if !base.approx_equal(elem_f2.size.y, 50, EPSILON) {
 		testing.fail_now(
@@ -81,18 +81,15 @@ test_fixed_sizing_updates_cached_element :: proc(t: ^testing.T) {
 @(private)
 check_capability_flags :: proc(
 	t: ^testing.T,
-	ctx: ^Context,
-	id: string,
+	element: ^UI_Element,
 	expected: Capability_Flags,
 	loc := #caller_location,
 ) {
-	element, ok := get_element_by_string_id(ctx, id)
-	testing.expectf(t, ok, "failed to find %q", id, loc = loc)
 	testing.expectf(
 		t,
 		element.config.capability_flags == expected,
 		"%q: expected capabilites %v, got %v",
-		id,
+		element.name,
 		expected,
 		element.config.capability_flags,
 		loc = loc,
@@ -112,17 +109,17 @@ test_capabilities :: proc(t: ^testing.T) {
 
 		// Element 1 does not set any capability flags itself, should "inherit" the
 		// one from the style stack.
-		container(ctx, "element_1")
+		container(ctx, name = "element_1")
 
 		// Element 2 does not have any capability flags, should override what comes
 		// from the style stack
-		container(ctx, "element_2", Style{capability_flags = Capability_Flags{}})
+		container(ctx, Style{capability_flags = Capability_Flags{}}, name = "element_2")
 
 		// Element 3 is a superset of the capabilities on the style stack
 		container(
 			ctx,
-			"element_3",
 			Style{capability_flags = Capability_Flags{.Background, .Clickable}},
+			name = "element_3",
 		)
 	}
 
@@ -130,8 +127,11 @@ test_capabilities :: proc(t: ^testing.T) {
 	build_ui(ctx)
 	end(ctx)
 
-	check_capability_flags(t, ctx, "element_1", {.Background})
-	check_capability_flags(t, ctx, "element_2", Capability_Flags{})
-	check_capability_flags(t, ctx, "element_3", {.Background, .Clickable})
+	if len(ctx.root_element.children) != 3 {
+		testing.fail_now(t, "expected three elements under root")
+	}
+	check_capability_flags(t, ctx.root_element.children[0], {.Background})
+	check_capability_flags(t, ctx.root_element.children[1], Capability_Flags{})
+	check_capability_flags(t, ctx.root_element.children[2], {.Background, .Clickable})
 
 }

@@ -8,6 +8,7 @@ import textpkg "../text"
 
 ELEMENT_STACK_SIZE :: 64
 STYLE_STACK_SIZE :: 64
+ID_STACK_SIZE :: 64
 
 Color_Type :: enum u32 {
 	Text,
@@ -28,6 +29,8 @@ Context :: struct {
 	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// Style stack for cascading styles. Use push_style/pop_style.
 	style_stack:          Stack(Style, STYLE_STACK_SIZE),
+	// Id stack for making unique keys
+	id_stack:             Stack(u64, ID_STACK_SIZE),
 	draw_state:           Draw_State,
 	current_parent:       ^UI_Element,
 	root_element:         ^UI_Element,
@@ -147,7 +150,7 @@ free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
 		if elem.children != nil {
 			delete(elem.children)
 		}
-		delete(elem.id_string)
+		delete(elem.name)
 		free(elem, allocator)
 	}
 }
@@ -160,6 +163,8 @@ begin :: proc(ctx: ^Context) {
 	if ctx.root_element != nil {
 		process_interaction(ctx)
 	}
+
+	clear(&ctx.id_stack)
 
 	ctx.frame_idx += 1
 
@@ -175,12 +180,13 @@ begin :: proc(ctx: ^Context) {
 	// Open the root element
 	root_element := open_element(
 		ctx,
-		"root",
+		ui_key_current_loc(),
 		Style {
 			sizing_x = sizing_fixed(f32(ctx.window_size.x)),
 			sizing_y = sizing_fixed(f32(ctx.window_size.y)),
 			background_fill = base.fill_color(128, 128, 128),
 		},
+		name = "root",
 	)
 
 	//NOTE(Thomas): Root element size needs to be updated every frame, meaning not cached like other elements.
@@ -212,6 +218,15 @@ end :: proc(ctx: ^Context) {
 			fmt.tprintf(
 				"expected only the root element to be open at the end of the frame, got %v open",
 				ctx.element_stack.top,
+			),
+		)
+	}
+
+	if !is_empty(&ctx.id_stack) {
+		panic(
+			fmt.tprintf(
+				"expected the id_stack to be empty at the end of the frame, got %v oepn",
+				ctx.id_stack.top,
 			),
 		)
 	}
@@ -311,7 +326,7 @@ prune_dead_elements :: proc(
 			if elem.value.children != nil {
 				delete(elem.value.children)
 			}
-			delete(elem.value.id_string)
+			delete(elem.value.name)
 			free_err := free(elem.value, persistent_allocator)
 			assert(free_err == .None)
 		}

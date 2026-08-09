@@ -59,19 +59,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	// --- Main Panel (centered) ---
 	ui.begin_container(
 		ctx,
-		"main_panel",
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(1.0),
 			alignment_x = base.Alignment_X.Center,
 			alignment_y = base.Alignment_Y.Center,
 		},
+		name = "main_panel",
 	)
 
 	// --- Inner content panel ---
 	ui.begin_container(
 		ctx,
-		"panel",
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(1.0),
@@ -81,11 +80,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			child_gap = 15,
 			background_fill = PANEL_BG,
 		},
+		name = "panel",
 	)
 	// --- Title ---
 	ui.text(
 		ctx,
-		"title",
 		"Odin To-Do List",
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
@@ -93,12 +92,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			text_alignment_x = base.Alignment_X.Center,
 			background_fill = base.fill_color(0, 0, 0, 0),
 		},
+		name = "title",
 	)
 
 	// -- Task List Wrapper
 	ui.begin_container(
 		ctx,
-		"task_list_wrapper",
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
 			sizing_y = ui.sizing_fit(max = 350),
@@ -109,13 +108,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = base.fill_color(50, 50, 55),
 			border_fill = base.fill_color(100, 69, 69),
 		},
+		name = "task_list_wrapper",
 	)
 
 	// --- Task List ---
-	task_list_id := "task_list"
-	ui.begin_container(
+	task_list_name := "task_list"
+	task_list_comm := ui.begin_container(
 		ctx,
-		task_list_id,
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
 			sizing_y = ui.sizing_fit(max = 300),
@@ -125,6 +124,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			capability_flags = ui.Capability_Flags{.Scrollable_Y},
 			clip = ui.Clip_Config{clip_axes = {true, true}},
 		},
+		name = task_list_name,
 	)
 
 	for &task, i in data.tasks {
@@ -133,9 +133,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		ui.push_style(ctx, ui.Style{background_fill = ROW_BG})
 		defer ui.pop_style(ctx)
 
+		ui.push_id(ctx, i)
 		ui.begin_container(
 			ctx,
-			fmt.tprintf("task_row_%d", i),
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
 				sizing_y = ui.sizing_fit(),
@@ -144,7 +144,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				child_gap = 10,
 				padding = ui.padding_all(5),
 			},
+			name = fmt.tprintf("task_row_%d", i),
 		)
+		ui.pop_id(ctx)
 
 		// --- Checkbox Button ---
 		current_checkbox_color := CHECKBOX_EMPTY_BG
@@ -152,9 +154,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			current_checkbox_color = CHECKBOX_DONE_BG
 		}
 
+		ui.push_id(ctx, i)
 		ui.checkbox(
 			ctx,
-			fmt.tprintf("tasks_checkbox_%d", i),
 			&task.completed,
 			ui.Shape_Data{ui.Shape_Kind.Checkmark, base.fill_color(255, 255, 255), 2.0},
 			ui.Style {
@@ -162,19 +164,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				sizing_y = ui.sizing_fixed(36),
 				background_fill = current_checkbox_color,
 			},
+			name = fmt.tprintf("tasks_checkbox_%d", i),
 		)
+		ui.pop_id(ctx)
 
 		// --- Task Text ---
-		task_id := fmt.tprintf("task_text_%d", i)
+		task_name := fmt.tprintf("task_text_%d", i)
 
 		task_text_color := TEXT_COLOR
 		if task.completed {
 			task_text_color = COMPLETED_TEXT_COLOR
 		}
 
+		ui.push_id(ctx, i)
 		ui.text(
 			ctx,
-			task_id,
 			task.text,
 			ui.Style {
 				sizing_x = ui.sizing_grow(),
@@ -182,13 +186,15 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				text_alignment_y = base.Alignment_Y.Center,
 				text_fill = task_text_color,
 			},
+			name = task_name,
 		)
+		ui.pop_id(ctx)
 
 		// --- Delete Button ---
-		delete_button_id := fmt.tprintf("task_delete_button_%d", i)
+		delete_button_name := fmt.tprintf("task_delete_button_%d", i)
+		ui.push_id(ctx, i)
 		delete_comm := ui.button(
 			ctx,
-			delete_button_id,
 			"Delete",
 			ui.Style {
 				sizing_x = ui.sizing_fit(),
@@ -196,7 +202,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 				border_radius = ui.border_radius_all(3.0),
 				background_fill = DELETE_BUTTON_COLOR,
 			},
+			name = delete_button_name,
 		)
+		ui.pop_id(ctx)
 		if delete_comm.clicked {
 			ordered_remove(&data.tasks, i)
 		}
@@ -210,8 +218,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	ui.scrollbar(
 		ctx,
-		"task_list_scrollbar",
-		task_list_id,
+		task_list_comm.element,
 		.Y,
 		ui.Style {
 			sizing_x = ui.sizing_fixed(12),
@@ -220,6 +227,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = base.fill_color(0, 0, 0, 0),
 			position_mode = .Flow,
 		},
+		name = "task_list_scrollbar",
 	)
 
 	ui.end_container(ctx)
@@ -231,28 +239,28 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	input_comm, add_button_comm: ui.Comm
 	ui.begin_container(
 		ctx,
-		"add_task_panel",
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
 			sizing_y = ui.sizing_fit(),
 			layout_direction = ui.Layout_Direction.Left_To_Right,
 			child_gap = 10,
 		},
+		name = "add_task_panel",
 	)
 	// --- Text Input field ---
 	input_comm = ui.text_input(
 		ctx,
-		"new_task_input",
 		data.new_task_buf,
 		style = ui.Style{background_fill = ITEM_BG},
+		name = "new_task_input",
 	)
 
 	// --- Add Button ---
 	add_button_comm = ui.button(
 		ctx,
-		"add_task_button",
 		"Add",
 		ui.Style{background_fill = ADD_BUTTON_COLOR},
+		name = "add_task_button",
 	)
 
 	if add_button_comm.clicked {

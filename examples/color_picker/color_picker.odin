@@ -46,9 +46,11 @@ make_slider_row :: proc(
 ) -> ui.Comm {
 	comm: ui.Comm
 
+	ui.push_id(ctx, id_suffix)
+	defer ui.pop_id(ctx)
+
 	ui.begin_container(
 		ctx,
-		fmt.tprintf("%s_slider_row", id_suffix),
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
 			sizing_y = ui.sizing_fit(),
@@ -56,17 +58,17 @@ make_slider_row :: proc(
 			alignment_y = .Center,
 			child_gap = 10,
 		},
+		name = fmt.tprintf("%s_slider_row", id_suffix),
 	)
 	ui.text(
 		ctx,
-		fmt.tprintf("%s_label", id_suffix),
 		label,
 		ui.Style{sizing_x = ui.sizing_fit(), sizing_y = ui.sizing_fit(), text_fill = color},
+		name = fmt.tprintf("%s_label", id_suffix),
 	)
 
 	comm = ui.slider(
 		ctx,
-		fmt.tprintf("%s_slider", id_suffix),
 		value,
 		0,
 		1,
@@ -78,18 +80,20 @@ make_slider_row :: proc(
 			background_fill = color,
 			border = ui.border_all(2),
 		},
+		track_name = fmt.tprintf("%s_slider", id_suffix),
+		thumb_name = fmt.tprintf("%s_thumb", id_suffix),
 	)
 	// Format hex value directly into the provided buffer
 	value_str := fmt.bprintf(value_buf, "%02x", u8(value^ * 255))
 	ui.text(
 		ctx,
-		fmt.tprintf("%s_value", id_suffix),
 		value_str,
 		ui.Style {
 			sizing_x = ui.sizing_fit(),
 			sizing_y = ui.sizing_fit(),
 			text_alignment_x = .Right,
 		},
+		name = fmt.tprintf("%s_value", id_suffix),
 	)
 
 	ui.end_container(ctx)
@@ -108,7 +112,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	// --- Main Panel (centered) ---
 	ui.begin_container(
 		ctx,
-		"main_panel",
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(1.0),
@@ -116,10 +119,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			alignment_y = .Center,
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "main_panel",
 	)
 	ui.begin_container(
 		ctx,
-		"panel",
 		ui.Style {
 			alignment_x = .Center,
 			alignment_y = .Center,
@@ -130,13 +133,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = PANEL_BG,
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "panel",
 	)
 
 	// --- Color Viewer ---
 	color_viewer_size: f32 = 300
 	ui.container(
 		ctx,
-		"color_viewer",
 		ui.Style {
 			sizing_x = ui.sizing_fixed(color_viewer_size),
 			sizing_y = ui.sizing_fixed(color_viewer_size),
@@ -157,6 +160,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			},
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "color_viewer",
 	)
 
 	// --- Sliders ---
@@ -169,7 +173,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	hex_comm: ui.Comm
 	ui.begin_container(
 		ctx,
-		"hex_container",
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
 			sizing_y = ui.sizing_fit(),
@@ -181,20 +184,21 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = ITEM_BG,
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "hex_container",
 	)
 	hex_label_str := "#"
 	ui.text(
 		ctx,
-		"hex_label",
 		hex_label_str,
 		ui.Style{sizing_x = ui.sizing_fit(), sizing_y = ui.sizing_fit()},
+		name = "hex_label",
 	)
 
 	hex_comm = ui.text_input(
 		ctx,
-		"hex_field",
 		data.buf,
 		ui.Style{background_fill = base.fill_color(0, 0, 0, 0)},
+		name = "hex_field",
 	)
 
 	ui.end_container(ctx)

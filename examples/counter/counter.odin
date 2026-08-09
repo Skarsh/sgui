@@ -36,13 +36,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	ui.begin_container(
 		ctx,
-		"main_container",
 		ui.Style{sizing_x = ui.sizing_percent(1.0), sizing_y = ui.sizing_percent(1.0)},
+		name = "main_container",
 	)
 
 	ui.begin_container(
 		ctx,
-		"counter_container",
 		ui.Style {
 			sizing_x = ui.sizing_fixed(200),
 			sizing_y = ui.sizing_fixed(70),
@@ -50,6 +49,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			child_gap = 10,
 			border_fill = base.fill_color(24, 36, 0),
 		},
+		name = "counter_container",
 	)
 	strings.write_int(&data.sb, data.counter)
 	num_str := strings.to_string(data.sb)
@@ -57,12 +57,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	ui.text(
 		ctx,
-		"counter_text",
 		num_str,
 		ui.Style {
 			border_fill = base.fill_color(0, 0, 0, 0),
 			background_fill = base.fill_color(0, 0, 0, 0),
 		},
+		name = "counter_text",
 	)
 
 	button_style := ui.Style {
@@ -72,11 +72,11 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		border          = ui.border_all(2),
 	}
 
-	if ui.button(ctx, "counter_minus_button", "-", button_style).clicked {
+	if ui.button(ctx, "-", button_style, name = "counter_minus_button").clicked {
 		data.counter -= 1
 	}
 
-	if ui.button(ctx, "counter_plus_button", "+", button_style).clicked {
+	if ui.button(ctx, "+", button_style, name = "counter_plus_button").clicked {
 		data.counter += 1
 	}
 

@@ -90,7 +90,7 @@ Scroll_Region :: struct {
 // e.g. sizes, etc.
 UI_Element :: struct {
 	parent:            ^UI_Element,
-	id_string:         string,
+	name:              string,
 	key:               UI_Key,
 	position:          base.Vec2,
 	min_size:          base.Vec2,
@@ -244,13 +244,14 @@ close_element :: proc(ctx: ^Context) {
 @(require_results)
 open_element :: proc(
 	ctx: ^Context,
-	id: string,
+	key: UI_Key,
 	style: Style = {},
 	default_style: Style = {},
+	name: string = "",
 ) -> ^UI_Element {
 	final_config := resolve_style(ctx, style, default_style)
 
-	element := make_element(ctx, id, final_config)
+	element := make_element(ctx, key, final_config, name)
 
 	if push(&ctx.element_stack, element) {
 		element.z_index = ctx.element_stack.top
@@ -266,8 +267,14 @@ open_element :: proc(
 	return element
 }
 
-begin_container :: proc(ctx: ^Context, id: string, style: Style = {}) -> Comm {
-	element := open_element(ctx, id, style)
+begin_container :: proc(
+	ctx: ^Context,
+	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
+) -> Comm {
+	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	element := open_element(ctx, key, style, name = name)
 	return element.last_comm
 }
 
@@ -282,8 +289,13 @@ container :: proc {
 	container_data_styled,
 }
 
-container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = nil) -> Comm {
-	comm := begin_container(ctx, id)
+container_basic :: proc(
+	ctx: ^Context,
+	body: proc(ctx: ^Context) = nil,
+	name: string = "",
+	loc := #caller_location,
+) -> Comm {
+	comm := begin_container(ctx, loc = loc, name = name)
 	if body != nil {
 		body(ctx)
 	}
@@ -293,11 +305,13 @@ container_basic :: proc(ctx: ^Context, id: string, body: proc(ctx: ^Context) = n
 
 container_styled :: proc(
 	ctx: ^Context,
-	id: string,
 	style: Style,
 	body: proc(ctx: ^Context) = nil,
+	name: string = "",
+	loc := #caller_location,
 ) -> Comm {
-	comm := begin_container(ctx, id, style)
+
+	comm := begin_container(ctx, style, name = name, loc = loc)
 	if body != nil {
 		body(ctx)
 	}
@@ -307,11 +321,12 @@ container_styled :: proc(
 
 container_data :: proc(
 	ctx: ^Context,
-	id: string,
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
+	name: string = "",
+	loc := #caller_location,
 ) -> Comm {
-	comm := begin_container(ctx, id)
+	comm := begin_container(ctx, name = name, loc = loc)
 	if body != nil {
 		body(ctx, data)
 	}
@@ -321,12 +336,13 @@ container_data :: proc(
 
 container_data_styled :: proc(
 	ctx: ^Context,
-	id: string,
 	style: Style,
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
+	name: string = "",
+	loc := #caller_location,
 ) -> Comm {
-	comm := begin_container(ctx, id, style)
+	comm := begin_container(ctx, style, name = name, loc = loc)
 	if body != nil {
 		body(ctx, data)
 	}
@@ -717,7 +733,12 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 
 // Always returns a usable element, will panic if failed to allocate.
 @(require_results)
-make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) -> ^UI_Element {
+make_element :: proc(
+	ctx: ^Context,
+	key: UI_Key,
+	element_config: Element_Config,
+	name: string,
+) -> ^UI_Element {
 
 	update_element_configuration :: proc(element: ^UI_Element, config: Element_Config, idx: u64) {
 		element.last_frame_idx = idx
@@ -745,8 +766,6 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 		}
 	}
 
-
-	key := ui_key_hash(id)
 	element: ^UI_Element
 
 	if key == ui_key_null() {
@@ -755,17 +774,23 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 		element, err = new(UI_Element, ctx.frame_allocator)
 		assert(err == .None, fmt.tprintf("failed to allocate UI_Element: %v", err))
 
-		// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
-		// The alternative is to put the responsibility of ensuring the lifetime of the string
-		// is valid over onto the user?? The id string is really only used to calculate the hash
-		// so keeping it alive in the element is mostly for debugging purposes.
-		str_clone_err: mem.Allocator_Error
-		element.id_string, str_clone_err = strings.clone(id, ctx.frame_allocator)
 		element.key = key
-		assert(
-			str_clone_err == .None,
-			fmt.tprintf("failed to allocate memory for cloning id string: %v", str_clone_err),
-		)
+
+		// TODO(Thomas): @Perf The string cloning here has now moved to be only for elements
+		// that has a non-empty string name. But this is still unnecessary to do in production
+		// builds, so we should gate this by checking whether a prod build or not when we
+		// get that up and running, since this is mostly for debugging purposes.
+		if name != "" {
+			str_clone_err: mem.Allocator_Error
+			element.name, str_clone_err = strings.clone(name, ctx.frame_allocator)
+			assert(
+				str_clone_err == .None,
+				fmt.tprintf(
+					"failed to allocate memory for cloning name string: %v",
+					str_clone_err,
+				),
+			)
+		}
 
 		element.children, err = make([dynamic]^UI_Element, ctx.frame_allocator)
 		assert(err == .None, fmt.tprintf("failed to allocate UI_element children: %v", err))
@@ -776,9 +801,13 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 		element, found = ctx.element_cache[key]
 
 		if found {
-			assert(
+			fmt.assertf(
 				ctx.frame_idx > element.last_frame_idx,
-				"adding two elements with the same id / key on the same frame is not allowed",
+				"adding two elements with the same id / key on the same frame is not allowed: " +
+				"key %v, new element name %q, existing element name %q",
+				key.hash,
+				name,
+				element.name,
 			)
 		} else {
 			err: mem.Allocator_Error
@@ -787,15 +816,22 @@ make_element :: proc(ctx: ^Context, id: string, element_config: Element_Config) 
 				log.panicf("failed to allocate UI_Element: %v", err)
 			}
 
-			// TODO(Thomas): @Perf Review whether cloning the id string is the right choice here.
-			// The alternative is to put the responsibility of ensuring the lifetime of the string
-			// is valid over onto the user?? The id string is really only used to calculate the hash
-			// so keeping it alive in the element is mostly for debugging purposes.
-			str_clone_err: mem.Allocator_Error
-			element.id_string, str_clone_err = strings.clone(id, ctx.persistent_allocator)
+
 			element.key = key
-			if str_clone_err != .None {
-				log.panicf("failed to allocate memory for cloning id string: %v", str_clone_err)
+
+			// TODO(Thomas): @Perf The string cloning here has now moved to be only for elements
+			// that has a non-empty string name. But this is still unnecessary to do in production
+			// builds, so we should gate this by checking whether a prod build or not when we
+			// get that up and running, since this is mostly for debugging purposes.
+			if name != "" {
+				str_clone_err: mem.Allocator_Error
+				element.name, str_clone_err = strings.clone(name, ctx.persistent_allocator)
+				if str_clone_err != .None {
+					log.panicf(
+						"failed to allocate memory for cloning id string: %v",
+						str_clone_err,
+					)
+				}
 			}
 
 			element.children, err = make([dynamic]^UI_Element, ctx.persistent_allocator)
@@ -1144,27 +1180,6 @@ calculate_positions_and_alignment :: proc(ctx: ^Context, element: ^UI_Element, d
 	}
 }
 
-
-// Helper to get an element in the element cache by id string.
-// The returned UI_Element will be a copy of the one in the element cache.
-@(require_results)
-get_element_by_string_id :: proc(ctx: ^Context, id: string) -> (element: UI_Element, ok: bool) {
-	key := ui_key_hash(id)
-	element_ptr, found := ctx.element_cache[key]
-	if found {
-		element = element_ptr^
-		ok = true
-	}
-	return
-}
-
-// Helper to get a pointer to an element in element cache by id string
-@(require_results)
-get_element_pointer_by_string_id :: proc(ctx: ^Context, id: string) -> (^UI_Element, bool) {
-	key := ui_key_hash(id)
-	return ctx.element_cache[key]
-}
-
 // Helper to get an element in element cache by key.
 // The returned UI_Element will be a copy of the one in the element cache.
 @(require_results)
@@ -1189,7 +1204,7 @@ print_element_hierarchy :: proc(root: ^UI_Element) {
 	assert(root != nil)
 
 	if root != nil {
-		log.infof("id: %v, size: %v, pos: %v", root.id_string, root.size, root.position)
+		log.infof("id: %v, size: %v, pos: %v", root.name, root.size, root.position)
 
 		for child in root.children {
 			print_element_hierarchy(child)

@@ -9,7 +9,7 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 	check_layout(
 		t,
 		Element_Spec {
-			id = "main",
+			name = "main",
 			style = {
 				sizing_x = sizing_fit(),
 				sizing_y = sizing_fit(),
@@ -19,23 +19,23 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 			},
 			children = {
 				{
-					id = "row_1",
+					name = "row_1",
 					style = {padding = padding_all(5), child_gap = 2},
 					children = {
-						{id = "text_1", text = "AAAA"},
+						{name = "text_1", text = "AAAA"},
 						{
-							id = "grow_1",
+							name = "grow_1",
 							style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 						},
 					},
 				},
 				{
-					id = "row_2",
+					name = "row_2",
 					style = {padding = padding_all(5), child_gap = 2},
 					children = {
-						{id = "text_2", text = "AA"},
+						{name = "text_2", text = "AA"},
 						{
-							id = "grow_2",
+							name = "grow_2",
 							style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()},
 						},
 					},
@@ -43,26 +43,26 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 			},
 		},
 		Expected_Element {
-			id = "main",
+			name = "main",
 			pos = {0, 0},
 			size = {72, 65},
 			children = {
 				{
-					id = "row_1",
+					name = "row_1",
 					pos = {10, 10},
 					size = {52, 20},
 					children = {
-						{id = "text_1", pos = {15, 15}, size = {40, 10}},
-						{id = "grow_1", pos = {57, 15}, size = {0, 10}},
+						{name = "text_1", pos = {15, 15}, size = {40, 10}},
+						{name = "grow_1", pos = {57, 15}, size = {0, 10}},
 					},
 				},
 				{
-					id = "row_2",
+					name = "row_2",
 					pos = {10, 35},
 					size = {52, 20},
 					children = {
-						{id = "text_2", pos = {15, 40}, size = {20, 10}},
-						{id = "grow_2", pos = {37, 40}, size = {20, 10}},
+						{name = "text_2", pos = {15, 40}, size = {20, 10}},
+						{name = "grow_2", pos = {37, 40}, size = {20, 10}},
 					},
 				},
 			},
@@ -82,11 +82,11 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "text_fit_wrapper",
+			name = "text_fit_wrapper",
 			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
 			children = {
 				{
-					id = "text",
+					name = "text",
 					text = "012345",
 					style = {
 						sizing_x = Sizing{kind = .Grow, min_value = 50, max_value = 100},
@@ -96,10 +96,10 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "text_fit_wrapper",
+			name = "text_fit_wrapper",
 			pos = {0, 0},
 			size = {60, 10},
-			children = {{id = "text", pos = {0, 0}, size = {60, 10}}},
+			children = {{name = "text", pos = {0, 0}, size = {60, 10}}},
 		},
 	)
 }
@@ -111,15 +111,15 @@ test_text_element_sizing_with_newlines :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "text_fit_wrapper",
+			name = "text_fit_wrapper",
 			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
-			children = {{id = "text", text = "One\nTwo"}},
+			children = {{name = "text", text = "One\nTwo"}},
 		},
 		Expected_Element {
-			id = "text_fit_wrapper",
+			name = "text_fit_wrapper",
 			pos = {0, 0},
 			size = {30, 20},
-			children = {{id = "text", pos = {0, 0}, size = {30, 20}}},
+			children = {{name = "text", pos = {0, 0}, size = {30, 20}}},
 		},
 	)
 }
@@ -133,19 +133,19 @@ test_text_element_sizing_with_whitespace_overflowing_with_padding_and_text_wrapp
 	check_layout(
 		t,
 		Element_Spec {
-			id = "container",
+			name = "container",
 			style = {
 				sizing_x = sizing_fixed(60),
 				sizing_y = sizing_fit(),
 				padding = padding_all(10),
 			},
-			children = {{id = "text", text = "Button 1", style = {text_wrap_mode = .Wrap}}},
+			children = {{name = "text", text = "Button 1", style = {text_wrap_mode = .Wrap}}},
 		},
 		Expected_Element {
-			id = "container",
+			name = "container",
 			pos = {0, 0},
 			size = {60, 40},
-			children = {{id = "text", pos = {10, 10}, size = {40, 20}}},
+			children = {{name = "text", pos = {10, 10}, size = {40, 20}}},
 		},
 	)
 }
@@ -156,11 +156,11 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "text_fit_wrapper",
+			name = "text_fit_wrapper",
 			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
 			children = {
 				{
-					id = "text",
+					name = "text",
 					text = "01",
 					style = {
 						sizing_x = Sizing{kind = .Grow, min_value = 50},
@@ -170,10 +170,10 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "text_fit_wrapper",
+			name = "text_fit_wrapper",
 			pos = {0, 0},
 			size = {50, 20},
-			children = {{id = "text", pos = {0, 0}, size = {50, 20}}},
+			children = {{name = "text", pos = {0, 0}, size = {50, 20}}},
 		},
 	)
 }
@@ -185,26 +185,26 @@ test_iterated_texts_layout :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "parent",
+			name = "parent",
 			style = {sizing_x = sizing_fit(), sizing_y = sizing_fit()},
 			children = {
-				{id = "One", text = "One"},
-				{id = "Two", text = "Two"},
-				{id = "Three", text = "Three"},
-				{id = "Four", text = "Four"},
-				{id = "Five", text = "Five"},
+				{name = "One", text = "One"},
+				{name = "Two", text = "Two"},
+				{name = "Three", text = "Three"},
+				{name = "Four", text = "Four"},
+				{name = "Five", text = "Five"},
 			},
 		},
 		Expected_Element {
-			id = "parent",
+			name = "parent",
 			pos = {0, 0},
 			size = {190, 10},
 			children = {
-				{id = "One", pos = {0, 0}, size = {30, 10}},
-				{id = "Two", pos = {30, 0}, size = {30, 10}},
-				{id = "Three", pos = {60, 0}, size = {50, 10}},
-				{id = "Four", pos = {110, 0}, size = {40, 10}},
-				{id = "Five", pos = {150, 0}, size = {40, 10}},
+				{name = "One", pos = {0, 0}, size = {30, 10}},
+				{name = "Two", pos = {30, 0}, size = {30, 10}},
+				{name = "Three", pos = {60, 0}, size = {50, 10}},
+				{name = "Four", pos = {110, 0}, size = {40, 10}},
+				{name = "Five", pos = {150, 0}, size = {40, 10}},
 			},
 		},
 	)
@@ -216,18 +216,18 @@ test_text_overflows_parent_when_wrap_mode_none :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "parent",
+			name = "parent",
 			style = {
 				sizing_x = sizing_fixed(4 * MOCK_CHAR_WIDTH),
 				sizing_y = sizing_fixed(MOCK_LINE_HEIGHT),
 			},
-			children = {{id = "text", text = "12345", style = {text_wrap_mode = .None}}},
+			children = {{name = "text", text = "12345", style = {text_wrap_mode = .None}}},
 		},
 		Expected_Element {
-			id = "parent",
+			name = "parent",
 			pos = {0, 0},
 			size = {40, 10},
-			children = {{id = "text", pos = {0, 0}, size = {50, 10}}},
+			children = {{name = "text", pos = {0, 0}, size = {50, 10}}},
 		},
 	)
 }

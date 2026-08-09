@@ -30,7 +30,7 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 		check_layout(
 			t,
 			Element_Spec {
-				id = "parent",
+				name = "parent",
 				style = {
 					sizing_x = sizing_fixed(100),
 					sizing_y = sizing_fixed(100),
@@ -39,16 +39,16 @@ test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 				},
 				children = {
 					{
-						id = "container",
+						name = "container",
 						style = {sizing_x = sizing_fixed(50), sizing_y = sizing_fixed(50)},
 					},
 				},
 			},
 			Expected_Element {
-				id = "parent",
+				name = "parent",
 				pos = {0, 0},
 				size = {100, 100},
-				children = {{id = "container", pos = c.expected_pos, size = {50, 50}}},
+				children = {{name = "container", pos = c.expected_pos, size = {50, 50}}},
 			},
 		)
 	}
@@ -62,11 +62,11 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "relative_parent",
+			name = "relative_parent",
 			style = {sizing_x = sizing_fixed(200), sizing_y = sizing_fixed(200)},
 			children = {
 				{
-					id = "child_tl",
+					name = "child_tl",
 					style = {
 						sizing_x = sizing_fixed(50),
 						sizing_y = sizing_fixed(50),
@@ -76,7 +76,7 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_tr",
+					name = "child_tr",
 					style = {
 						sizing_x = sizing_fixed(50),
 						sizing_y = sizing_fixed(50),
@@ -86,7 +86,7 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_br",
+					name = "child_br",
 					style = {
 						sizing_x = sizing_fixed(50),
 						sizing_y = sizing_fixed(50),
@@ -96,7 +96,7 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_bl",
+					name = "child_bl",
 					style = {
 						sizing_x = sizing_fixed(50),
 						sizing_y = sizing_fixed(50),
@@ -108,14 +108,14 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "relative_parent",
+			name = "relative_parent",
 			pos = {0, 0},
 			size = {200, 200},
 			children = {
-				{id = "child_tl", pos = {0, 0}, size = {50, 50}},
-				{id = "child_tr", pos = {150, 0}, size = {50, 50}},
-				{id = "child_br", pos = {150, 150}, size = {50, 50}},
-				{id = "child_bl", pos = {0, 150}, size = {50, 50}},
+				{name = "child_tl", pos = {0, 0}, size = {50, 50}},
+				{name = "child_tr", pos = {150, 0}, size = {50, 50}},
+				{name = "child_br", pos = {150, 150}, size = {50, 50}},
+				{name = "child_bl", pos = {0, 150}, size = {50, 50}},
 			},
 		},
 		window_size = {500, 500},
@@ -130,11 +130,11 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "relative_parent",
+			name = "relative_parent",
 			style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(100)},
 			children = {
 				{
-					id = "child_offset_tl",
+					name = "child_offset_tl",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -145,7 +145,7 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_offset_tr",
+					name = "child_offset_tr",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -156,7 +156,7 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_offset_br",
+					name = "child_offset_br",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -167,7 +167,7 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_offset_bl",
+					name = "child_offset_bl",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -180,14 +180,14 @@ test_relative_layout_with_offsets :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "relative_parent",
+			name = "relative_parent",
 			pos = {0, 0},
 			size = {100, 100},
 			children = {
-				{id = "child_offset_tl", pos = {10, 15}, size = {20, 20}},
-				{id = "child_offset_tr", pos = {75, 10}, size = {20, 20}},
-				{id = "child_offset_br", pos = {75, 75}, size = {20, 20}},
-				{id = "child_offset_bl", pos = {10, 75}, size = {20, 20}},
+				{name = "child_offset_tl", pos = {10, 15}, size = {20, 20}},
+				{name = "child_offset_tr", pos = {75, 10}, size = {20, 20}},
+				{name = "child_offset_br", pos = {75, 75}, size = {20, 20}},
+				{name = "child_offset_bl", pos = {10, 75}, size = {20, 20}},
 			},
 		},
 		window_size = {500, 500},
@@ -202,7 +202,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "relative_parent",
+			name = "relative_parent",
 			style = {
 				sizing_x = sizing_fixed(100),
 				sizing_y = sizing_fixed(100),
@@ -211,7 +211,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 			},
 			children = {
 				{
-					id = "child_tl",
+					name = "child_tl",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -221,7 +221,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_tr",
+					name = "child_tr",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -231,7 +231,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_br",
+					name = "child_br",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -241,7 +241,7 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_bl",
+					name = "child_bl",
 					style = {
 						sizing_x = sizing_fixed(20),
 						sizing_y = sizing_fixed(20),
@@ -253,14 +253,14 @@ test_relative_layout_padding_and_border_influence :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "relative_parent",
+			name = "relative_parent",
 			pos = {0, 0},
 			size = {100, 100},
 			children = {
-				{id = "child_tl", pos = {15, 13}, size = {20, 20}},
-				{id = "child_tr", pos = {53, 13}, size = {20, 20}},
-				{id = "child_br", pos = {53, 55}, size = {20, 20}},
-				{id = "child_bl", pos = {15, 55}, size = {20, 20}},
+				{name = "child_tl", pos = {15, 13}, size = {20, 20}},
+				{name = "child_tr", pos = {53, 13}, size = {20, 20}},
+				{name = "child_br", pos = {53, 55}, size = {20, 20}},
+				{name = "child_bl", pos = {15, 55}, size = {20, 20}},
 			},
 		},
 		window_size = {500, 500},

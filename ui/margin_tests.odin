@@ -9,7 +9,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "parent",
+			name = "parent",
 			style = {
 				sizing_x = sizing_fixed(500),
 				sizing_y = sizing_fixed(200),
@@ -18,7 +18,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 			},
 			children = {
 				{
-					id = "child_1",
+					name = "child_1",
 					style = {
 						sizing_x = sizing_fixed(100),
 						sizing_y = sizing_fixed(50),
@@ -26,7 +26,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_2",
+					name = "child_2",
 					style = {
 						sizing_x = sizing_fixed(80),
 						sizing_y = sizing_fixed(60),
@@ -34,7 +34,7 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_3",
+					name = "child_3",
 					style = {
 						sizing_x = sizing_fixed(120),
 						sizing_y = sizing_fixed(70),
@@ -44,13 +44,13 @@ test_margin_spacing_between_siblings_ltr :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "parent",
+			name = "parent",
 			pos = {0, 0},
 			size = {500, 200},
 			children = {
-				{id = "child_1", pos = {15, 15}, size = {100, 50}},
-				{id = "child_2", pos = {140, 18}, size = {80, 60}},
-				{id = "child_3", pos = {255, 20}, size = {120, 70}},
+				{name = "child_1", pos = {15, 15}, size = {100, 50}},
+				{name = "child_2", pos = {140, 18}, size = {80, 60}},
+				{name = "child_3", pos = {255, 20}, size = {120, 70}},
 			},
 		},
 	)
@@ -63,7 +63,7 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "parent",
+			name = "parent",
 			style = {
 				sizing_x = sizing_fixed(300),
 				sizing_y = sizing_fixed(400),
@@ -72,7 +72,7 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 			},
 			children = {
 				{
-					id = "child_1",
+					name = "child_1",
 					style = {
 						sizing_x = sizing_fixed(100),
 						sizing_y = sizing_fixed(80),
@@ -80,7 +80,7 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_2",
+					name = "child_2",
 					style = {
 						sizing_x = sizing_fixed(120),
 						sizing_y = sizing_fixed(60),
@@ -90,12 +90,12 @@ test_margin_spacing_between_siblings_ttb :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "parent",
+			name = "parent",
 			pos = {0, 0},
 			size = {300, 400},
 			children = {
-				{id = "child_1", pos = {20, 25}, size = {100, 80}},
-				{id = "child_2", pos = {23, 150}, size = {120, 60}},
+				{name = "child_1", pos = {20, 25}, size = {100, 80}},
+				{name = "child_2", pos = {23, 150}, size = {120, 60}},
 			},
 		},
 	)
@@ -108,11 +108,11 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "grandparent",
+			name = "grandparent",
 			style = {sizing_x = sizing_fixed(600), sizing_y = sizing_fixed(500)},
 			children = {
 				{
-					id = "parent",
+					name = "parent",
 					style = {
 						sizing_x = sizing_fixed(300),
 						sizing_y = sizing_fixed(200),
@@ -121,7 +121,7 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 					},
 					children = {
 						{
-							id = "child",
+							name = "child",
 							style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(80)},
 						},
 					},
@@ -129,15 +129,15 @@ test_margin_does_not_reduce_parent_content_size :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "grandparent",
+			name = "grandparent",
 			pos = {0, 0},
 			size = {600, 500},
 			children = {
 				{
-					id = "parent",
+					name = "parent",
 					pos = {50, 50},
 					size = {300, 200},
-					children = {{id = "child", pos = {70, 70}, size = {100, 80}}},
+					children = {{name = "child", pos = {70, 70}, size = {100, 80}}},
 				},
 			},
 		},
@@ -151,7 +151,7 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 	check_layout(
 		t,
 		Element_Spec {
-			id = "parent",
+			name = "parent",
 			style = {
 				sizing_x = sizing_fixed(500),
 				sizing_y = sizing_fixed(300),
@@ -159,7 +159,7 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 			},
 			children = {
 				{
-					id = "child_1",
+					name = "child_1",
 					style = {
 						sizing_x = sizing_fixed(100),
 						sizing_y = sizing_fixed(100),
@@ -167,7 +167,7 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 					},
 				},
 				{
-					id = "child_2",
+					name = "child_2",
 					style = {
 						sizing_x = sizing_fixed(100),
 						sizing_y = sizing_fixed(100),
@@ -177,12 +177,12 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 			},
 		},
 		Expected_Element {
-			id = "parent",
+			name = "parent",
 			pos = {0, 0},
 			size = {500, 300},
 			children = {
-				{id = "child_1", pos = {5, 10}, size = {100, 100}},
-				{id = "child_2", pos = {175, 5}, size = {100, 100}},
+				{name = "child_1", pos = {5, 10}, size = {100, 100}},
+				{name = "child_2", pos = {175, 5}, size = {100, 100}},
 			},
 		},
 	)

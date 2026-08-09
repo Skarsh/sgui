@@ -8,13 +8,21 @@ import base "../base"
 import textpkg "../text"
 import fixed_buffer "../text/fixed_buffer"
 
-spacer :: proc(ctx: ^Context, id: string = "", style: Style = {}) {
-	_ = open_element(ctx, id, style, default_theme().spacer)
+spacer :: proc(ctx: ^Context, style: Style = {}, name: string = "") {
+	key := ui_key_null()
+	_ = open_element(ctx, key, style, default_theme().spacer, name = name)
 	close_element(ctx)
 }
 
-text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
-	element := open_element(ctx, id, style, default_theme().text)
+text :: proc(
+	ctx: ^Context,
+	text: string,
+	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
+) {
+	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	element := open_element(ctx, key, style, default_theme().text, name = name)
 	element_equip_text(ctx, element, text)
 
 	if .Selectable in element.config.capability_flags {
@@ -23,8 +31,7 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 		// Selection needs to be able to click and take focuse for hit testing
 		element.config.capability_flags |= {.Clickable, .Focusable}
 
-		key := element.key
-		state, state_exists := &ctx.text_system.text_states[key.hash]
+		state, state_exists := &ctx.text_system.text_states[element.key.hash]
 
 		// TODO(Thomas): Can this be simplified?
 		if !state_exists {
@@ -47,8 +54,15 @@ text :: proc(ctx: ^Context, id, text: string, style: Style = {}) {
 	close_element(ctx)
 }
 
-button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
-	element := open_element(ctx, id, style, default_theme().button)
+button :: proc(
+	ctx: ^Context,
+	text: string,
+	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
+) -> Comm {
+	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	element := open_element(ctx, key, style, default_theme().button, name = name)
 	element_equip_text(ctx, element, text)
 	close_element(ctx)
 
@@ -57,12 +71,14 @@ button :: proc(ctx: ^Context, id, text: string, style: Style = {}) -> Comm {
 
 slider :: proc(
 	ctx: ^Context,
-	id: string,
 	value: ^f32,
 	min_val, max_val: f32,
 	axis: base.Axis2 = .X,
 	style: Style = {},
 	thumb_style: Style = {},
+	track_name: string = "",
+	thumb_name: string = "",
+	loc := #caller_location,
 ) -> Comm {
 
 	is_vert := axis == .Y
@@ -93,15 +109,13 @@ slider :: proc(
 	track_style.sizing_x = is_vert ? sizing_fixed(thumb_size.x) : sizing_grow()
 	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
 
-	track := open_element(ctx, id, style, track_style)
+	track_key := ui_key_from_loc(loc, current_id_seed(ctx))
+	track := open_element(ctx, track_key, style, track_style, name = track_name)
 	slider_comm := track.last_comm
 
 	// Make thumb
-	thumb := open_element(
-		ctx,
-		fmt.aprintf("%s_thumb", id, allocator = ctx.frame_allocator),
-		resolved_thumb,
-	)
+	thumb_key := ui_key_current_loc(track_key.hash)
+	thumb := open_element(ctx, thumb_key, resolved_thumb, name = thumb_name)
 
 	padding := track.config.layout.padding
 	border := track.config.layout.border
@@ -146,17 +160,15 @@ slider :: proc(
 
 scrollbar :: proc(
 	ctx: ^Context,
-	id: string,
-	target_id: string,
+	target: ^UI_Element,
 	axis: base.Axis2 = .Y,
 	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
 ) -> Comm {
-	target, target_ok := get_element_pointer_by_string_id(ctx, target_id)
-	assert(target_ok)
-
 	comm := Comm{}
 
-	if target_ok {
+	if target != nil {
 
 		axis_sizes: [2]f32
 		cross_axis: base.Axis2
@@ -209,7 +221,6 @@ scrollbar :: proc(
 
 				comm = slider(
 					ctx,
-					id,
 					val,
 					0,
 					target.scroll_region.max_offset[axis],
@@ -221,6 +232,9 @@ scrollbar :: proc(
 						background_fill = base.fill_color(80, 80, 80),
 						border_fill = base.fill_color(0, 0, 0, 0),
 					},
+					track_name = name,
+					thumb_name = fmt.tprintf("%s_thumb", name),
+					loc = loc,
 				)
 
 				// Sync the target_offset if the user is interacting with the scrollbar.
@@ -235,11 +249,18 @@ scrollbar :: proc(
 	return comm
 }
 
-text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> Comm {
-	element := open_element(ctx, id, style, default_theme().text_input)
+text_input :: proc(
+	ctx: ^Context,
+	buf: []u8,
+	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
+) -> Comm {
 
-	key := element.key
-	state, state_exists := &ctx.text_system.text_states[key.hash]
+	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	element := open_element(ctx, key, style, default_theme().text_input, name = name)
+
+	state, state_exists := &ctx.text_system.text_states[element.key.hash]
 
 	if !state_exists {
 		new_state := textpkg.Text_State{}
@@ -314,13 +335,15 @@ text_input :: proc(ctx: ^Context, id: string, buf: []u8, style: Style = {}) -> C
 // Phase in/out animation?
 checkbox :: proc(
 	ctx: ^Context,
-	id: string,
 	checked: ^bool,
 	shape_data: Shape_Data,
 	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
 ) -> Comm {
 
-	element := open_element(ctx, id, style, default_theme().checkbox)
+	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	element := open_element(ctx, key, style, default_theme().checkbox, name = name)
 
 	if element.last_comm.clicked {
 		if checked^ {
@@ -339,9 +362,16 @@ checkbox :: proc(
 	return element.last_comm
 }
 
-image :: proc(ctx: ^Context, id: string, texture_id: Texture_Id, style: Style = {}) -> Comm {
+image :: proc(
+	ctx: ^Context,
+	texture_id: Texture_Id,
+	style: Style = {},
+	name: string = "",
+	loc := #caller_location,
+) -> Comm {
 
-	element := open_element(ctx, id, style, default_theme().image)
+	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	element := open_element(ctx, key, style, default_theme().image, name = name)
 	element_equip_image(element, texture_id)
 	close_element(ctx)
 

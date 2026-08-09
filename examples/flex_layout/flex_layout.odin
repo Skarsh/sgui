@@ -19,7 +19,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	// Main container
 	ui.container(
 		ctx,
-		"main",
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(1.0),
@@ -30,40 +29,40 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			capability_flags = ui.Capability_Flags{.Background},
 		},
 		data,
-		proc(ctx: ^ui.Context, data: ^Data) {
+		name = "main",
+		body = proc(ctx: ^ui.Context, data: ^Data) {
 			// Title
 			ui.text(
 				ctx,
-				"title",
 				"Flex Layout Demo - Weighted Grow Factors",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					text_fill = base.fill_color(255, 255, 255),
 					text_alignment_x = .Center,
 				},
+				name = "title",
 			)
 
 			// Demo 1: Equal factors (1:1:1) - traditional equal distribution
 			ui.text(
 				ctx,
-				"demo1_label",
 				"1. Equal Factors (1:1:1) - Elements split space equally",
 				ui.Style{text_fill = base.fill_color(200, 200, 200)},
+				name = "demo1_label",
 			)
 			ui.container(
 				ctx,
-				"demo1",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(60),
 					layout_direction = .Left_To_Right,
 					child_gap = 4,
 				},
-				proc(ctx: ^ui.Context) {
+				name = "demo1",
+				body = proc(ctx: ^ui.Context) {
 					// Three boxes with equal grow factor (1:1:1)
 					ui.container(
 						ctx,
-						"d1_box1",
 						ui.Style {
 							sizing_x         = ui.sizing_grow(), // factor = 1.0 (default)
 							sizing_y         = ui.sizing_grow(),
@@ -72,18 +71,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d1_box1",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d1_t1",
 								"1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d1_t1",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d1_box2",
 						ui.Style {
 							sizing_x = ui.sizing_grow(),
 							sizing_y = ui.sizing_grow(),
@@ -92,18 +91,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x = .Center,
 							alignment_y = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d1_box2",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d1_t2",
 								"1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d1_t2",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d1_box3",
 						ui.Style {
 							sizing_x = ui.sizing_grow(),
 							sizing_y = ui.sizing_grow(),
@@ -112,12 +111,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x = .Center,
 							alignment_y = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d1_box3",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d1_t3",
 								"1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d1_t3",
 							)
 						},
 					)
@@ -127,23 +127,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// Demo 2: Weighted factors (1:2:1) - middle gets double
 			ui.text(
 				ctx,
-				"demo2_label",
 				"2. Weighted Factors (1:2:1) - Middle element gets 2x space",
 				ui.Style{text_fill = base.fill_color(200, 200, 200)},
+				name = "demo2_label",
 			)
 			ui.container(
 				ctx,
-				"demo2",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(60),
 					layout_direction = .Left_To_Right,
 					child_gap = 4,
 				},
-				proc(ctx: ^ui.Context) {
+				name = "demo2",
+				body = proc(ctx: ^ui.Context) {
 					ui.container(
 						ctx,
-						"d2_box1",
 						ui.Style {
 							sizing_x         = ui.sizing_grow_weighted(1), // factor = 1
 							sizing_y         = ui.sizing_grow(),
@@ -152,18 +151,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d2_box1",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d2_t1",
 								"1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d2_t1",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d2_box2",
 						ui.Style {
 							sizing_x         = ui.sizing_grow_weighted(2), // factor = 2 (gets double)
 							sizing_y         = ui.sizing_grow(),
@@ -172,18 +171,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d2_box2",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d2_t2",
 								"2",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d2_t2",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d2_box3",
 						ui.Style {
 							sizing_x         = ui.sizing_grow_weighted(1), // factor = 1
 							sizing_y         = ui.sizing_grow(),
@@ -192,12 +191,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d2_box3",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d2_t3",
 								"1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d2_t3",
 							)
 						},
 					)
@@ -207,23 +207,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// Demo 3: Sidebar layout (1:3) - common UI pattern
 			ui.text(
 				ctx,
-				"demo3_label",
 				"3. Sidebar Layout (1:3) - Sidebar takes 25%, Content takes 75%",
 				ui.Style{text_fill = base.fill_color(200, 200, 200)},
+				name = "demo3_label",
 			)
 			ui.container(
 				ctx,
-				"demo3",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(80),
 					layout_direction = .Left_To_Right,
 					child_gap = 4,
 				},
-				proc(ctx: ^ui.Context) {
+				name = "demo3",
+				body = proc(ctx: ^ui.Context) {
 					ui.container(
 						ctx,
-						"d3_sidebar",
 						ui.Style {
 							sizing_x         = ui.sizing_grow_weighted(1), // 1 part
 							sizing_y         = ui.sizing_grow(),
@@ -232,18 +231,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d3_sidebar",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d3_t1",
 								"Sidebar (1)",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d3_t1",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d3_content",
 						ui.Style {
 							sizing_x         = ui.sizing_grow_weighted(3), // 3 parts
 							sizing_y         = ui.sizing_grow(),
@@ -252,12 +251,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d3_content",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d3_t2",
 								"Content (3)",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d3_t2",
 							)
 						},
 					)
@@ -267,23 +267,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// Demo 4: Zero factor exclusion
 			ui.text(
 				ctx,
-				"demo4_label",
 				"4. Zero Factor - Middle element (factor=0) doesn't grow",
 				ui.Style{text_fill = base.fill_color(200, 200, 200)},
+				name = "demo4_label",
 			)
 			ui.container(
 				ctx,
-				"demo4",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(60),
 					layout_direction = .Left_To_Right,
 					child_gap = 4,
 				},
-				proc(ctx: ^ui.Context) {
+				name = "demo4",
+				body = proc(ctx: ^ui.Context) {
 					ui.container(
 						ctx,
-						"d4_box1",
 						ui.Style {
 							sizing_x = ui.sizing_grow_weighted(1),
 							sizing_y = ui.sizing_grow(),
@@ -292,18 +291,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x = .Center,
 							alignment_y = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d4_box1",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d4_t1",
 								"Grows (1)",
 								ui.Style{text_fill = base.fill_color(0, 0, 0)},
+								name = "d4_t1",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d4_box2",
 						ui.Style {
 							sizing_x         = ui.sizing_fixed(80), // Fixed, doesn't participate
 							sizing_y         = ui.sizing_grow(),
@@ -312,18 +311,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d4_box2",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d4_t2",
 								"Fixed",
 								ui.Style{text_fill = base.fill_color(0, 0, 0)},
+								name = "d4_t2",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d4_box3",
 						ui.Style {
 							sizing_x = ui.sizing_grow_weighted(1),
 							sizing_y = ui.sizing_grow(),
@@ -332,12 +331,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x = .Center,
 							alignment_y = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d4_box3",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d4_t3",
 								"Grows (1)",
 								ui.Style{text_fill = base.fill_color(0, 0, 0)},
+								name = "d4_t3",
 							)
 						},
 					)
@@ -347,23 +347,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// Demo 5: Max constraint with weighted grow
 			ui.text(
 				ctx,
-				"demo5_label",
 				"5. Max Constraint - Left element capped at 100px, rest goes to right",
 				ui.Style{text_fill = base.fill_color(200, 200, 200)},
+				name = "demo5_label",
 			)
 			ui.container(
 				ctx,
-				"demo5",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(60),
 					layout_direction = .Left_To_Right,
 					child_gap = 4,
 				},
-				proc(ctx: ^ui.Context) {
+				name = "demo5",
+				body = proc(ctx: ^ui.Context) {
 					ui.container(
 						ctx,
-						"d5_box1",
 						ui.Style {
 							sizing_x         = ui.sizing_grow_weighted(1, 0, 100), // max = 100
 							sizing_y         = ui.sizing_grow(),
@@ -372,18 +371,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d5_box1",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d5_t1",
 								"Max 100px",
 								ui.Style{text_fill = base.fill_color(0, 0, 0)},
+								name = "d5_t1",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d5_box2",
 						ui.Style {
 							sizing_x = ui.sizing_grow_weighted(1),
 							sizing_y = ui.sizing_grow(),
@@ -392,12 +391,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x = .Center,
 							alignment_y = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d5_box2",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d5_t2",
 								"Gets remainder",
 								ui.Style{text_fill = base.fill_color(0, 0, 0)},
+								name = "d5_t2",
 							)
 						},
 					)
@@ -407,23 +407,22 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			// Demo 6: Equal factors with different min constraints reach equal sizes
 			ui.text(
 				ctx,
-				"demo6_label",
 				"6. Equal Factors + Min Constraints - Both reach equal size (target-based)",
 				ui.Style{text_fill = base.fill_color(200, 200, 200)},
+				name = "demo6_label",
 			)
 			ui.container(
 				ctx,
-				"demo6",
 				ui.Style {
 					sizing_x = ui.sizing_grow(),
 					sizing_y = ui.sizing_fixed(60),
 					layout_direction = .Left_To_Right,
 					child_gap = 4,
 				},
-				proc(ctx: ^ui.Context) {
+				name = "demo6",
+				body = proc(ctx: ^ui.Context) {
 					ui.container(
 						ctx,
-						"d6_box1",
 						ui.Style {
 							sizing_x         = ui.sizing_grow(min = 50), // Has min constraint
 							sizing_y         = ui.sizing_grow(),
@@ -432,18 +431,18 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d6_box1",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d6_t1",
 								"min=50, factor=1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d6_t1",
 							)
 						},
 					)
 					ui.container(
 						ctx,
-						"d6_box2",
 						ui.Style {
 							sizing_x         = ui.sizing_grow(), // No min constraint
 							sizing_y         = ui.sizing_grow(),
@@ -452,12 +451,13 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 							alignment_x      = .Center,
 							alignment_y      = .Center,
 						},
-						proc(ctx: ^ui.Context) {
+						name = "d6_box2",
+						body = proc(ctx: ^ui.Context) {
 							ui.text(
 								ctx,
-								"d6_t2",
 								"min=0, factor=1",
 								ui.Style{text_fill = base.fill_color(255, 255, 255)},
+								name = "d6_t2",
 							)
 						},
 					)

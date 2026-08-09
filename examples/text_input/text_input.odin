@@ -50,7 +50,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	ui.begin_container(
 		ctx,
-		"main_container",
 		ui.Style {
 			alignment_x = .Center,
 			alignment_y = .Center,
@@ -61,24 +60,24 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = base.fill_color(40, 40, 40),
 			layout_direction = .Top_To_Bottom,
 		},
+		name = "main_container",
 	)
 
-	text_input_comm := ui.text_input(ctx, "text_input", data.buf)
+	text_input_comm := ui.text_input(ctx, data.buf, name = "text_input")
 	text_input_scroll_region := text_input_comm.element.scroll_region
 
 	ui.begin_container(
 		ctx,
-		"stats_wrapper",
 		ui.Style {
 			sizing_x = ui.sizing_grow(),
 			sizing_y = ui.sizing_grow(),
 			background_fill = base.fill_color(60, 60, 60),
 			alignment_y = .Center,
 		},
+		name = "stats_wrapper",
 	)
 	ui.text(
 		ctx,
-		"scroll_stats",
 		make_info_str(
 			data.scroll_region_str_buf,
 			"text_input",
@@ -86,6 +85,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			text_input_scroll_region,
 		),
 		ui.Style{background_fill = base.fill_color(60, 60, 60), alignment_x = .Center},
+		name = "scroll_stats",
 	)
 
 	// stats_wrapper

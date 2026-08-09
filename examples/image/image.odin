@@ -28,7 +28,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	// --- Main Panel (centered) ---
 	ui.begin_container(
 		ctx,
-		"main_panel",
 		ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
 			sizing_y = ui.sizing_percent(1.0),
@@ -37,12 +36,12 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			capability_flags = ui.Capability_Flags{.Background},
 			padding = ui.padding_all(15),
 		},
+		name = "main_panel",
 	)
 
 	// --- Image widget ---
 	ui.image(
 		ctx,
-		"image",
 		data.tex_id,
 		style = ui.Style {
 			sizing_x = ui.sizing_percent(1.0),
@@ -50,6 +49,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = base.fill_color(255, 165, 0),
 			capability_flags = ui.Capability_Flags{.Background},
 		},
+		name = "image",
 	)
 
 	ui.end_container(ctx)

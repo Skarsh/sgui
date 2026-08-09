@@ -43,7 +43,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	ui.begin_container(
 		ctx,
-		"main_container",
 		ui.Style {
 			alignment_x = .Center,
 			sizing_x = ui.sizing_percent(1.0),
@@ -52,35 +51,36 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			child_gap = 40,
 			layout_direction = .Top_To_Bottom,
 		},
+		name = "main_container",
 	)
 
 
 	// NOTE(Thomas): This isn't affected by text alignment yet.
-	ui.text(ctx, "text_input_label", "Text Input")
+	ui.text(ctx, "Text Input", name = "text_input_label")
 	ui.text_input(
 		ctx,
-		"text_input",
 		data.text_input_buf,
 		ui.Style{background_fill = base.fill_color(20, 20, 20)},
+		name = "text_input",
 	)
 
-	ui.text(ctx, "controls_label", "Sample Text Controls")
+	ui.text(ctx, "Sample Text Controls", name = "controls_label")
 
 	ui.begin_container(
 		ctx,
-		"controls",
 		ui.Style{child_gap = 10, layout_direction = .Left_To_Right},
+		name = "controls",
 	)
 	ui.push_style(ctx, ui.Style{background_fill = base.fill_color(80, 80, 80)})
-	if ui.button(ctx, "cycle_align_x", "align x").clicked {
+	if ui.button(ctx, "align x", name = "cycle_align_x").clicked {
 		data.align_x = cycle_enum(data.align_x)
 	}
 
-	if ui.button(ctx, "cycle_align_y", "align y").clicked {
+	if ui.button(ctx, "align y", name = "cycle_align_y").clicked {
 		data.align_y = cycle_enum(data.align_y)
 	}
 
-	if ui.button(ctx, "cycle_wrap_mode", "wrap mode").clicked {
+	if ui.button(ctx, "wrap mode", name = "cycle_wrap_mode").clicked {
 		data.wrap_mode = cycle_enum(data.wrap_mode)
 	}
 	ui.pop_style(ctx)
@@ -97,15 +97,14 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	)
 	ui.text(
 		ctx,
-		"status",
 		status_str,
 		ui.Style{capability_flags = ui.Capability_Flags{.Selectable}},
+		name = "status",
 	)
 
 
 	ui.text(
 		ctx,
-		"label",
 		SAMPLE_TEXT,
 		ui.Style {
 			sizing_x = ui.sizing_fixed(700),
@@ -118,6 +117,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			background_fill = base.fill_color(60, 60, 60),
 			capability_flags = ui.Capability_Flags{.Selectable, .Scrollable_Y},
 		},
+		name = "label",
 	)
 
 	// main container

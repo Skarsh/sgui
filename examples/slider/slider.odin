@@ -27,7 +27,6 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 
 	ui.begin_container(
 		ctx,
-		"main_container",
 		ui.Style {
 			alignment_x = .Center,
 			alignment_y = .Center,
@@ -36,9 +35,10 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			padding = ui.padding_all(10),
 			background_fill = base.fill_color(40, 40, 40),
 		},
+		name = "main_container",
 	)
 
-	ui.slider(ctx, "slider", &data.slider_val, 0, 100, .X)
+	ui.slider(ctx, &data.slider_val, 0, 100, .X, track_name = "slider", thumb_name = "thumb")
 
 	ui.end_container(ctx)
 
