@@ -207,16 +207,8 @@ end :: proc(ctx: ^Context) {
 	// 9.  Positions
 	// 10. Draw commands
 
-	// Only the root element should be left open here. A widget that opens an element
-	// without closing it desyncs the stack for the rest of the frame, so we name the
-	// elements that were left open.
+	// TODO(Thomas): Properly Log the name of the element that is not closed.
 	if ctx.element_stack.top != 1 {
-		for i := ctx.element_stack.top; i > 1; i -= 1 {
-			log.errorf(
-				"element '%v' was opened but never closed",
-				ctx.element_stack.items[i].id_string,
-			)
-		}
 		panic(
 			fmt.tprintf(
 				"expected only the root element to be open at the end of the frame, got %v open",

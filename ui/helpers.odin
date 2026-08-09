@@ -320,7 +320,7 @@ default_theme :: proc() -> Theme {
 			text_alignment_y = .Top,
 			text_wrap_mode = .Wrap,
 			text_fill = base.fill_color(255, 255, 255),
-			capability_flags = Capability_Flags{.Selectable},
+			capability_flags = Capability_Flags{.Text},
 			clip = Clip_Config{clip_axes = {true, true}},
 		},
 		text_input = Style {
