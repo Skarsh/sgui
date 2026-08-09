@@ -109,6 +109,7 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 		interaction.hot_id = {}
 	}
 
+	// TODO(Thomas): Needs to be expanded for right and middle mouse button too
 	if base.is_mouse_pressed(interaction.input^, .Left) {
 
 		// clickable
