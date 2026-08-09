@@ -68,7 +68,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	button_style := ui.Style {
 		sizing_x        = ui.sizing_fixed(48),
 		sizing_y        = ui.sizing_fixed(48),
-		background_fill = base.fill_color(95, 95, 95),
+		background_fill = base.fill_color(45, 45, 45),
 		border          = ui.border_all(2),
 	}
 
@@ -80,9 +80,9 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		data.counter += 1
 	}
 
-	ui.end_container(ctx)
+	ui.end_container(ctx) // counter container
 
-	ui.end_container(ctx)
+	ui.end_container(ctx) // main container
 
 	ui.end(ctx)
 }

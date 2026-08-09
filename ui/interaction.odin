@@ -127,10 +127,9 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 
 	if base.is_mouse_released(interaction.input^, .Left) {
-		if interaction.pressed_id == interaction.hot_id {
+		if hit_result.clickable != nil && hit_result.clickable.key == interaction.pressed_id {
 			interaction.clicked_id = interaction.pressed_id
 		}
-
 		interaction.pressed_id = {}
 	}
 }
