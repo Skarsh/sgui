@@ -1,5 +1,7 @@
 package text
 
+import "../base"
+
 import "core:mem"
 
 ASCII_TABLE_LEN :: 128
@@ -12,10 +14,13 @@ Text_System :: struct {
 	text_states:  map[u64]Text_State,
 }
 
+// TODO(Thomas): Taking in single Text_Measurement and using it like this won't work
+// with multiple fonts.
 @(require_results)
 init_text_system :: proc(
 	ts: ^Text_System,
 	measurement: Text_Measurement,
+	font_configs: []base.Font_Config,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
 	assert(measurement.measure_text_proc != nil)
@@ -24,9 +29,11 @@ init_text_system :: proc(
 	ts.measurement = measurement
 	ts.fonts = make([dynamic]Font_Cache, allocator) or_return
 
-	fc: Font_Cache
-	init_font_cache(&fc, 0, measurement, allocator) or_return
-	append(&ts.fonts, fc) or_return
+	for config, i in font_configs {
+		fc: Font_Cache
+		init_font_cache(&fc, i, measurement, allocator) or_return
+		append(&ts.fonts, fc) or_return
+	}
 
 	ts.layout_cache = make(map[u64]Text_Layout_Cache_Entry, allocator)
 	ts.text_states = make(map[u64]Text_State, allocator)

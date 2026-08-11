@@ -66,11 +66,12 @@ deinit_window :: proc(window_api: Window_API, window: Window) {
 }
 
 Context :: struct {
-	window:       Window,
-	window_api:   Window_API,
-	stb_font_ctx: STB_Font_Context,
-	render_ctx:   Render_Context,
-	io:           Io,
+	window:            Window,
+	window_api:        Window_API,
+	//stb_font_ctx:      STB_Font_Context,
+	stb_font_contexts: []STB_Font_Context,
+	render_ctx:        Render_Context,
+	io:                Io,
 }
 
 // TODO(Thomas): This shouldn't be aware of texture paths at all. That is app specific knowledge.
@@ -80,7 +81,8 @@ init_ctx :: proc(
 	text_measurement: ^textpkg.Text_Measurement,
 	window_title: cstring,
 	window_size: base.Vector2i32,
-	font_size: f32,
+	font_configs: []base.Font_Config,
+	//font_size: f32,
 	platform_api: Platform_API,
 	window_api: Window_API,
 	app_callbacks: App_Callbacks,
@@ -97,21 +99,49 @@ init_ctx :: proc(
 	ctx.window = window
 	ctx.window_api = window_api
 
-	font_info := new(Font_Info, allocator)
-	stb_font_ctx := STB_Font_Context {
-		font_info = font_info,
+	assert(len(font_configs) > 0)
+	font_contexts, alloc_err := make_slice([]STB_Font_Context, len(font_configs), allocator)
+	assert(alloc_err == .None)
+
+	for config, i in font_configs {
+		font_info := new(Font_Info, allocator)
+		stb_font_ctx := STB_Font_Context {
+			font_info = font_info,
+		}
+
+		if !init_stb_font_ctx(&stb_font_ctx, config.path, config.size) {
+			log.error("failed to init stb_font")
+			return false
+		}
+
+
+		font_contexts[i] = stb_font_ctx
 	}
 
-	if !init_stb_font_ctx(&stb_font_ctx, "data/fonts/font.ttf", font_size) {
-		log.error("failed to init stb_font")
-		return false
-	}
-
-	ctx.stb_font_ctx = stb_font_ctx
+	ctx.stb_font_contexts = font_contexts
 
 	text_measurement.measure_text_proc = stb_measure_text
 	text_measurement.measure_codepoint_proc = stb_measure_codepoint
-	text_measurement.font_user_data = &ctx.stb_font_ctx
+
+	// TODO(Thomas): BAD, just to help get things up and running
+	text_measurement.font_user_data = &ctx.stb_font_contexts[0]
+
+
+	//font_info := new(Font_Info, allocator)
+	//stb_font_ctx := STB_Font_Context {
+	//	font_info = font_info,
+	//}
+
+	//if !init_stb_font_ctx(&stb_font_ctx, "data/fonts/font.ttf", font_size) {
+	//	log.error("failed to init stb_font")
+	//	return false
+	//}
+
+	//ctx.stb_font_ctx = stb_font_ctx
+
+	//text_measurement.measure_text_proc = stb_measure_text
+	//text_measurement.measure_codepoint_proc = stb_measure_codepoint
+	//text_measurement.font_user_data = &ctx.stb_font_ctx
 
 	base.set_clipboard_text_procs(
 		input,
@@ -127,8 +157,10 @@ init_ctx :: proc(
 		&ctx.window,
 		window_api,
 		window_size,
-		stb_font_ctx,
-		font_size,
+		//stb_font_ctx,
+		//ctx.stb_font_contexts[0],
+		ctx.stb_font_contexts,
+		//font_size,
 		allocator,
 		.OpenGL,
 	)
@@ -147,7 +179,8 @@ init_ctx :: proc(
 }
 
 deinit :: proc(ctx: ^Context) {
-	deinit_stb_font_ctx(&ctx.stb_font_ctx)
+	// TODO(Thomas): Deinit / free all the font contexts
+	//deinit_stb_font_ctx(&ctx.stb_font_ctx)
 	deinit_render_ctx(&ctx.render_ctx)
 	ctx.window_api.deinit()
 }

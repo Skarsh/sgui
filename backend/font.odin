@@ -50,7 +50,7 @@ init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
 	font_info: ^stbtt.fontinfo,
 	font_data: []u8,
-	path: string,
+	//path: string,
 	font_size: f32,
 	atlas_width: i32,
 	atlas_height: i32,
@@ -140,7 +140,7 @@ pack_font_glyphs :: proc(
 
 	stbtt.PackEnd(&atlas.pack_ctx)
 
-	return bool(pack_result) 
+	return bool(pack_result)
 }
 
 // We need to iterate over the packed chars and insert them

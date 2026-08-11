@@ -1,6 +1,9 @@
 # TODOs
 
 ## Active
+* Better font support:
+    - Different font sizes, intially this can be done for just the same font
+    - Different fonts with support for different font sizes
 * Selection past the edges of a text element (the visible part), should result in scrolling
 
 ## Bugs

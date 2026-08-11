@@ -69,9 +69,10 @@ Command_Rect :: struct {
 }
 
 Command_Text :: struct {
-	x, y:   f32,
-	glyphs: []textpkg.Glyph,
-	fill:   base.Fill,
+	x, y:    f32,
+	glyphs:  []textpkg.Glyph,
+	fill:    base.Fill,
+	font_id: int,
 }
 
 Texture_Id :: distinct u64
@@ -286,6 +287,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 						current_y,
 						base.slice_from_range(text_layout.glyphs, row.glyph_range),
 						element.config.text_fill,
+						ctx.font_id,
 						z_index = 0,
 					)
 					current_y += row.size.y
@@ -397,9 +399,10 @@ draw_text :: proc(
 	x, y: f32,
 	glyphs: []textpkg.Glyph,
 	color: base.Fill,
+	font_id: int,
 	z_index: i32 = 0,
 ) {
-	cmd := Command_Text{x, y, glyphs, color}
+	cmd := Command_Text{x, y, glyphs, color, font_id}
 	push_draw_command(draw_state, cmd, z_index)
 }
 

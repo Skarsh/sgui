@@ -39,7 +39,8 @@ Context :: struct {
 	frame_idx:            u64,
 	dt:                   f32,
 	// TODO(Thomas): Does font size and font id belong here??
-	font_size:            f32,
+	//font_size:            f32,
+	font_configs:         []base.Font_Config,
 	text_system:          textpkg.Text_System,
 	font_id:              textpkg.Font_Handle,
 	window_size:          [2]i32,
@@ -80,8 +81,9 @@ init :: proc(
 	frame_allocator: mem.Allocator,
 	draw_cmd_allocator: mem.Allocator,
 	screen_size: [2]i32,
+	font_configs: []base.Font_Config,
 	font_id: textpkg.Font_Handle,
-	font_size: f32,
+	//font_size: f32,
 ) {
 	ctx^ = {} // zero memory
 	ctx.interaction = Interaction {
@@ -92,14 +94,25 @@ init :: proc(
 	ctx.frame_allocator = frame_allocator
 	ctx.draw_cmd_allocator = draw_cmd_allocator
 	ctx.window_size = screen_size
+
+	// TODO(Thomas): Is it correct to always just use the 0th
+	// index font here? It should be configureable through the ui api
+	// so having to pass it here in init might not be necessary, and we can
+	// just do this?
 	ctx.font_id = font_id
-	ctx.font_size = font_size
+
+	//ctx.font_size = font_size
 
 	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
 	// and is actually returning the error in an upcoming Odin version?
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 
-	ts_err := textpkg.init_text_system(&ctx.text_system, text_measurement^, persistent_allocator)
+	ts_err := textpkg.init_text_system(
+		&ctx.text_system,
+		text_measurement^,
+		font_configs,
+		persistent_allocator,
+	)
 	assert(ts_err == .None)
 
 	init_draw_state_alloc_err := init_draw_state(&ctx.draw_state, draw_cmd_allocator)

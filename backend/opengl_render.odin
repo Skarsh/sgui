@@ -161,8 +161,10 @@ OpenGL_Render_Data :: struct {
 	ssbo:                u32,
 	ssbo_data:           []Quad_Param,
 	shader:              Shader,
-	font_atlas:          Font_Atlas,
+	//font_atlas:          Font_Atlas,
 	font_texture:        OpenGL_Texture,
+	font_atlases:        []Font_Atlas,
+	font_textures:       []OpenGL_Texture,
 	proj:                linalg.Matrix4f32,
 	image_texture_state: Image_Texture_State,
 	scissor_stack:       [dynamic]base.Rect,
@@ -177,8 +179,10 @@ init_opengl :: proc(
 	window: ^Window,
 	window_api: Window_API,
 	window_size: base.Vector2i32,
-	stb_font_ctx: STB_Font_Context,
-	font_size: f32,
+	//stb_font_ctx: STB_Font_Context,
+	font_atlas: Font_Atlas,
+	font_atlases: []Font_Atlas,
+	//font_size: f32,
 	allocator := context.allocator,
 ) -> bool {
 	window_api.set_gl_attribute(.Context_Profile_Mask, i32(GL_Profile.Core))
@@ -257,17 +261,18 @@ init_opengl :: proc(
 	// NOTE(Thomas): Flipped y-axis for top-left coords
 	ortho := linalg.matrix_ortho3d_f32(0, f32(window_size.x), f32(window_size.y), 0, -1, 1)
 
-	font_atlas := Font_Atlas{}
-	init_font_atlas(
-		&font_atlas,
-		stb_font_ctx.font_info,
-		stb_font_ctx.font_data,
-		"data/font.ttf",
-		font_size,
-		1024,
-		1024,
-		allocator,
-	)
+	//font_atlas := Font_Atlas{}
+	//init_font_atlas(
+	//	&font_atlas,
+	//	stb_font_ctx.font_info,
+	//	stb_font_ctx.font_data,
+	//	//"data/font.ttf",
+	//	//font_size,
+	//	stb_font_ctx.font_size,
+	//	1024,
+	//	1024,
+	//	allocator,
+	//)
 
 	data := OpenGL_Render_Data{}
 	data.window_size = window_size
@@ -278,23 +283,44 @@ init_opengl :: proc(
 	data.ssbo_data = ssbo_data
 	data.shader = shader
 	data.proj = ortho
-	data.font_atlas = font_atlas
+	//data.font_atlas = font_atlas
+	data.font_atlases = font_atlases
+
+	assert(len(font_atlases) > 0)
+	data.font_textures = make([]OpenGL_Texture, len(font_atlases), allocator)
+	for atlas, i in font_atlases {
+		font_texture, font_texture_ok := opengl_gen_texture(
+			atlas.atlas_width,
+			atlas.atlas_height,
+			.RED,
+			.RED,
+			raw_data(atlas.bitmap),
+		)
+
+		if !font_texture_ok {
+			log.error("Failed to generate font texture")
+			assert(font_texture_ok)
+			return false
+		}
+
+		data.font_textures[i] = font_texture
+	}
 
 	// NOTE(Thomas): The font bitmap has only one channel, so we use
 	// only the RED channel for the internal and image format.
-	font_texture, font_texture_ok := opengl_gen_texture(
-		font_atlas.atlas_width,
-		font_atlas.atlas_height,
-		.RED,
-		.RED,
-		raw_data(font_atlas.bitmap),
-	)
+	//font_texture, font_texture_ok := opengl_gen_texture(
+	//	font_atlas.atlas_width,
+	//	font_atlas.atlas_height,
+	//	.RED,
+	//	.RED,
+	//	raw_data(font_atlas.bitmap),
+	//)
 
-	if !font_texture_ok {
-		log.error("Failed to generate font texture")
-		return false
-	}
-	data.font_texture = font_texture
+	//if !font_texture_ok {
+	//	log.error("Failed to generate font texture")
+	//	return false
+	//}
+	//data.font_texture = font_texture
 
 	data.image_texture_state = Image_Texture_State {
 		current_id = -1,
@@ -316,7 +342,11 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 }
 
 // TODO(Thomas): Just remove this?
-opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data) -> bool {
+opengl_init_resources :: proc(
+	render_data: ^OpenGL_Render_Data,
+	font_atlases: []Font_Atlas,
+) -> bool {
+
 	return true
 }
 
@@ -339,6 +369,8 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 	if len(command_queue) == 0 {
 		return
 	}
+
+	log.info("len(render_data.font_textures): ", len(render_data.font_textures))
 
 	slice.sort_by(command_queue[:], compare_draw_commands)
 
@@ -416,10 +448,16 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			}
 			batch.quad_idx += 1
 		case ui.Command_Text:
+			// TODO(Thomas): HACK
+			opengl_active_texture(.Texture_2)
+			opengl_bind_texture(render_data.font_textures[val.font_id].id)
+			shader_set_int(render_data.shader, "u_font_texture", 2)
+
 			x := val.x
 			y := val.y
 			start_x := x
-			start_y := y + render_data.font_atlas.metrics.ascent
+			//start_y := y + render_data.font_atlas.metrics.ascent
+			start_y := y + render_data.font_atlases[val.font_id].metrics.ascent
 
 			if _, is_gradient := val.fill.(base.Gradient); is_gradient {
 				panic("TODO: Implement gradient text")
@@ -431,7 +469,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			space_x := f32(0)
 			space_y := f32(0)
 			space_quad, space_found := get_glyph_quad(
-				&render_data.font_atlas,
+				&render_data.font_atlases[val.font_id], //&render_data.font_atlas,
 				' ',
 				&space_x,
 				&space_y,
@@ -456,7 +494,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				}
 
 				glyph_quad, found := get_glyph_quad(
-					&render_data.font_atlas,
+					&render_data.font_atlases[val.font_id], //&render_data.font_atlas,
 					glyph.codepoint,
 					&start_x,
 					&start_y,

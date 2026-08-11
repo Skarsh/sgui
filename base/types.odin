@@ -74,3 +74,8 @@ slice_from_range :: proc(slice: $T, range: Range) -> T {
 
 	return slice[range.start:range.end]
 }
+
+Font_Config :: struct {
+	path: string,
+	size: f32,
+}
