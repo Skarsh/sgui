@@ -312,7 +312,13 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 						// This works, but maybe there is a cleaner solution, something
 						// like paragraphs always producing one row, even if it's empty??
 						if len(text_layout.rows) == 0 {
-							caret_height = textpkg.font_line_height(&ctx.text_system, ctx.font_id)
+							// TODO(Thomas): Do more error handling here if the caret_height is not ok?
+							caret_height_ok: bool
+							caret_height, caret_height_ok = textpkg.font_line_height(
+								&ctx.text_system,
+								ctx.font_id,
+							)
+							assert(caret_height_ok)
 							caret_pos.y -= caret_height / 2
 						}
 

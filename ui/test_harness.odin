@@ -27,7 +27,6 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	env.text_measurement = textpkg.Text_Measurement {
 		measure_text_proc      = textpkg.mock_measure_text_proc,
 		measure_codepoint_proc = textpkg.mock_measure_codepoint_proc,
-		font_user_data         = nil,
 	}
 
 	// Setup arenas and allocators
@@ -51,9 +50,8 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 		env.frame_arena_allocator,
 		env.draw_cmd_arena_allocator,
 		window_size,
-		{},
+		{{"", 0, nil}},
 		0,
-		//0,
 	)
 
 	return env

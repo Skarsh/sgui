@@ -70,21 +70,16 @@ main :: proc() {
 		io_arena_mem       = make([]u8, 10 * mem.Kilobyte, arena_allocator),
 	}
 
-	// CONTINUE HERE: Next step in fonts stuff is to make sure that the text system
-	// in the ui package actually uses the right measurement metrics.
-	// This is probably why when using the font_id = 1, the text looks clipped,
-	// because the text is drawn larger than the box element which still uses
-	// metrics for font_id = 0.
 	config := app.App_Config {
 		title = "Fonts App",
 		window_size = {640, 480},
 		font_configs = {
-			base.Font_Config{"data/fonts/font.ttf", 24},
-			base.Font_Config{"data/fonts/font.ttf", 48},
+			base.Font_Config{"data/fonts/font.ttf", 24, nil},
+			base.Font_Config{"data/fonts/font.ttf", 36, nil},
+			base.Font_Config{"data/fonts/font.ttf", 48, nil},
+			base.Font_Config{"data/fonts/font.ttf", 64, nil},
 		},
-		//font_path = "",
-		font_id = 1,
-		//font_size = 24,
+		font_id = 3,
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,
@@ -103,7 +98,6 @@ main :: proc() {
 	}
 	defer app.deinit(my_app)
 
-	string_buffer := [16]u8{}
 	my_data := Data{}
 	app.run(my_app, &my_data, update_and_draw)
 }

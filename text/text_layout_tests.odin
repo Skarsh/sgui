@@ -37,15 +37,13 @@ mock_measure_text_proc :: proc(
 mock_text_measurement :: Text_Measurement {
 	measure_text_proc      = mock_measure_text_proc,
 	measure_codepoint_proc = mock_measure_codepoint_proc,
-	font_user_data         = nil,
 }
 
-//mock_font_configs: []base.Font_Config = {{"", 3.14}}
 
 @(private = "file")
 make_test_text_system :: proc() -> Text_System {
 	ts: Text_System
-	err := init_text_system(&ts, mock_text_measurement, {}, context.temp_allocator)
+	err := init_text_system(&ts, mock_text_measurement, {{"", 0, nil}}, context.temp_allocator)
 	assert(err == .None)
 	return ts
 }

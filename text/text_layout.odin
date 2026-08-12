@@ -465,13 +465,16 @@ layout_text :: proc(
 	find_linebreak_candidates(paragraphs[:], glyphs[:], &linebreak_candidates) or_return
 
 	rows := make([dynamic]Positioned_Row, persistent_allocator) or_return
+	// TODO(Thomas): Do more error handling here if line height is not ok?
+	line_height, line_height_ok := font_line_height(ts, params.font_handle)
+	assert(line_height_ok)
 	layout_rows(
 		paragraphs[:],
 		glyphs[:],
 		linebreak_candidates[:],
 		&rows,
 		params.available_width,
-		font_line_height(ts, params.font_handle),
+		line_height,
 		params.alignment_x,
 		params.wrap_mode,
 	) or_return
@@ -659,7 +662,9 @@ measure_text_intrinsic :: proc(
 	size := base.Vec2{}
 	if len(text) > 0 {
 
-		line_height := font_line_height(ts, font_handle)
+		// TODO(Thomas): Do more error handling here when the line hegiht is not ok?
+		line_height, line_height_ok := font_line_height(ts, font_handle)
+		assert(line_height_ok)
 
 		row_width: f32
 

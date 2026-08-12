@@ -12,6 +12,7 @@ Text_System :: struct {
 	fonts:        [dynamic]Font_Cache,
 	layout_cache: map[u64]Text_Layout_Cache_Entry,
 	text_states:  map[u64]Text_State,
+	font_configs: []base.Font_Config,
 }
 
 // TODO(Thomas): Taking in single Text_Measurement and using it like this won't work
@@ -31,12 +32,13 @@ init_text_system :: proc(
 
 	for config, i in font_configs {
 		fc: Font_Cache
-		init_font_cache(&fc, i, measurement, allocator) or_return
+		init_font_cache(&fc, i, measurement, config, allocator) or_return
 		append(&ts.fonts, fc) or_return
 	}
 
 	ts.layout_cache = make(map[u64]Text_Layout_Cache_Entry, allocator)
 	ts.text_states = make(map[u64]Text_State, allocator)
+	ts.font_configs = font_configs
 
 	return nil
 }
@@ -103,12 +105,13 @@ init_font_cache :: proc(
 	fc: ^Font_Cache,
 	font_handle: Font_Handle,
 	measurement: Text_Measurement,
+	font_config: base.Font_Config,
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
 
 	fc.extended = make(map[rune]Codepoint_Metrics, allocator)
 
-	vertical_metrics := measurement.measure_text_proc("", font_handle, measurement.font_user_data)
+	vertical_metrics := measurement.measure_text_proc("", font_handle, font_config.user_data)
 	fc.ascent = vertical_metrics.ascent
 	fc.descent = vertical_metrics.descent
 	fc.line_height = vertical_metrics.line_height
@@ -118,7 +121,7 @@ init_font_cache :: proc(
 		fc.ascii[i] = measurement.measure_codepoint_proc(
 			rune(i),
 			font_handle,
-			measurement.font_user_data,
+			font_config.user_data,
 		)
 	}
 
@@ -137,26 +140,48 @@ glyph_metrics :: proc(ts: ^Text_System, font_handle: Font_Handle, r: rune) -> Co
 		return m
 	}
 
-	m := ts.measurement.measure_codepoint_proc(r, font_handle, ts.measurement.font_user_data)
+	m := ts.measurement.measure_codepoint_proc(
+		r,
+		font_handle,
+		ts.font_configs[font_handle].user_data,
+	)
 	fc.extended[r] = m
 
 	return m
 }
 
 @(require_results)
-ascent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> f32 {
-	fc := &ts.fonts[font_handle]
-	return fc.ascent
+ascent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> (ascent: f32, ok: bool) {
+	if font_handle >= 0 && font_handle < len(ts.fonts) {
+		fc := &ts.fonts[font_handle]
+		ascent = fc.ascent
+		ok = true
+	}
+	return
 }
 
 @(require_results)
-descent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> f32 {
-	fc := &ts.fonts[font_handle]
-	return fc.descent
+descent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> (descent: f32, ok: bool) {
+	if font_handle >= 0 && font_handle < len(ts.fonts) {
+		fc := &ts.fonts[font_handle]
+		descent = fc.descent
+		ok = true
+	}
+	return
 }
 
 @(require_results)
-font_line_height :: proc(ts: ^Text_System, font_handle: Font_Handle) -> f32 {
-	fc := &ts.fonts[font_handle]
-	return fc.line_height
+font_line_height :: proc(
+	ts: ^Text_System,
+	font_handle: Font_Handle,
+) -> (
+	line_height: f32,
+	ok: bool,
+) {
+	if font_handle >= 0 && font_handle < len(ts.fonts) {
+		fc := &ts.fonts[font_handle]
+		line_height = fc.line_height
+		ok = true
+	}
+	return
 }

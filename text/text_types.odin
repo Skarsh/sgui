@@ -31,5 +31,4 @@ Measure_Codepoint_Proc :: proc(
 Text_Measurement :: struct {
 	measure_text_proc:      Measure_Text_Proc,
 	measure_codepoint_proc: Measure_Codepoint_Proc,
-	font_user_data:         rawptr,
 }
