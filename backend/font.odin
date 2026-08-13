@@ -50,7 +50,6 @@ init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
 	font_info: ^stbtt.fontinfo,
 	font_data: []u8,
-	//path: string,
 	font_size: f32,
 	atlas_width: i32,
 	atlas_height: i32,
