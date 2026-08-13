@@ -2,8 +2,8 @@
 
 ## Active
 * Better font support:
-    - Different font sizes, intially this can be done for just the same font
-    - Different fonts with support for different font sizes
+    - Look into using font index on stb pack font range to be able to pack multiple fonts into
+        a single font atlas
 * Selection past the edges of a text element (the visible part), should result in scrolling
 
 ## Bugs
