@@ -821,7 +821,9 @@ main :: proc() {
 	config := app.App_Config {
 		title = "Dashboard Demo - Weighted Grow Factors",
 		window_size = {1200, 800},
-		font_configs = {base.Font_Config{"data/fonts/font.ttf", 24, nil}},
+		font_configs = {
+			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 24, nil},
+		},
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,

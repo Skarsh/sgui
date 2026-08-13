@@ -75,7 +75,9 @@ main :: proc() {
 	config := app.App_Config {
 		title = "Slider Example",
 		window_size = {640, 480},
-		font_configs = {base.Font_Config{"data/fonts/font.ttf", 48, nil}},
+		font_configs = {
+			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 48, nil},
+		},
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,

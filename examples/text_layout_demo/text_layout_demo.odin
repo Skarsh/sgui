@@ -156,7 +156,9 @@ main :: proc() {
 	config := app.App_Config {
 		title = "Text Playground App",
 		window_size = {1280, 1080},
-		font_configs = {base.Font_Config{"data/fonts/font.ttf", 48, nil}},
+		font_configs = {
+			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 48, nil},
+		},
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,

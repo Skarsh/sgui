@@ -153,6 +153,9 @@ reset_batch :: proc(batch: ^Batch) {
 	batch.quad_idx = 0
 }
 
+// TODO(Thomas): Having both []Font_Atlas and []OpenGL_Texture
+// here seems a little off. Pretty sure their length needs to
+// stay synced, so combine into a single structure??
 OpenGL_Render_Data :: struct {
 	window_size:         base.Vector2i32,
 	vao:                 u32,
@@ -161,8 +164,6 @@ OpenGL_Render_Data :: struct {
 	ssbo:                u32,
 	ssbo_data:           []Quad_Param,
 	shader:              Shader,
-	//font_atlas:          Font_Atlas,
-	font_texture:        OpenGL_Texture,
 	font_atlases:        []Font_Atlas,
 	font_textures:       []OpenGL_Texture,
 	proj:                linalg.Matrix4f32,
@@ -179,10 +180,8 @@ init_opengl :: proc(
 	window: ^Window,
 	window_api: Window_API,
 	window_size: base.Vector2i32,
-	//stb_font_ctx: STB_Font_Context,
 	font_atlas: Font_Atlas,
 	font_atlases: []Font_Atlas,
-	//font_size: f32,
 	allocator := context.allocator,
 ) -> bool {
 	window_api.set_gl_attribute(.Context_Profile_Mask, i32(GL_Profile.Core))
@@ -261,19 +260,6 @@ init_opengl :: proc(
 	// NOTE(Thomas): Flipped y-axis for top-left coords
 	ortho := linalg.matrix_ortho3d_f32(0, f32(window_size.x), f32(window_size.y), 0, -1, 1)
 
-	//font_atlas := Font_Atlas{}
-	//init_font_atlas(
-	//	&font_atlas,
-	//	stb_font_ctx.font_info,
-	//	stb_font_ctx.font_data,
-	//	//"data/font.ttf",
-	//	//font_size,
-	//	stb_font_ctx.font_size,
-	//	1024,
-	//	1024,
-	//	allocator,
-	//)
-
 	data := OpenGL_Render_Data{}
 	data.window_size = window_size
 	data.vao = vao
@@ -283,12 +269,13 @@ init_opengl :: proc(
 	data.ssbo_data = ssbo_data
 	data.shader = shader
 	data.proj = ortho
-	//data.font_atlas = font_atlas
 	data.font_atlases = font_atlases
 
 	assert(len(font_atlases) > 0)
 	data.font_textures = make([]OpenGL_Texture, len(font_atlases), allocator)
 	for atlas, i in font_atlases {
+		// NOTE(Thomas): The font bitmap has only one channel, so we use
+		// only the RED channel for the internal and image format.
 		font_texture, font_texture_ok := opengl_gen_texture(
 			atlas.atlas_width,
 			atlas.atlas_height,
@@ -306,22 +293,6 @@ init_opengl :: proc(
 		data.font_textures[i] = font_texture
 	}
 
-	// NOTE(Thomas): The font bitmap has only one channel, so we use
-	// only the RED channel for the internal and image format.
-	//font_texture, font_texture_ok := opengl_gen_texture(
-	//	font_atlas.atlas_width,
-	//	font_atlas.atlas_height,
-	//	.RED,
-	//	.RED,
-	//	raw_data(font_atlas.bitmap),
-	//)
-
-	//if !font_texture_ok {
-	//	log.error("Failed to generate font texture")
-	//	return false
-	//}
-	//data.font_texture = font_texture
-
 	data.image_texture_state = Image_Texture_State {
 		current_id = -1,
 	}
@@ -337,7 +308,9 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteBuffers(1, &render_data.vbo)
 	gl.DeleteBuffers(1, &render_data.ebo)
 	gl.DeleteBuffers(1, &render_data.ssbo)
-	gl.DeleteTextures(1, &render_data.font_texture.id)
+	for &font_texture in render_data.font_textures {
+		gl.DeleteTextures(1, &font_texture.id)
+	}
 	gl.DeleteProgram(render_data.shader.id)
 }
 
@@ -370,8 +343,6 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 		return
 	}
 
-	log.info("len(render_data.font_textures): ", len(render_data.font_textures))
-
 	slice.sort_by(command_queue[:], compare_draw_commands)
 
 	clear(&render_data.scissor_stack)
@@ -389,12 +360,6 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 	// Set the viewport resolution
 	resolution := base.Vec2{f32(render_data.window_size.x), f32(render_data.window_size.y)}
 	shader_set_vec2(render_data.shader, "u_resolution", &resolution)
-
-	// NOTE(Thomas): We're binding the font texture here by default
-	// for now, even though we might not have a draw command that requires it.
-	opengl_active_texture(.Texture_0)
-	opengl_bind_texture(render_data.font_texture.id)
-	shader_set_int(render_data.shader, "u_font_texture", 0)
 
 	// Reset the image texture state each frame
 	reset_image_texture_state(&render_data.image_texture_state)
@@ -448,91 +413,98 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			}
 			batch.quad_idx += 1
 		case ui.Command_Text:
-			// TODO(Thomas): HACK
-			opengl_active_texture(.Texture_2)
-			opengl_bind_texture(render_data.font_textures[val.font_id].id)
-			shader_set_int(render_data.shader, "u_font_texture", 2)
+			if val.font_id >= 0 &&
+			   val.font_id < len(render_data.font_textures) &&
+			   val.font_id < len(render_data.font_atlases) {
 
-			x := val.x
-			y := val.y
-			start_x := x
-			//start_y := y + render_data.font_atlas.metrics.ascent
-			start_y := y + render_data.font_atlases[val.font_id].metrics.ascent
+				opengl_active_texture(.Texture_0, val.font_id)
+				opengl_bind_texture(render_data.font_textures[val.font_id].id)
+				shader_set_int(render_data.shader, "u_font_texture", i32(val.font_id))
 
-			if _, is_gradient := val.fill.(base.Gradient); is_gradient {
-				panic("TODO: Implement gradient text")
-			}
+				x := val.x
+				y := val.y
+				start_x := x
+				start_y := y + render_data.font_atlases[val.font_id].metrics.ascent
 
-			fill_colors := fill_to_colors(val.fill)
-
-			// Measure space width once for tab character handling
-			space_x := f32(0)
-			space_y := f32(0)
-			space_quad, space_found := get_glyph_quad(
-				&render_data.font_atlases[val.font_id], //&render_data.font_atlas,
-				' ',
-				&space_x,
-				&space_y,
-			)
-			space_width: f32 = 0
-			if space_found {
-				space_width = space_quad.x_advance
-			}
-
-			// TODO(Thomas): This is not how it should be eventually.
-			// There should be enough information in the glyph for the renderer
-			// to do as little work as possible I think.
-			for glyph in val.glyphs {
-				if glyph.codepoint == '\n' {
-					continue
+				if _, is_gradient := val.fill.(base.Gradient); is_gradient {
+					panic("TODO: Implement gradient text")
 				}
 
-				// Handle tab character by advancing cursor without rendering
-				if glyph.codepoint == '\t' {
-					start_x += base.calculate_tab_width(space_width)
-					continue
-				}
+				fill_colors := fill_to_colors(val.fill)
 
-				glyph_quad, found := get_glyph_quad(
-					&render_data.font_atlases[val.font_id], //&render_data.font_atlas,
-					glyph.codepoint,
-					&start_x,
-					&start_y,
+				// Measure space width once for tab character handling
+				space_x := f32(0)
+				space_y := f32(0)
+				space_quad, space_found := get_glyph_quad(
+					&render_data.font_atlases[val.font_id],
+					' ',
+					&space_x,
+					&space_y,
 				)
-
-				if !found && glyph.codepoint != ' ' {
-					log.error("Glyph not found for rune: ", glyph.codepoint)
+				space_width: f32 = 0
+				if space_found {
+					space_width = space_quad.x_advance
 				}
 
-				if batch.quad_idx >= MAX_QUADS {
-					flush_render(render_data, batch)
-					reset_batch(&batch)
+				// TODO(Thomas): This is not how it should be eventually.
+				// There should be enough information in the glyph for the renderer
+				// to do as little work as possible I think.
+				for glyph in val.glyphs {
+					if glyph.codepoint == '\n' {
+						continue
+					}
+
+					// Handle tab character by advancing cursor without rendering
+					if glyph.codepoint == '\t' {
+						start_x += base.calculate_tab_width(space_width)
+						continue
+					}
+
+					glyph_quad, found := get_glyph_quad(
+						&render_data.font_atlases[val.font_id],
+						glyph.codepoint,
+						&start_x,
+						&start_y,
+					)
+
+					if !found && glyph.codepoint != ' ' {
+						log.error("Glyph not found for rune: ", glyph.codepoint)
+					}
+
+					if batch.quad_idx >= MAX_QUADS {
+						flush_render(render_data, batch)
+						reset_batch(&batch)
+					}
+
+					// Set Quad_Param in ubo data
+					width := (glyph_quad.x1 - glyph_quad.x0)
+					height := (glyph_quad.y1 - glyph_quad.y0)
+					render_data.ssbo_data[batch.quad_idx] = Quad_Param {
+						color_start  = fill_colors.color_start,
+						color_end    = fill_colors.color_end,
+						gradient_dir = fill_colors.gradient_dir,
+						clip_rect    = {
+							f32(command.clip_rect.x),
+							f32(command.clip_rect.y),
+							f32(command.clip_rect.w),
+							f32(command.clip_rect.h),
+						},
+						quad_pos     = {glyph_quad.x0 + width / 2, glyph_quad.y0 + height / 2},
+						quad_size    = {width, height},
+						uv_offset    = {glyph_quad.s0, glyph_quad.t0},
+						uv_size      = {
+							glyph_quad.s1 - glyph_quad.s0,
+							glyph_quad.t1 - glyph_quad.t0,
+						},
+						quad_type    = i32(Quad_Type.Text),
+					}
+
+					batch.quad_idx += 1
 				}
 
-				// Set Quad_Param in ubo data
-				width := (glyph_quad.x1 - glyph_quad.x0)
-				height := (glyph_quad.y1 - glyph_quad.y0)
-				render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-					color_start  = fill_colors.color_start,
-					color_end    = fill_colors.color_end,
-					gradient_dir = fill_colors.gradient_dir,
-					clip_rect    = {
-						f32(command.clip_rect.x),
-						f32(command.clip_rect.y),
-						f32(command.clip_rect.w),
-						f32(command.clip_rect.h),
-					},
-					quad_pos     = {glyph_quad.x0 + width / 2, glyph_quad.y0 + height / 2},
-					quad_size    = {width, height},
-					uv_offset    = {glyph_quad.s0, glyph_quad.t0},
-					uv_size      = {glyph_quad.s1 - glyph_quad.s0, glyph_quad.t1 - glyph_quad.t0},
-					quad_type    = i32(Quad_Type.Text),
-				}
-
-				batch.quad_idx += 1
-
+			} else {
+				log.error("font_id is out range of font_textures, font_id %d", val.font_id)
 			}
-
 
 		case ui.Command_Image:
 			tex_id := i32(val.texture_id)

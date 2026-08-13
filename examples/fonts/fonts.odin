@@ -74,10 +74,10 @@ main :: proc() {
 		title = "Fonts App",
 		window_size = {640, 480},
 		font_configs = {
-			base.Font_Config{"data/fonts/font.ttf", 24, nil},
-			base.Font_Config{"data/fonts/font.ttf", 36, nil},
-			base.Font_Config{"data/fonts/font.ttf", 48, nil},
-			base.Font_Config{"data/fonts/font.ttf", 64, nil},
+			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 24, nil},
+			base.Font_Config{"data/fonts/Roboto/Roboto-Regular.ttf", 36, nil},
+			base.Font_Config{"data/fonts/Roboto/Roboto_Condensed-Italic.ttf", 48, nil},
+			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 64, nil},
 		},
 		font_id = 3,
 		platform_api = {

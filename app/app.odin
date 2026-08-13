@@ -39,9 +39,7 @@ App_Config :: struct {
 	title:        cstring,
 	window_size:  base.Vector2i32,
 	font_configs: []base.Font_Config,
-	//font_path:    string,
 	font_id:      text.Font_Handle,
-	//font_size:    f32,
 	platform_api: backend.Platform_API,
 	window_api:   backend.Window_API,
 	allocator:    mem.Allocator,
@@ -102,7 +100,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		on_quit_data = app,
 	}
 
-	log.info("app_config.fonts", app_config.font_configs)
 	backend_init_ok := backend.init_ctx(
 		&app.backend_ctx,
 		&app.input,
@@ -110,7 +107,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.title,
 		app_config.window_size,
 		app_config.font_configs,
-		//app_config.font_size,
 		app_config.platform_api,
 		app_config.window_api,
 		app_callbacks,
@@ -134,7 +130,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.window_size,
 		app_config.font_configs,
 		app_config.font_id,
-		//app_config.font_size,
 	)
 
 	app.running = true

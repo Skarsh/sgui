@@ -154,8 +154,9 @@ init_ctx :: proc(
 }
 
 deinit :: proc(ctx: ^Context) {
-	// TODO(Thomas): Deinit / free all the font contexts
-	//deinit_stb_font_ctx(&ctx.stb_font_ctx)
+	for &font in ctx.stb_font_contexts {
+		deinit_stb_font_ctx(&font)
+	}
 	deinit_render_ctx(&ctx.render_ctx)
 	ctx.window_api.deinit()
 }
