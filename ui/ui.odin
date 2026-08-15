@@ -38,8 +38,6 @@ Context :: struct {
 	element_cache:        map[UI_Key]^UI_Element,
 	frame_idx:            u64,
 	dt:                   f32,
-	// TODO(Thomas): Does font size and font id belong here??
-	//font_size:            f32,
 	font_configs:         []base.Font_Config,
 	text_system:          textpkg.Text_System,
 	font_id:              textpkg.Font_Handle,
@@ -83,7 +81,6 @@ init :: proc(
 	screen_size: [2]i32,
 	font_configs: []base.Font_Config,
 	font_id: textpkg.Font_Handle,
-	//font_size: f32,
 ) {
 	ctx^ = {} // zero memory
 	ctx.interaction = Interaction {
@@ -95,13 +92,7 @@ init :: proc(
 	ctx.draw_cmd_allocator = draw_cmd_allocator
 	ctx.window_size = screen_size
 
-	// TODO(Thomas): Is it correct to always just use the 0th
-	// index font here? It should be configureable through the ui api
-	// so having to pass it here in init might not be necessary, and we can
-	// just do this?
 	ctx.font_id = font_id
-
-	//ctx.font_size = font_size
 
 	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
 	// and is actually returning the error in an upcoming Odin version?
