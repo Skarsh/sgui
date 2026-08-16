@@ -99,10 +99,7 @@ init_ctx :: proc(
 
 	assert(len(font_configs) > 0)
 
-	font_info := new(Font_Info, allocator)
-	stb_font_ctx := STB_Font_Context {
-		font_info = font_info,
-	}
+	stb_font_ctx := STB_Font_Context{}
 
 	config := &font_configs[0]
 	if !init_stb_font_ctx(&stb_font_ctx, config.path, config.size) {
@@ -130,7 +127,7 @@ init_ctx :: proc(
 		&ctx.window,
 		window_api,
 		window_size,
-		ctx.stb_font_context,
+		&ctx.stb_font_context,
 		allocator,
 		.OpenGL,
 	)

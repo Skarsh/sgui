@@ -19,14 +19,14 @@ init_stb_font_ctx :: proc(ctx: ^STB_Font_Context, path: string, font_size: f32) 
 	}
 
 	// Initialize font
-	if !stbtt.InitFont(ctx.font_info, raw_data(font_data), 0) {
+	if !stbtt.InitFont(&ctx.font_info, raw_data(font_data), 0) {
 		log.error("Failed to initialize font")
 		return false
 	}
 
 	ctx.font_data = font_data
 	ctx.font_size = font_size
-	ctx.font_metrics = get_font_metrics(ctx.font_info, font_size)
+	ctx.font_metrics = get_font_metrics(&ctx.font_info, font_size)
 
 	return true
 }
@@ -36,7 +36,7 @@ deinit_stb_font_ctx :: proc(ctx: ^STB_Font_Context) {
 }
 
 STB_Font_Context :: struct {
-	font_info:    ^stbtt.fontinfo,
+	font_info:    stbtt.fontinfo,
 	font_data:    []byte,
 	font_size:    f32,
 	font_metrics: Font_Metrics,
@@ -53,7 +53,7 @@ stb_measure_text :: proc(text: string, user_data: rawptr) -> textpkg.Text_Metric
 
 	// Measure space width once for tab character handling
 	space_advance, space_bearing: i32
-	stbtt.GetCodepointHMetrics(ctx.font_info, ' ', &space_advance, &space_bearing)
+	stbtt.GetCodepointHMetrics(&ctx.font_info, ' ', &space_advance, &space_bearing)
 	space_width := f32(space_advance) * scale
 
 	advance_width, left_side_bearing: i32
@@ -65,7 +65,7 @@ stb_measure_text :: proc(text: string, user_data: rawptr) -> textpkg.Text_Metric
 			continue
 		}
 
-		stbtt.GetCodepointHMetrics(ctx.font_info, r, &advance_width, &left_side_bearing)
+		stbtt.GetCodepointHMetrics(&ctx.font_info, r, &advance_width, &left_side_bearing)
 		width += f32(advance_width) * scale
 	}
 
@@ -87,7 +87,7 @@ stb_measure_codepoint :: proc(codepoint: rune, user_data: rawptr) -> textpkg.Cod
 	// glyphs, caret position etc. The width comes from ' ', same as stb_measure_text
 	// and the renderer use.
 	if codepoint == '\t' {
-		stbtt.GetCodepointHMetrics(ctx.font_info, ' ', &advance_width, &left_side_bearing)
+		stbtt.GetCodepointHMetrics(&ctx.font_info, ' ', &advance_width, &left_side_bearing)
 		space_width := f32(advance_width) * scale
 		return textpkg.Codepoint_Metrics {
 			width = base.calculate_tab_width(space_width),
@@ -95,7 +95,7 @@ stb_measure_codepoint :: proc(codepoint: rune, user_data: rawptr) -> textpkg.Cod
 		}
 	}
 
-	stbtt.GetCodepointHMetrics(ctx.font_info, codepoint, &advance_width, &left_side_bearing)
+	stbtt.GetCodepointHMetrics(&ctx.font_info, codepoint, &advance_width, &left_side_bearing)
 	width := f32(advance_width) * scale
 
 	return textpkg.Codepoint_Metrics{width = f32(width), left_bearing = f32(left_side_bearing)}
