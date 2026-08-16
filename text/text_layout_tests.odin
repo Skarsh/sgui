@@ -9,11 +9,7 @@ MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
 MOCK_FONT_HANDLE :: 0
 
-mock_measure_codepoint_proc :: proc(
-	codepoint: rune,
-	font_id: Font_Handle,
-	user_data: rawptr,
-) -> Codepoint_Metrics {
+mock_measure_codepoint_proc :: proc(codepoint: rune, user_data: rawptr) -> Codepoint_Metrics {
 	width: f32 = 0
 	left_bearing: f32 = 0
 	if codepoint != '\n' {
@@ -23,11 +19,7 @@ mock_measure_codepoint_proc :: proc(
 	return Codepoint_Metrics{width = width, left_bearing = left_bearing}
 }
 
-mock_measure_text_proc :: proc(
-	text: string,
-	font_id: Font_Handle,
-	user_data: rawptr,
-) -> Text_Metrics {
+mock_measure_text_proc :: proc(text: string, user_data: rawptr) -> Text_Metrics {
 	width: f32 = f32(strings.rune_count(text) * MOCK_CHAR_WIDTH)
 	line_height: f32 = MOCK_LINE_HEIGHT
 

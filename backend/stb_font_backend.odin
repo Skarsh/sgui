@@ -42,11 +42,7 @@ STB_Font_Context :: struct {
 	font_metrics: Font_Metrics,
 }
 
-stb_measure_text :: proc(
-	text: string,
-	font_id: textpkg.Font_Handle,
-	user_data: rawptr,
-) -> textpkg.Text_Metrics {
+stb_measure_text :: proc(text: string, user_data: rawptr) -> textpkg.Text_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_metrics := ctx.font_metrics
 	scale := font_metrics.scale
@@ -81,11 +77,7 @@ stb_measure_text :: proc(
 	}
 }
 
-stb_measure_codepoint :: proc(
-	codepoint: rune,
-	font_id: textpkg.Font_Handle,
-	user_data: rawptr,
-) -> textpkg.Codepoint_Metrics {
+stb_measure_codepoint :: proc(codepoint: rune, user_data: rawptr) -> textpkg.Codepoint_Metrics {
 	ctx := cast(^STB_Font_Context)user_data
 	font_metrics := ctx.font_metrics
 	scale := font_metrics.scale

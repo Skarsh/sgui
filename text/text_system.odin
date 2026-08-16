@@ -111,18 +111,14 @@ init_font_cache :: proc(
 
 	fc.extended = make(map[rune]Codepoint_Metrics, allocator)
 
-	vertical_metrics := measurement.measure_text_proc("", font_handle, font_config.user_data)
+	vertical_metrics := measurement.measure_text_proc("", font_config.user_data)
 	fc.ascent = vertical_metrics.ascent
 	fc.descent = vertical_metrics.descent
 	fc.line_height = vertical_metrics.line_height
 
 	// fill ascii table
 	for i in 0 ..< ASCII_TABLE_LEN {
-		fc.ascii[i] = measurement.measure_codepoint_proc(
-			rune(i),
-			font_handle,
-			font_config.user_data,
-		)
+		fc.ascii[i] = measurement.measure_codepoint_proc(rune(i), font_config.user_data)
 	}
 
 	return nil
@@ -140,11 +136,7 @@ glyph_metrics :: proc(ts: ^Text_System, font_handle: Font_Handle, r: rune) -> Co
 		return m
 	}
 
-	m := ts.measurement.measure_codepoint_proc(
-		r,
-		font_handle,
-		ts.font_configs[font_handle].user_data,
-	)
+	m := ts.measurement.measure_codepoint_proc(r, ts.font_configs[font_handle].user_data)
 	fc.extended[r] = m
 
 	return m
