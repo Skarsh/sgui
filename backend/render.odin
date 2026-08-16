@@ -19,7 +19,7 @@ Render_Context :: struct {
 	window_api:    Window_API,
 	renderer_type: Renderer_Type,
 	render_data:   Render_Data,
-	font_atlases:  []Font_Atlas,
+	font_atlas:    Font_Atlas,
 	allocator:     mem.Allocator,
 }
 
@@ -28,9 +28,7 @@ init_render_ctx :: proc(
 	window: ^Window,
 	window_api: Window_API,
 	window_size: base.Vector2i32,
-	//stb_font_ctx: STB_Font_Context,
-	stb_font_contexts: []STB_Font_Context,
-	//font_size: f32,
+	stb_font_ctx: STB_Font_Context,
 	allocator := context.allocator,
 	renderer_type: Renderer_Type,
 ) -> bool {
@@ -40,22 +38,18 @@ init_render_ctx :: proc(
 	ctx.allocator = allocator
 	ctx.renderer_type = renderer_type
 
-	assert(len(stb_font_contexts) > 0)
-	ctx.font_atlases = make([]Font_Atlas, len(stb_font_contexts), allocator)
-	for font_ctx, i in stb_font_contexts {
-		font_atlas := Font_Atlas{}
-		init_font_atlas(
-			&font_atlas,
-			font_ctx.font_info,
-			font_ctx.font_data,
-			font_ctx.font_size,
-			1024,
-			1024,
-			allocator,
-		)
-		ctx.font_atlases[i] = font_atlas
-	}
+	font_atlas := Font_Atlas{}
+	init_font_atlas(
+		&font_atlas,
+		stb_font_ctx.font_info,
+		stb_font_ctx.font_data,
+		stb_font_ctx.font_size,
+		1024,
+		1024,
+		allocator,
+	)
 
+	ctx.font_atlas = font_atlas
 	ok := false
 	switch renderer_type {
 	case .OpenGL:
@@ -64,10 +58,7 @@ init_render_ctx :: proc(
 			window,
 			window_api,
 			window_size,
-			//stb_font_ctx,
-			ctx.font_atlases[0],
-			ctx.font_atlases,
-			//font_size,
+			ctx.font_atlas,
 			allocator,
 		)
 	}
@@ -92,7 +83,7 @@ init_resources :: proc(ctx: ^Render_Context) -> bool {
 	ok := false
 	switch ctx.renderer_type {
 	case .OpenGL:
-		ok = opengl_init_resources(&ctx.render_data.(OpenGL_Render_Data), ctx.font_atlases)
+		ok = opengl_init_resources(&ctx.render_data.(OpenGL_Render_Data))
 	}
 	return ok
 }

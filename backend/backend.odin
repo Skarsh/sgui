@@ -66,11 +66,11 @@ deinit_window :: proc(window_api: Window_API, window: Window) {
 }
 
 Context :: struct {
-	window:            Window,
-	window_api:        Window_API,
-	stb_font_contexts: []STB_Font_Context,
-	render_ctx:        Render_Context,
-	io:                Io,
+	window:           Window,
+	window_api:       Window_API,
+	stb_font_context: STB_Font_Context,
+	render_ctx:       Render_Context,
+	io:               Io,
 }
 
 // TODO(Thomas): This shouldn't be aware of texture paths at all. That is app specific knowledge.
@@ -98,25 +98,20 @@ init_ctx :: proc(
 	ctx.window_api = window_api
 
 	assert(len(font_configs) > 0)
-	font_contexts, alloc_err := make_slice([]STB_Font_Context, len(font_configs), allocator)
-	assert(alloc_err == .None)
 
-	for &config, i in font_configs {
-		font_info := new(Font_Info, allocator)
-		stb_font_ctx := STB_Font_Context {
-			font_info = font_info,
-		}
-
-		if !init_stb_font_ctx(&stb_font_ctx, config.path, config.size) {
-			log.error("failed to init stb_font")
-			return false
-		}
-
-		font_contexts[i] = stb_font_ctx
-		config.user_data = &font_contexts[i]
+	font_info := new(Font_Info, allocator)
+	stb_font_ctx := STB_Font_Context {
+		font_info = font_info,
 	}
 
-	ctx.stb_font_contexts = font_contexts
+	config := &font_configs[0]
+	if !init_stb_font_ctx(&stb_font_ctx, config.path, config.size) {
+		log.error("failed to init stb_font")
+		return false
+	}
+
+	ctx.stb_font_context = stb_font_ctx
+	config.user_data = &ctx.stb_font_context
 
 	text_measurement.measure_text_proc = stb_measure_text
 	text_measurement.measure_codepoint_proc = stb_measure_codepoint
@@ -135,7 +130,7 @@ init_ctx :: proc(
 		&ctx.window,
 		window_api,
 		window_size,
-		ctx.stb_font_contexts,
+		ctx.stb_font_context,
 		allocator,
 		.OpenGL,
 	)
@@ -154,9 +149,7 @@ init_ctx :: proc(
 }
 
 deinit :: proc(ctx: ^Context) {
-	for &font in ctx.stb_font_contexts {
-		deinit_stb_font_ctx(&font)
-	}
+	deinit_stb_font_ctx(&ctx.stb_font_context)
 	deinit_render_ctx(&ctx.render_ctx)
 	ctx.window_api.deinit()
 }
