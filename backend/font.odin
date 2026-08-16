@@ -40,27 +40,21 @@ Bitmap :: struct {
 // TODO(Thomas): Ideally we'd want this to be library agnostic,
 // but for now we're just using stb truetype here.
 Font_Atlas :: struct {
-	font_info:    ^stbtt.fontinfo,
-	font_data:    []u8,
+	font_ctx:     STB_Font_Context,
 	packed_chars: []stbtt.packedchar,
 	bitmap:       Bitmap,
 	glyph_cache:  map[rune]Font_Data,
-	font_size:    f32,
-	metrics:      Font_Metrics,
 }
 
 init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
-	font_info: ^stbtt.fontinfo,
-	font_data: []u8,
-	font_size: f32,
+	font_ctx: STB_Font_Context,
 	atlas_width: i32,
 	atlas_height: i32,
 	allocator: mem.Allocator,
 ) -> bool {
 
-	atlas.font_info = font_info
-	atlas.font_data = font_data
+	atlas.font_ctx = font_ctx
 	num_chars: i32 = NUM_PACKED_CODEPOINTS
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
 	atlas.bitmap = Bitmap {
@@ -70,12 +64,6 @@ init_font_atlas :: proc(
 	}
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
-
-	// Set font dimensions
-	atlas.font_size = font_size
-
-	// Get font metrics
-	atlas.metrics = get_font_metrics(atlas.font_info, atlas.font_size)
 
 	// TODO(Thomas): What about passing in an alloc_context here?
 	pack_ok := pack_font_glyphs(atlas, FIRST_PACKED_CODEPOINT, num_chars, 0, 1, 1)
@@ -134,9 +122,9 @@ pack_font_glyphs :: proc(
 	// Pack font range
 	pack_result := stbtt.PackFontRange(
 		&pack_ctx,
-		raw_data(atlas.font_data),
+		raw_data(atlas.font_ctx.font_data),
 		0, // font_index
-		atlas.font_size,
+		atlas.font_ctx.font_size,
 		first_codepoint,
 		num_chars,
 		raw_data(atlas.packed_chars),

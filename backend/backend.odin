@@ -66,14 +66,12 @@ deinit_window :: proc(window_api: Window_API, window: Window) {
 }
 
 Context :: struct {
-	window:           Window,
-	window_api:       Window_API,
-	stb_font_context: STB_Font_Context,
-	render_ctx:       Render_Context,
-	io:               Io,
+	window:     Window,
+	window_api: Window_API,
+	render_ctx: Render_Context,
+	io:         Io,
 }
 
-// TODO(Thomas): This shouldn't be aware of texture paths at all. That is app specific knowledge.
 init_ctx :: proc(
 	ctx: ^Context,
 	input: ^base.Input,
@@ -99,16 +97,13 @@ init_ctx :: proc(
 
 	assert(len(font_configs) > 0)
 
+	// TODO(Thomas): Move this into init_render_ctx or maybe even init font atlas??
 	stb_font_ctx := STB_Font_Context{}
-
 	config := &font_configs[0]
 	if !init_stb_font_ctx(&stb_font_ctx, config.path, config.size) {
 		log.error("failed to init stb_font")
 		return false
 	}
-
-	ctx.stb_font_context = stb_font_ctx
-	config.user_data = &ctx.stb_font_context
 
 	text_measurement.measure_text_proc = stb_measure_text
 	text_measurement.measure_codepoint_proc = stb_measure_codepoint
@@ -127,7 +122,7 @@ init_ctx :: proc(
 		&ctx.window,
 		window_api,
 		window_size,
-		&ctx.stb_font_context,
+		stb_font_ctx,
 		allocator,
 		.OpenGL,
 	)
@@ -138,6 +133,10 @@ init_ctx :: proc(
 	init_resources(&render_ctx)
 	ctx.render_ctx = render_ctx
 
+	// NOTE(Thomas): Important to set this after the initialization
+	// of the render context and font atlas
+	config.user_data = &ctx.render_ctx.font_atlas.font_ctx
+
 	io := Io{}
 	init_io(&io, platform_api, &ctx.window.size, input, app_callbacks, io_allocator)
 	ctx.io = io
@@ -146,7 +145,7 @@ init_ctx :: proc(
 }
 
 deinit :: proc(ctx: ^Context) {
-	deinit_stb_font_ctx(&ctx.stb_font_context)
+	deinit_stb_font_ctx(&ctx.render_ctx.font_atlas.font_ctx)
 	deinit_render_ctx(&ctx.render_ctx)
 	ctx.window_api.deinit()
 }

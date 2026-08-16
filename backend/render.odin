@@ -28,7 +28,7 @@ init_render_ctx :: proc(
 	window: ^Window,
 	window_api: Window_API,
 	window_size: base.Vector2i32,
-	stb_font_ctx: ^STB_Font_Context,
+	stb_font_ctx: STB_Font_Context,
 	allocator := context.allocator,
 	renderer_type: Renderer_Type,
 ) -> bool {
@@ -39,15 +39,7 @@ init_render_ctx :: proc(
 	ctx.renderer_type = renderer_type
 
 	font_atlas := Font_Atlas{}
-	init_font_atlas(
-		&font_atlas,
-		&stb_font_ctx.font_info,
-		stb_font_ctx.font_data,
-		stb_font_ctx.font_size,
-		1024,
-		1024,
-		allocator,
-	)
+	init_font_atlas(&font_atlas, stb_font_ctx, 1024, 1024, allocator)
 
 	ctx.font_atlas = font_atlas
 	ok := false
