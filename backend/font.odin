@@ -42,7 +42,6 @@ Bitmap :: struct {
 Font_Atlas :: struct {
 	font_info:    ^stbtt.fontinfo,
 	font_data:    []u8,
-	pack_ctx:     stbtt.pack_context,
 	packed_chars: []stbtt.packedchar,
 	bitmap:       Bitmap,
 	glyph_cache:  map[rune]Font_Data,
@@ -62,7 +61,6 @@ init_font_atlas :: proc(
 
 	atlas.font_info = font_info
 	atlas.font_data = font_data
-	atlas.pack_ctx = stbtt.pack_context{}
 	num_chars: i32 = NUM_PACKED_CODEPOINTS
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
 	atlas.bitmap = Bitmap {
@@ -118,9 +116,10 @@ pack_font_glyphs :: proc(
 	padding: i32,
 	oversampling: u32 = 1,
 ) -> bool {
+	pack_ctx := stbtt.pack_context{}
 	// Begin packing
 	stbtt.PackBegin(
-		&atlas.pack_ctx,
+		&pack_ctx,
 		raw_data(atlas.bitmap.data),
 		atlas.bitmap.width,
 		atlas.bitmap.height,
@@ -130,11 +129,11 @@ pack_font_glyphs :: proc(
 	)
 
 	// Set oversampling for better quality
-	stbtt.PackSetOversampling(&atlas.pack_ctx, oversampling, oversampling)
+	stbtt.PackSetOversampling(&pack_ctx, oversampling, oversampling)
 
 	// Pack font range
 	pack_result := stbtt.PackFontRange(
-		&atlas.pack_ctx,
+		&pack_ctx,
 		raw_data(atlas.font_data),
 		0, // font_index
 		atlas.font_size,
@@ -143,7 +142,7 @@ pack_font_glyphs :: proc(
 		raw_data(atlas.packed_chars),
 	)
 
-	stbtt.PackEnd(&atlas.pack_ctx)
+	stbtt.PackEnd(&pack_ctx)
 
 	return bool(pack_result)
 }
