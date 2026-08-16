@@ -277,11 +277,11 @@ init_opengl :: proc(
 		// NOTE(Thomas): The font bitmap has only one channel, so we use
 		// only the RED channel for the internal and image format.
 		font_texture, font_texture_ok := opengl_gen_texture(
-			atlas.atlas_width,
-			atlas.atlas_height,
+			atlas.bitmap.width,
+			atlas.bitmap.height,
 			.RED,
 			.RED,
-			raw_data(atlas.bitmap),
+			raw_data(atlas.bitmap.data),
 		)
 
 		if !font_texture_ok {

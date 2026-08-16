@@ -31,6 +31,12 @@ Font_Data :: struct {
 	pc_idx:         i32,
 }
 
+Bitmap :: struct {
+	data:   []u8,
+	width:  i32,
+	height: i32,
+}
+
 // TODO(Thomas): Ideally we'd want this to be library agnostic,
 // but for now we're just using stb truetype here.
 Font_Atlas :: struct {
@@ -38,10 +44,8 @@ Font_Atlas :: struct {
 	font_data:    []u8,
 	pack_ctx:     stbtt.pack_context,
 	packed_chars: []stbtt.packedchar,
-	bitmap:       []u8,
+	bitmap:       Bitmap,
 	glyph_cache:  map[rune]Font_Data,
-	atlas_width:  i32,
-	atlas_height: i32,
 	font_size:    f32,
 	metrics:      Font_Metrics,
 }
@@ -61,13 +65,15 @@ init_font_atlas :: proc(
 	atlas.pack_ctx = stbtt.pack_context{}
 	num_chars: i32 = NUM_PACKED_CODEPOINTS
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
-	atlas.bitmap = make([]u8, atlas_width * atlas_height, allocator)
+	atlas.bitmap = Bitmap {
+		data   = make([]u8, atlas_width * atlas_height, allocator),
+		width  = atlas_width,
+		height = atlas_height,
+	}
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
 
 	// Set font dimensions
-	atlas.atlas_width = atlas_width
-	atlas.atlas_height = atlas_height
 	atlas.font_size = font_size
 
 	// Get font metrics
@@ -115,9 +121,9 @@ pack_font_glyphs :: proc(
 	// Begin packing
 	stbtt.PackBegin(
 		&atlas.pack_ctx,
-		raw_data(atlas.bitmap),
-		atlas.atlas_width,
-		atlas.atlas_height,
+		raw_data(atlas.bitmap.data),
+		atlas.bitmap.width,
+		atlas.bitmap.height,
 		stride_in_bytes, // stride_in_bytes (0 = packed)
 		padding,
 		nil, // alloc_context - TODO: Consider passing allocator context
@@ -152,10 +158,10 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 		pc := atlas.packed_chars[int(pc_idx)]
 
 		glyph := Font_Data {
-			u0        = f32(pc.x0) / f32(atlas.atlas_width),
-			v0        = f32(pc.y0) / f32(atlas.atlas_height),
-			u1        = f32(pc.x1) / f32(atlas.atlas_width),
-			v1        = f32(pc.y1) / f32(atlas.atlas_height),
+			u0        = f32(pc.x0) / f32(atlas.bitmap.width),
+			v0        = f32(pc.y0) / f32(atlas.bitmap.height),
+			u1        = f32(pc.x1) / f32(atlas.bitmap.width),
+			v1        = f32(pc.y1) / f32(atlas.bitmap.height),
 			x0        = pc.xoff,
 			y0        = pc.yoff,
 			x1        = pc.xoff2,
@@ -175,10 +181,10 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 		pc := atlas.packed_chars[int(pc_idx)]
 
 		glyph := Font_Data {
-			u0        = f32(pc.x0) / f32(atlas.atlas_width),
-			v0        = f32(pc.y0) / f32(atlas.atlas_height),
-			u1        = f32(pc.x1) / f32(atlas.atlas_width),
-			v1        = f32(pc.y1) / f32(atlas.atlas_height),
+			u0        = f32(pc.x0) / f32(atlas.bitmap.width),
+			v0        = f32(pc.y0) / f32(atlas.bitmap.height),
+			u1        = f32(pc.x1) / f32(atlas.bitmap.width),
+			v1        = f32(pc.y1) / f32(atlas.bitmap.height),
 			x0        = pc.xoff,
 			y0        = pc.yoff,
 			x1        = pc.xoff2,
@@ -234,8 +240,8 @@ get_glyph_quad :: proc(atlas: ^Font_Atlas, codepoint: rune, x, y: ^f32) -> (Glyp
 	q: stbtt.aligned_quad
 	stbtt.GetPackedQuad(
 		&atlas.packed_chars[0],
-		atlas.atlas_width,
-		atlas.atlas_height,
+		atlas.bitmap.width,
+		atlas.bitmap.height,
 		glyph.pc_idx,
 		x,
 		y,
