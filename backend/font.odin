@@ -4,6 +4,8 @@ import "core:log"
 import "core:mem"
 import "core:unicode/utf8"
 
+import "../base"
+
 import stbtt "vendor:stb/truetype"
 
 // The atlas packs one contiguous codepoint range, so packed_chars[i] always
@@ -48,13 +50,21 @@ Font_Atlas :: struct {
 
 init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
-	font_ctx: STB_Font_Context,
+	font_configs: []base.Font_Config,
+	//font_ctx: STB_Font_Context,
 	atlas_width: i32,
 	atlas_height: i32,
 	allocator: mem.Allocator,
 ) -> bool {
 
-	atlas.font_ctx = font_ctx
+	//stb_font_ctx := STB_Font_Context{}
+	config := &font_configs[0]
+	if !init_stb_font_ctx(&atlas.font_ctx, config.path, config.size) {
+		log.error("Failed to init font context")
+		return false
+	}
+
+	//atlas.font_ctx = font_ctx
 	num_chars: i32 = NUM_PACKED_CODEPOINTS
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
 	atlas.bitmap = Bitmap {
@@ -62,6 +72,8 @@ init_font_atlas :: proc(
 		width  = atlas_width,
 		height = atlas_height,
 	}
+
+	config.user_data = &atlas.font_ctx
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
 

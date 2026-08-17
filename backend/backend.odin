@@ -97,14 +97,6 @@ init_ctx :: proc(
 
 	assert(len(font_configs) > 0)
 
-	// TODO(Thomas): Move this into init_render_ctx or maybe even init font atlas??
-	stb_font_ctx := STB_Font_Context{}
-	config := &font_configs[0]
-	if !init_stb_font_ctx(&stb_font_ctx, config.path, config.size) {
-		log.error("failed to init stb_font")
-		return false
-	}
-
 	text_measurement.measure_text_proc = stb_measure_text
 	text_measurement.measure_codepoint_proc = stb_measure_codepoint
 
@@ -116,26 +108,20 @@ init_ctx :: proc(
 		},
 	)
 
-	render_ctx := Render_Context{}
 	render_ctx_ok := init_render_ctx(
-		&render_ctx,
+		&ctx.render_ctx,
 		&ctx.window,
 		window_api,
 		window_size,
-		stb_font_ctx,
-		allocator,
+		font_configs,
 		.OpenGL,
+		allocator,
 	)
 	if !render_ctx_ok {
 		log.error("failed to init render context")
 		return false
 	}
-	init_resources(&render_ctx)
-	ctx.render_ctx = render_ctx
-
-	// NOTE(Thomas): Important to set this after the initialization
-	// of the render context and font atlas
-	config.user_data = &ctx.render_ctx.font_atlas.font_ctx
+	init_resources(&ctx.render_ctx)
 
 	io := Io{}
 	init_io(&io, platform_api, &ctx.window.size, input, app_callbacks, io_allocator)
