@@ -1,15 +1,14 @@
 #!/bin/bash
 set -eo pipefail
-
 usage() {
-    echo "Usage: $0 [all|test]"
+    echo "Usage: $0 [all|test|build]"
     echo ""
-    echo "  all   Run tests, build main app, and build examples (default)"
-    echo "  test  Run tests only"
+    echo "  all    Run tests, build main app, and build examples (default)"
+    echo "  test   Run tests only"
+    echo "  build  Build main app and examples only (no tests)"
 }
-
 mode="${1:-all}"
-if [[ "$mode" != "all" && "$mode" != "test" ]]; then
+if [[ "$mode" != "all" && "$mode" != "test" && "$mode" != "build" ]]; then
     usage
     exit 1
 fi
@@ -18,17 +17,15 @@ fi
 rm -rf build
 mkdir -p build
 
-#echo "--- Formatting codebase ---"
-#odinfmt -w .
-
-echo ""
-echo "--- Running tests ---"
-./test.sh
-
-if [[ "$mode" == "test" ]]; then
+if [[ "$mode" != "build" ]]; then
     echo ""
-    echo "Tests completed successfully."
-    exit 0
+    echo "--- Running tests ---"
+    ./test.sh
+    if [[ "$mode" == "test" ]]; then
+        echo ""
+        echo "Tests completed successfully."
+        exit 0
+    fi
 fi
 
 echo ""
@@ -43,6 +40,5 @@ for example_path in examples/*/; do
         exit 1
     fi
 done
-
 echo ""
 echo "Build and tests completed successfully."
