@@ -42,29 +42,30 @@ Bitmap :: struct {
 // TODO(Thomas): Ideally we'd want this to be library agnostic,
 // but for now we're just using stb truetype here.
 Font_Atlas :: struct {
-	font_ctx:     STB_Font_Context,
-	packed_chars: []stbtt.packedchar,
-	bitmap:       Bitmap,
-	glyph_cache:  map[rune]Font_Data,
+	font_contexts: []STB_Font_Context,
+	packed_chars:  []stbtt.packedchar,
+	bitmap:        Bitmap,
+	glyph_cache:   map[rune]Font_Data,
 }
 
 init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
 	font_configs: []base.Font_Config,
-	//font_ctx: STB_Font_Context,
 	atlas_width: i32,
 	atlas_height: i32,
 	allocator: mem.Allocator,
 ) -> bool {
 
-	//stb_font_ctx := STB_Font_Context{}
-	config := &font_configs[0]
-	if !init_stb_font_ctx(&atlas.font_ctx, config.path, config.size) {
-		log.error("Failed to init font context")
-		return false
+	atlas.font_contexts = make([]STB_Font_Context, len(font_configs), allocator)
+
+	for &config, i in font_configs {
+		if !init_stb_font_ctx(&atlas.font_contexts[i], config.path, config.size) {
+			log.error("Failed to init font context")
+			return false
+		}
+		config.user_data = &atlas.font_contexts[i]
 	}
 
-	//atlas.font_ctx = font_ctx
 	num_chars: i32 = NUM_PACKED_CODEPOINTS
 	atlas.packed_chars = make([]stbtt.packedchar, num_chars, allocator)
 	atlas.bitmap = Bitmap {
@@ -72,8 +73,6 @@ init_font_atlas :: proc(
 		width  = atlas_width,
 		height = atlas_height,
 	}
-
-	config.user_data = &atlas.font_ctx
 
 	atlas.glyph_cache = make(map[rune]Font_Data, allocator)
 
@@ -108,6 +107,7 @@ get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Font_Met
 	}
 }
 
+// TODO(Thomas): Make this work for multiple fonts
 pack_font_glyphs :: proc(
 	atlas: ^Font_Atlas,
 	first_codepoint: i32,
@@ -134,9 +134,9 @@ pack_font_glyphs :: proc(
 	// Pack font range
 	pack_result := stbtt.PackFontRange(
 		&pack_ctx,
-		raw_data(atlas.font_ctx.font_data),
+		raw_data(atlas.font_contexts[0].font_data),
 		0, // font_index
-		atlas.font_ctx.font_size,
+		atlas.font_contexts[0].font_size,
 		first_codepoint,
 		num_chars,
 		raw_data(atlas.packed_chars),
@@ -195,7 +195,11 @@ cache_packed_chars :: proc(atlas: ^Font_Atlas) {
 	}
 }
 
-deinit_font_atlas :: proc(atlas: ^Font_Atlas) {}
+deinit_font_atlas :: proc(atlas: ^Font_Atlas) {
+	for &font_ctx in atlas.font_contexts {
+		deinit_stb_font_ctx(&font_ctx)
+	}
+}
 
 // Query the atlas for a rune and get rendering information
 get_glyph :: proc(atlas: ^Font_Atlas, codepoint: rune) -> (Font_Data, bool) {

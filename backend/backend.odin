@@ -131,7 +131,6 @@ init_ctx :: proc(
 }
 
 deinit :: proc(ctx: ^Context) {
-	deinit_stb_font_ctx(&ctx.render_ctx.font_atlas.font_ctx)
 	deinit_render_ctx(&ctx.render_ctx)
 	ctx.window_api.deinit()
 }

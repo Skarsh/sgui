@@ -38,7 +38,11 @@ init_render_ctx :: proc(
 	ctx.allocator = allocator
 	ctx.renderer_type = renderer_type
 
-	init_font_atlas(&ctx.font_atlas, font_configs, 1024, 1024, allocator)
+	font_atlas_ok := init_font_atlas(&ctx.font_atlas, font_configs, 1024, 1024, allocator)
+	if !font_atlas_ok {
+		log.error("Failed to init font atlas")
+		return false
+	}
 
 	ok := false
 	switch renderer_type {
@@ -67,6 +71,8 @@ deinit_render_ctx :: proc(ctx: ^Render_Context) {
 	case .OpenGL:
 		deinit_opengl(&ctx.render_data.(OpenGL_Render_Data))
 	}
+
+	deinit_font_atlas(&ctx.font_atlas)
 }
 
 init_resources :: proc(ctx: ^Render_Context) -> bool {
