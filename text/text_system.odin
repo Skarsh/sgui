@@ -116,6 +116,9 @@ init_font_cache :: proc(
 	fc.descent = vertical_metrics.descent
 	fc.line_height = vertical_metrics.line_height
 
+	// TODO(Thomas): This works, but isn't this kind of a bit duplicate of the caching
+	// done in the backend? Wouldn't it make more sense if the measure proc just hit
+	// a cache there instead??
 	// fill ascii table
 	for i in 0 ..< ASCII_TABLE_LEN {
 		fc.ascii[i] = measurement.measure_codepoint_proc(rune(i), font_config.user_data)
