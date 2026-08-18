@@ -79,7 +79,7 @@ main :: proc() {
 			base.Font_Config{"data/fonts/Roboto/Roboto_Condensed-Italic.ttf", 48, nil},
 			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 64, nil},
 		},
-		font_id = 3,
+		font_id = 2,
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,

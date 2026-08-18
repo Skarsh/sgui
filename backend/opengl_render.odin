@@ -412,7 +412,8 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			y := val.y
 			start_x := x
 
-			start_y := y + render_data.font_atlas.font_contexts[val.font_id].font_metrics.ascent
+			start_y :=
+				y + render_data.font_atlas.font_descs[val.font_id].font_ctx.font_metrics.ascent
 
 			if _, is_gradient := val.fill.(base.Gradient); is_gradient {
 				panic("TODO: Implement gradient text")
@@ -425,6 +426,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			space_y := f32(0)
 			space_quad, space_found := get_glyph_quad(
 				&render_data.font_atlas,
+				val.font_id,
 				' ',
 				&space_x,
 				&space_y,
@@ -450,6 +452,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 
 				glyph_quad, found := get_glyph_quad(
 					&render_data.font_atlas,
+					val.font_id,
 					glyph.codepoint,
 					&start_x,
 					&start_y,
