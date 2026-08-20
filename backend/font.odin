@@ -292,6 +292,7 @@ get_glyph_quad :: proc(
 	Glyph_Quad,
 	bool,
 ) {
+	assert(font_id >= 0 && font_id < len(atlas.font_descs), "font_id is out of range")
 	glyph, found := get_glyph(atlas, font_id, codepoint)
 
 	q: stbtt.aligned_quad

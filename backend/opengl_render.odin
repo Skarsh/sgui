@@ -404,6 +404,10 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			}
 			batch.quad_idx += 1
 		case ui.Command_Text:
+			assert(
+				val.font_id >= 0 && val.font_id < len(render_data.font_atlas.font_descs),
+				"font_id is out of range",
+			)
 			opengl_active_texture(.Texture_0, val.font_id)
 			opengl_bind_texture(render_data.font_texture.id)
 			shader_set_int(render_data.shader, "u_font_texture", i32(val.font_id))

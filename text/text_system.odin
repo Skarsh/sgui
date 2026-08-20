@@ -128,6 +128,7 @@ init_font_cache :: proc(
 @(require_results)
 glyph_metrics :: proc(ts: ^Text_System, font_id: int, r: rune) -> Codepoint_Metrics {
 
+	assert(font_id >= 0 && font_id < len(ts.fonts), "font_id is out of range")
 	fc := &ts.fonts[font_id]
 	if r >= 0 && r < ASCII_TABLE_LEN {
 		return fc.ascii[r]
