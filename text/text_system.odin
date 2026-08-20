@@ -43,6 +43,7 @@ init_text_system :: proc(
 
 deinit_text_system :: proc(ts: ^Text_System, allocator: mem.Allocator) {
 	free_text_layout_cache_entries(ts.layout_cache, allocator)
+	delete(ts.layout_cache)
 
 	for &fc in ts.fonts {
 		delete(fc.extended)

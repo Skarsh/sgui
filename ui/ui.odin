@@ -123,10 +123,6 @@ deinit :: proc(ctx: ^Context) {
 	// Deinit interaction
 	deinit_interaction(&ctx.interaction)
 
-	// Free text layout cache entries and delete cache map
-	delete(ctx.text_system.layout_cache)
-
-
 	// Freeing Elements
 	free_list, alloc_err := make([dynamic]^UI_Element, context.temp_allocator)
 	assert(alloc_err == .None)
