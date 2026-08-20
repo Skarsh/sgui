@@ -51,7 +51,6 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 		env.draw_cmd_arena_allocator,
 		window_size,
 		{{"", 0, nil}},
-		0,
 	)
 
 	return env

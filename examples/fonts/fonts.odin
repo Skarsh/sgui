@@ -29,14 +29,26 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 		name = "main_container",
 	)
 
+	ui.begin_container(ctx, ui.Style{layout_direction = .Top_To_Bottom}, name = "vertical_wrapper")
 
-	// Make text element using two different font sizes
-	// Some different possible approaches:
-	// Pass font size argument to ui.text()
-	// make font size part of the Style type
-	// Add a font stack? so one can push_font and pop_font?
+	ui.text(ctx, "This is a font", ui.Style{font_id = 2})
 
-	ui.text(ctx, "This is a font")
+	ui.text(ctx, "Another font here", ui.Style{font_id = 1})
+
+	// Default (font_id = 0)
+	ui.text(ctx, "Third font")
+
+	ui.text(ctx, "Fourth font", ui.Style{font_id = 3})
+
+	// fonts using the style stack
+	ui.push_style(ctx, ui.Style{font_id = 0})
+
+	ui.text(ctx, "This font is using the style stack font_id")
+	ui.text(ctx, "This one does too ")
+
+	ui.pop_style(ctx)
+
+	ui.end_container(ctx) // vertical_wrapper
 
 	ui.end_container(ctx) // main container
 
@@ -75,11 +87,10 @@ main :: proc() {
 		window_size = {640, 480},
 		font_configs = {
 			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 24, nil},
-			base.Font_Config{"data/fonts/Roboto/Roboto-Regular.ttf", 36, nil},
+			base.Font_Config{"data/fonts/Roboto/Roboto-Regular.ttf", 64, nil},
 			base.Font_Config{"data/fonts/Roboto/Roboto_Condensed-Italic.ttf", 48, nil},
 			base.Font_Config{"data/fonts/JetBrains_Mono/JetBrainsMono-Regular.ttf", 64, nil},
 		},
-		font_id = 2,
 		platform_api = {
 			get_perf_counter = backend.sdl_get_perf_counter,
 			get_perf_freq = backend.sdl_get_perf_freq,

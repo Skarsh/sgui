@@ -287,7 +287,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 						current_y,
 						base.slice_from_range(text_layout.glyphs, row.glyph_range),
 						element.config.text_fill,
-						ctx.font_id,
+						element.config.layout.font_id,
 						z_index = 0,
 					)
 					current_y += row.size.y
@@ -316,7 +316,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 							caret_height_ok: bool
 							caret_height, caret_height_ok = textpkg.font_line_height(
 								&ctx.text_system,
-								ctx.font_id,
+								element.config.layout.font_id,
 							)
 							assert(caret_height_ok)
 							caret_pos.y -= caret_height / 2

@@ -69,6 +69,7 @@ Layout_Config :: struct {
 	text_alignment_x:  base.Alignment_X,
 	text_alignment_y:  base.Alignment_Y,
 	text_wrap_mode:    textpkg.Text_Wrap_Mode,
+	font_id:           int,
 	// Mapping: x=top-left, y=top-right, z=bottom-right, w=bottom-left
 	border_radius:     base.Vec4,
 	border:            Border,
@@ -623,7 +624,7 @@ measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
 		intrinsic := textpkg.measure_text_intrinsic(
 			element.config.content.text_data.text,
 			&ctx.text_system,
-			ctx.font_id,
+			element.config.layout.font_id,
 		)
 
 		padding := element.config.layout.padding
@@ -703,7 +704,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 				text = text,
 				params = {
 					wrap_width,
-					ctx.font_id,
+					element.config.layout.font_id,
 					element.config.layout.text_alignment_x,
 					text_wrap_mode,
 				},

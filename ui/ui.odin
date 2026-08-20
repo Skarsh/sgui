@@ -40,7 +40,6 @@ Context :: struct {
 	dt:                   f32,
 	font_configs:         []base.Font_Config,
 	text_system:          textpkg.Text_System,
-	font_id:              textpkg.Font_Handle,
 	window_size:          [2]i32,
 }
 
@@ -80,7 +79,6 @@ init :: proc(
 	draw_cmd_allocator: mem.Allocator,
 	screen_size: [2]i32,
 	font_configs: []base.Font_Config,
-	font_id: textpkg.Font_Handle,
 ) {
 	ctx^ = {} // zero memory
 	ctx.interaction = Interaction {
@@ -91,8 +89,6 @@ init :: proc(
 	ctx.frame_allocator = frame_allocator
 	ctx.draw_cmd_allocator = draw_cmd_allocator
 	ctx.window_size = screen_size
-
-	ctx.font_id = font_id
 
 	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
 	// and is actually returning the error in an upcoming Odin version?

@@ -1,8 +1,5 @@
 package text
 
-
-Font_Handle :: int
-
 // Font-agnostic text measurement result
 Text_Metrics :: struct {
 	width:       f32,

@@ -39,7 +39,6 @@ App_Config :: struct {
 	title:        cstring,
 	window_size:  base.Vector2i32,
 	font_configs: []base.Font_Config,
-	font_id:      text.Font_Handle,
 	platform_api: backend.Platform_API,
 	window_api:   backend.Window_API,
 	allocator:    mem.Allocator,
@@ -129,7 +128,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		draw_cmd_arena_allocator,
 		app_config.window_size,
 		app_config.font_configs,
-		app_config.font_id,
 	)
 
 	app.running = true

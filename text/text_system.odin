@@ -15,8 +15,6 @@ Text_System :: struct {
 	font_configs: []base.Font_Config,
 }
 
-// TODO(Thomas): Taking in single Text_Measurement and using it like this won't work
-// with multiple fonts.
 @(require_results)
 init_text_system :: proc(
 	ts: ^Text_System,
@@ -103,7 +101,7 @@ Font_Cache :: struct {
 
 init_font_cache :: proc(
 	fc: ^Font_Cache,
-	font_handle: Font_Handle,
+	font_id: int,
 	measurement: Text_Measurement,
 	font_config: base.Font_Config,
 	allocator: mem.Allocator,
@@ -128,9 +126,9 @@ init_font_cache :: proc(
 }
 
 @(require_results)
-glyph_metrics :: proc(ts: ^Text_System, font_handle: Font_Handle, r: rune) -> Codepoint_Metrics {
+glyph_metrics :: proc(ts: ^Text_System, font_id: int, r: rune) -> Codepoint_Metrics {
 
-	fc := &ts.fonts[font_handle]
+	fc := &ts.fonts[font_id]
 	if r >= 0 && r < ASCII_TABLE_LEN {
 		return fc.ascii[r]
 	}
@@ -139,16 +137,16 @@ glyph_metrics :: proc(ts: ^Text_System, font_handle: Font_Handle, r: rune) -> Co
 		return m
 	}
 
-	m := ts.measurement.measure_codepoint_proc(r, ts.font_configs[font_handle].user_data)
+	m := ts.measurement.measure_codepoint_proc(r, ts.font_configs[font_id].user_data)
 	fc.extended[r] = m
 
 	return m
 }
 
 @(require_results)
-ascent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> (ascent: f32, ok: bool) {
-	if font_handle >= 0 && font_handle < len(ts.fonts) {
-		fc := &ts.fonts[font_handle]
+ascent :: proc(ts: ^Text_System, font_id: int) -> (ascent: f32, ok: bool) {
+	if font_id >= 0 && font_id < len(ts.fonts) {
+		fc := &ts.fonts[font_id]
 		ascent = fc.ascent
 		ok = true
 	}
@@ -156,9 +154,9 @@ ascent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> (ascent: f32, ok: 
 }
 
 @(require_results)
-descent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> (descent: f32, ok: bool) {
-	if font_handle >= 0 && font_handle < len(ts.fonts) {
-		fc := &ts.fonts[font_handle]
+descent :: proc(ts: ^Text_System, font_id: int) -> (descent: f32, ok: bool) {
+	if font_id >= 0 && font_id < len(ts.fonts) {
+		fc := &ts.fonts[font_id]
 		descent = fc.descent
 		ok = true
 	}
@@ -166,15 +164,9 @@ descent :: proc(ts: ^Text_System, font_handle: Font_Handle) -> (descent: f32, ok
 }
 
 @(require_results)
-font_line_height :: proc(
-	ts: ^Text_System,
-	font_handle: Font_Handle,
-) -> (
-	line_height: f32,
-	ok: bool,
-) {
-	if font_handle >= 0 && font_handle < len(ts.fonts) {
-		fc := &ts.fonts[font_handle]
+font_line_height :: proc(ts: ^Text_System, font_id: int) -> (line_height: f32, ok: bool) {
+	if font_id >= 0 && font_id < len(ts.fonts) {
+		fc := &ts.fonts[font_id]
 		line_height = fc.line_height
 		ok = true
 	}

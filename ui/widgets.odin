@@ -304,7 +304,7 @@ text_input :: proc(
 	intrinsic_size := textpkg.measure_text_intrinsic(
 		text_before_cursor,
 		&ctx.text_system,
-		ctx.font_id,
+		element.config.layout.font_id,
 	)
 
 	caret_x_offset := intrinsic_size.x

@@ -125,6 +125,7 @@ Style :: struct {
 	text_alignment_x:  Maybe(base.Alignment_X),
 	text_alignment_y:  Maybe(base.Alignment_Y),
 	text_wrap_mode:    Maybe(textpkg.Text_Wrap_Mode),
+	font_id:           Maybe(int),
 	position_mode:     Maybe(Position_Mode),
 
 	// Visual properties
@@ -173,6 +174,7 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config.layout.text_alignment_x = s.text_alignment_x.? or_else base.Alignment_X{}
 	config.layout.text_alignment_y = s.text_alignment_y.? or_else base.Alignment_Y{}
 	config.layout.text_wrap_mode = s.text_wrap_mode.? or_else .Wrap
+	config.layout.font_id = s.font_id.? or_else 0
 	config.layout.border_radius = s.border_radius.? or_else base.Vec4{}
 	config.layout.border = s.border.? or_else Border{}
 	config.layout.position_mode = s.position_mode.? or_else .Flow
@@ -367,6 +369,7 @@ merge_styles :: proc(a, b: Style) -> Style {
 	if b.text_alignment_x != nil do result.text_alignment_x = b.text_alignment_x
 	if b.text_alignment_y != nil do result.text_alignment_y = b.text_alignment_y
 	if b.text_wrap_mode != nil do result.text_wrap_mode = b.text_wrap_mode
+	if b.font_id != nil do result.font_id = b.font_id
 	if b.position_mode != nil do result.position_mode = b.position_mode
 
 	if b.background_fill != nil do result.background_fill = b.background_fill

@@ -7,7 +7,7 @@ import "../base"
 
 MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
-MOCK_FONT_HANDLE :: 0
+MOCK_FONT_ID :: 0
 
 mock_measure_codepoint_proc :: proc(codepoint: rune, user_data: rawptr) -> Codepoint_Metrics {
 	width: f32 = 0
@@ -110,7 +110,7 @@ test_layout_text_no_wrapping_needed :: proc(t: ^testing.T) {
 		text = "",
 		expected_size = {0, 0},
 		expected_rows = {},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 
 	// Single char fits on one row
@@ -126,7 +126,7 @@ test_layout_text_no_wrapping_needed :: proc(t: ^testing.T) {
 				glyph_range = {0, 1},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 
 	// Text that exactly fills the max width stays on one row
@@ -142,7 +142,7 @@ test_layout_text_no_wrapping_needed :: proc(t: ^testing.T) {
 				glyph_range = {0, 10},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 }
 
@@ -166,7 +166,7 @@ test_layout_text_wraps :: proc(t: ^testing.T) {
 				glyph_range = {11, 21},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 
 	// Overflow in the middle of a word breaks back to previous whitespace
@@ -188,7 +188,7 @@ test_layout_text_wraps :: proc(t: ^testing.T) {
 				glyph_range = {8, 13},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 
 	// Wraps across three rows "abc def " | "ghi jkl " | "mno"
@@ -216,7 +216,7 @@ test_layout_text_wraps :: proc(t: ^testing.T) {
 				glyph_range = {16, 19},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 }
 
@@ -241,7 +241,7 @@ test_layout_text_newlines :: proc(t: ^testing.T) {
 				glyph_range = {6, 11},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 
 	// A single newline produces zero width row
@@ -257,7 +257,7 @@ test_layout_text_newlines :: proc(t: ^testing.T) {
 				glyph_range = {0, 1},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 
 	// Consecutive newlines procudes a zero width row in between
@@ -285,7 +285,7 @@ test_layout_text_newlines :: proc(t: ^testing.T) {
 				glyph_range = {3, 4},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 }
 
@@ -304,7 +304,7 @@ test_layout_text_no_wrap_mode_overflows :: proc(t: ^testing.T) {
 				glyph_range = {0, 20},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .None},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .None},
 	)
 
 }
@@ -323,7 +323,7 @@ test_layout_text_truncate_mode_stops_at_max_width :: proc(t: ^testing.T) {
 				glyph_range = {0, 20},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Truncate},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Truncate},
 	)
 }
 
@@ -347,7 +347,7 @@ test_layout_text_wraps_mid_word_when_no_candidate :: proc(t: ^testing.T) {
 				glyph_range = {10, 20},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 }
 
@@ -365,6 +365,6 @@ test_layout_text_all_whitespace_row :: proc(t: ^testing.T) {
 				glyph_range = {0, 5},
 			},
 		},
-		params = {available_width = 100, font_handle = MOCK_FONT_HANDLE, wrap_mode = .Wrap},
+		params = {available_width = 100, font_id = MOCK_FONT_ID, wrap_mode = .Wrap},
 	)
 }

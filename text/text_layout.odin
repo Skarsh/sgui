@@ -24,7 +24,7 @@ Paragraph :: struct {
 }
 
 Text_Style :: struct {
-	font_id:   Font_Handle,
+	font_id:   int,
 	font_size: f32,
 	color:     base.Color,
 }
@@ -132,7 +132,7 @@ shaping :: proc(
 	text_runs: []Text_Run,
 	glyphs: ^[dynamic]Glyph,
 	ts: ^Text_System,
-	font_handle: Font_Handle,
+	font_id: int,
 ) -> mem.Allocator_Error {
 	glyph_start := 0
 	glyph_end := 0
@@ -148,7 +148,7 @@ shaping :: proc(
 				byte_start := run.range.start + i
 				byte_end := byte_start + utf8.rune_size(r)
 
-				codepoint_metrics := glyph_metrics(ts, font_handle, r)
+				codepoint_metrics := glyph_metrics(ts, font_id, r)
 				append(
 					glyphs,
 					Glyph {
@@ -421,7 +421,7 @@ layout_rows :: proc(
 
 Text_Layout_Params :: struct {
 	available_width: f32,
-	font_handle:     Font_Handle,
+	font_id:         int,
 	alignment_x:     base.Alignment_X,
 	wrap_mode:       Text_Wrap_Mode,
 }
@@ -457,7 +457,7 @@ layout_text :: proc(
 	// TODO(Thomas): Missing passing / retrieving right data types to/from bidi_analysis
 	bidi_analysis()
 
-	shaping(text, paragraphs[:], text_runs[:], &glyphs, ts, params.font_handle) or_return
+	shaping(text, paragraphs[:], text_runs[:], &glyphs, ts, params.font_id) or_return
 
 	// TODO(Thomas): This should probably be done before shaping and on grapheme clusters
 	// and not on glyphs
@@ -466,7 +466,7 @@ layout_text :: proc(
 
 	rows := make([dynamic]Positioned_Row, persistent_allocator) or_return
 	// TODO(Thomas): Do more error handling here if line height is not ok?
-	line_height, line_height_ok := font_line_height(ts, params.font_handle)
+	line_height, line_height_ok := font_line_height(ts, params.font_id)
 	assert(line_height_ok)
 	layout_rows(
 		paragraphs[:],
@@ -653,23 +653,19 @@ text_layout_row_selection_rect :: proc(
 }
 
 @(require_results)
-measure_text_intrinsic :: proc(
-	text: string,
-	ts: ^Text_System,
-	font_handle: Font_Handle,
-) -> base.Vec2 {
+measure_text_intrinsic :: proc(text: string, ts: ^Text_System, font_id: int) -> base.Vec2 {
 
 	size := base.Vec2{}
 	if len(text) > 0 {
 
 		// TODO(Thomas): Do more error handling here when the line hegiht is not ok?
-		line_height, line_height_ok := font_line_height(ts, font_handle)
+		line_height, line_height_ok := font_line_height(ts, font_id)
 		assert(line_height_ok)
 
 		row_width: f32
 
 		for r in text {
-			cm := glyph_metrics(ts, font_handle, r)
+			cm := glyph_metrics(ts, font_id, r)
 
 			row_width += cm.width
 
