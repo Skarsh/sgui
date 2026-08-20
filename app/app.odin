@@ -16,8 +16,8 @@ _on_quit_callback :: proc(user_data: rawptr) {
 
 
 App :: struct {
-	app_arena:            virtual.Arena,
 	persistent_allocator: mem.Allocator,
+	app_arena:            virtual.Arena,
 	frame_arena:          virtual.Arena,
 	draw_cmd_arena:       virtual.Arena,
 	io_arena:             virtual.Arena,
@@ -52,6 +52,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		return nil, false
 	}
 
+	app.persistent_allocator = app_config.allocator
+
 	arena_err := virtual.arena_init_buffer(&app.app_arena, app_config.memory.app_arena_mem)
 	assert(arena_err == .None)
 	if arena_err != .None {
@@ -60,8 +62,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		return nil, false
 	}
 	app_arena_allocator := virtual.arena_allocator(&app.app_arena)
-
-	persistent_allocator := context.allocator
 
 
 	arena_err = virtual.arena_init_buffer(&app.frame_arena, app_config.memory.frame_arena_mem)
@@ -123,7 +123,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		&app.ui_ctx,
 		&app.input,
 		&app.text_measurement,
-		persistent_allocator,
+		app.persistent_allocator,
 		frame_arena_allocator,
 		draw_cmd_arena_allocator,
 		app_config.window_size,

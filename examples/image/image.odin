@@ -100,6 +100,7 @@ main :: proc() {
 		},
 		window_api = backend.create_sdl_window_api(),
 		memory = app_memory,
+		allocator = context.allocator,
 	}
 
 	image_app, image_app_ok := app.init(config)
