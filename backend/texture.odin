@@ -1,6 +1,5 @@
 package backend
 
-import "core:c"
 import "core:log"
 import "core:strings"
 
@@ -144,9 +143,6 @@ opengl_unbind_texture :: proc() {
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 }
 
-// Takes a optional offset so one can call with arguments, .Texture_0, 3
-// to mean .Texture_3 easily. It's the callers' responsibility to ensure
-// the offset is valid.
-opengl_active_texture :: proc(texture_constant: Texture_Constant, offset: int = 0) {
-	gl.ActiveTexture(u32(texture_constant) + u32(offset))
+opengl_active_texture :: proc(texture_constant: Texture_Constant) {
+	gl.ActiveTexture(u32(texture_constant))
 }
