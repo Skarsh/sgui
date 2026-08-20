@@ -273,19 +273,13 @@ init_opengl :: proc(
 
 	// NOTE(Thomas): The font bitmap has only one channel, so we use
 	// only the RED channel for the internal and image format.
-	font_texture, font_texture_ok := opengl_gen_texture(
+	font_texture := opengl_gen_texture(
 		font_atlas.bitmap.width,
 		font_atlas.bitmap.height,
 		.RED,
 		.RED,
 		raw_data(font_atlas.bitmap.data),
 	)
-
-	if !font_texture_ok {
-		log.error("Failed to generate font texture")
-		assert(font_texture_ok)
-		return false
-	}
 
 	data.font_texture = font_texture
 

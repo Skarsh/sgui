@@ -54,6 +54,7 @@ OpenGL_Texture :: struct {
 	filter_mag:      gl.GL_Enum,
 }
 
+@(require_results)
 opengl_create_texture_from_file :: proc(
 	path: string,
 	desired_channels: int = 0,
@@ -72,15 +73,22 @@ opengl_create_texture_from_file :: proc(
 		&nr_channels,
 		c.int(desired_channels),
 	)
+
+	if texture_data == nil {
+		log.errorf("Failed to load texture: %s", path)
+		return {}, false
+	}
+
 	defer stb_image.image_free(texture_data)
 
 	return opengl_gen_texture(
-		width,
-		height,
-		gl.GL_Enum(gl.RGBA),
-		gl.GL_Enum(gl.RGBA),
-		texture_data,
-	)
+			width,
+			height,
+			gl.GL_Enum(gl.RGBA),
+			gl.GL_Enum(gl.RGBA),
+			texture_data,
+		),
+		true
 }
 
 // TODO(Thomas): Make wrap and filter configurable through parameters
@@ -90,10 +98,9 @@ opengl_gen_texture :: proc(
 	internal_format: gl.GL_Enum,
 	image_format: gl.GL_Enum,
 	data: [^]u8,
-) -> (
-	OpenGL_Texture,
-	bool,
-) {
+) -> OpenGL_Texture {
+	assert(data != nil, "data pointer is nil")
+
 	texture_id: u32
 	gl.GenTextures(1, &texture_id)
 
@@ -110,10 +117,6 @@ opengl_gen_texture :: proc(
 		filter_mag      = gl.GL_Enum(gl.LINEAR),
 	}
 
-	if data == nil {
-		log.error("data pointer is nil")
-		return {}, false
-	}
 
 	gl.TexImage2D(
 		gl.TEXTURE_2D,
@@ -138,7 +141,7 @@ opengl_gen_texture :: proc(
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 	gl.BindTexture(gl.TEXTURE_2D, 0)
 
-	return texture, true
+	return texture
 }
 
 opengl_delete_texture :: proc(id: ^u32) {
