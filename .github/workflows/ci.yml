@@ -72,6 +72,9 @@ jobs:
       - name: Run UI tests
         run: odin test ui -vet -strict-style -vet-tabs -warnings-as-errors -all-packages
 
+      - name: Run Text tests
+        run: odin test text -vet -strict-style -vet-tabs -warnings-as-errors -all-packages
+
       - name: Run Base tests
         run: odin test base -vet -strict-style -vet-tabs -warnings-as-errors
 
