@@ -14,7 +14,7 @@
 * New text system
     - Font caching?
     - Layout caching?
-* Very few / if any layout sizing tests really tests border and margin.
+* Add margin layout tests for Fit, Grow, Percentage, and anchored elements. 
 * Don't use f32 for time, should be something like nanoseconds instead.
 * Use integer / fixed point glyph metrics instead of f32 (same as FreeType, Pango) etc
 * Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
@@ -32,7 +32,7 @@
     We are recursively traversing the Element hierarchy with no bounds. We should try to ensure that we always have an upper bounds on loop and recursions.
 * Adding new styles is a bit tedious and error prone.
 * Hotreloading - both ui layout / styling and shaders
-* Tests should probably use the outputted Command queue instad of using `find_element_by_id` to get hold of the 
+* Tests should probably use the outputted Command queue instead of using `find_element_by_id` to get hold of the 
     element and assert on that. The Command output from a ui pass would test the library more completely,
     and be more robust to internal changes.
 * Look into a data-oriented design for the `UI_Elements` and hierarchy.
@@ -41,7 +41,7 @@
     When the API has somewhat stabilized we should add property testing, e.g. generate Layout scenarios and assert properties
     that we know are supposed to be true holds. Examples are parent elements should always be bigger than their children etc.
 
-* Consider "immediate" layout aswell as the deferred auto-layout we currently have.
+* Consider "immediate" layout as well as the deferred auto-layout we currently have.
     - The idea is to have an easy way to describe right then and there imperatively in the code
     the size and layout of an element, without having to go through the entire layout system.
     This can be very handy and nice to have when having to describe things that needs to be dynamic, e.g.
@@ -51,7 +51,7 @@
     immediate layout as well as it would in the deferred layout we have now.
     - Probably have to make a clear API
     - This is powerful because then a user can imperatively describe how the element / layout should look for something
-        directly with just simple steps instead of trying to make this work through configuring hierarch of elements
+        directly with just simple steps instead of trying to make this work through configuring hierarchy of elements
         to achieve the same thing.
 
 * Remove z-index integer from element, at least it should be f32, but probably just make position of element into a Vec3. 
