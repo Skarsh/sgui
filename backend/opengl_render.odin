@@ -308,12 +308,6 @@ deinit_opengl :: proc(render_data: ^OpenGL_Render_Data) {
 	gl.DeleteProgram(render_data.shader.id)
 }
 
-// TODO(Thomas): Just remove this?
-opengl_init_resources :: proc(render_data: ^OpenGL_Render_Data) -> bool {
-
-	return true
-}
-
 opengl_resize :: proc(render_data: ^OpenGL_Render_Data, width, height: i32) {
 	gl.Viewport(0, 0, width, height)
 	gl.Scissor(0, 0, width, height)

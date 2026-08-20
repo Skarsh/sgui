@@ -75,20 +75,10 @@ deinit_render_ctx :: proc(ctx: ^Render_Context) {
 	deinit_font_atlas(&ctx.font_atlas)
 }
 
-init_resources :: proc(ctx: ^Render_Context) -> bool {
-	ok := false
-	switch ctx.renderer_type {
-	case .OpenGL:
-		ok = opengl_init_resources(&ctx.render_data.(OpenGL_Render_Data))
-	}
-	return ok
-}
-
 render_resize :: proc(render_ctx: ^Render_Context, width, height: i32) {
 	switch render_ctx.renderer_type {
 	case .OpenGL:
 		opengl_resize(&render_ctx.render_data.(OpenGL_Render_Data), width, height)
-
 	}
 }
 

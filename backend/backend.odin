@@ -122,7 +122,6 @@ init_ctx :: proc(
 		log.error("failed to init render context")
 		return false
 	}
-	init_resources(&ctx.render_ctx)
 
 	io := Io{}
 	init_io(&io, platform_api, &ctx.window.size, input, app_callbacks, io_allocator)
