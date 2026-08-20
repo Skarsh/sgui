@@ -1,9 +1,6 @@
 # TODOs
 
 ## Active
-* Better font support:
-    - Font atlas
-        - Pack multiple fonts
 * Selection past the edges of a text element (the visible part), should result in scrolling
 
 ## Bugs
