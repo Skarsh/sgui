@@ -97,6 +97,11 @@ sdl_get_gl_proc_address :: proc() -> GL_Set_Proc_Address_Type {
 	return sdl.gl_set_proc_address
 }
 
+sdl_destroy_gl_context :: proc(gl_context: rawptr) {
+	gl_context := sdl.GLContext(gl_context)
+	sdl.GL_DeleteContext(gl_context)
+}
+
 create_sdl_window_api :: proc() -> Window_API {
 	return Window_API {
 		init = sdl_window_init,
@@ -109,6 +114,7 @@ create_sdl_window_api :: proc() -> Window_API {
 		set_swap_interval = sdl_set_swap_interval,
 		swap_window = sdl_swap_window,
 		get_gl_proc_address = sdl_get_gl_proc_address,
+		destroy_gl_context = sdl_destroy_gl_context,
 	}
 }
 

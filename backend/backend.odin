@@ -31,6 +31,7 @@ Window_API :: struct {
 	set_swap_interval:   proc(interval: i32) -> bool,
 	swap_window:         proc(handle: rawptr),
 	get_gl_proc_address: proc() -> GL_Set_Proc_Address_Type,
+	destroy_gl_context:  proc(gl_context: rawptr),
 }
 
 Window :: struct {
@@ -132,6 +133,8 @@ init_ctx :: proc(
 
 deinit :: proc(ctx: ^Context) {
 	deinit_render_ctx(&ctx.render_ctx)
+	ctx.window_api.destroy_gl_context(ctx.window.gl_context)
+	deinit_window(ctx.window_api, ctx.window)
 	ctx.window_api.deinit()
 }
 
