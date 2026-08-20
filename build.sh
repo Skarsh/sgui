@@ -41,4 +41,4 @@ for example_path in examples/*/; do
     fi
 done
 echo ""
-echo "Build and tests completed successfully."
+echo "Examples build successfully."

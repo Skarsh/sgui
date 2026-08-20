@@ -37,5 +37,5 @@ FOR /D %%d IN (examples\*) DO (
     )
 )
 echo.
-echo Build and tests completed successfully.
+echo Examples built successfully.
 endlocal
