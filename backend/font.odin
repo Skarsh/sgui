@@ -58,16 +58,18 @@ Font_Atlas :: struct {
 	glyph_cache: map[Font_Key]Atlas_Glyph,
 }
 
+@(require_results)
 init_font_desc :: proc(
 	desc: ^Font_Desc,
 	font_config: base.Font_Config,
 	first_unicode_codepoint_in_range: i32,
 	num_chars: i32,
 	allocator: mem.Allocator,
-) {
+) -> bool {
 
-	init_font_ctx_ok := init_stb_font_ctx(&desc.font_ctx, font_config.path, font_config.size)
-	assert(bool(init_font_ctx_ok))
+	if !init_stb_font_ctx(&desc.font_ctx, font_config.path, font_config.size) {
+		return false
+	}
 
 	packed_chars := make([]stbtt.packedchar, num_chars, allocator)
 	desc.packed_chars = packed_chars
@@ -77,8 +79,11 @@ init_font_desc :: proc(
 		chardata_for_range               = raw_data(packed_chars),
 		num_chars                        = num_chars,
 	}
+
+	return true
 }
 
+@(require_results)
 init_font_atlas :: proc(
 	atlas: ^Font_Atlas,
 	font_configs: []base.Font_Config,
@@ -90,15 +95,16 @@ init_font_atlas :: proc(
 	atlas.font_descs = make([]Font_Desc, len(font_configs), allocator)
 
 	for &desc, i in atlas.font_descs {
-		init_font_desc(
+		if !init_font_desc(
 			&desc,
 			font_configs[i],
 			FIRST_PACKED_CODEPOINT,
 			NUM_PACKED_CODEPOINTS,
 			allocator,
-		)
-
-		font_configs[i].user_data = &atlas.font_descs[i].font_ctx
+		) {
+			atlas^ = {}
+			return false
+		}
 	}
 
 	atlas.bitmap = Bitmap {

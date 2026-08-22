@@ -56,6 +56,7 @@ init_and_create_window :: proc(
 	handle, ok := window_api.create_window(title, size)
 	if !ok {
 		log.error("Unable to create window")
+		window_api.deinit()
 		return Window{}, false
 	}
 
@@ -87,11 +88,10 @@ init_ctx :: proc(
 ) -> bool {
 
 	window, window_ok := init_and_create_window(window_api, window_title, window_size)
-	assert(window_ok)
 	if !window_ok {
-		log.error("Failed to init and create window")
 		return false
 	}
+
 	ctx.window = window
 	ctx.window_api = window_api
 
@@ -119,7 +119,15 @@ init_ctx :: proc(
 	)
 	if !render_ctx_ok {
 		log.error("failed to init render context")
+		deinit_window(window_api, window)
+		window_api.deinit()
+		ctx^ = {}
 		return false
+	}
+
+	// This happens after render_ctx is initialized so we know everything is good
+	for &desc, i in ctx.render_ctx.font_atlas.font_descs {
+		font_configs[i].user_data = &desc.font_ctx
 	}
 
 	io := Io{}

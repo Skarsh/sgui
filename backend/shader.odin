@@ -23,7 +23,25 @@ Shader_Config :: struct {
 
 create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 
-	shader_program := gl.CreateProgram()
+	program := gl.CreateProgram()
+	vertex_shader: u32
+	fragment_shader: u32
+	success := false
+
+	// NOTE(Thomas): Cleans up after exiting the scope
+	defer {
+		if !success {
+			if fragment_shader != 0 {
+				gl.DeleteShader(fragment_shader)
+			}
+			if vertex_shader != 0 {
+				gl.DeleteShader(vertex_shader)
+			}
+			if program != 0 {
+				gl.DeleteProgram(program)
+			}
+		}
+	}
 
 	vertex_data, vertex_err := os.read_entire_file_from_path(
 		config.vertex_path,
@@ -38,11 +56,13 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 	vertex_source := transmute(string)vertex_data
 	vertex_source_cstring := strings.clone_to_cstring(vertex_source, context.temp_allocator)
 
-	vertex_shader := gl.CreateShader(gl.VERTEX_SHADER)
+	vertex_shader = gl.CreateShader(gl.VERTEX_SHADER)
 	gl.ShaderSource(vertex_shader, 1, &vertex_source_cstring, nil)
 	gl.CompileShader(vertex_shader)
-	check_shader_compile_status(Shader_Type.Vertex, vertex_shader)
-	gl.AttachShader(shader_program, vertex_shader)
+	if !check_shader_compile_status(Shader_Type.Vertex, vertex_shader) {
+		return {}, false
+	}
+	gl.AttachShader(program, vertex_shader)
 
 	fragment_data, fragment_err := os.read_entire_file_from_path(
 		config.fragment_path,
@@ -56,20 +76,29 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 	fragment_source := transmute(string)fragment_data
 	fragment_source_cstring := strings.clone_to_cstring(fragment_source, context.temp_allocator)
 
-	fragment_shader := gl.CreateShader(gl.FRAGMENT_SHADER)
+	fragment_shader = gl.CreateShader(gl.FRAGMENT_SHADER)
 	gl.ShaderSource(fragment_shader, 1, &fragment_source_cstring, nil)
 	gl.CompileShader(fragment_shader)
-	check_shader_compile_status(Shader_Type.Fragment, fragment_shader)
-	gl.AttachShader(shader_program, fragment_shader)
+	if !check_shader_compile_status(Shader_Type.Fragment, fragment_shader) {
+		return {}, false
+	}
 
-	gl.LinkProgram(shader_program)
+	gl.AttachShader(program, fragment_shader)
+
+	gl.LinkProgram(program)
+	if !check_program_link_status(program) {
+		return {}, false
+	}
 
 	gl.DeleteShader(vertex_shader)
+	vertex_shader = 0
+
 	gl.DeleteShader(fragment_shader)
+	fragment_shader = 0
 
-	check_program_link_status(shader_program)
+	success = true
 
-	return Shader{id = shader_program}, true
+	return Shader{id = program}, success
 }
 
 shader_use_program :: proc(shader: Shader) {
@@ -171,7 +200,7 @@ shader_set_mat4 :: proc(
 }
 
 @(private)
-check_shader_compile_status :: proc(shader_type: Shader_Type, shader_id: u32) {
+check_shader_compile_status :: proc(shader_type: Shader_Type, shader_id: u32) -> bool {
 	INFO_LOG_LENGTH :: 512
 	success: i32
 	info_log := [INFO_LOG_LENGTH]u8{}
@@ -187,12 +216,13 @@ check_shader_compile_status :: proc(shader_type: Shader_Type, shader_id: u32) {
 			shader_type_str = "FRAGMENT"
 		}
 		log.errorf("%s, ERROR::SHADER::COMPILATION_FAILED\n%s", shader_type_str, info_log)
-		panic("Failed to compile shader")
+		return false
 	}
+	return true
 }
 
 @(private)
-check_program_link_status :: proc(program: u32) {
+check_program_link_status :: proc(program: u32) -> bool {
 	INFO_LOG_LENGTH :: 512
 	success: i32
 	info_log := [INFO_LOG_LENGTH]u8{}
@@ -200,7 +230,7 @@ check_program_link_status :: proc(program: u32) {
 	if success == 0 {
 		gl.GetProgramInfoLog(program, INFO_LOG_LENGTH, nil, &info_log[0])
 		log.errorf("ERROR::PROGRAM::LINKING_FAILED\n%s\n", info_log)
-		panic("Failed to link shader")
+		return false
 	}
-
+	return true
 }

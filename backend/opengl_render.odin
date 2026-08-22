@@ -210,6 +210,8 @@ init_opengl :: proc(
 	)
 	if !shader_ok {
 		log.error("Failed to create shader")
+		window_api.destroy_gl_context(gl_context)
+		window.gl_context = nil
 		return false
 	}
 

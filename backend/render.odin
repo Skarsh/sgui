@@ -38,28 +38,24 @@ init_render_ctx :: proc(
 	ctx.allocator = allocator
 	ctx.renderer_type = renderer_type
 
-	font_atlas_ok := init_font_atlas(&ctx.font_atlas, font_configs, 1024, 1024, allocator)
-	if !font_atlas_ok {
+	if !init_font_atlas(&ctx.font_atlas, font_configs, 1024, 1024, allocator) {
 		log.error("Failed to init font atlas")
+		ctx^ = {}
 		return false
 	}
 
-	ok := false
-	switch renderer_type {
-	case .OpenGL:
-		ok = init_opengl(
-			&ctx.render_data,
-			window,
-			window_api,
-			window_size,
-			ctx.font_atlas,
-			allocator,
-		)
-	}
+	renderer_ok := init_opengl(
+		&ctx.render_data,
+		window,
+		window_api,
+		window_size,
+		ctx.font_atlas,
+		allocator,
+	)
 
-	// TODO(Thomas): More details about which backend etc?
-	if !ok {
-		log.error("Failed to init renderer")
+	if !renderer_ok {
+		deinit_font_atlas(&ctx.font_atlas)
+		ctx^ = {}
 		return false
 	}
 
