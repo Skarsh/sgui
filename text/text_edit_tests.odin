@@ -149,6 +149,30 @@ test_text_edit_insert :: proc(t: ^testing.T) {
 		"a世xef",
 		{active = 5, anchor = 5},
 	)
+
+	// Replacement that is rejected should not delete selection
+	check_edit_insert(
+		t,
+		"abcdef",
+		{active = 4, anchor = 1}, // "bcd"
+		"WXYZ",
+		"abcdef",
+		{active = 4, anchor = 1},
+		max_len = 6,
+	)
+
+	// Checks an edge case where the existing text is at max size,
+	// and trying to insert equal amount of characters in bytes
+	// as is deleted, which should succeed.
+	check_edit_insert(
+		t,
+		"abcdef",
+		{active = 4, anchor = 1}, // bcd
+		"XYZ",
+		"aXYZef",
+		{active = 4, anchor = 4},
+		max_len = 6,
+	)
 }
 
 @(test)

@@ -93,9 +93,10 @@ test_text_edit_state :: proc(
 	backend: Test_Backend,
 	text: string,
 	selection: Selection,
+	max_len: int = max(int),
 ) -> Text_State {
 	text_edit_state := Text_Edit_State{}
-	text_edit_init(&text_edit_state, test_text_buffer(backend, text))
+	text_edit_init(&text_edit_state, test_text_buffer(backend, text), max_len)
 	state := Text_State {
 		selection = selection,
 		variant   = text_edit_state,
@@ -223,10 +224,11 @@ check_edit_insert :: proc(
 	insertion: string,
 	expected_text: string,
 	expected_selection: Selection,
+	max_len: int = max(int),
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		state := test_text_edit_state(backend, text, selection)
+		state := test_text_edit_state(backend, text, selection, max_len)
 		error := text_cursor_apply(&state, Cursor_Insert{text = insertion})
 		assert(error == nil)
 
