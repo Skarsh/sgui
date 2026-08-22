@@ -47,11 +47,11 @@ test_text_buffer :: proc(backend: Test_Backend, capacity: int, text: string) -> 
 @(private)
 check_insert :: proc(
 	t: ^testing.T,
-	buffer_capacity: int,
 	initial: string,
 	pos: int,
 	insertion: string,
 	expected: string,
+	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
@@ -111,11 +111,11 @@ test_text_edit_state :: proc(
 @(private)
 check_move :: proc(
 	t: ^testing.T,
-	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	translation: Translation,
 	expected_selection: Selection,
+	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
@@ -143,11 +143,11 @@ check_move :: proc(
 @(private)
 check_select :: proc(
 	t: ^testing.T,
-	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	translation: Translation,
 	expected_selection: Selection,
+	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
@@ -173,12 +173,12 @@ check_select :: proc(
 @(private)
 check_delete :: proc(
 	t: ^testing.T,
-	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	translation: Translation,
 	expected_text: string,
 	expected_selection: Selection,
+	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
@@ -223,12 +223,12 @@ check_delete :: proc(
 @(private)
 check_edit_insert :: proc(
 	t: ^testing.T,
-	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	insertion: string,
 	expected_text: string,
 	expected_selection: Selection,
+	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
@@ -273,13 +273,13 @@ check_edit_insert :: proc(
 @(private)
 check_handle_keys :: proc(
 	t: ^testing.T,
-	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	keys: base.Key_Set,
 	mods: base.Keymod_Set,
 	expected_text: string,
 	expected_selection: Selection,
+	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
