@@ -30,13 +30,11 @@ Text_Source :: union {
 
 
 Text_Edit_State :: struct {
-	buffer:  Text_Buffer,
-	max_len: int,
+	buffer: Text_Buffer,
 }
 
-text_edit_init :: proc(state: ^Text_Edit_State, buffer: Text_Buffer, max_len: int = max(int)) {
+text_edit_init :: proc(state: ^Text_Edit_State, buffer: Text_Buffer) {
 	state.buffer = buffer
-	state.max_len = max_len
 }
 
 text_edit_deinit :: proc(state: ^Text_Edit_State) {
@@ -173,7 +171,7 @@ text_cursor_insert :: proc(state: ^Text_State, cmd: Cursor_Insert) -> Text_Buffe
 		start := selection_start(state.selection)
 		end := selection_end(state.selection)
 		sel_len := end - start
-		if current_len + len(cmd.text) - sel_len <= v.max_len {
+		if current_len + len(cmd.text) - sel_len <= text_buffer_capacity(v.buffer) {
 			text_buffer_delete_range(&v.buffer, start, sel_len)
 			insert_at := start
 			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return

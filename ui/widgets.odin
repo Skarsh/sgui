@@ -274,7 +274,7 @@ text_input :: proc(
 		}
 
 		text_edit_state := textpkg.Text_Edit_State{}
-		textpkg.text_edit_init(&text_edit_state, text_buffer, len(buf))
+		textpkg.text_edit_init(&text_edit_state, text_buffer)
 		new_state.variant = text_edit_state
 
 		ctx.text_system.text_states[key.hash] = new_state

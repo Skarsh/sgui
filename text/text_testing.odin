@@ -18,18 +18,18 @@ TEST_BUFFER_CAP :: 64
 // Test only helper to make a Text_Buffer, getting initialized with the provided text.
 @(private)
 @(require_results)
-test_text_buffer :: proc(backend: Test_Backend, text: string) -> Text_Buffer {
+test_text_buffer :: proc(backend: Test_Backend, capacity: int, text: string) -> Text_Buffer {
 	tb: Text_Buffer
 	switch backend {
 	case .Gap:
 		gb := gap_buffer.Gap_Buffer{}
-		alloc_err := gap_buffer.init_gap_buffer(&gb, TEST_BUFFER_CAP, context.temp_allocator)
+		alloc_err := gap_buffer.init_gap_buffer(&gb, capacity, context.temp_allocator)
 		assert(alloc_err == .None)
 		tb = Text_Buffer {
 			buf = gb,
 		}
 	case .Fixed:
-		storage, alloc_err := make([]u8, TEST_BUFFER_CAP, context.temp_allocator)
+		storage, alloc_err := make([]u8, capacity, context.temp_allocator)
 		assert(alloc_err == .None)
 		tb = Text_Buffer {
 			buf = fixed_buffer.Fixed_Buffer{buf = storage},
@@ -47,6 +47,7 @@ test_text_buffer :: proc(backend: Test_Backend, text: string) -> Text_Buffer {
 @(private)
 check_insert :: proc(
 	t: ^testing.T,
+	buffer_capacity: int,
 	initial: string,
 	pos: int,
 	insertion: string,
@@ -54,7 +55,7 @@ check_insert :: proc(
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		tb := test_text_buffer(backend, initial)
+		tb := test_text_buffer(backend, buffer_capacity, initial)
 
 		insert_err := text_buffer_insert_at(&tb, pos, insertion)
 		testing.expectf(
@@ -91,12 +92,12 @@ check_insert :: proc(
 @(require_results)
 test_text_edit_state :: proc(
 	backend: Test_Backend,
+	buffer_capacity: int,
 	text: string,
 	selection: Selection,
-	max_len: int = max(int),
 ) -> Text_State {
 	text_edit_state := Text_Edit_State{}
-	text_edit_init(&text_edit_state, test_text_buffer(backend, text), max_len)
+	text_edit_init(&text_edit_state, test_text_buffer(backend, buffer_capacity, text))
 	state := Text_State {
 		selection = selection,
 		variant   = text_edit_state,
@@ -110,6 +111,7 @@ test_text_edit_state :: proc(
 @(private)
 check_move :: proc(
 	t: ^testing.T,
+	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	translation: Translation,
@@ -117,7 +119,7 @@ check_move :: proc(
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		state := test_text_edit_state(backend, text, selection)
+		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		error := text_cursor_apply(&state, Cursor_Move{translation = translation})
 		assert(error == nil)
 
@@ -141,6 +143,7 @@ check_move :: proc(
 @(private)
 check_select :: proc(
 	t: ^testing.T,
+	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	translation: Translation,
@@ -148,7 +151,7 @@ check_select :: proc(
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		state := test_text_edit_state(backend, text, selection)
+		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		text_cursor_move(&state, Cursor_Move{translation = translation, select = true})
 		testing.expectf(
 			t,
@@ -170,6 +173,7 @@ check_select :: proc(
 @(private)
 check_delete :: proc(
 	t: ^testing.T,
+	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	translation: Translation,
@@ -178,7 +182,7 @@ check_delete :: proc(
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		state := test_text_edit_state(backend, text, selection)
+		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		error := text_cursor_apply(&state, Cursor_Delete{translation = translation})
 		assert(error == nil)
 
@@ -219,16 +223,16 @@ check_delete :: proc(
 @(private)
 check_edit_insert :: proc(
 	t: ^testing.T,
+	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	insertion: string,
 	expected_text: string,
 	expected_selection: Selection,
-	max_len: int = max(int),
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		state := test_text_edit_state(backend, text, selection, max_len)
+		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		error := text_cursor_apply(&state, Cursor_Insert{text = insertion})
 		assert(error == nil)
 
@@ -269,6 +273,7 @@ check_edit_insert :: proc(
 @(private)
 check_handle_keys :: proc(
 	t: ^testing.T,
+	buffer_capacity: int,
 	text: string,
 	selection: Selection,
 	keys: base.Key_Set,
@@ -278,7 +283,7 @@ check_handle_keys :: proc(
 	loc := #caller_location,
 ) {
 	for backend in TEST_BACKENDS {
-		state := test_text_edit_state(backend, text, selection)
+		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		// TODO(Thomas): Should we use the return command here somehow?
 		_, error := text_cursor_handle_keys(&state, keys, mods)
 		assert(error == nil)
