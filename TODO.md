@@ -4,6 +4,12 @@
 * Selection past the edges of a text element (the visible part), should result in scrolling
 
 ## Bugs
+* Potential issue with how `text_cursor_insert` using `text_buffer_capacity` has an issue with `Gap_Buffer`
+    if trying to insert something that would go beyond the capacity.
+    - Should have a `text_area` widget or something first to test out
+    - Adapt `text_testing` to be able to catch it, currently `check_insert` probably won't be able to catch
+        it since it will assert same behaviour between both backends. Which means that one of those `check_insert`
+        cases might have to go.
 
 ## Backlog
 * Look into unification / simplification of pruning elements, text layout cache entries and text states
