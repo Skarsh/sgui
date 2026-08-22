@@ -31,6 +31,7 @@ test_text_edit_move_to :: proc(t: ^testing.T) {
 	// Next_Word
 	check_move(t, "ab cd ef", {active = 0, anchor = 0}, .Next_Word, {active = 3, anchor = 3})
 	check_move(t, "abc", {active = 3, anchor = 3}, .Next_Word, {active = 3, anchor = 3})
+	check_move(t, "a\u00a0b", {active = 0, anchor = 0}, .Next_Word, {active = 3, anchor = 3})
 
 	// h + é + <NBSP> + <SPACE> = 1 + 2 + 2 + 1 = 6 bytes
 	check_move(t, UTF8_SAMPLE, {active = 0, anchor = 0}, .Next_Word, {active = 6, anchor = 6})
@@ -40,6 +41,7 @@ test_text_edit_move_to :: proc(t: ^testing.T) {
 	check_move(t, "ab cd ef", {active = 7, anchor = 7}, .Prev_Word, {active = 6, anchor = 6})
 	check_move(t, "abc", {active = 0, anchor = 0}, .Prev_Word, {active = 0, anchor = 0})
 	check_move(t, UTF8_SAMPLE, {active = 12, anchor = 12}, .Prev_Word, {active = 6, anchor = 6})
+	check_move(t, "a\u00a0b", {active = 4, anchor = 4}, .Prev_Word, {active = 3, anchor = 3})
 }
 
 @(test)
@@ -151,6 +153,9 @@ test_text_edit_insert :: proc(t: ^testing.T) {
 		{active = 5, anchor = 5},
 	)
 
+	// TODO(Thomas): This might not belong here since it's a strong assertion on the common
+	// behaviour of both backends. The Gap_Buffer backend should not have an issue with this since it
+	// should just reserve more space, while the Fixed_Buffer backend is hard capped at the size.
 	// Replacement that is rejected should not delete selection
 	check_edit_insert(
 		t,

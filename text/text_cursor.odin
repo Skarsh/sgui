@@ -4,6 +4,7 @@ package text
 // https://rxi.github.io/textbox_behaviour.html
 
 import "core:mem"
+import "core:unicode"
 import "core:unicode/utf8"
 
 import "../base"
@@ -340,103 +341,54 @@ text_cursor_peek_rune_at_byte_offset :: proc(source: Text_Source, byte_idx: int)
 @(private)
 @(require_results)
 text_cursor_prev_word_byte_pos :: proc(source: Text_Source, pos: int) -> int {
-	// For the text buffer case we need to check if the byte we're trying
-	// to go backwards to is valid.
-	// For the string case we assume that it is valid.
-	switch v in source {
-	case Text_Buffer:
-		byte_idx := clamp(pos, 0, text_buffer_byte_length(v))
+	byte_idx := clamp(pos, 0, text_source_byte_length(source))
 
-		for byte_idx > 0 {
-			b, ok := text_buffer_get_byte_at(v, byte_idx - 1)
-			if !ok {
-				break
-			}
-
-			if !is_space(b) {
-				break
-			}
-
-			byte_idx -= 1
+	// Iterate backwards, skipping whitespace
+	for byte_idx > 0 {
+		r, width := text_cursor_get_prev_rune(source, byte_idx)
+		if width <= 0 || !unicode.is_space(r) {
+			break
 		}
-
-		for byte_idx > 0 {
-			b, ok := text_buffer_get_byte_at(v, byte_idx - 1)
-			if !ok {
-				break
-			}
-
-			if is_space(b) {
-				break
-			}
-
-			byte_idx -= 1
-		}
-
-		return byte_idx
-	case string:
-		byte_idx := clamp(pos, 0, len(v))
-		for byte_idx > 0 && is_space(v[byte_idx - 1]) {
-			byte_idx -= 1
-		}
-		for byte_idx > 0 && !is_space(v[byte_idx - 1]) {
-			byte_idx -= 1
-		}
-		return byte_idx
+		byte_idx -= width
 	}
-	return 0
+
+	// Iterate backwards, skipping word
+	for byte_idx > 0 {
+		r, width := text_cursor_get_prev_rune(source, byte_idx)
+		if width <= 0 || unicode.is_space(r) {
+			break
+		}
+		byte_idx -= width
+	}
+	return byte_idx
 }
 
 @(private)
 @(require_results)
 text_cursor_next_word_byte_pos :: proc(source: Text_Source, pos: int) -> int {
-	// For the text buffer case we need to check if the byte we're trying
-	// to go to next is valid.
-	// For the string case we assume that it is valid.
-	switch v in source {
-	case Text_Buffer:
-		buf_byte_len := text_buffer_byte_length(v)
-		byte_idx := clamp(pos, 0, buf_byte_len)
 
-		for byte_idx < buf_byte_len {
-			b, ok := text_buffer_get_byte_at(v, byte_idx)
-			if !ok {
-				break
-			}
+	byte_len := text_source_byte_length(source)
+	byte_idx := clamp(pos, 0, byte_len)
 
-			if is_space(b) {
-				break
-			}
-
-			byte_idx += 1
+	// Iterate forwards, skipping word until whitespace
+	for byte_idx < byte_len {
+		r, width := text_cursor_peek_rune_at_byte_offset(source, byte_idx)
+		if width <= 0 || unicode.is_space(r) {
+			break
 		}
-
-		for byte_idx < buf_byte_len {
-			b, ok := text_buffer_get_byte_at(v, byte_idx)
-			if !ok {
-				break
-			}
-
-			if !is_space(b) {
-				break
-			}
-
-			byte_idx += 1
-		}
-
-		return byte_idx
-	case string:
-		byte_len := len(v)
-		byte_idx := clamp(pos, 0, byte_len)
-		for byte_idx < byte_len && !is_space(v[byte_idx]) {
-			byte_idx += 1
-		}
-		for byte_idx < byte_len && is_space(v[byte_idx]) {
-			byte_idx += 1
-		}
-		return byte_idx
+		byte_idx += width
 	}
-	return 0
+
+	// Iterate forwards, skipping whitespace until first non-whitespace
+	for byte_idx < byte_len {
+		r, width := text_cursor_peek_rune_at_byte_offset(source, byte_idx)
+		if width <= 0 || !unicode.is_space(r) {
+			break
+		}
+		byte_idx += width
+	}
+
+	return byte_idx
 }
 
 
@@ -523,11 +475,6 @@ text_state_parts :: proc(state: ^Text_State) -> (source: Text_Source, selection:
 	}
 	selection = &state.selection
 	return
-}
-
-@(private)
-is_space :: proc(b: u8) -> bool {
-	return b == ' ' || b == '\t' || b == '\n'
 }
 
 @(private)

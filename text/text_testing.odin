@@ -106,6 +106,19 @@ test_text_edit_state :: proc(
 	return state
 }
 
+@(private)
+@(require_results)
+test_text_read_only_state :: proc(text: string, selection: Selection) -> Text_State {
+	text_read_only_state := Text_Read_Only_State {
+		text = text,
+	}
+	state := Text_State {
+		selection = selection,
+		variant   = text_read_only_state,
+	}
+	return state
+}
+
 // Test only helper which checks that moving at selection
 // with translation yields expected selection on every backend.
 @(private)
@@ -118,6 +131,7 @@ check_move :: proc(
 	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
+	// Text Edit asserts
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		error := text_cursor_apply(&state, Cursor_Move{translation = translation})
@@ -136,6 +150,22 @@ check_move :: proc(
 			loc = loc,
 		)
 	}
+
+	// Text_Read_Only asserts
+	state := test_text_read_only_state(text, selection)
+	error := text_cursor_apply(&state, Cursor_Move{translation = translation})
+	assert(error == nil)
+	testing.expectf(
+		t,
+		state.selection == expected_selection,
+		"move %v in %q from %v: expected %v, got %v",
+		translation,
+		text,
+		selection,
+		expected_selection,
+		state.selection,
+		loc = loc,
+	)
 }
 
 // Test only helper which checks that selecting at selection with translation
@@ -150,6 +180,7 @@ check_select :: proc(
 	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
 ) {
+	// Text_Edit asserts
 	for backend in TEST_BACKENDS {
 		state := test_text_edit_state(backend, buffer_capacity, text, selection)
 		text_cursor_move(&state, Cursor_Move{translation = translation, select = true})
@@ -166,6 +197,22 @@ check_select :: proc(
 			loc = loc,
 		)
 	}
+
+	// Text_Read_Only asserts
+	state := test_text_read_only_state(text, selection)
+	error := text_cursor_apply(&state, Cursor_Move{translation = translation, select = true})
+	assert(error == nil)
+	testing.expectf(
+		t,
+		state.selection == expected_selection,
+		"move %v in %q from %v: expected %v, got %v",
+		translation,
+		text,
+		selection,
+		expected_selection,
+		state.selection,
+		loc = loc,
+	)
 }
 
 // Test only helper which checks that deleting at selection
