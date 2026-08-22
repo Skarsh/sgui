@@ -69,7 +69,6 @@ main :: proc() {
 		app_arena_mem      = make([]u8, 10 * mem.Megabyte, arena_allocator),
 		frame_arena_mem    = make([]u8, 100 * mem.Kilobyte, arena_allocator),
 		draw_cmd_arena_mem = make([]u8, 100 * mem.Kilobyte, arena_allocator),
-		io_arena_mem       = make([]u8, 10 * mem.Kilobyte, arena_allocator),
 	}
 
 	config := app.App_Config {

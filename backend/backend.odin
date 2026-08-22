@@ -84,7 +84,6 @@ init_ctx :: proc(
 	window_api: Window_API,
 	app_callbacks: App_Callbacks,
 	allocator: mem.Allocator,
-	io_allocator: mem.Allocator,
 ) -> bool {
 
 	window, window_ok := init_and_create_window(window_api, window_title, window_size)
@@ -124,7 +123,7 @@ init_ctx :: proc(
 	}
 
 	io := Io{}
-	init_io(&io, platform_api, &ctx.window.size, input, app_callbacks, io_allocator)
+	init_io(&io, platform_api, &ctx.window.size, input, app_callbacks)
 	ctx.io = io
 
 	return true

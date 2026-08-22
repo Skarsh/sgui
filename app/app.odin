@@ -20,7 +20,6 @@ App :: struct {
 	app_arena:            virtual.Arena,
 	frame_arena:          virtual.Arena,
 	draw_cmd_arena:       virtual.Arena,
-	io_arena:             virtual.Arena,
 	ui_ctx:               ui.Context,
 	backend_ctx:          backend.Context,
 	input:                base.Input,
@@ -32,7 +31,6 @@ App_Memory :: struct {
 	app_arena_mem:      []u8,
 	frame_arena_mem:    []u8,
 	draw_cmd_arena_mem: []u8,
-	io_arena_mem:       []u8,
 }
 
 App_Config :: struct {
@@ -84,15 +82,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		return nil, false
 	}
 	draw_cmd_arena_allocator := virtual.arena_allocator(&app.draw_cmd_arena)
-
-	arena_err = virtual.arena_init_buffer(&app.io_arena, app_config.memory.io_arena_mem)
 	assert(arena_err == .None)
-	if arena_err != .None {
-		log.error("Failed to allocate io arena")
-		free(app)
-		return nil, false
-	}
-	io_arena_allocator := virtual.arena_allocator(&app.io_arena)
 
 	app_callbacks := backend.App_Callbacks {
 		on_quit      = _on_quit_callback,
@@ -110,7 +100,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.window_api,
 		app_callbacks,
 		app_arena_allocator,
-		io_arena_allocator,
 	)
 
 	assert(backend_init_ok)
