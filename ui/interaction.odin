@@ -228,6 +228,38 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 	}
 }
 
+@(private)
+@(require_results)
+copy_selection_to_clipboard :: proc(
+	state: ^textpkg.Text_State,
+	clipboard: base.Clipboard_Text_Procs,
+	allocator: mem.Allocator,
+) -> (
+	copied: bool,
+	error: mem.Allocator_Error,
+) {
+	selection := textpkg.text_cursor_get_selection(state)
+	start := textpkg.selection_start(selection)
+	end := textpkg.selection_end(selection)
+
+	// Selection is collapsed, so have nothing to copy
+	if start == end {
+		return false, nil
+	}
+
+	text, text_error := textpkg.text_cursor_get_text(state, allocator)
+	if text_error != .None {
+		return false, text_error
+	}
+
+	clipboard_error := clipboard.set_clipboard_text_proc(text[start:end], allocator)
+	if clipboard_error != .None {
+		return false, clipboard_error
+	}
+
+	return true, nil
+}
+
 // TODO(Thomas): Find a better way than just pass the frame_allocator here?
 // TODO(Thomas): Clean up error handling here, it's a little messy.
 // TODO(Thomas): @Speed This runs every frame when an element is focused, which most likely is wasteful
@@ -286,27 +318,15 @@ dispatch_keyboard_to_focused :: proc(
 			switch clipboard_command {
 			case .None:
 			case .Copy:
-				//NOTE(Thomas): This will be freed when the frame_allocator is freed
-				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
-				//very large text. We can think about using a fallback strategy of
-				//persistent allocator or some general purpose allocator in those cases
-				//when it has first failed with the frame allocator
-				text, text_alloc_err := textpkg.text_cursor_get_text(state, frame_allocator)
-
-				if text_alloc_err != .None {
-					log.error("Error when trying to get text from text buffer: ", text_alloc_err)
-				}
-				assert(text_alloc_err == .None)
-
-				selection := textpkg.text_cursor_get_selection(state)
-				selection_start := textpkg.selection_start(selection)
-				selection_end := textpkg.selection_end(selection)
-				selection_text := text[selection_start:selection_end]
-
-				interaction.input.clipboard_text_procs.set_clipboard_text_proc(
-					selection_text,
+				_, copy_error := copy_selection_to_clipboard(
+					state,
+					interaction.input.clipboard_text_procs,
 					frame_allocator,
 				)
+
+				if copy_error != .None {
+					log.error("Could not copy selection: ", copy_error)
+				}
 
 			case .Paste:
 				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
@@ -335,9 +355,26 @@ dispatch_keyboard_to_focused :: proc(
 					panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
 				}
 			case .Cut:
-				// TODO(Thomas): Does this really need to be its own thing?
-				// Isn't this just a copy selection but where the selection is deleted / removed before return??
-				log.info("Cut clipboard command")
+				// Cut should not work for read-only text, just be a no-op
+				switch v in state.variant {
+				case textpkg.Text_Edit_State:
+					copied, copy_error := copy_selection_to_clipboard(
+						state,
+						interaction.input.clipboard_text_procs,
+						frame_allocator,
+					)
+
+					if copy_error != .None {
+						log.error("Could not cut selection: ", copy_error)
+					} else if copied {
+						textpkg.text_cursor_delete(
+							state,
+							textpkg.Cursor_Delete{translation = .Left},
+						)
+					}
+				case textpkg.Text_Read_Only_State:
+				// no-op
+				}
 			}
 		}
 	}
