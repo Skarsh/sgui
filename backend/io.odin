@@ -59,7 +59,19 @@ init_io :: proc(
 	allocator: mem.Allocator,
 ) -> bool {
 	assert_platform_api(platform_api)
-	io.frame_time.frequency = platform_api.get_perf_freq()
+
+	frequency := platform_api.get_perf_freq()
+	assert(frequency > 0)
+
+	initial_counter := platform_api.get_perf_counter()
+
+	io.frame_time = Frame_Time {
+		frequency = frequency,
+		last      = initial_counter,
+		now       = initial_counter,
+		dt        = 0,
+	}
+
 	io.allocator = allocator
 	alloc_err := queue.init(&io.input_queue, 32, io.allocator)
 	assert(alloc_err == .None)
@@ -84,9 +96,15 @@ _io_push_event_callback :: proc(user_data: rawptr, event: base.Event) {
 time :: proc(io: ^Io) {
 	io.frame_time.last = io.frame_time.now
 	io.frame_time.now = io.platform_api.get_perf_counter()
-	io.frame_time.dt = f32(
-		f32(io.frame_time.now - io.frame_time.last) / f32(io.frame_time.frequency),
-	)
+
+	if io.frame_time.counter == 0 {
+		io.frame_time.dt = 0
+	} else {
+		io.frame_time.dt = f32(
+			f32(io.frame_time.now - io.frame_time.last) / f32(io.frame_time.frequency),
+		)
+	}
+
 	io.frame_time.counter += 1
 }
 
