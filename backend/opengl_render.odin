@@ -226,6 +226,8 @@ init_opengl :: proc(
 
 	gl.Disable(gl.SCISSOR_TEST)
 
+	// TODO(Thomas): Don't hardcode shader paths here, should come from config, or maybe even
+	// embedded into exe??
 	shader, shader_ok := create_shader(
 		Shader_Config{"shaders/main_vs.glsl", "shaders/main_fs.glsl"},
 	)
