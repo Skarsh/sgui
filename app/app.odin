@@ -46,7 +46,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	allocator := app_config.allocator
 
 	app, app_err := new(App, allocator)
-	assert(app_err == .None)
 	if app_err != .None {
 		return nil, false
 	}
@@ -107,8 +106,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_allocator,
 	)
 
-	assert(backend_init_ok)
 	if !backend_init_ok {
+		free_all(app_allocator)
 		return nil, false
 	}
 
