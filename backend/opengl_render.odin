@@ -153,9 +153,6 @@ reset_batch :: proc(batch: ^Batch) {
 	batch.quad_idx = 0
 }
 
-// TODO(Thomas): Having both []Font_Atlas and []OpenGL_Texture
-// here seems a little off. Pretty sure their length needs to
-// stay synced, so combine into a single structure??
 OpenGL_Render_Data :: struct {
 	window_size:         base.Vector2i32,
 	vao:                 u32,
@@ -175,6 +172,28 @@ MAX_QUADS :: 10_000
 MAX_VERTICES :: MAX_QUADS * 4
 MAX_INDICES :: MAX_QUADS * 6
 
+@(require_results)
+configure_opengl_window :: proc(window_api: Window_API) -> bool {
+	profile_mask_ok := window_api.set_gl_attribute(.Context_Profile_Mask, i32(GL_Profile.Core))
+	if !profile_mask_ok {
+		log.error("Failed to set gl attribute Context_Profile_Mask")
+		return false
+	}
+
+	if !window_api.set_gl_attribute(.Context_Major_Version, 4) {
+		log.error("Failed to set gl attribute Context_Major_Version")
+		return false
+	}
+
+	if !window_api.set_gl_attribute(.Context_Minor_Version, 3) {
+		log.error("Failed to set gl attribute Context_Minor_Version")
+		return false
+	}
+
+	return true
+}
+
+@(require_results)
 init_opengl :: proc(
 	render_data: ^Render_Data,
 	window: ^Window,
@@ -183,10 +202,6 @@ init_opengl :: proc(
 	font_atlas: Font_Atlas,
 	allocator := context.allocator,
 ) -> bool {
-	window_api.set_gl_attribute(.Context_Profile_Mask, i32(GL_Profile.Core))
-	window_api.set_gl_attribute(.Context_Major_Version, 4)
-	window_api.set_gl_attribute(.Context_Minor_Version, 3)
-
 	gl_context, gl_ok := window_api.create_gl_context(window.handle)
 	if !gl_ok {
 		log.error("Failed to create GL context")

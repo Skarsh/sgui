@@ -50,14 +50,21 @@ init_and_create_window :: proc(
 ) {
 	if !window_api.init() {
 		log.error("Unable to init window system")
-		return Window{}, false
+		return {}, false
+	}
+
+	// SDL says attributes should be configured before creating window
+	// https://wiki.libsdl.org/SDL2/SDL_GL_SetAttribute
+	if !configure_opengl_window(window_api) {
+		window_api.deinit()
+		return {}, false
 	}
 
 	handle, ok := window_api.create_window(title, size)
 	if !ok {
 		log.error("Unable to create window")
 		window_api.deinit()
-		return Window{}, false
+		return {}, false
 	}
 
 	return Window{handle = handle, size = size}, true
