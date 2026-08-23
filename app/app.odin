@@ -52,37 +52,32 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	app.persistent_allocator = app_config.allocator
 
-	arena_err := virtual.arena_init_buffer(&app.app_arena, app_config.memory.app_arena_mem)
-	assert(arena_err == .None)
-	if arena_err != .None {
-		log.error("Failed to allocate app arena")
-		free(app, app.persistent_allocator)
+	app_allocator, app_arena_ok := init_arena(
+		&app.app_arena,
+		app_config.memory.app_arena_mem,
+		"app_arena",
+	)
+	if !app_arena_ok {
 		return nil, false
 	}
-	app_arena_allocator := virtual.arena_allocator(&app.app_arena)
 
-
-	arena_err = virtual.arena_init_buffer(&app.frame_arena, app_config.memory.frame_arena_mem)
-	assert(arena_err == .None)
-	if arena_err != .None {
-		log.error("Failed to allocate frame arena")
-		free(app, app.persistent_allocator)
+	frame_allocator, frame_arena_ok := init_arena(
+		&app.frame_arena,
+		app_config.memory.frame_arena_mem,
+		"frame_arena",
+	)
+	if !frame_arena_ok {
 		return nil, false
 	}
-	frame_arena_allocator := virtual.arena_allocator(&app.frame_arena)
 
-	arena_err = virtual.arena_init_buffer(
+	draw_cmd_allocator, draw_cmd_arena_ok := init_arena(
 		&app.draw_cmd_arena,
 		app_config.memory.draw_cmd_arena_mem,
+		"draw_cmd_arena",
 	)
-	assert(arena_err == .None)
-	if arena_err != .None {
-		log.error("Failed to allocator draw_cmd_arena")
-		free(app, app.persistent_allocator)
+	if !draw_cmd_arena_ok {
 		return nil, false
 	}
-	draw_cmd_arena_allocator := virtual.arena_allocator(&app.draw_cmd_arena)
-	assert(arena_err == .None)
 
 	app_callbacks := backend.App_Callbacks {
 		on_quit      = _on_quit_callback,
@@ -99,7 +94,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.platform_api,
 		app_config.window_api,
 		app_callbacks,
-		app_arena_allocator,
+		app_allocator,
 	)
 
 	assert(backend_init_ok)
@@ -113,8 +108,8 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		&app.input,
 		&app.text_measurement,
 		app.persistent_allocator,
-		frame_arena_allocator,
-		draw_cmd_arena_allocator,
+		frame_allocator,
+		draw_cmd_allocator,
 		app_config.window_size,
 		app_config.font_configs,
 	)
@@ -160,4 +155,14 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		// 4. TODO(Thomas): Sleep to hit target framerate if not vsync.
 		// currently hardcoded to use vsync, so no sleeping.
 	}
+}
+
+@(private)
+init_arena :: proc(arena: ^virtual.Arena, buffer: []u8, name: string) -> (mem.Allocator, bool) {
+	if err := virtual.arena_init_buffer(arena, buffer); err != .None {
+		log.errorf("Failed to initialize %s: %v", name, err)
+		return {}, false
+	}
+
+	return virtual.arena_allocator(arena), true
 }
