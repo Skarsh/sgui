@@ -140,6 +140,11 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		// 2. Event processing
 		backend.process(&app.backend_ctx)
 
+		// Break out of the run loop if on_quit callback has been called.
+		if !app.running {
+			break
+		}
+
 		// Update window size in ui Context
 		ui.window_resize(&app.ui_ctx, app.backend_ctx.window.size)
 
