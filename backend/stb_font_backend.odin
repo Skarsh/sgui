@@ -1,6 +1,7 @@
 package backend
 
 import "core:log"
+import "core:mem"
 import "core:os"
 
 import stbtt "vendor:stb/truetype"
@@ -10,8 +11,13 @@ import textpkg "../text"
 
 Font_Info :: stbtt.fontinfo
 
-init_stb_font_ctx :: proc(ctx: ^STB_Font_Context, path: string, font_size: f32) -> bool {
-	font_data, err := os.read_entire_file_from_path(path, context.allocator)
+init_stb_font_ctx :: proc(
+	ctx: ^STB_Font_Context,
+	path: string,
+	font_size: f32,
+	allocator: mem.Allocator,
+) -> bool {
+	font_data, err := os.read_entire_file_from_path(path, allocator)
 
 	if err != nil {
 		log.error("Error when loading font file: ", err)
@@ -29,10 +35,6 @@ init_stb_font_ctx :: proc(ctx: ^STB_Font_Context, path: string, font_size: f32) 
 	ctx.font_metrics = get_font_metrics(&ctx.font_info, font_size)
 
 	return true
-}
-
-deinit_stb_font_ctx :: proc(ctx: ^STB_Font_Context) {
-	delete(ctx.font_data)
 }
 
 STB_Font_Context :: struct {

@@ -131,6 +131,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 deinit :: proc(app: ^App) {
 	ui.deinit(&app.ui_ctx)
 	backend.deinit(&app.backend_ctx)
+	free_all(virtual.arena_allocator(&app.app_arena))
 	free(app, app.persistent_allocator)
 }
 

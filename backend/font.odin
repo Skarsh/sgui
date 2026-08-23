@@ -67,7 +67,7 @@ init_font_desc :: proc(
 	allocator: mem.Allocator,
 ) -> bool {
 
-	if !init_stb_font_ctx(&desc.font_ctx, font_config.path, font_config.size) {
+	if !init_stb_font_ctx(&desc.font_ctx, font_config.path, font_config.size, allocator) {
 		return false
 	}
 
@@ -248,12 +248,6 @@ get_font_metrics :: proc(font_info: ^stbtt.fontinfo, font_size: f32) -> Font_Met
 		ascent = scaled_ascent,
 		descent = scaled_descent,
 		line_gap = scaled_line_gap,
-	}
-}
-
-deinit_font_atlas :: proc(atlas: ^Font_Atlas) {
-	for &desc in atlas.font_descs {
-		deinit_stb_font_ctx(&desc.font_ctx)
 	}
 }
 
