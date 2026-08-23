@@ -34,6 +34,22 @@ ui_key_from_loc :: proc(loc: runtime.Source_Code_Location, seed: u64 = FNV_OFFSE
 }
 
 @(require_results)
+ui_key_from_string :: proc(id: string, seed: u64 = FNV_OFFSET) -> UI_Key {
+	return UI_Key{hash = hash_string(id, seed)}
+}
+
+@(require_results)
+ui_key :: proc(ctx: ^Context, id: string, loc: runtime.Source_Code_Location) -> UI_Key {
+	key_seed := current_id_seed(ctx)
+
+	if len(id) > 0 {
+		return ui_key_from_string(id, key_seed)
+	}
+
+	return ui_key_from_loc(loc, key_seed)
+}
+
+@(require_results)
 hash_string :: proc(str: string, seed: u64 = FNV_OFFSET) -> u64 {
 	return hash.fnv64a(transmute([]u8)str, seed)
 }

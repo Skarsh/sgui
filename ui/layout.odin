@@ -272,9 +272,10 @@ begin_container :: proc(
 	ctx: ^Context,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
-	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, name = name)
 	return element.last_comm
 }
@@ -294,9 +295,10 @@ container_basic :: proc(
 	ctx: ^Context,
 	body: proc(ctx: ^Context) = nil,
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
-	comm := begin_container(ctx, loc = loc, name = name)
+	comm := begin_container(ctx, name = name, id = id, loc = loc)
 	if body != nil {
 		body(ctx)
 	}
@@ -309,10 +311,11 @@ container_styled :: proc(
 	style: Style,
 	body: proc(ctx: ^Context) = nil,
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
 
-	comm := begin_container(ctx, style, name = name, loc = loc)
+	comm := begin_container(ctx, style, name = name, id = id, loc = loc)
 	if body != nil {
 		body(ctx)
 	}
@@ -325,9 +328,10 @@ container_data :: proc(
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
-	comm := begin_container(ctx, name = name, loc = loc)
+	comm := begin_container(ctx, name = name, id = id, loc = loc)
 	if body != nil {
 		body(ctx, data)
 	}
@@ -341,9 +345,10 @@ container_data_styled :: proc(
 	data: ^$T,
 	body: proc(ctx: ^Context, data: ^T) = nil,
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
-	comm := begin_container(ctx, style, name = name, loc = loc)
+	comm := begin_container(ctx, style, name = name, id = id, loc = loc)
 	if body != nil {
 		body(ctx, data)
 	}

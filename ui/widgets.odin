@@ -19,9 +19,10 @@ text :: proc(
 	text: string,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) {
-	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().text, name = name)
 	element_equip_text(ctx, element, text)
 
@@ -59,9 +60,10 @@ button :: proc(
 	text: string,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
-	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().button, name = name)
 	element_equip_text(ctx, element, text)
 	close_element(ctx)
@@ -78,6 +80,7 @@ slider :: proc(
 	thumb_style: Style = {},
 	track_name: string = "",
 	thumb_name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
 
@@ -109,7 +112,7 @@ slider :: proc(
 	track_style.sizing_x = is_vert ? sizing_fixed(thumb_size.x) : sizing_grow()
 	track_style.sizing_y = is_vert ? sizing_grow() : sizing_fixed(thumb_size.y)
 
-	track_key := ui_key_from_loc(loc, current_id_seed(ctx))
+	track_key := ui_key(ctx, id, loc)
 	track := open_element(ctx, track_key, style, track_style, name = track_name)
 	slider_comm := track.last_comm
 
@@ -164,6 +167,7 @@ scrollbar :: proc(
 	axis: base.Axis2 = .Y,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
 	comm := Comm{}
@@ -234,6 +238,7 @@ scrollbar :: proc(
 					},
 					track_name = name,
 					thumb_name = fmt.tprintf("%s_thumb", name),
+					id = id,
 					loc = loc,
 				)
 
@@ -254,10 +259,11 @@ text_input :: proc(
 	buf: []u8,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
 
-	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().text_input, name = name)
 
 	state, state_exists := &ctx.text_system.text_states[element.key.hash]
@@ -339,10 +345,11 @@ checkbox :: proc(
 	shape_data: Shape_Data,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
 
-	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().checkbox, name = name)
 
 	if element.last_comm.clicked {
@@ -367,10 +374,10 @@ image :: proc(
 	texture_id: Texture_Id,
 	style: Style = {},
 	name: string = "",
+	id: string = "",
 	loc := #caller_location,
 ) -> Comm {
-
-	key := ui_key_from_loc(loc, current_id_seed(ctx))
+	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().image, name = name)
 	element_equip_image(element, texture_id)
 	close_element(ctx)
