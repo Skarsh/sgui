@@ -44,7 +44,7 @@ App_Config :: struct {
 }
 
 init :: proc(app_config: App_Config) -> (^App, bool) {
-	app, app_err := new(App)
+	app, app_err := new(App, app_config.allocator)
 	assert(app_err == .None)
 	if app_err != .None {
 		return nil, false
@@ -56,7 +56,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocate app arena")
-		free(app)
+		free(app, app.persistent_allocator)
 		return nil, false
 	}
 	app_arena_allocator := virtual.arena_allocator(&app.app_arena)
@@ -66,7 +66,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocate frame arena")
-		free(app)
+		free(app, app.persistent_allocator)
 		return nil, false
 	}
 	frame_arena_allocator := virtual.arena_allocator(&app.frame_arena)
@@ -78,7 +78,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	assert(arena_err == .None)
 	if arena_err != .None {
 		log.error("Failed to allocator draw_cmd_arena")
-		free(app)
+		free(app, app.persistent_allocator)
 		return nil, false
 	}
 	draw_cmd_arena_allocator := virtual.arena_allocator(&app.draw_cmd_arena)
@@ -104,7 +104,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	assert(backend_init_ok)
 	if !backend_init_ok {
-		free(app)
+		free(app, app.persistent_allocator)
 		return nil, false
 	}
 
@@ -127,7 +127,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 deinit :: proc(app: ^App) {
 	ui.deinit(&app.ui_ctx)
 	backend.deinit(&app.backend_ctx)
-	free(app)
+	free(app, app.persistent_allocator)
 }
 
 run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_data: T) -> bool) {
