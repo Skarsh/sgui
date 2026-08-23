@@ -14,7 +14,6 @@ _on_quit_callback :: proc(user_data: rawptr) {
 	app.running = false
 }
 
-
 App :: struct {
 	persistent_allocator: mem.Allocator,
 	app_arena:            virtual.Arena,
@@ -44,10 +43,21 @@ App_Config :: struct {
 }
 
 init :: proc(app_config: App_Config) -> (^App, bool) {
-	app, app_err := new(App, app_config.allocator)
+	allocator := app_config.allocator
+
+	app, app_err := new(App, allocator)
 	assert(app_err == .None)
 	if app_err != .None {
 		return nil, false
+	}
+
+	// Frees up app if any of the frame arenas failed ot init
+	// at the end of the scope.
+	success := false
+	defer {
+		if !success {
+			free(app, allocator)
+		}
 	}
 
 	app.persistent_allocator = app_config.allocator
@@ -99,7 +109,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 
 	assert(backend_init_ok)
 	if !backend_init_ok {
-		free(app, app.persistent_allocator)
 		return nil, false
 	}
 
@@ -115,7 +124,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 	)
 
 	app.running = true
-
+	success = true
 	return app, true
 }
 
