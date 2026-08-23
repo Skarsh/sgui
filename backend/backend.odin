@@ -94,6 +94,11 @@ init_ctx :: proc(
 	allocator: mem.Allocator,
 ) -> bool {
 
+	if len(font_configs) == 0 {
+		log.error("Provided zero font configuration, at least one is required")
+		return false
+	}
+
 	window, window_ok := init_and_create_window(window_api, window_title, window_size)
 	if !window_ok {
 		return false
@@ -101,8 +106,6 @@ init_ctx :: proc(
 
 	ctx.window = window
 	ctx.window_api = window_api
-
-	assert(len(font_configs) > 0)
 
 	text_measurement.measure_text_proc = stb_measure_text
 	text_measurement.measure_codepoint_proc = stb_measure_codepoint
