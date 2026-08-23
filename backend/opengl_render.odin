@@ -207,9 +207,13 @@ init_opengl :: proc(
 		log.error("Failed to create GL context")
 		return false
 	}
-	window.gl_context = gl_context
 
-	window_api.make_gl_current(window.handle, gl_context)
+	if !window_api.make_gl_current(window.handle, gl_context) {
+		log.error("Failed to make GL context current")
+		window_api.destroy_gl_context(gl_context)
+		return false
+	}
+	window.gl_context = gl_context
 
 	// TODO(Thomas): Hardcoding VSync here, should be coming from options struct eventually
 	window_api.set_swap_interval(1)
