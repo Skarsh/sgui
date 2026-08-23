@@ -236,7 +236,7 @@ copy_selection_to_clipboard :: proc(
 	allocator: mem.Allocator,
 ) -> (
 	copied: bool,
-	error: mem.Allocator_Error,
+	error: base.Clipboard_Error,
 ) {
 	selection := textpkg.text_cursor_get_selection(state)
 	start := textpkg.selection_start(selection)
@@ -253,7 +253,7 @@ copy_selection_to_clipboard :: proc(
 	}
 
 	clipboard_error := clipboard.set_clipboard_text_proc(text[start:end], allocator)
-	if clipboard_error != .None {
+	if clipboard_error != nil {
 		return false, clipboard_error
 	}
 
@@ -324,7 +324,7 @@ dispatch_keyboard_to_focused :: proc(
 					frame_allocator,
 				)
 
-				if copy_error != .None {
+				if copy_error != nil {
 					log.error("Could not copy selection: ", copy_error)
 				}
 
@@ -333,27 +333,30 @@ dispatch_keyboard_to_focused :: proc(
 				//very large text. We can think about using a fallback strategy of
 				//persistent allocator or some general purpose allocator in those cases
 				//when it has first failed with the frame allocator
-				text_to_paste, alloc_err :=
+				text_to_paste, clipboard_error :=
 					interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
-				if alloc_err != .None {
-					log.error("Error when trying to get clipboard text: ", alloc_err)
+				if clipboard_error == nil {
+					// We don't crash just because someone tries to copy paste very large text
+					text_insert_err := textpkg.text_cursor_insert(
+						state,
+						textpkg.Cursor_Insert{text = text_to_paste},
+					)
+					switch text_insert_err {
+					case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
+					case .Buffer_Full:
+						log.error(
+							"Cannot paste because fixed buffer is full error:",
+							text_insert_err,
+						)
+					case .Out_Of_Memory:
+						log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
+					case:
+						panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
+					}
+				} else {
+					log.error("Failed to get clipboard text")
 				}
-				assert(alloc_err == .None)
 
-				// We don't crash just because someone tries to copy paste very large text
-				text_insert_err := textpkg.text_cursor_insert(
-					state,
-					textpkg.Cursor_Insert{text = text_to_paste},
-				)
-				switch text_insert_err {
-				case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
-				case .Buffer_Full:
-					log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
-				case .Out_Of_Memory:
-					log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
-				case:
-					panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
-				}
 			case .Cut:
 				// Cut should not work for read-only text, just be a no-op
 				switch v in state.variant {
@@ -364,8 +367,8 @@ dispatch_keyboard_to_focused :: proc(
 						frame_allocator,
 					)
 
-					if copy_error != .None {
-						log.error("Could not cut selection: ", copy_error)
+					if copy_error != nil {
+						log.error("Failed to cut")
 					} else if copied {
 						textpkg.text_cursor_delete(
 							state,

@@ -2,8 +2,19 @@ package base
 
 import "core:mem"
 
-Get_Clipboard_Text_Proc :: proc(allocator: mem.Allocator) -> (string, mem.Allocator_Error)
-Set_Clipboard_Text_Proc :: proc(text: string, allocator: mem.Allocator) -> mem.Allocator_Error
+Clipboard_Platform_Error :: enum {
+	None,
+	Get_Failed,
+	Set_Failed,
+}
+
+Clipboard_Error :: union #shared_nil {
+	mem.Allocator_Error,
+	Clipboard_Platform_Error,
+}
+
+Get_Clipboard_Text_Proc :: proc(allocator: mem.Allocator) -> (string, Clipboard_Error)
+Set_Clipboard_Text_Proc :: proc(text: string, allocator: mem.Allocator) -> Clipboard_Error
 
 Clipboard_Text_Procs :: struct {
 	get_clipboard_text_proc: Get_Clipboard_Text_Proc,

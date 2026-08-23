@@ -15,24 +15,35 @@ sdl_get_perf_freq :: proc() -> u64 {
 	return sdl.GetPerformanceFrequency()
 }
 
-// TODO(Thomas): Error handling for sdl procedure along the potential allocator error
 @(require_results)
-sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> (string, mem.Allocator_Error) {
+sdl_get_clipboard_text :: proc(allocator: mem.Allocator) -> (string, base.Clipboard_Error) {
 	c_str := sdl.GetClipboardText()
+	if c_str == nil {
+		return "", .Get_Failed
+	}
 	defer sdl.free(cast(rawptr)c_str)
 
 	str, alloc_err := strings.clone_from_cstring(c_str, allocator)
-	return str, alloc_err
+	if alloc_err != .None {
+		return "", alloc_err
+	}
+	return str, nil
 }
 
-// TODO(Thomas): Error handling for sdl procedure along the potential allocator error
 @(require_results)
-sdl_set_clipboard_text :: proc(text: string, allocator: mem.Allocator) -> mem.Allocator_Error {
+sdl_set_clipboard_text :: proc(text: string, allocator: mem.Allocator) -> base.Clipboard_Error {
 	c_str, alloc_err := strings.clone_to_cstring(text, allocator)
-	err := sdl.SetClipboardText(c_str)
-	assert(err == 0)
 
-	return alloc_err
+	if alloc_err != .None {
+		return alloc_err
+	}
+
+
+	if sdl.SetClipboardText(c_str) != 0 {
+		return .Set_Failed
+	}
+
+	return nil
 }
 
 @(require_results)
