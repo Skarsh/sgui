@@ -109,6 +109,9 @@ void apply_clip(vec4 rect) {
 }
 
 void render_rect() {
+    // Initialize o_color
+    o_color = vec4(0.0);
+
     float border_sum = v_border.x + v_border.y + v_border.z + v_border.w;
 
     if (border_sum <= 0.001) {
