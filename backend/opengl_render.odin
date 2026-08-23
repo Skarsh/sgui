@@ -216,7 +216,9 @@ init_opengl :: proc(
 	window.gl_context = gl_context
 
 	// TODO(Thomas): Hardcoding VSync here, should be coming from options struct eventually
-	window_api.set_swap_interval(1)
+	if !window_api.set_swap_interval(1) {
+		log.warn("Failed to enable VSync")
+	}
 
 	gl.load_up_to(4, 3, window_api.get_gl_proc_address())
 	gl.Enable(gl.BLEND)
