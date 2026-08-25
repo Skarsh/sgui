@@ -28,14 +28,13 @@ if not "%mode%"=="build" (
 
 echo.
 echo --- Building all examples ---
-FOR /D %%d IN (examples\*) DO (
-    echo Building example: %%~nd
-    odin build "%%d" -vet -strict-style -vet-tabs -warnings-as-errors -debug -out:build\%%~nd.exe
-    IF !ERRORLEVEL! NEQ 0 (
-        echo Build for example '%%~nd' failed!
-        exit /b 1
-    )
-)
+
+odin run parbuild -- .\examples .\build
+     IF !ERRORLEVEL! NEQ 0 (
+         echo Building examples with parbuild failed!
+         exit /b 1
+     )
+
 echo.
 echo Examples built successfully.
 endlocal
