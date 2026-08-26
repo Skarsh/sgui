@@ -33,85 +33,117 @@ main :: proc() {
 	out_dir := args[2]
 
 	dirs_file, open_err := os.open(in_dir)
-	assert(open_err == nil)
+	if open_err != nil {
+		fmt.eprintfln("Failed to open directory %v:", open_err)
+		return
+	}
 
 	dirs, dirs_err := os.read_all_directory(dirs_file, context.temp_allocator)
-	assert(dirs_err == nil)
+	if dirs_err != nil {
+		fmt.eprintln("Failed to read directory: ", dirs_err)
+		return
+	}
 
-
-	builds := make([dynamic]Build, context.temp_allocator)
-
-	// TODO(Thomas): Core count here is useless now because we'll just spin up as many processes
-	// as there are examples directories anyway. Add batching of batches up to core count??
 	core_count := os.get_processor_core_count()
-	for dir in dirs {
-		pipe_read, pipe_write, pipe_err := os.pipe()
-		if pipe_err != nil {
-			fmt.eprintln("Failed to open pipe for dir: ", dir.fullpath)
-			return
-		}
+	num_dirs := len(dirs)
 
-		desc := os.Process_Desc {
-			command = {
-				"odin",
-				"build",
-				dir.fullpath,
-				"-vet",
-				"-strict-style",
-				"-vet-tabs",
-				"-warnings-as-errors",
-				"-debug",
-				fmt.tprintf("-out:%v/%v.exe", out_dir, dir.name),
-			},
-			stdout  = pipe_write,
-			stderr  = pipe_write,
-		}
+	fmt.printfln("Core count is %v, which will be the builds batch size.", core_count)
+	fmt.printfln("Number of directories is %v", num_dirs)
 
 
-		fmt.println("Starting process: ", make_command_str(desc.command))
-		p, p_err := os.process_start(desc)
-		assert(p_err == nil)
+	builds := make([]Build, num_dirs, context.temp_allocator)
 
-		// The writing side of the pipe needs to be closed by the parent
-		// before the parent tries to read any data from it.
-		os.close(pipe_write)
+	start_batch: int
+	end_batch: int
 
-		append(&builds, Build{desc, pipe_read, p})
-	}
+	for start_batch < num_dirs {
 
-	// TODO(Thomas): Drain the pipe here concurrently to avoid potential slowdown
-	// of one of the processes fills it up?
-	// Can't write directly to stdout then probably?
-	for build in builds {
-		pipe_buf: [1024]byte
-		for {
-			n, err := os.read(build.pipe_read, pipe_buf[:])
-			if n > 0 {
-				os.write(os.stdout, pipe_buf[:n])
+		end_batch = clamp(end_batch, core_count, num_dirs)
+		batch_size := end_batch - start_batch
+
+		fmt.printfln(
+			"Running batch from %v, to %v: batch size %v",
+			start_batch,
+			end_batch,
+			batch_size,
+		)
+		for i in start_batch ..< end_batch {
+			dir := dirs[i]
+
+			pipe_read, pipe_write, pipe_err := os.pipe()
+			if pipe_err != nil {
+				fmt.eprintln("Failed to open pipe for dir: ", dir.fullpath)
+				return
 			}
-			if err != nil {
-				done := false
-				#partial switch e in err {
-				case io.Error:
-					done = e == .EOF
-				case os.General_Error:
-					done = e == .Broken_Pipe
-				}
 
-				if !done {
-					fmt.eprintln("Error when reading stdout: ", err)
-				}
-				break
+			desc := os.Process_Desc {
+				command = {
+					"odin",
+					"build",
+					dir.fullpath,
+					"-vet",
+					"-strict-style",
+					"-vet-tabs",
+					"-warnings-as-errors",
+					"-debug",
+					fmt.tprintf("-out:%v/%v.exe", out_dir, dir.name),
+				},
+				stdout  = pipe_write,
+				stderr  = pipe_write,
 			}
+
+			command_str := make_command_str(desc.command)
+			fmt.println("Starting process: ", command_str)
+			p, p_err := os.process_start(desc)
+			if p_err != nil {
+				fmt.println("Failed to start process: ", command_str)
+			}
+
+			// The writing side of the pipe needs to be closed by the parent
+			// before the parent tries to read any data from it.
+			os.close(pipe_write)
+
+			builds[i] = Build{desc, pipe_read, p}
 		}
 
-		os.close(build.pipe_read)
-	}
+		batch_builds := builds[start_batch:end_batch]
 
+		// TODO(Thomas): Drain the pipe here concurrently to avoid potential slowdown
+		// of one of the processes fills it up?
+		// Can't write directly to stdout then probably?
+		for build in batch_builds {
+			pipe_buf: [1024]byte
+			for {
+				n, err := os.read(build.pipe_read, pipe_buf[:])
+				if n > 0 {
+					os.write(os.stdout, pipe_buf[:n])
+				}
+				if err != nil {
+					done := false
+					#partial switch e in err {
+					case io.Error:
+						done = e == .EOF
+					case os.General_Error:
+						done = e == .Broken_Pipe
+					}
 
-	for build in builds {
-		// TODO(Thomas): Report failures etc
-		_, p_err := os.process_wait(build.process)
-		assert(p_err == nil)
+					if !done {
+						fmt.eprintln("Error when reading stdout: ", err)
+					}
+					break
+				}
+			}
+
+			os.close(build.pipe_read)
+		}
+
+		for build in batch_builds {
+			// TODO(Thomas): Report failures etc
+			_, p_err := os.process_wait(build.process)
+			assert(p_err == nil)
+		}
+
+		start_batch += core_count
+		end_batch += core_count
 	}
 }
