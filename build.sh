@@ -30,15 +30,9 @@ fi
 
 echo ""
 echo "--- Building all examples ---"
-for example_path in examples/*/; do
-    # Remove the trailing slash and the 'examples/' prefix to get the name
-    example_name=$(basename "$example_path")
-    
-    echo "Building example: $example_name"
-    if ! odin build "$example_path" -vet -strict-style -vet-tabs -warnings-as-errors -debug -out:./build/"$example_name".bin; then
-        echo "Build for example '$example_name' failed!"
-        exit 1
-    fi
-done
+if ! odin run parbuild -- ./examples ./build; then
+    echo "Building examples with parbuild failed!"
+    exit 1
+fi
 echo ""
-echo "Examples build successfully."
+echo "Examples built successfully."
