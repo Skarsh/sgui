@@ -4,11 +4,15 @@ import "core:fmt"
 import "core:io"
 import "core:os"
 import "core:strings"
+import "core:thread"
 
 Build :: struct {
-	desc:      os.Process_Desc,
-	pipe_read: ^os.File,
-	process:   os.Process,
+	desc:         os.Process_Desc,
+	pipe_read:    ^os.File,
+	process:      os.Process,
+	output:       [dynamic]byte,
+	drain_thread: ^thread.Thread,
+	drain_err:    os.Error,
 }
 
 make_command_str :: proc(command: []string) -> string {
@@ -20,28 +24,58 @@ make_command_str :: proc(command: []string) -> string {
 	return strings.to_string(sb)
 }
 
-main :: proc() {
+drain_pipe :: proc(build: ^Build) {
+	pipe_buf: [1024]byte
+	for {
+		n, err := os.read(build.pipe_read, pipe_buf[:])
+		if n > 0 {
+			_, append_err := append(&build.output, ..pipe_buf[:n])
+			if append_err != nil {
+				build.drain_err = append_err
+				break
+			}
+		}
+		if err != nil {
+			done := false
+			#partial switch e in err {
+			case io.Error:
+				done = e == .EOF
+			case os.General_Error:
+				done = e == .Broken_Pipe
+			}
 
+			if !done {
+				build.drain_err = err
+			}
+			break
+		}
+	}
+
+	os.close(build.pipe_read)
+}
+
+run :: proc() -> bool {
 	args := os.args
 
 	if len(args) < 3 {
 		fmt.eprintln("Not enough arguments")
-		os.exit(1)
+		return false
 	}
 
 	in_dir := args[1]
 	out_dir := args[2]
 
 	dirs_file, open_err := os.open(in_dir)
+	defer os.close(dirs_file)
 	if open_err != nil {
 		fmt.eprintfln("Failed to open directory %v:", open_err)
-		return
+		return false
 	}
 
 	dirs, dirs_err := os.read_all_directory(dirs_file, context.temp_allocator)
 	if dirs_err != nil {
 		fmt.eprintln("Failed to read directory: ", dirs_err)
-		return
+		return false
 	}
 
 	core_count := os.get_processor_core_count()
@@ -50,8 +84,9 @@ main :: proc() {
 	fmt.printfln("Core count is %v, which will be the builds batch size.", core_count)
 	fmt.printfln("Number of directories is %v", num_dirs)
 
+	builds := make([]Build, num_dirs)
 
-	builds := make([]Build, num_dirs, context.temp_allocator)
+	ok := true
 
 	start_batch: int
 	end_batch: int
@@ -73,7 +108,15 @@ main :: proc() {
 			pipe_read, pipe_write, pipe_err := os.pipe()
 			if pipe_err != nil {
 				fmt.eprintln("Failed to open pipe for dir: ", dir.fullpath)
-				return
+				return false
+			}
+
+			output, output_err := make([dynamic]byte, 0, 4096, context.allocator)
+			if output_err != nil {
+				os.close(pipe_read)
+				os.close(pipe_write)
+				fmt.eprintln("Failed to allocate output buffer")
+				return false
 			}
 
 			desc := os.Process_Desc {
@@ -97,53 +140,65 @@ main :: proc() {
 			p, p_err := os.process_start(desc)
 			if p_err != nil {
 				fmt.println("Failed to start process: ", command_str)
+
+				os.close(pipe_read)
+				os.close(pipe_write)
+				delete(output)
+				return false
 			}
 
 			// The writing side of the pipe needs to be closed by the parent
 			// before the parent tries to read any data from it.
 			os.close(pipe_write)
 
-			builds[i] = Build{desc, pipe_read, p}
-		}
-
-		batch_builds := builds[start_batch:end_batch]
-
-		// TODO(Thomas): Drain the pipe here concurrently to avoid potential slowdown
-		// of one of the processes fills it up?
-		// Can't write directly to stdout then probably?
-		for build in batch_builds {
-			pipe_buf: [1024]byte
-			for {
-				n, err := os.read(build.pipe_read, pipe_buf[:])
-				if n > 0 {
-					os.write(os.stdout, pipe_buf[:n])
-				}
-				if err != nil {
-					done := false
-					#partial switch e in err {
-					case io.Error:
-						done = e == .EOF
-					case os.General_Error:
-						done = e == .Broken_Pipe
-					}
-
-					if !done {
-						fmt.eprintln("Error when reading stdout: ", err)
-					}
-					break
-				}
+			builds[i] = Build {
+				desc      = desc,
+				pipe_read = pipe_read,
+				process   = p,
+				output    = output,
 			}
 
-			os.close(build.pipe_read)
+			build := &builds[i]
+			build.drain_thread = thread.create_and_start_with_poly_data(build, drain_pipe)
+
+			// Fallback if the thread creation and start failed, so do it sequentially
+			if build.drain_thread == nil {
+				drain_pipe(build)
+			}
 		}
 
-		for build in batch_builds {
-			// TODO(Thomas): Report failures etc
-			_, p_err := os.process_wait(build.process)
-			assert(p_err == nil)
+		for i in start_batch ..< end_batch {
+			build := &builds[i]
+
+			state, wait_err := os.process_wait(build.process)
+			if wait_err != nil {
+				fmt.eprintln("Failed to wait for process: ", wait_err)
+				ok = false
+			} else if state.exit_code != 0 {
+				ok = false
+			}
+
+			if build.drain_thread != nil {
+				thread.destroy(build.drain_thread)
+			}
+
+			if build.drain_err != nil {
+				fmt.eprintln("Failed to drain output: ", build.drain_err)
+				ok = false
+			}
+
+			os.write(os.stdout, build.output[:])
+			delete(build.output)
 		}
 
 		start_batch += core_count
 		end_batch += core_count
+	}
+	return ok
+}
+
+main :: proc() {
+	if !run() {
+		os.exit(1)
 	}
 }
