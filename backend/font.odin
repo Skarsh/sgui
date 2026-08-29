@@ -90,6 +90,7 @@ init_font_atlas :: proc(
 	atlas_width: i32,
 	atlas_height: i32,
 	allocator: mem.Allocator,
+	scratch_allocator: mem.Allocator,
 ) -> bool {
 
 	atlas.font_descs = make([]Font_Desc, len(font_configs), allocator)
@@ -114,19 +115,18 @@ init_font_atlas :: proc(
 	}
 
 	atlas.glyph_cache = make(map[Font_Key]Atlas_Glyph, allocator)
-	pack_fonts(atlas)
+	pack_fonts(atlas, scratch_allocator)
 	cache_packed_chars(atlas)
 
 	return true
 }
 
-pack_fonts :: proc(atlas: ^Font_Atlas) {
+pack_fonts :: proc(atlas: ^Font_Atlas, scratch_allocator: mem.Allocator) {
 	total_rects: int
 	for desc in atlas.font_descs {
 		total_rects += int(desc.pack_range.num_chars)
 	}
-	rects := make([]stbrp.Rect, total_rects, context.temp_allocator)
-	defer free_all(context.temp_allocator)
+	rects := make([]stbrp.Rect, total_rects, scratch_allocator)
 
 	pack_ctx := stbtt.pack_context{}
 	pack_begin_ok := stbtt.PackBegin(
@@ -142,7 +142,7 @@ pack_fonts :: proc(atlas: ^Font_Atlas) {
 
 	stbtt.PackSetOversampling(&pack_ctx, 1, 1)
 
-	offsets := make([dynamic]int, context.temp_allocator)
+	offsets := make([dynamic]int, scratch_allocator)
 	offset: int
 	for &desc in atlas.font_descs {
 		n := stbtt.PackFontRangesGatherRects(

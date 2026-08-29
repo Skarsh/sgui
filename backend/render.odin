@@ -39,7 +39,7 @@ init_render_ctx :: proc(
 	ctx.allocator = allocator
 	ctx.renderer_type = renderer_type
 
-	if !init_font_atlas(&ctx.font_atlas, font_configs, 1024, 1024, allocator) {
+	if !init_font_atlas(&ctx.font_atlas, font_configs, 1024, 1024, allocator, scratch_allocator) {
 		log.error("Failed to init font atlas")
 		ctx^ = {}
 		return false
