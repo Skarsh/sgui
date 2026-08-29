@@ -121,32 +121,23 @@ deinit :: proc(ctx: ^Context) {
 	// Deinit interaction
 	deinit_interaction(&ctx.interaction)
 
-	// Freeing Elements
-	free_list, alloc_err := make([dynamic]^UI_Element, context.temp_allocator)
-	assert(alloc_err == .None)
-	defer free_all(context.temp_allocator)
-
 	for _, elem in ctx.element_cache {
 		if elem != nil {
-			_, append_alloc_err := append(&free_list, elem)
-			assert(append_alloc_err == .None)
+			free_element(elem, ctx.persistent_allocator)
 		}
 	}
 
-	free_elements(free_list[:], ctx.persistent_allocator)
-
-	// Delete the cache after we've freed the elements in the free_list
 	delete(ctx.element_cache)
 }
 
-free_elements :: proc(free_list: []^UI_Element, allocator: mem.Allocator) {
-	for elem in free_list {
-		if elem.children != nil {
-			delete(elem.children)
-		}
-		delete(elem.name)
-		free(elem, allocator)
+free_element :: proc(elem: ^UI_Element, allocator: mem.Allocator) {
+	if elem.children != nil {
+		delete(elem.children)
 	}
+	delete(elem.name)
+
+	free_err := free(elem, allocator)
+	assert(free_err == .None)
 }
 
 begin :: proc(ctx: ^Context) {
@@ -314,12 +305,7 @@ prune_dead_elements :: proc(
 	for elem in free_list {
 		delete_key(element_cache, elem.key)
 		if elem.value != nil {
-			if elem.value.children != nil {
-				delete(elem.value.children)
-			}
-			delete(elem.value.name)
-			free_err := free(elem.value, persistent_allocator)
-			assert(free_err == .None)
+			free_element(elem.value, persistent_allocator)
 		}
 	}
 }
