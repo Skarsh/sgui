@@ -153,20 +153,6 @@ test_text_edit_insert :: proc(t: ^testing.T) {
 		{active = 5, anchor = 5},
 	)
 
-	// TODO(Thomas): This might not belong here since it's a strong assertion on the common
-	// behaviour of both backends. The Gap_Buffer backend should not have an issue with this since it
-	// should just reserve more space, while the Fixed_Buffer backend is hard capped at the size.
-	// Replacement that is rejected should not delete selection
-	check_edit_insert(
-		t,
-		"abcdef",
-		{active = 4, anchor = 1}, // "bcd"
-		"WXYZ",
-		"abcdef",
-		{active = 4, anchor = 1},
-		buffer_capacity = 6,
-	)
-
 	// Checks an edge case where the existing text is at max size,
 	// and trying to insert equal amount of characters in bytes
 	// as is deleted, which should succeed.
@@ -179,6 +165,21 @@ test_text_edit_insert :: proc(t: ^testing.T) {
 		{active = 4, anchor = 4},
 		buffer_capacity = 6,
 	)
+}
+
+@(test)
+test_text_edit_insert_grows_gap_buffer :: proc(t: ^testing.T) {
+	// Selects bcd
+	state := test_text_edit_state(.Gap, 6, "abcdef", {active = 4, anchor = 1})
+
+	err := text_cursor_apply(&state, Cursor_Insert{text = "WXYZ"})
+	testing.expectf(t, err == nil, "expected nil, got %v", err)
+
+	actual, alloc_err := text_cursor_get_text(&state, context.temp_allocator)
+	testing.expectf(t, err == nil, "expected nil, got %v", alloc_err)
+
+	testing.expect_value(t, actual, "aWXYZef")
+	testing.expect_value(t, state.selection, Selection{active = 5, anchor = 5})
 }
 
 @(test)
