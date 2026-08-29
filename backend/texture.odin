@@ -1,7 +1,6 @@
 package backend
 
 import "core:log"
-import "core:strings"
 
 import gl "vendor:OpenGL"
 import stb_image "vendor:stb/image"
@@ -54,12 +53,10 @@ OpenGL_Texture :: struct {
 }
 
 @(require_results)
-opengl_create_texture_from_file :: proc(path: string) -> (OpenGL_Texture, bool) {
+opengl_create_texture_from_file :: proc(path: cstring) -> (OpenGL_Texture, bool) {
 	width, height, nr_channels: i32
-	filename := strings.clone_to_cstring(path, context.temp_allocator)
-	defer free_all(context.temp_allocator)
 
-	texture_data := stb_image.load(filename, &width, &height, &nr_channels, 4)
+	texture_data := stb_image.load(path, &width, &height, &nr_channels, 4)
 
 	if texture_data == nil {
 		log.errorf("Failed to load texture: %s", path)
