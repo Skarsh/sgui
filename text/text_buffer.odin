@@ -54,6 +54,39 @@ text_buffer_delete_range :: proc(tb: ^Text_Buffer, byte_pos: int, byte_count: in
 }
 
 @(require_results)
+text_buffer_replace_range :: proc(
+	tb: ^Text_Buffer,
+	byte_start, byte_end: int,
+	replacement: string,
+) -> (
+	err: Text_Buffer_Error,
+) {
+	current_len := text_buffer_byte_length(tb^)
+	assert(0 <= byte_start && byte_start <= byte_end && byte_end <= current_len)
+
+	removed_len := byte_end - byte_start
+	replacement_len := len(replacement)
+	new_len := current_len - removed_len + replacement_len
+
+	switch &buf in tb.buf {
+	case gap_buffer.Gap_Buffer:
+		gap_buffer.reserve(&buf, new_len) or_return
+		gap_buffer.delete_range(&buf, byte_start, removed_len)
+		gap_buffer.insert_at(&buf, byte_start, replacement) or_return
+
+	case fixed_buffer.Fixed_Buffer:
+		if new_len <= fixed_buffer.capacity(buf) {
+			fixed_buffer.delete_range(&buf, byte_start, removed_len)
+			err = fixed_buffer.insert_at(&buf, byte_start, replacement)
+		} else {
+			err = fixed_buffer.Fixed_Buffer_Error.Buffer_Full
+		}
+	}
+
+	return
+}
+
+@(require_results)
 text_buffer_byte_length :: proc(tb: Text_Buffer) -> int {
 	byte_len: int
 	switch buf in tb.buf {
@@ -62,19 +95,6 @@ text_buffer_byte_length :: proc(tb: Text_Buffer) -> int {
 	case fixed_buffer.Fixed_Buffer:
 		byte_len = buf.len
 	}
-	return byte_len
-}
-
-@(require_results)
-text_buffer_capacity :: proc(tb: Text_Buffer) -> int {
-	byte_len: int
-	switch buf in tb.buf {
-	case gap_buffer.Gap_Buffer:
-		byte_len = gap_buffer.capacity(buf)
-	case fixed_buffer.Fixed_Buffer:
-		byte_len = fixed_buffer.capacity(buf)
-	}
-
 	return byte_len
 }
 

@@ -176,7 +176,7 @@ test_text_edit_insert_grows_gap_buffer :: proc(t: ^testing.T) {
 	testing.expectf(t, err == nil, "expected nil, got %v", err)
 
 	actual, alloc_err := text_cursor_get_text(&state, context.temp_allocator)
-	testing.expectf(t, err == nil, "expected nil, got %v", alloc_err)
+	testing.expectf(t, alloc_err == nil, "expected nil, got %v", alloc_err)
 
 	testing.expect_value(t, actual, "aWXYZef")
 	testing.expect_value(t, state.selection, Selection{active = 5, anchor = 5})

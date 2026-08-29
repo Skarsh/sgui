@@ -168,16 +168,14 @@ text_cursor_set_caret :: proc(state: ^Text_State, cmd: Cursor_Set_Caret) {
 text_cursor_insert :: proc(state: ^Text_State, cmd: Cursor_Insert) -> Text_Buffer_Error {
 	switch &v in state.variant {
 	case Text_Edit_State:
-		current_len := text_buffer_byte_length(v.buffer)
 		start := selection_start(state.selection)
 		end := selection_end(state.selection)
-		sel_len := end - start
-		if current_len + len(cmd.text) - sel_len <= text_buffer_capacity(v.buffer) {
-			text_buffer_delete_range(&v.buffer, start, sel_len)
-			insert_at := start
-			text_buffer_insert_at(&v.buffer, insert_at, cmd.text) or_return
-			set_caret(state, insert_at + len(cmd.text))
-		}
+
+		text_buffer_replace_range(&v.buffer, start, end, cmd.text) or_return
+
+		insert_at := start
+		set_caret(state, insert_at + len(cmd.text))
+
 	case Text_Read_Only_State:
 	// no-op
 	}

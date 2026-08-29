@@ -122,6 +122,17 @@ capacity :: proc(gb: Gap_Buffer) -> int {
 }
 
 @(require_results)
+reserve :: proc(gb: ^Gap_Buffer, minimum_capacity: int) -> mem.Allocator_Error {
+	assert(minimum_capacity >= 0)
+	current_capacity := capacity(gb^)
+	if current_capacity < minimum_capacity {
+		amount := minimum_capacity - current_capacity
+		grow(gb, amount) or_return
+	}
+	return nil
+}
+
+@(require_results)
 gap_size :: proc(gb: Gap_Buffer) -> int {
 	return gb.end - gb.start
 }
@@ -191,6 +202,7 @@ grow :: proc(gb: ^Gap_Buffer, required: int) -> mem.Allocator_Error {
 	return nil
 }
 
+// TODO(Thomas): Use reserve here instead.
 // Helper to ensure we grow if we don't have enough space
 @(private)
 @(require_results)
