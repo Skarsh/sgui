@@ -263,9 +263,9 @@ main :: proc() {
 	defer free_all(arena_allocator)
 
 	app_memory := app.App_Memory {
-		app_arena_mem      = make([]u8, 10 * mem.Megabyte, arena_allocator),
-		frame_arena_mem    = make([]u8, 100 * mem.Kilobyte, arena_allocator),
-		draw_cmd_arena_mem = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		app_arena_mem       = make([]u8, 10 * mem.Megabyte, arena_allocator),
+		frame_arena_mem     = make([]u8, 100 * mem.Kilobyte, arena_allocator),
+		draw_command_buffer = make([]ui.Draw_Command, 1024, arena_allocator),
 	}
 
 	config := app.App_Config {

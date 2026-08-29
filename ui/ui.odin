@@ -25,7 +25,6 @@ Color_Style :: [Color_Type]base.Color
 Context :: struct {
 	persistent_allocator: mem.Allocator,
 	frame_allocator:      mem.Allocator,
-	draw_cmd_allocator:   mem.Allocator,
 	element_stack:        Stack(^UI_Element, ELEMENT_STACK_SIZE),
 	// Style stack for cascading styles. Use push_style/pop_style.
 	style_stack:          Stack(Style, STYLE_STACK_SIZE),
@@ -76,10 +75,11 @@ init :: proc(
 	text_measurement: ^textpkg.Text_Measurement,
 	persistent_allocator: mem.Allocator,
 	frame_allocator: mem.Allocator,
-	draw_cmd_allocator: mem.Allocator,
+	draw_command_buffer: []Draw_Command,
 	screen_size: [2]i32,
 	font_configs: []base.Font_Config,
 ) {
+	assert(len(draw_command_buffer) > 0)
 	ctx^ = {} // zero memory
 	ctx.interaction = Interaction {
 		input            = input,
@@ -87,7 +87,6 @@ init :: proc(
 	}
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
-	ctx.draw_cmd_allocator = draw_cmd_allocator
 	ctx.window_size = screen_size
 
 	// TODO(Thomas): Pretty sure this can fail with allocation error as all other make procedures,
@@ -102,8 +101,7 @@ init :: proc(
 	)
 	assert(ts_err == .None)
 
-	init_draw_state_alloc_err := init_draw_state(&ctx.draw_state, draw_cmd_allocator)
-	assert(init_draw_state_alloc_err == .None)
+	init_draw_state(&ctx.draw_state, draw_command_buffer)
 
 	init_interaction_alloc_err := init_interaction(&ctx.interaction, persistent_allocator)
 	assert(init_interaction_alloc_err == .None)
@@ -166,9 +164,6 @@ begin :: proc(ctx: ^Context) {
 
 	free_frame_alloc_err := free_all(ctx.frame_allocator)
 	assert(free_frame_alloc_err == .None)
-
-	free_draw_cmd_alloc_err := free_all(ctx.draw_cmd_allocator)
-	assert(free_draw_cmd_alloc_err == .None)
 
 	reset_interaction(&ctx.interaction)
 	reset_draw_state(&ctx.draw_state, ctx.window_size)

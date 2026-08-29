@@ -10,14 +10,13 @@ import textpkg "../text"
 // TODO(Thomas): Update with the allocators that the library uses, e.g. if we settle on
 // Pool_Allocator etc.
 Test_Environment :: struct {
-	ctx:                      Context,
-	input:                    base.Input,
-	text_measurement:         textpkg.Text_Measurement,
-	persistent_allocator:     mem.Allocator,
-	frame_arena:              virtual.Arena,
-	frame_arena_allocator:    mem.Allocator,
-	draw_cmd_arena:           virtual.Arena,
-	draw_cmd_arena_allocator: mem.Allocator,
+	ctx:                   Context,
+	input:                 base.Input,
+	text_measurement:      textpkg.Text_Measurement,
+	persistent_allocator:  mem.Allocator,
+	frame_arena:           virtual.Arena,
+	frame_arena_allocator: mem.Allocator,
+	draw_command_buffer:   []Draw_Command,
 }
 
 setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
@@ -37,10 +36,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	assert(frame_arena_alloc_err == .None)
 	env.frame_arena_allocator = virtual.arena_allocator(&env.frame_arena)
 
-	env.draw_cmd_arena = virtual.Arena{}
-	draw_cmd_arena_alloc_err := virtual.arena_init_static(&env.draw_cmd_arena)
-	assert(draw_cmd_arena_alloc_err == .None)
-	env.draw_cmd_arena_allocator = virtual.arena_allocator(&env.draw_cmd_arena)
+	env.draw_command_buffer = make([]Draw_Command, 1024, context.allocator)
 
 	init(
 		&env.ctx,
@@ -48,7 +44,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 		&env.text_measurement,
 		env.persistent_allocator,
 		env.frame_arena_allocator,
-		env.draw_cmd_arena_allocator,
+		env.draw_command_buffer,
 		window_size,
 		{{"", 0, nil}},
 	)
@@ -58,6 +54,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 
 cleanup_test_environment :: proc(env: ^Test_Environment) {
 	deinit(&env.ctx)
+	delete(env.draw_command_buffer)
 	free(env)
 }
 

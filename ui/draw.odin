@@ -1,8 +1,5 @@
 package ui
 
-import "core:fmt"
-import "core:mem"
-
 import "../base"
 import textpkg "../text"
 
@@ -12,43 +9,43 @@ Shape_Kind :: enum u8 {
 
 Draw_State :: struct {
 	current_clip_rect: base.Rect,
-	command_counter:   u64,
-	command_queue:     [dynamic]Draw_Command,
+	command_buffer:    []Draw_Command,
+	command_count:     int,
 }
 
-@(require_results)
-init_draw_state :: proc(draw_state: ^Draw_State, allocator: mem.Allocator) -> mem.Allocator_Error {
-	alloc_err: mem.Allocator_Error
-	draw_state.command_queue, alloc_err = make([dynamic]Draw_Command, allocator)
-	return alloc_err
+init_draw_state :: proc(draw_state: ^Draw_State, command_buffer: []Draw_Command) {
+	draw_state.command_buffer = command_buffer
+	draw_state.command_count = 0
 }
 
 reset_draw_state :: proc(draw_state: ^Draw_State, window_size: base.Vector2i32) {
-	draw_state.command_counter = 0
+	draw_state.command_count = 0
 	draw_state.current_clip_rect = base.Rect{0, 0, window_size.x, window_size.y}
-	clear_dynamic_array(&draw_state.command_queue)
+}
+
+draw_commands :: proc(ctx: ^Context) -> []Draw_Command {
+	draw_state := &ctx.draw_state
+	return draw_state.command_buffer[:draw_state.command_count]
 }
 
 push_draw_command :: proc(draw_state: ^Draw_State, command: Command, z_index: i32) {
-	draw_state.command_counter += 1
+	assert(draw_state.command_count < len(draw_state.command_buffer))
 
 	draw_cmd := Draw_Command {
 		z_index   = z_index,
-		cmd_idx   = draw_state.command_counter,
+		cmd_idx   = draw_state.command_count,
 		clip_rect = draw_state.current_clip_rect,
 		command   = command,
 	}
-	_, alloc_err := append(&draw_state.command_queue, draw_cmd)
-	assert(
-		alloc_err == .None,
-		fmt.tprintf("allocation error when appending to draw command queue: %v", alloc_err),
-	)
+
+	draw_state.command_buffer[draw_state.command_count] = draw_cmd
+	draw_state.command_count += 1
 }
 
 Draw_Command :: struct {
 	command:   Command,
 	clip_rect: base.Rect,
-	cmd_idx:   u64,
+	cmd_idx:   int,
 	z_index:   i32,
 }
 

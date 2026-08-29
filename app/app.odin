@@ -18,7 +18,6 @@ App :: struct {
 	persistent_allocator: mem.Allocator,
 	app_arena:            virtual.Arena,
 	frame_arena:          virtual.Arena,
-	draw_cmd_arena:       virtual.Arena,
 	ui_ctx:               ui.Context,
 	backend_ctx:          backend.Context,
 	input:                base.Input,
@@ -27,9 +26,9 @@ App :: struct {
 }
 
 App_Memory :: struct {
-	app_arena_mem:      []u8,
-	frame_arena_mem:    []u8,
-	draw_cmd_arena_mem: []u8,
+	app_arena_mem:       []u8,
+	frame_arena_mem:     []u8,
+	draw_command_buffer: []ui.Draw_Command,
 }
 
 App_Config :: struct {
@@ -43,6 +42,12 @@ App_Config :: struct {
 }
 
 init :: proc(app_config: App_Config) -> (^App, bool) {
+
+	if len(app_config.memory.draw_command_buffer) == 0 {
+		log.error("Draw command buffer cannot be empty")
+		return nil, false
+	}
+
 	allocator := app_config.allocator
 
 	app, app_err := new(App, allocator)
@@ -79,15 +84,6 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		return nil, false
 	}
 
-	draw_cmd_allocator, draw_cmd_arena_ok := init_arena(
-		&app.draw_cmd_arena,
-		app_config.memory.draw_cmd_arena_mem,
-		"draw_cmd_arena",
-	)
-	if !draw_cmd_arena_ok {
-		return nil, false
-	}
-
 	app_callbacks := backend.App_Callbacks {
 		on_quit      = _on_quit_callback,
 		on_quit_data = app,
@@ -117,7 +113,7 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		&app.text_measurement,
 		app.persistent_allocator,
 		frame_allocator,
-		draw_cmd_allocator,
+		app_config.memory.draw_command_buffer,
 		app_config.window_size,
 		app_config.font_configs,
 	)
@@ -158,8 +154,8 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		if !keep_running {
 			app.running = false
 		}
-		// TODO(Thomas): Shouldn't access ui_ctx command queue like this.
-		backend.render_end(&app.backend_ctx.render_ctx, app.ui_ctx.draw_state.command_queue[:])
+
+		backend.render_end(&app.backend_ctx.render_ctx, ui.draw_commands(&app.ui_ctx))
 
 		// 4. TODO(Thomas): Sleep to hit target framerate if not vsync.
 		// currently hardcoded to use vsync, so no sleeping.
