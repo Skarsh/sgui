@@ -3,7 +3,6 @@ package backend
 import "core:log"
 import "core:mem"
 import "core:os"
-import "core:strings"
 
 import gl "vendor:OpenGL"
 
@@ -21,7 +20,7 @@ Shader_Config :: struct {
 	fragment_path: string,
 }
 
-create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
+create_shader :: proc(config: Shader_Config, scratch_allocator: mem.Allocator) -> (Shader, bool) {
 
 	program := gl.CreateProgram()
 	vertex_shader: u32
@@ -43,21 +42,17 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 		}
 	}
 
-	vertex_data, vertex_err := os.read_entire_file_from_path(
-		config.vertex_path,
-		context.temp_allocator,
-	)
-	defer free_all(context.temp_allocator)
+	vertex_data, vertex_err := os.read_entire_file_from_path(config.vertex_path, scratch_allocator)
 	if vertex_err != nil {
 		log.error("Failed to read vertex shader file with error: ", vertex_err)
 		return {}, false
 	}
 
-	vertex_source := transmute(string)vertex_data
-	vertex_source_cstring := strings.clone_to_cstring(vertex_source, context.temp_allocator)
+	vertex_source := cstring(raw_data(vertex_data))
+	vertex_source_len := i32(len(vertex_data))
 
 	vertex_shader = gl.CreateShader(gl.VERTEX_SHADER)
-	gl.ShaderSource(vertex_shader, 1, &vertex_source_cstring, nil)
+	gl.ShaderSource(vertex_shader, 1, &vertex_source, &vertex_source_len)
 	gl.CompileShader(vertex_shader)
 	if !check_shader_compile_status(Shader_Type.Vertex, vertex_shader) {
 		return {}, false
@@ -66,18 +61,18 @@ create_shader :: proc(config: Shader_Config) -> (Shader, bool) {
 
 	fragment_data, fragment_err := os.read_entire_file_from_path(
 		config.fragment_path,
-		context.temp_allocator,
+		scratch_allocator,
 	)
 	if fragment_err != nil {
 		log.error("Failed to read fragment shader file with error: ", fragment_err)
 		return {}, false
 	}
 
-	fragment_source := transmute(string)fragment_data
-	fragment_source_cstring := strings.clone_to_cstring(fragment_source, context.temp_allocator)
+	fragment_source := cstring(raw_data(fragment_data))
+	fragment_source_len := i32(len(fragment_data))
 
 	fragment_shader = gl.CreateShader(gl.FRAGMENT_SHADER)
-	gl.ShaderSource(fragment_shader, 1, &fragment_source_cstring, nil)
+	gl.ShaderSource(fragment_shader, 1, &fragment_source, &fragment_source_len)
 	gl.CompileShader(fragment_shader)
 	if !check_shader_compile_status(Shader_Type.Fragment, fragment_shader) {
 		return {}, false
@@ -105,98 +100,16 @@ shader_use_program :: proc(shader: Shader) {
 	gl.UseProgram(shader.id)
 }
 
-shader_set_bool :: proc(shader: Shader, name: string, val: bool) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), i32(val))
-	return .None
+shader_set_int :: proc(shader: Shader, name: cstring, val: i32) {
+	gl.Uniform1i(gl.GetUniformLocation(shader.id, name), val)
 }
 
-shader_set_int :: proc(shader: Shader, name: string, val: i32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform1i(gl.GetUniformLocation(shader.id, name_cstr), val)
-	return .None
+shader_set_vec2 :: proc(shader: Shader, name: cstring, val: ^[2]f32) {
+	gl.Uniform2fv(gl.GetUniformLocation(shader.id, name), 1, &val[0])
 }
 
-shader_set_float :: proc(shader: Shader, name: string, val: f32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform1f(gl.GetUniformLocation(shader.id, name_cstr), val)
-	return .None
-}
-
-shader_set_vec2 :: proc(shader: Shader, name: string, val: ^[2]f32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform2fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
-	return .None
-}
-
-shader_set_vec3 :: proc(shader: Shader, name: string, val: ^[3]f32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform3fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
-	return .None
-}
-
-shader_set_vec3_xyz :: proc(shader: Shader, name: string, x, y, z: f32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform3f(gl.GetUniformLocation(shader.id, name_cstr), x, y, z)
-	return .None
-}
-
-shader_set_vec4 :: proc(shader: Shader, name: string, val: ^[4]f32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform4fv(gl.GetUniformLocation(shader.id, name_cstr), 1, &val[0])
-	return .None
-}
-
-shader_set_vec4_xyz :: proc(shader: Shader, name: string, x, y, z, w: f32) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.Uniform4f(gl.GetUniformLocation(shader.id, name_cstr), x, y, z, w)
-	return .None
-}
-
-shader_set_mat4 :: proc(
-	shader: Shader,
-	name: string,
-	mat: ^matrix[4, 4]f32,
-) -> mem.Allocator_Error {
-	name_cstr, err := strings.clone_to_cstring(name, context.temp_allocator)
-	defer free_all(context.temp_allocator)
-	if err != .None {
-		return err
-	}
-	gl.UniformMatrix4fv(gl.GetUniformLocation(shader.id, name_cstr), 1, false, &mat[0][0])
-	return .None
+shader_set_mat4 :: proc(shader: Shader, name: cstring, mat: ^matrix[4, 4]f32) {
+	gl.UniformMatrix4fv(gl.GetUniformLocation(shader.id, name), 1, false, &mat[0][0])
 }
 
 @(private)

@@ -100,7 +100,10 @@ init :: proc(app_config: App_Config) -> (^App, bool) {
 		app_config.window_api,
 		app_callbacks,
 		app_allocator,
+		frame_allocator,
 	)
+	scratch_free_err := free_all(frame_allocator)
+	assert(scratch_free_err == .None)
 
 	if !backend_init_ok {
 		free_all(app_allocator)

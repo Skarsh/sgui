@@ -30,7 +30,8 @@ init_render_ctx :: proc(
 	window_size: base.Vector2i32,
 	font_configs: []base.Font_Config,
 	renderer_type: Renderer_Type,
-	allocator := context.allocator,
+	allocator: mem.Allocator,
+	scratch_allocator: mem.Allocator,
 ) -> bool {
 
 	ctx.window = window
@@ -51,6 +52,7 @@ init_render_ctx :: proc(
 		window_size,
 		ctx.font_atlas,
 		allocator,
+		scratch_allocator,
 	)
 
 	if !renderer_ok {

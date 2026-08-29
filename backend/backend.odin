@@ -92,6 +92,7 @@ init_ctx :: proc(
 	window_api: Window_API,
 	app_callbacks: App_Callbacks,
 	allocator: mem.Allocator,
+	scratch_allocator: mem.Allocator,
 ) -> bool {
 
 	if len(font_configs) == 0 {
@@ -126,6 +127,7 @@ init_ctx :: proc(
 		font_configs,
 		.OpenGL,
 		allocator,
+		scratch_allocator,
 	)
 	if !render_ctx_ok {
 		log.error("failed to init render context")

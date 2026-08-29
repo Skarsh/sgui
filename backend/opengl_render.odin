@@ -4,6 +4,7 @@ import "base:runtime"
 import "core:fmt"
 import "core:log"
 import "core:math/linalg"
+import "core:mem"
 import "core:reflect"
 import "core:slice"
 
@@ -116,11 +117,13 @@ Quad_Param :: struct #align (16) {
 	border_radius:       base.Vec4,
 }
 
-Batch :: struct {
-	vertices:      [dynamic]Vertex,
-	indices:       [dynamic]u32,
-	vertex_offset: i32,
-	quad_idx:      i32,
+push_quad :: proc(render_data: ^OpenGL_Render_Data, quad_count: ^i32, quad: Quad_Param) {
+	if quad_count^ >= MAX_QUADS {
+		flush_quads(render_data, quad_count)
+	}
+
+	render_data.ssbo_data[quad_count^] = quad
+	quad_count^ += 1
 }
 
 // Helper struct for converting Fill to GPU-compatible color values
@@ -146,13 +149,6 @@ fill_to_colors :: proc(fill: base.Fill) -> Fill_Colors {
 	return {}
 }
 
-reset_batch :: proc(batch: ^Batch) {
-	clear(&batch.vertices)
-	clear(&batch.indices)
-	batch.vertex_offset = 0
-	batch.quad_idx = 0
-}
-
 OpenGL_Render_Data :: struct {
 	window_size:         base.Vector2i32,
 	vao:                 u32,
@@ -169,8 +165,6 @@ OpenGL_Render_Data :: struct {
 }
 
 MAX_QUADS :: 10_000
-MAX_VERTICES :: MAX_QUADS * 4
-MAX_INDICES :: MAX_QUADS * 6
 
 @(require_results)
 configure_opengl_window :: proc(window_api: Window_API) -> bool {
@@ -200,7 +194,8 @@ init_opengl :: proc(
 	window_api: Window_API,
 	window_size: base.Vector2i32,
 	font_atlas: Font_Atlas,
-	allocator := context.allocator,
+	allocator: mem.Allocator,
+	scratch_allocator: mem.Allocator,
 ) -> bool {
 	gl_context, gl_ok := window_api.create_gl_context(window.handle)
 	if !gl_ok {
@@ -230,6 +225,7 @@ init_opengl :: proc(
 	// embedded into exe??
 	shader, shader_ok := create_shader(
 		Shader_Config{"shaders/main_vs.glsl", "shaders/main_fs.glsl"},
+		scratch_allocator,
 	)
 	if !shader_ok {
 		log.error("Failed to create shader")
@@ -351,13 +347,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 
 	clear(&render_data.scissor_stack)
 
-	batch := Batch {
-		make([dynamic]Vertex, 0, len(command_queue) * 4, context.temp_allocator),
-		make([dynamic]u32, 0, len(command_queue) * 6, context.temp_allocator),
-		0,
-		0,
-	}
-	defer free_all(context.temp_allocator)
+	quad_count: i32
 
 	shader_use_program(render_data.shader)
 
@@ -367,7 +357,6 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 
 	// Reset the image texture state each frame
 	reset_image_texture_state(&render_data.image_texture_state)
-	reset_batch(&batch)
 
 	for command in command_queue {
 		cmd := command.command
@@ -380,42 +369,40 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 			fill_colors := fill_to_colors(val.fill)
 			border_colors := fill_to_colors(val.border_fill)
 
-			if batch.quad_idx >= MAX_QUADS {
-				flush_render(render_data, batch)
-				reset_batch(&batch)
-			}
-
 			rect := val.rect
+			push_quad(
+				render_data,
+				&quad_count,
+				Quad_Param {
+					// Rect Fill
+					color_start         = fill_colors.color_start,
+					color_end           = fill_colors.color_end,
+					gradient_dir        = fill_colors.gradient_dir,
+					// Border Fill
+					border_color_start  = border_colors.color_start,
+					border_color_end    = border_colors.color_end,
+					border_gradient_dir = border_colors.gradient_dir,
+					// Clip Rect
+					clip_rect           = {
+						f32(command.clip_rect.x),
+						f32(command.clip_rect.y),
+						f32(command.clip_rect.w),
+						f32(command.clip_rect.h),
+					},
+					// Others
+					quad_pos            = {
+						f32(rect.x) + f32(rect.w) / 2,
+						f32(rect.y) + f32(rect.h) / 2,
+					},
+					quad_size           = {f32(rect.w), f32(rect.h)},
+					uv_offset           = {-1, -1},
+					uv_size             = {0, 0},
+					quad_type           = i32(Quad_Type.Rect),
+					border              = border_vec,
+					border_radius       = border_radius,
+				},
+			)
 
-			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-				// Rect Fill
-				color_start         = fill_colors.color_start,
-				color_end           = fill_colors.color_end,
-				gradient_dir        = fill_colors.gradient_dir,
-				// Border Fill
-				border_color_start  = border_colors.color_start,
-				border_color_end    = border_colors.color_end,
-				border_gradient_dir = border_colors.gradient_dir,
-				// Clip Rect
-				clip_rect           = {
-					f32(command.clip_rect.x),
-					f32(command.clip_rect.y),
-					f32(command.clip_rect.w),
-					f32(command.clip_rect.h),
-				},
-				// Others
-				quad_pos            = {
-					f32(rect.x) + f32(rect.w) / 2,
-					f32(rect.y) + f32(rect.h) / 2,
-				},
-				quad_size           = {f32(rect.w), f32(rect.h)},
-				uv_offset           = {-1, -1},
-				uv_size             = {0, 0},
-				quad_type           = i32(Quad_Type.Rect),
-				border              = border_vec,
-				border_radius       = border_radius,
-			}
-			batch.quad_idx += 1
 		case ui.Command_Text:
 			assert(
 				val.font_id >= 0 && val.font_id < len(render_data.font_atlas.font_descs),
@@ -479,32 +466,30 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 					log.error("Glyph not found for rune: ", glyph.codepoint)
 				}
 
-				if batch.quad_idx >= MAX_QUADS {
-					flush_render(render_data, batch)
-					reset_batch(&batch)
-				}
-
 				// Set Quad_Param in ubo data
 				width := (glyph_quad.x1 - glyph_quad.x0)
 				height := (glyph_quad.y1 - glyph_quad.y0)
-				render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-					color_start  = fill_colors.color_start,
-					color_end    = fill_colors.color_end,
-					gradient_dir = fill_colors.gradient_dir,
-					clip_rect    = {
-						f32(command.clip_rect.x),
-						f32(command.clip_rect.y),
-						f32(command.clip_rect.w),
-						f32(command.clip_rect.h),
-					},
-					quad_pos     = {glyph_quad.x0 + width / 2, glyph_quad.y0 + height / 2},
-					quad_size    = {width, height},
-					uv_offset    = {glyph_quad.s0, glyph_quad.t0},
-					uv_size      = {glyph_quad.s1 - glyph_quad.s0, glyph_quad.t1 - glyph_quad.t0},
-					quad_type    = i32(Quad_Type.Text),
-				}
 
-				batch.quad_idx += 1
+				push_quad(
+					render_data,
+					&quad_count,
+					Quad_Param {
+						color_start = fill_colors.color_start,
+						color_end = fill_colors.color_end,
+						gradient_dir = fill_colors.gradient_dir,
+						clip_rect = {
+							f32(command.clip_rect.x),
+							f32(command.clip_rect.y),
+							f32(command.clip_rect.w),
+							f32(command.clip_rect.h),
+						},
+						quad_pos = {glyph_quad.x0 + width / 2, glyph_quad.y0 + height / 2},
+						quad_size = {width, height},
+						uv_offset = {glyph_quad.s0, glyph_quad.t0},
+						uv_size = {glyph_quad.s1 - glyph_quad.s0, glyph_quad.t1 - glyph_quad.t0},
+						quad_type = i32(Quad_Type.Text),
+					},
+				)
 			}
 
 		case ui.Command_Image:
@@ -512,8 +497,7 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 
 			// Flush and rebind if the texture_changed
 			if tex_id != render_data.image_texture_state.current_id {
-				flush_render(render_data, batch)
-				reset_batch(&batch)
+				flush_quads(render_data, &quad_count)
 
 				opengl_active_texture(.Texture_1)
 				opengl_bind_texture(u32(tex_id))
@@ -522,36 +506,30 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				render_data.image_texture_state.current_id = tex_id
 			}
 
-			if batch.quad_idx >= MAX_QUADS {
-				flush_render(render_data, batch)
-				reset_batch(&batch)
-			}
-
-			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-				color_start  = {1, 1, 1, 1},
-				color_end    = {1, 1, 1, 1},
-				gradient_dir = {0, 0},
-				clip_rect    = {
-					f32(command.clip_rect.x),
-					f32(command.clip_rect.y),
-					f32(command.clip_rect.w),
-					f32(command.clip_rect.h),
+			push_quad(
+				render_data,
+				&quad_count,
+				Quad_Param {
+					color_start = {1, 1, 1, 1},
+					color_end = {1, 1, 1, 1},
+					gradient_dir = {0, 0},
+					clip_rect = {
+						f32(command.clip_rect.x),
+						f32(command.clip_rect.y),
+						f32(command.clip_rect.w),
+						f32(command.clip_rect.h),
+					},
+					quad_pos = {val.x + val.w / 2, val.y + val.h / 2},
+					quad_size = {val.w, val.h},
+					uv_offset = {0, 0},
+					uv_size = {1, 1},
+					quad_type = i32(Quad_Type.Image),
 				},
-				quad_pos     = {val.x + val.w / 2, val.y + val.h / 2},
-				quad_size    = {val.w, val.h},
-				uv_offset    = {0, 0},
-				uv_size      = {1, 1},
-				quad_type    = i32(Quad_Type.Image),
-			}
+			)
 
-			batch.quad_idx += 1
 		case ui.Command_Shape:
 			fill_colors := fill_to_colors(val.data.fill)
 
-			if batch.quad_idx >= MAX_QUADS {
-				flush_render(render_data, batch)
-				reset_batch(&batch)
-			}
 
 			rect := val.rect
 			thickness := val.data.thickness
@@ -563,45 +541,43 @@ opengl_render_end :: proc(render_data: ^OpenGL_Render_Data, command_queue: []ui.
 				quad_type = .Checkmark
 			}
 
-			render_data.ssbo_data[batch.quad_idx] = Quad_Param {
-				color_start      = fill_colors.color_start,
-				color_end        = fill_colors.color_end,
-				gradient_dir     = fill_colors.gradient_dir,
-				clip_rect        = {
-					f32(command.clip_rect.x),
-					f32(command.clip_rect.y),
-					f32(command.clip_rect.w),
-					f32(command.clip_rect.h),
+			push_quad(
+				render_data,
+				&quad_count,
+				Quad_Param {
+					color_start = fill_colors.color_start,
+					color_end = fill_colors.color_end,
+					gradient_dir = fill_colors.gradient_dir,
+					clip_rect = {
+						f32(command.clip_rect.x),
+						f32(command.clip_rect.y),
+						f32(command.clip_rect.w),
+						f32(command.clip_rect.h),
+					},
+					quad_pos = {f32(rect.x) + f32(rect.w) / 2, f32(rect.y) + f32(rect.h) / 2},
+					quad_size = {f32(rect.w), f32(rect.h)},
+					uv_offset = {-1, -1},
+					uv_size = {0, 0},
+					quad_type = i32(quad_type),
+					stroke_thickness = thickness,
 				},
-				quad_pos         = {f32(rect.x) + f32(rect.w) / 2, f32(rect.y) + f32(rect.h) / 2},
-				quad_size        = {f32(rect.w), f32(rect.h)},
-				uv_offset        = {-1, -1},
-				uv_size          = {0, 0},
-				quad_type        = i32(quad_type),
-				stroke_thickness = thickness,
-			}
-
-			batch.quad_idx += 1
-		}
-
-		// Flush if full
-		if batch.quad_idx >= MAX_QUADS {
-			flush_render(render_data, batch)
-			reset_batch(&batch)
+			)
 		}
 	}
 
-	flush_render(render_data, batch)
+	flush_quads(render_data, &quad_count)
 }
 
-flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
-	if batch.quad_idx == 0 do return
+flush_quads :: proc(render_data: ^OpenGL_Render_Data, quad_count: ^i32) {
+	if quad_count^ == 0 {
+		return
+	}
 
 	gl.BindBuffer(gl.SHADER_STORAGE_BUFFER, render_data.ssbo)
 	gl.BufferSubData(
 		gl.SHADER_STORAGE_BUFFER,
 		0,
-		int(batch.quad_idx) * size_of(Quad_Param),
+		int(quad_count^) * size_of(Quad_Param),
 		raw_data(render_data.ssbo_data),
 	)
 
@@ -610,12 +586,11 @@ flush_render :: proc(render_data: ^OpenGL_Render_Data, batch: Batch) {
 
 	model := linalg.Matrix4f32(1.0)
 	transform := render_data.proj * model
-	err := shader_set_mat4(render_data.shader, "transform", &transform)
-	if err != .None {
-		log.error("Error setting shader uniform: ", err)
-	}
+	shader_set_mat4(render_data.shader, "transform", &transform)
 
-	gl.DrawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil, batch.quad_idx)
+	gl.DrawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_INT, nil, quad_count^)
 
 	gl.BindVertexArray(0)
+
+	quad_count^ = 0
 }
