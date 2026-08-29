@@ -25,31 +25,31 @@ test_text_buffer :: proc(backend: Test_Backend, capacity: int, text: string) -> 
 		gb := gap_buffer.Gap_Buffer{}
 		alloc_err := gap_buffer.init_gap_buffer(&gb, capacity, context.temp_allocator)
 		assert(alloc_err == .None)
+		insert_err := gap_buffer.insert_at(&gb, 0, text)
+		assert(insert_err == .None)
 		tb = Text_Buffer {
 			buf = gb,
 		}
 	case .Fixed:
 		storage, alloc_err := make([]u8, capacity, context.temp_allocator)
 		assert(alloc_err == .None)
+		fb := fixed_buffer.Fixed_Buffer{}
+		fixed_buffer.init_with_content(&fb, storage, transmute([]u8)text)
 		tb = Text_Buffer {
-			buf = fixed_buffer.Fixed_Buffer{buf = storage},
+			buf = fb,
 		}
 	}
-
-	insert_err := text_buffer_insert_at(&tb, 0, text)
-	assert(insert_err == nil)
 
 	return tb
 }
 
-// TODO(Thomas): Rewrite to use text_cursor_apply()
-// Test only helper which checks that inserting into initial at pos yields expected on every backend.
+// Test only helper which checks that replacing a range yields the expected text on every backend.
 @(private)
-check_insert :: proc(
+check_replace :: proc(
 	t: ^testing.T,
 	initial: string,
-	pos: int,
-	insertion: string,
+	start, end: int,
+	replacement: string,
 	expected: string,
 	buffer_capacity: int = TEST_BUFFER_CAP,
 	loc := #caller_location,
@@ -57,16 +57,17 @@ check_insert :: proc(
 	for backend in TEST_BACKENDS {
 		tb := test_text_buffer(backend, buffer_capacity, initial)
 
-		insert_err := text_buffer_insert_at(&tb, pos, insertion)
+		replace_err := text_buffer_replace_range(&tb, start, end, replacement)
 		testing.expectf(
 			t,
-			insert_err == nil,
-			"[%v] inserting %q at %v into %q: expected success, got %v",
+			replace_err == nil,
+			"[%v] replacing [%v, %v) in %q with %q: expected success, got %v",
 			backend,
-			insertion,
-			pos,
+			start,
+			end,
 			initial,
-			insert_err,
+			replacement,
+			replace_err,
 			loc = loc,
 		)
 
@@ -75,11 +76,12 @@ check_insert :: proc(
 		testing.expectf(
 			t,
 			actual == expected,
-			"[%v] inserting %q at %v into %q: expected %q, got %q",
+			"[%v] replacing [%v, %v) in %q with %q: expected %q, got %q",
 			backend,
-			insertion,
-			pos,
+			start,
+			end,
 			initial,
+			replacement,
 			expected,
 			actual,
 			loc = loc,

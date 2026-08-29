@@ -3,15 +3,15 @@ package text
 import "core:testing"
 
 @(test)
-test_text_buffer_insert_clamps_position :: proc(t: ^testing.T) {
-	// Past the end appends
-	check_insert(t, "Start", 100, "End", "StartEnd")
+test_text_buffer_replace_range :: proc(t: ^testing.T) {
+	// Empty ranges insert at the beginning and end.
+	check_replace(t, "World", 0, 0, "Hello ", "Hello World")
+	check_replace(t, "Start", 5, 5, "End", "StartEnd")
 
-	// Negative prepends
-	check_insert(t, "World", -5, "Hello ", "Hello World")
-	check_insert(t, "World", -999, "Hello ", "Hello World")
+	// Non-empty ranges replace or delete their contents.
+	check_replace(t, "abcdef", 1, 4, "XYZ", "aXYZef")
+	check_replace(t, "abcdef", 1, 4, "", "aef")
 
-	// In range positions are untouched by the clamp
-	check_insert(t, "bc", 0, "a", "abc")
-	check_insert(t, "ab", 2, "c", "abc")
+	// Replacing the complete range can produce an empty buffer.
+	check_replace(t, "abc", 0, 3, "", "")
 }

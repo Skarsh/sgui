@@ -3,6 +3,7 @@ package text
 import "core:testing"
 
 import base "../base"
+import fixed_buffer "fixed_buffer"
 
 // "hé<NBSP><SPACE>世界". The NBSP is written as an escape so that it survives
 // editing tools that normalize unicode, it is invisible but has to stay a
@@ -180,6 +181,20 @@ test_text_edit_insert_grows_gap_buffer :: proc(t: ^testing.T) {
 
 	testing.expect_value(t, actual, "aWXYZef")
 	testing.expect_value(t, state.selection, Selection{active = 5, anchor = 5})
+}
+
+@(test)
+test_text_edit_insert_fixed_buffer_full :: proc(t: ^testing.T) {
+	selection := Selection{active = 4, anchor = 1} // Selects "bcd".
+	state := test_text_edit_state(.Fixed, 6, "abcdef", selection)
+
+	err := text_cursor_apply(&state, Cursor_Insert{text = "WXYZ"})
+	testing.expect_value(t, err, fixed_buffer.Fixed_Buffer_Error.Buffer_Full)
+
+	actual, alloc_err := text_cursor_get_text(&state, context.temp_allocator)
+	testing.expectf(t, alloc_err == nil, "expected nil, got %v", alloc_err)
+	testing.expect_value(t, actual, "abcdef")
+	testing.expect_value(t, state.selection, selection)
 }
 
 @(test)
