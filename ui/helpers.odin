@@ -66,14 +66,8 @@ border_radius :: proc(tl, tr, br, bl: f32) -> base.Vec4 {
 }
 
 // Fixed size
-sizing_fixed :: proc(value: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
-	return Sizing {
-		kind = .Fixed,
-		value = value,
-		min_value = min,
-		max_value = max,
-		grow_factor = 0.0,
-	}
+sizing_fixed :: proc(value: f32) -> Sizing {
+	return Sizing{kind = .Fixed, value = value}
 }
 
 // Grow to fill available space

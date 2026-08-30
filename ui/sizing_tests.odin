@@ -4,7 +4,6 @@ import "core:testing"
 
 import base "../base"
 
-
 @(test)
 test_fit_container_no_children :: proc(t: ^testing.T) {
 	// An empty Fit container collapses to just its padding and border.
@@ -811,7 +810,6 @@ test_percentage_sizing_respects_min_max :: proc(t: ^testing.T) {
 	)
 }
 
-
 @(test)
 test_fit_sizing_respects_max_size_constraint :: proc(t: ^testing.T) {
 	// A Fit container clamps to its max instead of growing to a large child.
@@ -987,8 +985,8 @@ test_shrink_proportional_to_factor :: proc(t: ^testing.T) {
 				layout_direction = .Left_To_Right,
 			},
 			children = {
-				{name = "c1", style = {sizing_x = sizing_fixed(100, 0), sizing_y = sizing_grow()}},
-				{name = "c2", style = {sizing_x = sizing_fixed(200, 0), sizing_y = sizing_grow()}},
+				{name = "c1", style = {sizing_x = sizing_fixed(100), sizing_y = sizing_grow()}},
+				{name = "c2", style = {sizing_x = sizing_fixed(200), sizing_y = sizing_grow()}},
 			},
 		},
 		Expected_Element {
