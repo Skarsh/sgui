@@ -218,3 +218,45 @@ test_fit_size_includes_child_margins :: proc(t: ^testing.T) {
 		},
 	)
 }
+
+@(test)
+test_grow_size_accounts_for_child_margins :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(300),
+				sizing_y = sizing_fixed(100),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "fixed_child",
+					style = {
+						sizing_x = sizing_fixed(100),
+						sizing_y = sizing_fixed(50),
+						margin = Margin{left = 10, right = 20},
+					},
+				},
+				{
+					name = "grow_child",
+					style = {
+						sizing_x = sizing_grow(),
+						sizing_y = sizing_fixed(50),
+						margin = Margin{left = 5, right = 15},
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {300, 100},
+			children = {
+				{name = "fixed_child", pos = {10, 0}, size = {100, 50}},
+				{name = "grow_child", pos = {135, 0}, size = {150, 50}},
+			},
+		},
+	)
+}

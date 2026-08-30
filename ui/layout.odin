@@ -476,10 +476,12 @@ resolve_grow_sizes_for_children :: proc(
 			border_sum := get_border_sum_for_axis(border, axis)
 			child_gap := calc_child_gap(element^)
 
-			// Calculate space used by non-grow elements
+			// Reserve padding, borders, gaps, all flow margins and non Grow sizes
 			fixed_space: f32 = padding_sum + border_sum + child_gap
 			for child in element.children {
 				if child.config.layout.position_mode == .Flow {
+					fixed_space += get_margin_sum_for_axis(child.config.layout.margin, axis)
+
 					if child.config.layout.sizing[axis].kind != .Grow {
 						fixed_space += child.size[axis]
 					}
