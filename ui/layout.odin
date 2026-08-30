@@ -514,9 +514,7 @@ resolve_grow_sizes_for_children :: proc(
 }
 
 resolve_percentage_sizes_for_children :: proc(element: ^UI_Element, axis: base.Axis2) {
-	padding := element.config.layout.padding
-	border := element.config.layout.border
-	content_available_size := get_available_size(element.size, padding, border)
+	content_available_size := content_box(element^).size
 
 	for child in element.children {
 		sizing_info := child.config.layout.sizing[axis]
@@ -602,15 +600,12 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 
 		// Determine available width for text wrapping
 		// Use parent's available space if it's more constrained than element's size
-		element_available := get_available_size(element.size, padding, border)
-		wrap_width := element_available.x
+		wrap_width := content_box(element^).size.x
 
 		sizing_x_kind := element.config.layout.sizing.x.kind
 		if element.parent != nil {
 			parent := element.parent
-			parent_padding := parent.config.layout.padding
-			parent_border := parent.config.layout.border
-			parent_available := get_available_size(parent.size, parent_padding, parent_border)
+			parent_available := content_box(parent^).size
 
 			// If parent has less space, use that and account for text's own padding/border,
 			// unless it's text_wrap_mode .None, then allow overflow
@@ -865,18 +860,6 @@ get_margin_sum_for_axis :: proc(margin: Margin, axis: base.Axis2) -> f32 {
 	return get_box_sum_for_axis(Box(margin), axis)
 }
 
-@(require_results)
-get_available_size :: proc(size: base.Vec2, padding: Padding, border: Border) -> base.Vec2 {
-	available_x := size.x - padding.left - padding.right - border.left - border.right
-	available_y := size.y - padding.top - padding.bottom - border.top - border.bottom
-	result := base.Vec2{math.clamp(available_x, 0, size.x), math.clamp(available_y, 0, size.y)}
-
-	assert(result.x >= 0)
-	assert(result.y >= 0)
-
-	return result
-}
-
 // The inner content box of an element, inset by padding and border.
 // origin is the top left where content starts, size is the space available for it.
 Content_Box :: struct {
@@ -888,9 +871,21 @@ Content_Box :: struct {
 content_box :: proc(element: UI_Element) -> Content_Box {
 	padding := element.config.layout.padding
 	border := element.config.layout.border
+	size := element.size
+
+	available_x := size.x - padding.left - padding.right - border.left - border.right
+	available_y := size.y - padding.top - padding.bottom - border.top - border.bottom
+	result_size := base.Vec2 {
+		math.clamp(available_x, 0, size.x),
+		math.clamp(available_y, 0, size.y),
+	}
+
+	assert(result_size.x >= 0)
+	assert(result_size.y >= 0)
+
 	return Content_Box {
 		origin = element.position + {padding.left + border.left, padding.top + border.top},
-		size = get_available_size(element.size, padding, border),
+		size = result_size,
 	}
 }
 
