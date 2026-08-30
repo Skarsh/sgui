@@ -550,19 +550,15 @@ resolve_grow_sizes_for_children :: proc(
 
 		} else {
 			remaining_size := calc_remaining_size(element^, axis)
-			// Cross axis
 			for child in element.children {
-				// In the non-primary axis case, the child should just grow
-				// or shrink to match the size of the parent in that direction.
-				size_kind := child.config.layout.sizing[axis].kind
-				if size_kind == .Grow {
-					// This works because if remaining_size is positive, we're growing
-					// and we'll add size to the child.
-					// If remaining_size is negative, we need to shrink the child
-					// so we'll be adding a negative number to the size, effectively shrinking it.
-					new_size := child.size[axis] + (remaining_size - child.size[axis])
-					// Restricting the child size to be within it's min and max size
-					child.size[axis] = clamp(new_size, child.min_size[axis], child.max_size[axis])
+				if child.config.layout.sizing[axis].kind == .Grow {
+					margin_sum := get_margin_sum_for_axis(child.config.layout.margin, axis)
+
+					child.size[axis] = clamp(
+						remaining_size - margin_sum,
+						child.min_size[axis],
+						child.max_size[axis],
+					)
 				}
 			}
 		}

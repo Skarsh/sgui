@@ -260,3 +260,34 @@ test_grow_size_accounts_for_child_margins :: proc(t: ^testing.T) {
 		},
 	)
 }
+
+@(test)
+test_grow_cross_axis_accounts_for_child_margins :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(300),
+				sizing_y = sizing_fixed(100),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "child",
+					style = {
+						sizing_x = sizing_fixed(100),
+						sizing_y = sizing_grow(),
+						margin = Margin{top = 10, bottom = 20},
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {300, 100},
+			children = {{name = "child", pos = {0, 10}, size = {100, 70}}},
+		},
+	)
+}
