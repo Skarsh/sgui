@@ -1071,6 +1071,49 @@ test_zero_grow_factor_excluded :: proc(t: ^testing.T) {
 	)
 }
 
+@(test)
+test_zero_grow_factor_reserves_minimum :: proc(t: ^testing.T) {
+	// A factor 0 child keeps its minimum; siblings share only the remaining space.
+	check_layout(
+		t,
+		Element_Spec {
+			name = "panel",
+			style = {
+				sizing_x = sizing_fixed(400),
+				sizing_y = sizing_fixed(100),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "c1",
+					style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				},
+				{
+					name = "c2",
+					style = {
+						sizing_x = sizing_grow_weighted(0, min = 100),
+						sizing_y = sizing_grow(),
+					},
+				},
+				{
+					name = "c3",
+					style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				},
+			},
+		},
+		Expected_Element {
+			name = "panel",
+			pos = {0, 0},
+			size = {400, 100},
+			children = {
+				{name = "c1", pos = {0, 0}, size = {150, 100}},
+				{name = "c2", pos = {150, 0}, size = {100, 100}},
+				{name = "c3", pos = {250, 0}, size = {150, 100}},
+			},
+		},
+	)
+}
+
 
 @(test)
 test_weighted_grow_with_max_constraint :: proc(t: ^testing.T) {
@@ -1293,6 +1336,120 @@ test_fit_parent_minimum_is_not_added_to_child_minimum :: proc(t: ^testing.T) {
 			pos = {0, 0},
 			size = {100, 50},
 			children = {{name = "child", pos = {0, 0}, size = {50, 20}}},
+		},
+	)
+}
+
+@(test)
+test_fit_child_does_not_stretch_on_cross_axis :: proc(t: ^testing.T) {
+	// A Fit parent's larger minimum must not stretch a Fit child on the cross axis.
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(300),
+				sizing_y = sizing_fit(min = 100),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "child",
+					style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fit(min = 50)},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {300, 100},
+			children = {{name = "child", pos = {0, 0}, size = {100, 50}}},
+		},
+	)
+}
+
+@(test)
+test_grow_child_fills_fit_parent_minimum_on_cross_axis :: proc(t: ^testing.T) {
+	// Grow fills the Fit parent's cross-axis space, including room added by its minimum.
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(300),
+				sizing_y = sizing_fit(min = 100),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "child",
+					style = {sizing_x = sizing_fixed(100), sizing_y = sizing_grow(min = 50)},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {300, 100},
+			children = {{name = "child", pos = {0, 0}, size = {100, 100}}},
+		},
+	)
+}
+
+@(test)
+test_fit_parent_measures_content_inside_grow_rows :: proc(t: ^testing.T) {
+	// Grow rows report their content size before the Fit parent is measured.
+	// Both rows then fill the parent's width without stretching their fixed-size content.
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
+				layout_direction = .Top_To_Bottom,
+			},
+			children = {
+				{
+					name = "row_1",
+					style = {sizing_x = sizing_grow(), sizing_y = sizing_fixed(20)},
+					children = {
+						{
+							name = "content_1",
+							style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(20)},
+						},
+					},
+				},
+				{
+					name = "row_2",
+					style = {sizing_x = sizing_grow(), sizing_y = sizing_fixed(20)},
+					children = {
+						{
+							name = "content_2",
+							style = {sizing_x = sizing_fixed(50), sizing_y = sizing_fixed(20)},
+						},
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {100, 40},
+			children = {
+				{
+					name = "row_1",
+					pos = {0, 0},
+					size = {100, 20},
+					children = {{name = "content_1", pos = {0, 0}, size = {100, 20}}},
+				},
+				{
+					name = "row_2",
+					pos = {0, 20},
+					size = {100, 20},
+					children = {{name = "content_2", pos = {0, 20}, size = {50, 20}}},
+				},
+			},
 		},
 	)
 }

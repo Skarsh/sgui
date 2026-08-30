@@ -329,12 +329,13 @@ container_data_styled :: proc(
 	return comm
 }
 
-fit_size_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
+measure_intrinsic_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	for child in element.children {
-		fit_size_axis(child, axis)
+		measure_intrinsic_size_for_axis(child, axis)
 	}
 
-	if element.config.layout.sizing[axis].kind == .Fit {
+	sizing_kind := element.config.layout.sizing[axis].kind
+	if sizing_kind == .Fit || sizing_kind == .Grow {
 		element.size[axis] = calculate_element_size_for_axis(element, axis)
 	}
 }
@@ -366,31 +367,6 @@ get_main_and_cross_axis :: proc(
 	return main_axis, cross_axis
 }
 
-size_children_on_cross_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
-	assert(element != nil)
-
-	if element != nil {
-		if element.config.layout.sizing[axis].kind == .Fit && !is_main_axis(element^, axis) {
-			content_size_on_axis := content_box(element^).size[axis]
-			for child in element.children {
-				child_sizing_kind := child.config.layout.sizing[axis].kind
-				if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage {
-					child.size[axis] = clamp(
-						content_size_on_axis,
-						child.min_size[axis],
-						child.max_size[axis],
-					)
-				}
-			}
-		}
-
-		for child in element.children {
-			size_children_on_cross_axis(child, axis)
-		}
-	}
-}
-
-
 // Target-based distribution: elements are sized to match their factor ratios
 // e.g., factors 1:2:1 in 400px -> sizes 100:200:100
 // The caller passing in the allocator has the responsibility of freeing the allocated memory.
@@ -412,32 +388,21 @@ resolve_grow_sizes_for_children :: proc(
 			border_sum := get_border_sum_for_axis(border, axis)
 			child_gap := calc_child_gap(element^)
 
-			// Reserve padding, borders, gaps, all flow margins and non Grow sizes
 			fixed_space: f32 = padding_sum + border_sum + child_gap
 			for child in element.children {
 				if child.config.layout.position_mode == .Flow {
 					fixed_space += get_margin_sum_for_axis(child.config.layout.margin, axis)
 
-					if child.config.layout.sizing[axis].kind != .Grow {
+					sizing_info := child.config.layout.sizing[axis]
+					if sizing_info.kind == .Grow && sizing_info.grow_factor > 0 {
+						append(&resizables, child) or_return
+					} else {
 						fixed_space += child.size[axis]
 					}
 				}
 			}
 
-			// Available space for grow elements
 			available_for_grow := element.size[axis] - fixed_space
-
-			// Collect grow elements with positive factor
-			for child in element.children {
-				if child.config.layout.position_mode == .Flow {
-					if child.config.layout.sizing[axis].kind == .Grow {
-						factor := child.config.layout.sizing[axis].grow_factor
-						if factor > 0 {
-							append(&resizables, child) or_return
-						}
-					}
-				}
-			}
 
 			if len(resizables) > 0 {
 				// Iteratively assign target sizes, handling constraints

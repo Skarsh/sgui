@@ -59,10 +59,10 @@ test_fit_element_with_multiple_rows_of_text_and_pure_grow_sizing_elements :: pro
 				{
 					name = "row_2",
 					pos = {10, 35},
-					size = {52, 20},
+					size = {32, 20},
 					children = {
 						{name = "text_2", pos = {15, 40}, size = {20, 10}},
-						{name = "grow_2", pos = {37, 40}, size = {20, 10}},
+						{name = "grow_2", pos = {37, 40}, size = {0, 10}},
 					},
 				},
 			},

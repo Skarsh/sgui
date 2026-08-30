@@ -183,16 +183,14 @@ begin :: proc(ctx: ^Context) {
 
 end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:
-	// 1.  Measure text sizes
-	// 2.  Fit sizing widths
-	// 3.  Update children cross axis widths
-	// 4.  Resolve dependent sizes widths
-	// 5.  Wrap text
-	// 6.  Fit sizing heights
-	// 7.  Update chilren cross axis heights
-	// 8.  Resolve dependent sizes heights
-	// 9.  Positions
-	// 10. Draw commands
+	// 1. Measure text sizes
+	// 2. Measure intrinsic widths
+	// 3. Resolve dependent sizes widths
+	// 4. Wrap text
+	// 5. Measure intrinsic heights
+	// 6. Resolve dependent sizes heights
+	// 7. Positions
+	// 8. Draw commands
 
 	// TODO(Thomas): Properly Log the name of the element that is not closed.
 	if ctx.element_stack.top != 1 {
@@ -220,11 +218,8 @@ end :: proc(ctx: ^Context) {
 	// Measure text sizes, intrinsic sizes of the text elements
 	measure_text_sizes(ctx, ctx.root_element)
 
-	// Fit sizing widths
-	fit_size_axis(ctx.root_element, .X)
-
-	// Update the cross axis size
-	size_children_on_cross_axis(ctx.root_element, .X)
+	// Measure intrinsic widths
+	measure_intrinsic_size_for_axis(ctx.root_element, .X)
 
 	// Resolve dependent widths
 	resolve_width_alloc_err := resolve_dependent_sizes_for_axis(
@@ -238,11 +233,8 @@ end :: proc(ctx: ^Context) {
 	wrap_text_alloc_err := wrap_text(ctx, ctx.root_element)
 	assert(wrap_text_alloc_err == .None)
 
-	// Fit sizing heights
-	fit_size_axis(ctx.root_element, .Y)
-
-	// Update the cross axis size
-	size_children_on_cross_axis(ctx.root_element, .Y)
+	// Measure intrinsic heights
+	measure_intrinsic_size_for_axis(ctx.root_element, .Y)
 
 	// Resolve dependent heights
 	resolve_height_alloc_err := resolve_dependent_sizes_for_axis(

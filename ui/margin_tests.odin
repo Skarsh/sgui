@@ -291,3 +291,35 @@ test_grow_cross_axis_accounts_for_child_margins :: proc(t: ^testing.T) {
 		},
 	)
 }
+
+@(test)
+test_fit_cross_axis_accounts_for_child_margins :: proc(t: ^testing.T) {
+	// The Fit parent fits the child plus its margins; the child keeps its own height.
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(300),
+				sizing_y = sizing_fit(),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "child",
+					style = {
+						sizing_x = sizing_fixed(100),
+						sizing_y = sizing_fit(min = 50),
+						margin = Margin{top = 10, bottom = 20},
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {300, 80},
+			children = {{name = "child", pos = {0, 10}, size = {100, 50}}},
+		},
+	)
+}
