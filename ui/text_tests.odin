@@ -89,8 +89,8 @@ test_basic_text_element_sizing :: proc(t: ^testing.T) {
 					name = "text",
 					text = "012345",
 					style = {
-						sizing_x = Sizing{kind = .Grow, min_value = 50, max_value = 100},
-						sizing_y = Sizing{kind = .Grow},
+						sizing_x = sizing_grow_weighted(0, min = 50, max = 100),
+						sizing_y = sizing_grow_weighted(0),
 					},
 				},
 			},
@@ -163,8 +163,8 @@ test_basic_text_element_underflow_sizing :: proc(t: ^testing.T) {
 					name = "text",
 					text = "01",
 					style = {
-						sizing_x = Sizing{kind = .Grow, min_value = 50},
-						sizing_y = Sizing{kind = .Grow, min_value = 20},
+						sizing_x = sizing_grow_weighted(0, min = 50),
+						sizing_y = sizing_grow_weighted(0, min = 20),
 					},
 				},
 			},

@@ -65,32 +65,35 @@ border_radius :: proc(tl, tr, br, bl: f32) -> base.Vec4 {
 	return {tl, tr, br, bl}
 }
 
-// Fixed size
+// These helpers preserve inputs. Invalid sizing panics at element creation.
+// Sizes, bounds, and Grow factors must be finite and nonnegative.
+// Bounds are in pixels and require min <= max.
+// Omitted max uses math.F32_MAX, an explicit zero is a real upper bound.
+
+// Fixed size in pixels.
 sizing_fixed :: proc(value: f32) -> Sizing {
 	return Sizing{kind = .Fixed, value = value}
 }
 
-// Grow to fill available space
+// Grow to fill available space within min/max bounds, with weight 1.
 sizing_grow :: proc(min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 	return Sizing{kind = .Grow, min_value = min, max_value = max, grow_factor = 1.0}
 }
 
-// Grow with weighted factor for proportional space distribution
+// Grow with a relative weight for main-axis space distribution.
+// Factor must be in [0, MAX_GROW_FACTOR].
+// Zero opts out of that distribution, cross-axis sizing ignores the factor.
 sizing_grow_weighted :: proc(factor: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
-	return Sizing {
-		kind = .Grow,
-		min_value = min,
-		max_value = max,
-		grow_factor = math.max(factor, 0),
-	}
+	return Sizing{kind = .Grow, min_value = min, max_value = max, grow_factor = factor}
 }
 
-// Fit to content
+// Fit to content within min/max bounds.
 sizing_fit :: proc(min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 	return Sizing{kind = .Fit, min_value = min, max_value = max, grow_factor = 0.0}
 }
 
-// Percentage of parent size
+// Fraction of the parent's content-box size, with percent in [0, 1].
+// Min/max constrain the resulting pixel size.
 sizing_percent :: proc(percent: f32, min: f32 = 0, max: f32 = math.F32_MAX) -> Sizing {
 	return Sizing {
 		kind = .Percentage,
@@ -156,8 +159,8 @@ style_to_config :: proc(s: Style, capability_flags: Capability_Flags) -> Element
 	config: Element_Config
 
 	// Layout properties
-	config.layout.sizing[base.Axis2.X] = s.sizing_x.? or_else Sizing{}
-	config.layout.sizing[base.Axis2.Y] = s.sizing_y.? or_else Sizing{}
+	config.layout.sizing[base.Axis2.X] = s.sizing_x.? or_else sizing_fit()
+	config.layout.sizing[base.Axis2.Y] = s.sizing_y.? or_else sizing_fit()
 	config.layout.padding = s.padding.? or_else Padding{}
 	config.layout.margin = s.margin.? or_else Margin{}
 	config.layout.child_gap = s.child_gap.? or_else 0

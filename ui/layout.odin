@@ -10,6 +10,7 @@ import base "../base"
 import textpkg "../text"
 
 EPSILON :: 0.001
+MAX_GROW_FACTOR :: 1000
 
 Layout_Direction :: enum {
 	Left_To_Right,
@@ -115,6 +116,28 @@ Sizing :: struct {
 	max_value:   f32,
 	value:       f32,
 	grow_factor: f32,
+}
+
+@(require_results)
+is_valid_sizing :: proc(sizing: Sizing) -> bool {
+	valid := false
+	switch sizing.kind {
+	case .Fixed:
+		valid = sizing.value >= 0 && sizing.value <= math.F32_MAX
+	case .Fit, .Grow, .Percentage:
+		valid =
+			sizing.min_value >= 0 &&
+			sizing.min_value <= sizing.max_value &&
+			sizing.max_value <= math.F32_MAX
+	}
+
+	if sizing.kind == .Percentage {
+		valid = valid && sizing.value >= 0 && sizing.value <= 1
+	} else if sizing.kind == .Grow {
+		valid = valid && sizing.grow_factor >= 0 && sizing.grow_factor <= MAX_GROW_FACTOR
+	}
+
+	return valid
 }
 
 Element_Config :: struct {
@@ -416,10 +439,6 @@ resolve_grow_sizes_for_children :: proc(
 						total_factor += child.config.layout.sizing[axis].grow_factor
 					}
 
-					if base.approx_equal(total_factor, 0, EPSILON) {
-						break
-					}
-
 					any_clamped := false
 
 					// Calculate and apply target sizes
@@ -474,9 +493,8 @@ resolve_percentage_sizes_for_children :: proc(element: ^UI_Element, axis: base.A
 	for child in element.children {
 		sizing_info := child.config.layout.sizing[axis]
 		if sizing_info.kind == .Percentage {
-			percentage := clamp(sizing_info.value, 0.0, 1.0)
 			child.size[axis] = clamp(
-				content_available_size[axis] * percentage,
+				content_available_size[axis] * sizing_info.value,
 				child.min_size[axis],
 				child.max_size[axis],
 			)
@@ -618,7 +636,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 	return nil
 }
 
-// Always returns a usable element, will panic if failed to allocate.
+// Always returns a usable element, will panic on invalid sizing or allocation failure.
 @(require_results)
 make_element :: proc(
 	ctx: ^Context,
@@ -627,22 +645,27 @@ make_element :: proc(
 	name: string,
 ) -> ^UI_Element {
 
+	for axis in base.Axis2 {
+		sizing := element_config.layout.sizing[axis]
+		fmt.assertf(
+			is_valid_sizing(sizing),
+			"invalid %v sizing for element %q: %v",
+			axis,
+			name,
+			sizing,
+		)
+	}
+
 	update_element_configuration :: proc(element: ^UI_Element, config: Element_Config, idx: u64) {
 		element.last_frame_idx = idx
 		element.config = config
 		element.fill = config.background_fill
 
-		min_x := config.layout.sizing.x.min_value
-		min_y := config.layout.sizing.y.min_value
+		element.min_size.x = config.layout.sizing.x.min_value
+		element.min_size.y = config.layout.sizing.y.min_value
 
-		element.min_size.x = max(min_x, 0)
-		element.min_size.y = max(min_y, 0)
-
-		element.max_size.x =
-			base.approx_equal(config.layout.sizing.x.max_value, 0, 0.001) ? math.F32_MAX : config.layout.sizing.x.max_value
-
-		element.max_size.y =
-			base.approx_equal(config.layout.sizing.y.max_value, 0, 0.001) ? math.F32_MAX : config.layout.sizing.y.max_value
+		element.max_size.x = config.layout.sizing.x.max_value
+		element.max_size.y = config.layout.sizing.y.max_value
 
 		if config.layout.sizing.x.kind == .Fixed {
 			element.size.x = config.layout.sizing.x.value

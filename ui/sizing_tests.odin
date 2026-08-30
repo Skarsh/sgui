@@ -1,5 +1,6 @@
 package ui
 
+import "core:math"
 import "core:testing"
 
 import base "../base"
@@ -564,17 +565,11 @@ test_basic_percentage_of_parent_sizing_ltr :: proc(t: ^testing.T) {
 			children = {
 				{
 					name = "child_1",
-					style = {
-						sizing_x = Sizing{kind = .Percentage, value = 0.5},
-						sizing_y = Sizing{kind = .Percentage, value = 0.5},
-					},
+					style = {sizing_x = sizing_percent(0.5), sizing_y = sizing_percent(0.5)},
 				},
 				{
 					name = "child_2",
-					style = {
-						sizing_x = Sizing{kind = .Percentage, value = 0.5},
-						sizing_y = Sizing{kind = .Percentage, value = 0.5},
-					},
+					style = {sizing_x = sizing_percent(0.5), sizing_y = sizing_percent(0.5)},
 				},
 			},
 		},
@@ -607,17 +602,11 @@ test_basic_percentage_of_parent_sizing_ttb :: proc(t: ^testing.T) {
 			children = {
 				{
 					name = "child_1",
-					style = {
-						sizing_x = Sizing{kind = .Percentage, value = 0.5},
-						sizing_y = Sizing{kind = .Percentage, value = 0.5},
-					},
+					style = {sizing_x = sizing_percent(0.5), sizing_y = sizing_percent(0.5)},
 				},
 				{
 					name = "child_2",
-					style = {
-						sizing_x = Sizing{kind = .Percentage, value = 0.5},
-						sizing_y = Sizing{kind = .Percentage, value = 0.5},
-					},
+					style = {sizing_x = sizing_percent(0.5), sizing_y = sizing_percent(0.5)},
 				},
 			},
 		},
@@ -649,10 +638,7 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 			children = {
 				{
 					name = "grouping_container",
-					style = {
-						sizing_x = Sizing{kind = .Percentage, value = 1.0},
-						sizing_y = Sizing{kind = .Percentage, value = 1.0},
-					},
+					style = {sizing_x = sizing_percent(1.0), sizing_y = sizing_percent(1.0)},
 					children = {
 						{
 							name = "first_child",
@@ -704,8 +690,8 @@ test_pct_of_parent_sizing_with_fit_sizing_element_inside :: proc(t: ^testing.T) 
 					{
 						name = "panel_container",
 						style = {
-							sizing_x = Sizing{kind = .Percentage, value = 1.0},
-							sizing_y = Sizing{kind = .Percentage, value = 1.0},
+							sizing_x = sizing_percent(1.0),
+							sizing_y = sizing_percent(1.0),
 							layout_direction = direction,
 						},
 						children = {
@@ -754,10 +740,7 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 			children = {
 				{
 					name = "container_1",
-					style = {
-						sizing_x = Sizing{kind = .Percentage, value = 0.1},
-						sizing_y = sizing_grow(),
-					},
+					style = {sizing_x = sizing_percent(0.1), sizing_y = sizing_grow()},
 				},
 				{
 					name = "container_2",
@@ -811,30 +794,33 @@ test_percentage_sizing_respects_min_max :: proc(t: ^testing.T) {
 
 @(test)
 test_fit_sizing_respects_max_size_constraint :: proc(t: ^testing.T) {
-	// A Fit container clamps to its max instead of growing to a large child.
-	check_layout(
-		t,
-		Element_Spec {
-			name = "fit_container",
-			style = {
-				sizing_x = sizing_fit(0, 100),
-				sizing_y = sizing_fit(0, 100),
-				layout_direction = .Left_To_Right,
-			},
-			children = {
-				{
-					name = "large_child",
-					style = {sizing_x = sizing_fixed(300), sizing_y = sizing_fixed(300)},
+	// A Fit container respects its maximum, including zero, without resizing fixed children.
+	max_sizes := []f32{100, 0}
+	for max_size in max_sizes {
+		check_layout(
+			t,
+			Element_Spec {
+				name = "fit_container",
+				style = {
+					sizing_x = sizing_fit(max = max_size),
+					sizing_y = sizing_fit(max = max_size),
+					layout_direction = .Left_To_Right,
+				},
+				children = {
+					{
+						name = "large_child",
+						style = {sizing_x = sizing_fixed(300), sizing_y = sizing_fixed(300)},
+					},
 				},
 			},
-		},
-		Expected_Element {
-			name = "fit_container",
-			pos = {0, 0},
-			size = {100, 100},
-			children = {{name = "large_child", pos = {0, 0}, size = {300, 300}}},
-		},
-	)
+			Expected_Element {
+				name = "fit_container",
+				pos = {0, 0},
+				size = {max_size, max_size},
+				children = {{name = "large_child", pos = {0, 0}, size = {300, 300}}},
+			},
+		)
+	}
 }
 
 
@@ -900,33 +886,55 @@ test_text_element_size_includes_border :: proc(t: ^testing.T) {
 
 @(test)
 test_grow_equal_factors :: proc(t: ^testing.T) {
-	// Three equal-factor grow children split the panel width evenly.
-	check_layout(
-		t,
-		Element_Spec {
-			name = "panel",
-			style = {
-				sizing_x = sizing_fixed(300),
-				sizing_y = sizing_fixed(100),
-				layout_direction = .Left_To_Right,
+	// Equal supported Grow weights split the width evenly.
+	// Cover ordinary weights, tiny positive weights, and the upper limit.
+	factors := []f32{1, 0.0001, MAX_GROW_FACTOR}
+	for factor in factors {
+		check_layout(
+			t,
+			Element_Spec {
+				name = "panel",
+				style = {
+					sizing_x = sizing_fixed(300),
+					sizing_y = sizing_fixed(100),
+					layout_direction = .Left_To_Right,
+				},
+				children = {
+					{
+						name = "c1",
+						style = {
+							sizing_x = sizing_grow_weighted(factor),
+							sizing_y = sizing_grow(),
+						},
+					},
+					{
+						name = "c2",
+						style = {
+							sizing_x = sizing_grow_weighted(factor),
+							sizing_y = sizing_grow(),
+						},
+					},
+					{
+						name = "c3",
+						style = {
+							sizing_x = sizing_grow_weighted(factor),
+							sizing_y = sizing_grow(),
+						},
+					},
+				},
 			},
-			children = {
-				{name = "c1", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()}},
-				{name = "c2", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()}},
-				{name = "c3", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()}},
+			Expected_Element {
+				name = "panel",
+				pos = {0, 0},
+				size = {300, 100},
+				children = {
+					{name = "c1", pos = {0, 0}, size = {100, 100}},
+					{name = "c2", pos = {100, 0}, size = {100, 100}},
+					{name = "c3", pos = {200, 0}, size = {100, 100}},
+				},
 			},
-		},
-		Expected_Element {
-			name = "panel",
-			pos = {0, 0},
-			size = {300, 100},
-			children = {
-				{name = "c1", pos = {0, 0}, size = {100, 100}},
-				{name = "c2", pos = {100, 0}, size = {100, 100}},
-				{name = "c3", pos = {200, 0}, size = {100, 100}},
-			},
-		},
-	)
+		)
+	}
 }
 
 
@@ -1452,4 +1460,94 @@ test_fit_parent_measures_content_inside_grow_rows :: proc(t: ^testing.T) {
 			},
 		},
 	)
+}
+
+@(test)
+test_sizing_min_max_validation :: proc(t: ^testing.T) {
+	// Bounds may be equal, but a minimum cannot exceed a bounded maximum.
+	testing.expect(t, is_valid_sizing(sizing_fit(min = 50, max = 100)))
+	testing.expect(t, is_valid_sizing(sizing_fit(min = 100, max = 100)))
+	testing.expect(t, !is_valid_sizing(sizing_fit(min = 100, max = 50)))
+
+	// An omitted maximum is unbounded, an explicit zero is a real bound.
+	testing.expect(t, is_valid_sizing(sizing_fit(min = 100)))
+	testing.expect(t, is_valid_sizing(sizing_fit(min = 0, max = 0)))
+
+	testing.expect(t, !is_valid_sizing(Sizing{kind = .Fit, min_value = 100, max_value = 0}))
+}
+
+@(test)
+test_sizing_rejects_negative_sizes :: proc(t: ^testing.T) {
+	// A fixed size may be zero, but not negative.
+	testing.expect(t, is_valid_sizing(sizing_fixed(0)))
+	testing.expect(t, !is_valid_sizing(sizing_fixed(-1)))
+
+	// Physical size bounds must be nonnegative for every bounded sizing mode.
+	testing.expect(t, !is_valid_sizing(sizing_fit(min = -1)))
+	testing.expect(t, !is_valid_sizing(sizing_grow(min = -1)))
+	testing.expect(t, !is_valid_sizing(sizing_percent(0.5, min = -1)))
+
+	// Correctly ordered bounds are still invalid if they are negative.
+	testing.expect(t, !is_valid_sizing(sizing_fit(min = -20, max = -10)))
+}
+
+@(test)
+test_sizing_rejects_non_finite_sizes :: proc(t: ^testing.T) {
+	// Sizes and bounds must reject NaN and both infinities
+	non_finite_values := []f32{math.nan_f32(), math.inf_f32(1), math.inf_f32(-1)}
+
+	for value in non_finite_values {
+		testing.expect(t, !is_valid_sizing(sizing_fixed(value)))
+
+		testing.expect(t, !is_valid_sizing(sizing_fit(min = value)))
+		testing.expect(t, !is_valid_sizing(sizing_fit(max = value)))
+
+		testing.expect(t, !is_valid_sizing(sizing_grow(min = value)))
+		testing.expect(t, !is_valid_sizing(sizing_grow(max = value)))
+
+		testing.expect(t, !is_valid_sizing(sizing_percent(0.5, min = value)))
+		testing.expect(t, !is_valid_sizing(sizing_percent(0.5, max = value)))
+	}
+
+	// The largest finite value remains valid, including as our unbounded maximum
+	testing.expect(t, is_valid_sizing(sizing_fixed(math.F32_MAX)))
+	testing.expect(t, is_valid_sizing(sizing_fit(max = math.F32_MAX)))
+}
+
+@(test)
+test_percentage_sizing_value_validation :: proc(t: ^testing.T) {
+	// Percentage values are fractions from zero through one, inclusive.
+	testing.expect(t, is_valid_sizing(sizing_percent(0)))
+	testing.expect(t, is_valid_sizing(sizing_percent(0.5)))
+	testing.expect(t, is_valid_sizing(sizing_percent(1)))
+
+	// Reject out-of-range and non-finite values instead of silently clamping
+	invalid_values := []f32{-0.1, 1.1, math.nan_f32(), math.inf_f32(1), math.inf_f32(-1)}
+
+	for value in invalid_values {
+		testing.expect(t, !is_valid_sizing(sizing_percent(value)))
+	}
+}
+
+@(test)
+test_grow_factor_validation :: proc(t: ^testing.T) {
+	// Grow weights may be zero or fractional, up to the supported maximum.
+	testing.expect(t, is_valid_sizing(sizing_grow_weighted(0)))
+	testing.expect(t, is_valid_sizing(sizing_grow_weighted(0.5)))
+	testing.expect(t, is_valid_sizing(sizing_grow_weighted(2)))
+	testing.expect(t, is_valid_sizing(sizing_grow_weighted(MAX_GROW_FACTOR)))
+
+	// Reject out-of-range and non-finite weights.
+	invalid_factors := []f32{
+		-1,
+		MAX_GROW_FACTOR + 1,
+		math.F32_MAX,
+		math.nan_f32(),
+		math.inf_f32(1),
+		math.inf_f32(-1),
+	}
+
+	for factor in invalid_factors {
+		testing.expect(t, !is_valid_sizing(sizing_grow_weighted(factor)))
+	}
 }
