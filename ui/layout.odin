@@ -194,24 +194,14 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) 
 	border_sum := get_border_sum_for_axis(border, axis)
 
 	content_size := measure_flow_content_size(element^)[axis]
+	total_size := content_size + padding_sum + border_sum
 
-	total_size: f32
-	// Also consider text content size (text_content_size already includes padding + border)
+	// text content_size already includes padding and border
 	if .Text in element.config.capability_flags {
-		content_size = max(
-			content_size + padding_sum + border_sum,
-			element.text_content_size[axis],
-		)
-
-		total_size = math.clamp(content_size, element.min_size[axis], element.max_size[axis])
-	} else {
-
-		// Add padding and borders
-		total_size = content_size + padding_sum + border_sum
-
-		// Clamp to min/max size constraints
-		total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
+		total_size = max(total_size, element.text_content_size[axis])
 	}
+
+	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
 
 	assert(total_size >= 0)
 	return total_size
