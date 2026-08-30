@@ -345,43 +345,7 @@ fit_size_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	}
 
 	if element.config.layout.sizing[axis].kind == .Fit {
-		calc_element_fit_size_for_axis(element, axis)
-	}
-}
-
-// TODO(Thomas): Remove early returns to simplify control flow
-update_parent_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
-	parent := element.parent
-
-	if parent == nil {
-		return
-	}
-
-	if parent.config.layout.sizing[axis].kind != .Fit {
-		return
-	}
-
-	// Anchored elements should not contribute to parent sizes
-	if element.config.layout.position_mode == .Anchored {
-		return
-	}
-
-	if is_main_axis(parent^, axis) {
-		// Accumulate sum
-		parent.size[axis] += element.size[axis]
-		parent.min_size[axis] += element.min_size[axis]
-	} else {
-		// Expand to largest child
-		parent.size[axis] = max(element.size[axis], parent.size[axis])
-		parent.min_size[axis] = max(element.min_size[axis], parent.min_size[axis])
-	}
-}
-
-calc_element_fit_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
-	element.size[axis] = calculate_element_size_for_axis(element, axis)
-
-	if element.parent != nil {
-		update_parent_element_fit_size_for_axis(element, axis)
+		element.size[axis] = calculate_element_size_for_axis(element, axis)
 	}
 }
 

@@ -163,7 +163,6 @@ test_fit_sizing_ttb :: proc(t: ^testing.T) {
 	)
 }
 
-
 @(test)
 test_grow_sizing_ltr :: proc(t: ^testing.T) {
 	// A grow child takes the leftover primary space in an LTR panel.
@@ -1267,6 +1266,33 @@ test_anchored_fit_ttb :: proc(t: ^testing.T) {
 				{name = "normal", pos = {10, 10}, size = {300, 200}},
 				{name = "anchored", pos = {20, 17}, size = {200, 300}},
 			},
+		},
+	)
+}
+
+@(test)
+test_fit_parent_minimum_is_not_added_to_child_minimum :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fit(min = 100),
+				sizing_y = sizing_fixed(50),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "child",
+					style = {sizing_x = sizing_fit(min = 50), sizing_y = sizing_fixed(20)},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {100, 50},
+			children = {{name = "child", pos = {0, 0}, size = {50, 20}}},
 		},
 	)
 }
