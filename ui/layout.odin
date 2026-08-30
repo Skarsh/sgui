@@ -576,7 +576,11 @@ resolve_percentage_sizes_for_children :: proc(element: ^UI_Element, axis: base.A
 		sizing_info := child.config.layout.sizing[axis]
 		if sizing_info.kind == .Percentage {
 			percentage := clamp(sizing_info.value, 0.0, 1.0)
-			child.size[axis] = content_available_size[axis] * percentage
+			child.size[axis] = clamp(
+				content_available_size[axis] * percentage,
+				child.min_size[axis],
+				child.max_size[axis],
+			)
 		}
 	}
 }

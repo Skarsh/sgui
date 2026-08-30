@@ -438,7 +438,10 @@ test_grow_sizing_equal_factors_reach_equal_size_ltr :: proc(t: ^testing.T) {
 			name = "parent",
 			style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(100)},
 			children = {
-				{name = "child_1", style = {sizing_x = sizing_grow(min = 50), sizing_y = sizing_grow()}},
+				{
+					name = "child_1",
+					style = {sizing_x = sizing_grow(min = 50), sizing_y = sizing_grow()},
+				},
 				{name = "child_2", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow()}},
 			},
 		},
@@ -640,7 +643,11 @@ test_pct_of_parent_sizing_with_min_and_pref_width_grow_elments_inside :: proc(t:
 		t,
 		Element_Spec {
 			name = "main_container",
-			style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(100), border = border_all(1)},
+			style = {
+				sizing_x = sizing_fixed(100),
+				sizing_y = sizing_fixed(100),
+				border = border_all(1),
+			},
 			children = {
 				{
 					name = "grouping_container",
@@ -741,7 +748,11 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 		t,
 		Element_Spec {
 			name = "main_container",
-			style = {sizing_x = sizing_grow(), sizing_y = sizing_fixed(20), border = border_all(1)},
+			style = {
+				sizing_x = sizing_grow(),
+				sizing_y = sizing_fixed(20),
+				border = border_all(1),
+			},
 			children = {
 				{
 					name = "container_1",
@@ -771,6 +782,32 @@ test_pct_of_parent_sizing_with_fixed_container_and_grow_container_siblings :: pr
 			},
 		},
 		window_size = {500, 500},
+	)
+}
+
+@(test)
+test_percentage_sizing_respects_min_max :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {sizing_x = sizing_fixed(100), sizing_y = sizing_fixed(100)},
+			children = {
+				{
+					name = "child",
+					style = {
+						sizing_x = sizing_percent(0.5, min = 80),
+						sizing_y = sizing_percent(0.5, max = 30),
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {100, 100},
+			children = {{name = "child", pos = {0, 0}, size = {80, 30}}},
+		},
 	)
 }
 
@@ -817,7 +854,10 @@ test_fit_sizing_respects_min_size_constraint :: proc(t: ^testing.T) {
 				layout_direction = .Left_To_Right,
 			},
 			children = {
-				{name = "small_child", style = {sizing_x = sizing_fixed(50), sizing_y = sizing_fixed(50)}},
+				{
+					name = "small_child",
+					style = {sizing_x = sizing_fixed(50), sizing_y = sizing_fixed(50)},
+				},
 			},
 		},
 		Expected_Element {
@@ -1007,9 +1047,18 @@ test_zero_grow_factor_excluded :: proc(t: ^testing.T) {
 				layout_direction = .Left_To_Right,
 			},
 			children = {
-				{name = "c1", style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()}},
-				{name = "c2", style = {sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()}},
-				{name = "c3", style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()}},
+				{
+					name = "c1",
+					style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				},
+				{
+					name = "c2",
+					style = {sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()},
+				},
+				{
+					name = "c3",
+					style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				},
 			},
 		},
 		Expected_Element {
@@ -1043,7 +1092,10 @@ test_weighted_grow_with_max_constraint :: proc(t: ^testing.T) {
 					name = "c1",
 					style = {sizing_x = sizing_grow_weighted(1, 0, 100), sizing_y = sizing_grow()},
 				},
-				{name = "c2", style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()}},
+				{
+					name = "c2",
+					style = {sizing_x = sizing_grow_weighted(1), sizing_y = sizing_grow()},
+				},
 			},
 		},
 		Expected_Element {
@@ -1072,8 +1124,14 @@ test_all_zero_factors :: proc(t: ^testing.T) {
 				layout_direction = .Left_To_Right,
 			},
 			children = {
-				{name = "c1", style = {sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()}},
-				{name = "c2", style = {sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()}},
+				{
+					name = "c1",
+					style = {sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()},
+				},
+				{
+					name = "c2",
+					style = {sizing_x = sizing_grow_weighted(0), sizing_y = sizing_grow()},
+				},
 			},
 		},
 		Expected_Element {
@@ -1102,9 +1160,18 @@ test_weighted_grow_ttb :: proc(t: ^testing.T) {
 				layout_direction = .Top_To_Bottom,
 			},
 			children = {
-				{name = "c1", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(1)}},
-				{name = "c2", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(2)}},
-				{name = "c3", style = {sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(1)}},
+				{
+					name = "c1",
+					style = {sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(1)},
+				},
+				{
+					name = "c2",
+					style = {sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(2)},
+				},
+				{
+					name = "c3",
+					style = {sizing_x = sizing_grow(), sizing_y = sizing_grow_weighted(1)},
+				},
 			},
 		},
 		Expected_Element {
@@ -1205,4 +1272,3 @@ test_anchored_fit_ttb :: proc(t: ^testing.T) {
 		},
 	)
 }
-
