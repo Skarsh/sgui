@@ -349,24 +349,6 @@ fit_size_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 	}
 }
 
-// TODO(Thomas): Can be simplified further by returning a Vec2 of the content size instead of just the one axis
-@(require_results)
-calc_remaining_size :: #force_inline proc(element: UI_Element, axis: base.Axis2) -> f32 {
-	padding := element.config.layout.padding
-	border := element.config.layout.border
-	padding_sum := get_padding_sum_for_axis(padding, axis)
-	border_sum := get_border_sum_for_axis(border, axis)
-
-	remaining_size := math.clamp(
-		element.size[axis] - padding_sum - border_sum,
-		0,
-		element.size[axis],
-	)
-
-	assert(remaining_size >= 0)
-	return remaining_size
-}
-
 @(require_results)
 is_main_axis :: proc(element: UI_Element, axis: base.Axis2) -> bool {
 
@@ -399,7 +381,7 @@ size_children_on_cross_axis :: proc(element: ^UI_Element, axis: base.Axis2) {
 
 	if element != nil {
 		if element.config.layout.sizing[axis].kind == .Fit && !is_main_axis(element^, axis) {
-			content_size_on_axis := calc_remaining_size(element^, axis)
+			content_size_on_axis := content_box(element^).size[axis]
 			for child in element.children {
 				child_sizing_kind := child.config.layout.sizing[axis].kind
 				if child_sizing_kind != .Fixed && child_sizing_kind != .Percentage {
@@ -513,7 +495,7 @@ resolve_grow_sizes_for_children :: proc(
 			}
 
 		} else {
-			remaining_size := calc_remaining_size(element^, axis)
+			remaining_size := content_box(element^).size[axis]
 			for child in element.children {
 				if child.config.layout.sizing[axis].kind == .Grow {
 					margin_sum := get_margin_sum_for_axis(child.config.layout.margin, axis)
