@@ -193,24 +193,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) 
 	padding_sum := get_padding_sum_for_axis(padding, axis)
 	border_sum := get_border_sum_for_axis(border, axis)
 
-	content_size: f32
-
-	if is_main_axis(element^, axis) {
-		// Main Axis: Accumulate size of all children plus gaps
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				content_size += child.size[axis]
-			}
-		}
-		content_size += calc_child_gap(element^)
-	} else {
-		// Cross Axis: The size is determined by the largest child
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				content_size = max(content_size, child.size[axis])
-			}
-		}
-	}
+	content_size := measure_flow_content_size(element^)[axis]
 
 	total_size: f32
 	// Also consider text content size (text_content_size already includes padding + border)

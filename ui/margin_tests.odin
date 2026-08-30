@@ -187,3 +187,34 @@ test_asymmetric_margins :: proc(t: ^testing.T) {
 		},
 	)
 }
+
+@(test)
+test_fit_size_includes_child_margins :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "child",
+					style = {
+						sizing_x = sizing_fixed(100),
+						sizing_y = sizing_fixed(50),
+						margin = Margin{left = 10, right = 20, top = 5, bottom = 15},
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {130, 70},
+			children = {{name = "child", pos = {10, 5}, size = {100, 50}}},
+		},
+	)
+}
