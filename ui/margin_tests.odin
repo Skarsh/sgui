@@ -220,6 +220,49 @@ test_fit_size_includes_child_margins :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_fit_size_includes_sibling_margins_and_gap :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fit(),
+				sizing_y = sizing_fit(),
+				child_gap = 10,
+				layout_direction = .Left_To_Right,
+			},
+			children = {
+				{
+					name = "first_child",
+					style = {
+						sizing_x = sizing_fixed(100),
+						sizing_y = sizing_fixed(50),
+						margin = margin_trbl(5, 20, 15, 10),
+					},
+				},
+				{
+					name = "second_child",
+					style = {
+						sizing_x = sizing_fixed(50),
+						sizing_y = sizing_fixed(40),
+						margin = margin_trbl(10, 15, 30, 5),
+					},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {210, 80},
+			children = {
+				{name = "first_child", pos = {10, 5}, size = {100, 50}},
+				{name = "second_child", pos = {145, 10}, size = {50, 40}},
+			},
+		},
+	)
+}
+
+@(test)
 test_grow_size_accounts_for_child_margins :: proc(t: ^testing.T) {
 	check_layout(
 		t,

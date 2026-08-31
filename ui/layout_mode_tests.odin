@@ -4,15 +4,16 @@ import "core:testing"
 
 import base "../base"
 
+@(private = "file")
+Alignment_Case :: struct {
+	alignment_x:  base.Alignment_X,
+	alignment_y:  base.Alignment_Y,
+	expected_pos: base.Vec2,
+}
 
 @(test)
 test_basic_container_alignments_ltr :: proc(t: ^testing.T) {
 	// alignment_x and alignment_y place a child inside its parent.
-	Alignment_Case :: struct {
-		alignment_x:  base.Alignment_X,
-		alignment_y:  base.Alignment_Y,
-		expected_pos: base.Vec2,
-	}
 
 	cases := []Alignment_Case {
 		{.Left, .Top, {0, 0}},
@@ -122,6 +123,49 @@ test_relative_layout_anchoring :: proc(t: ^testing.T) {
 	)
 }
 
+@(test)
+test_anchored_alignment_with_margins :: proc(t: ^testing.T) {
+
+	cases := []Alignment_Case {
+		{.Left, .Top, {35, 20}},
+		{.Center, .Center, {80, 35}},
+		{.Right, .Bottom, {125, 50}},
+	}
+
+	for c in cases {
+		check_layout(
+			t,
+			Element_Spec {
+				name = "parent",
+				style = {
+					sizing_x = sizing_fixed(200),
+					sizing_y = sizing_fixed(100),
+					padding = padding_all(10),
+					border = border_all(5),
+				},
+				children = {
+					{
+						name = "container",
+						style = {
+							sizing_x = sizing_fixed(50),
+							sizing_y = sizing_fixed(20),
+							margin = margin_trbl(5, 10, 15, 20),
+							position_mode = .Anchored,
+							alignment_x = c.alignment_x,
+							alignment_y = c.alignment_y,
+						},
+					},
+				},
+			},
+			Expected_Element {
+				name = "parent",
+				pos = {0, 0},
+				size = {200, 100},
+				children = {{name = "container", pos = c.expected_pos, size = {50, 20}}},
+			},
+		)
+	}
+}
 
 @(test)
 test_relative_layout_with_offsets :: proc(t: ^testing.T) {
