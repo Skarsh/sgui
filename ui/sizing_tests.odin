@@ -1493,7 +1493,7 @@ test_sizing_rejects_negative_sizes :: proc(t: ^testing.T) {
 
 @(test)
 test_sizing_rejects_non_finite_sizes :: proc(t: ^testing.T) {
-	// Sizes and bounds must reject NaN and both infinities
+	// Sizes and bounds must reject NaN, positive and negative infinity
 	non_finite_values := []f32{math.nan_f32(), math.inf_f32(1), math.inf_f32(-1)}
 
 	for value in non_finite_values {
@@ -1509,7 +1509,7 @@ test_sizing_rejects_non_finite_sizes :: proc(t: ^testing.T) {
 		testing.expect(t, !is_valid_sizing(sizing_percent(0.5, max = value)))
 	}
 
-	// The largest finite value remains valid, including as our unbounded maximum
+	// F32_MAX is still valid, since it's our unbounded max
 	testing.expect(t, is_valid_sizing(sizing_fixed(math.F32_MAX)))
 	testing.expect(t, is_valid_sizing(sizing_fit(max = math.F32_MAX)))
 }
@@ -1538,7 +1538,7 @@ test_grow_factor_validation :: proc(t: ^testing.T) {
 	testing.expect(t, is_valid_sizing(sizing_grow_weighted(MAX_GROW_FACTOR)))
 
 	// Reject out-of-range and non-finite weights.
-	invalid_factors := []f32{
+	invalid_factors := []f32 {
 		-1,
 		MAX_GROW_FACTOR + 1,
 		math.F32_MAX,
