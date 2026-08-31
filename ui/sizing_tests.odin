@@ -1322,6 +1322,51 @@ test_anchored_fit_ttb :: proc(t: ^testing.T) {
 }
 
 @(test)
+test_anchored_grow_size_independent_of_flow_siblings :: proc(t: ^testing.T) {
+	children := []Element_Spec {
+		{
+			name = "anchored",
+			style = {
+				sizing_x = sizing_fixed(20),
+				sizing_y = sizing_grow(min = 20),
+				position_mode = .Anchored,
+				alignment_x = .Left,
+				alignment_y = .Top,
+			},
+		},
+		{name = "flow", style = {sizing_x = sizing_fixed(10), sizing_y = sizing_fixed(10)}},
+	}
+
+	expected_children := []Expected_Element {
+		{name = "anchored", pos = {0, 0}, size = {20, 100}},
+		{name = "flow", pos = {0, 0}, size = {10, 10}},
+	}
+
+	for child_count in 1 ..= 2 {
+		check_layout(
+			t,
+			Element_Spec {
+				name = "parent",
+				style = {
+					sizing_x = sizing_fixed(200),
+					sizing_y = sizing_fixed(100),
+					layout_direction = .Left_To_Right,
+					alignment_x = .Left,
+					alignment_y = .Top,
+				},
+				children = children[:child_count],
+			},
+			Expected_Element {
+				name = "parent",
+				pos = {0, 0},
+				size = {200, 100},
+				children = expected_children[:child_count],
+			},
+		)
+	}
+}
+
+@(test)
 test_fit_parent_minimum_is_not_added_to_child_minimum :: proc(t: ^testing.T) {
 	check_layout(
 		t,

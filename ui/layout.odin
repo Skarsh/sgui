@@ -400,87 +400,82 @@ resolve_grow_sizes_for_children :: proc(
 	allocator: mem.Allocator,
 ) -> mem.Allocator_Error {
 
-	if has_flow_children(element^) {
+	main_axis := is_main_axis(element^, axis)
+
+	// Distribute main-axis space between flow children
+	if main_axis {
 		resizables := make([dynamic]^UI_Element, allocator) or_return
-		main_axis := is_main_axis(element^, axis)
+		padding := element.config.layout.padding
+		border := element.config.layout.border
+		padding_sum := get_padding_sum_for_axis(padding, axis)
+		border_sum := get_border_sum_for_axis(border, axis)
+		child_gap := calc_child_gap(element^)
 
-		if main_axis {
-			padding := element.config.layout.padding
-			border := element.config.layout.border
-			padding_sum := get_padding_sum_for_axis(padding, axis)
-			border_sum := get_border_sum_for_axis(border, axis)
-			child_gap := calc_child_gap(element^)
+		fixed_space: f32 = padding_sum + border_sum + child_gap
+		for child in element.children {
+			if child.config.layout.position_mode == .Flow {
+				fixed_space += get_margin_sum_for_axis(child.config.layout.margin, axis)
 
-			fixed_space: f32 = padding_sum + border_sum + child_gap
-			for child in element.children {
-				if child.config.layout.position_mode == .Flow {
-					fixed_space += get_margin_sum_for_axis(child.config.layout.margin, axis)
+				sizing_info := child.config.layout.sizing[axis]
+				if sizing_info.kind == .Grow && sizing_info.grow_factor > 0 {
+					append(&resizables, child) or_return
+				} else {
+					fixed_space += child.size[axis]
+				}
+			}
+		}
 
-					sizing_info := child.config.layout.sizing[axis]
-					if sizing_info.kind == .Grow && sizing_info.grow_factor > 0 {
-						append(&resizables, child) or_return
-					} else {
-						fixed_space += child.size[axis]
-					}
+		available_for_grow := element.size[axis] - fixed_space
+
+		// Iteratively assign target sizes, handling constraints
+		resize_iter := 0
+		for resize_iter < RESIZE_ITER_MAX && len(resizables) > 0 {
+			resize_iter += 1
+
+			// Calculate total factor for current resizables
+			total_factor: f32 = 0
+			for child in resizables {
+				total_factor += child.config.layout.sizing[axis].grow_factor
+			}
+
+			any_clamped := false
+
+			// Calculate and apply target sizes
+			#reverse for child, idx in resizables {
+				child_factor := child.config.layout.sizing[axis].grow_factor
+				target_size := (child_factor / total_factor) * available_for_grow
+				clamped_size := clamp(target_size, child.min_size[axis], child.max_size[axis])
+
+				child.size[axis] = clamped_size
+
+				// If clamped, remove from pool and adjust available space
+				if !base.approx_equal(clamped_size, target_size, EPSILON) {
+					unordered_remove(&resizables, idx)
+					available_for_grow -= clamped_size
+					any_clamped = true
 				}
 			}
 
-			available_for_grow := element.size[axis] - fixed_space
-
-			if len(resizables) > 0 {
-				// Iteratively assign target sizes, handling constraints
-				resize_iter := 0
-				for resize_iter < RESIZE_ITER_MAX && len(resizables) > 0 {
-					resize_iter += 1
-
-					// Calculate total factor for current resizables
-					total_factor: f32 = 0
-					for child in resizables {
-						total_factor += child.config.layout.sizing[axis].grow_factor
-					}
-
-					any_clamped := false
-
-					// Calculate and apply target sizes
-					#reverse for child, idx in resizables {
-						child_factor := child.config.layout.sizing[axis].grow_factor
-						target_size := (child_factor / total_factor) * available_for_grow
-						clamped_size := clamp(
-							target_size,
-							child.min_size[axis],
-							child.max_size[axis],
-						)
-
-						child.size[axis] = clamped_size
-
-						// If clamped, remove from pool and adjust available space
-						if !base.approx_equal(clamped_size, target_size, EPSILON) {
-							unordered_remove(&resizables, idx)
-							available_for_grow -= clamped_size
-							any_clamped = true
-						}
-					}
-
-					// If no constraints were hit, we're done
-					if !any_clamped {
-						break
-					}
-				}
+			// If no constraints were hit, we're done
+			if !any_clamped {
+				break
 			}
+		}
 
-		} else {
-			remaining_size := content_box(element^).size[axis]
-			for child in element.children {
-				if child.config.layout.sizing[axis].kind == .Grow {
-					margin_sum := get_margin_sum_for_axis(child.config.layout.margin, axis)
+	}
 
-					child.size[axis] = clamp(
-						remaining_size - margin_sum,
-						child.min_size[axis],
-						child.max_size[axis],
-					)
-				}
-			}
+	// Size anchored and cross-axis Grow children independently
+	remaining_size := content_box(element^).size[axis]
+	for child in element.children {
+		if child.config.layout.sizing[axis].kind == .Grow &&
+		   (!main_axis || child.config.layout.position_mode == .Anchored) {
+			margin_sum := get_margin_sum_for_axis(child.config.layout.margin, axis)
+
+			child.size[axis] = clamp(
+				remaining_size - margin_sum,
+				child.min_size[axis],
+				child.max_size[axis],
+			)
 		}
 	}
 
