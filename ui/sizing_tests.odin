@@ -1342,27 +1342,29 @@ test_anchored_grow_size_independent_of_flow_siblings :: proc(t: ^testing.T) {
 		{name = "flow", pos = {0, 0}, size = {10, 10}},
 	}
 
-	for child_count in 1 ..= 2 {
-		check_layout(
-			t,
-			Element_Spec {
-				name = "parent",
-				style = {
-					sizing_x = sizing_fixed(200),
-					sizing_y = sizing_fixed(100),
-					layout_direction = .Left_To_Right,
-					alignment_x = .Left,
-					alignment_y = .Top,
+	for direction in Layout_Direction {
+		for child_count in 1 ..= 2 {
+			check_layout(
+				t,
+				Element_Spec {
+					name = "parent",
+					style = {
+						sizing_x = sizing_fixed(200),
+						sizing_y = sizing_fixed(100),
+						layout_direction = direction,
+						alignment_x = .Left,
+						alignment_y = .Top,
+					},
+					children = children[:child_count],
 				},
-				children = children[:child_count],
-			},
-			Expected_Element {
-				name = "parent",
-				pos = {0, 0},
-				size = {200, 100},
-				children = expected_children[:child_count],
-			},
-		)
+				Expected_Element {
+					name = "parent",
+					pos = {0, 0},
+					size = {200, 100},
+					children = expected_children[:child_count],
+				},
+			)
+		}
 	}
 }
 
