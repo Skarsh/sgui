@@ -1158,6 +1158,88 @@ test_weighted_grow_with_max_constraint :: proc(t: ^testing.T) {
 	)
 }
 
+@(test)
+test_grow_min_max_constraints_are_order_independent :: proc(t: ^testing.T) {
+	Constraint_Case :: struct {
+		first:                 Sizing,
+		second:                Sizing,
+		expected_first_width:  f32,
+		expected_second_width: f32,
+	}
+
+	cases := []Constraint_Case {
+		{
+			first = sizing_grow(min = 90),
+			second = sizing_grow(max = 50),
+			expected_first_width = 150,
+			expected_second_width = 50,
+		},
+		{
+			first = sizing_grow(max = 50),
+			second = sizing_grow(min = 90),
+			expected_first_width = 50,
+			expected_second_width = 150,
+		},
+		{
+			first = sizing_grow(min = 120),
+			second = sizing_grow(max = 90),
+			expected_first_width = 120,
+			expected_second_width = 80,
+		},
+		{
+			first = sizing_grow(max = 90),
+			second = sizing_grow(min = 120),
+			expected_first_width = 80,
+			expected_second_width = 120,
+		},
+		{
+			first = sizing_grow(min = 120),
+			second = sizing_grow(max = 80),
+			expected_first_width = 120,
+			expected_second_width = 80,
+		},
+		{
+			first = sizing_grow(max = 80),
+			second = sizing_grow(min = 120),
+			expected_first_width = 80,
+			expected_second_width = 120,
+		},
+	}
+
+	for c in cases {
+		check_layout(
+			t,
+			Element_Spec {
+				name = "parent",
+				style = {
+					sizing_x = sizing_fixed(200),
+					sizing_y = sizing_fixed(100),
+					layout_direction = .Left_To_Right,
+					alignment_x = .Left,
+					alignment_y = .Top,
+				},
+				children = {
+					{name = "first", style = {sizing_x = c.first, sizing_y = sizing_fixed(20)}},
+					{name = "second", style = {sizing_x = c.second, sizing_y = sizing_fixed(20)}},
+				},
+			},
+			Expected_Element {
+				name = "parent",
+				pos = {0, 0},
+				size = {200, 100},
+				children = {
+					{name = "first", pos = {0, 0}, size = {c.expected_first_width, 20}},
+					{
+						name = "second",
+						pos = {c.expected_first_width, 0},
+						size = {c.expected_second_width, 20},
+					},
+				},
+			},
+		)
+	}
+}
+
 
 @(test)
 test_all_zero_factors :: proc(t: ^testing.T) {
