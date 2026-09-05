@@ -95,8 +95,6 @@ UI_Element :: struct {
 	name:              string,
 	key:               UI_Key,
 	position:          base.Vec2,
-	min_size:          base.Vec2,
-	max_size:          base.Vec2,
 	size:              base.Vec2,
 	text_content_size: base.Vec2,
 	scroll_region:     Scroll_Region,
@@ -204,6 +202,11 @@ calc_child_gap :: #force_inline proc(element: UI_Element) -> f32 {
 	return result
 }
 
+@(require_results)
+clamp_to_sizing :: proc(size: f32, sizing: Sizing) -> f32 {
+	return clamp(size, sizing.min_value, sizing.max_value)
+}
+
 
 // TODO(Thomas): This can be simplified further by combining into a Vec2, but not sure if that
 // helps much since the layout algorithm needs to update per axis anyway.
@@ -224,7 +227,7 @@ calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) 
 		total_size = max(total_size, element.text_content_size[axis])
 	}
 
-	total_size = math.clamp(total_size, element.min_size[axis], element.max_size[axis])
+	total_size = clamp_to_sizing(total_size, element.config.layout.sizing[axis])
 
 	assert(total_size >= 0)
 	return total_size
@@ -421,10 +424,9 @@ resolve_grow_sizes_for_children :: proc(
 			}
 		} else if sizing.kind == .Grow {
 			// Cross axis or anchored
-			child.size[axis] = clamp(
+			child.size[axis] = clamp_to_sizing(
 				content.size[axis] - margins,
-				child.min_size[axis],
-				child.max_size[axis],
+				child.config.layout.sizing[axis],
 			)
 		}
 	}
@@ -442,10 +444,9 @@ resolve_grow_sizes_for_children :: proc(
 		total: f32 = 0
 
 		for child in unresolved {
-			child.size[axis] = clamp(
+			child.size[axis] = clamp_to_sizing(
 				child.config.layout.sizing[axis].grow_factor * size_per_factor,
-				child.min_size[axis],
-				child.max_size[axis],
+				child.config.layout.sizing[axis],
 			)
 			total += child.size[axis]
 		}
@@ -453,7 +454,8 @@ resolve_grow_sizes_for_children :: proc(
 		too_big := total > available
 		kept := 0
 		for child in unresolved {
-			limit := too_big ? child.min_size[axis] : child.max_size[axis]
+			sizing := child.config.layout.sizing[axis]
+			limit := too_big ? sizing.min_value : sizing.max_value
 			if child.size[axis] == limit {
 				available -= child.size[axis]
 			} else {
@@ -475,10 +477,9 @@ resolve_percentage_sizes_for_children :: proc(element: ^UI_Element, axis: base.A
 	for child in element.children {
 		sizing_info := child.config.layout.sizing[axis]
 		if sizing_info.kind == .Percentage {
-			child.size[axis] = clamp(
+			child.size[axis] = clamp_to_sizing(
 				content_available_size[axis] * sizing_info.value,
-				child.min_size[axis],
-				child.max_size[axis],
+				sizing_info,
 			)
 		}
 	}
@@ -525,18 +526,16 @@ measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
 		}
 
 		if element.config.layout.sizing.x.kind != .Fixed {
-			element.size.x = math.clamp(
+			element.size.x = clamp_to_sizing(
 				element.text_content_size.x,
-				element.min_size.x,
-				element.max_size.x,
+				element.config.layout.sizing.x,
 			)
 		}
 
 		if element.config.layout.sizing.y.kind != .Fixed {
-			element.size.y = math.clamp(
+			element.size.y = clamp_to_sizing(
 				element.text_content_size.y,
-				element.min_size.y,
-				element.max_size.y,
+				element.config.layout.sizing.y,
 			)
 		}
 	}
@@ -573,10 +572,9 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			// unless it's text_wrap_mode .None
 			if sizing_x_kind == .Fit && text_wrap_mode != .None {
 				if parent_available.x < element.size.x {
-					element.size.x = math.clamp(
+					element.size.x = clamp_to_sizing(
 						parent_available.x,
-						element.min_size.x,
-						element.max_size.x,
+						element.config.layout.sizing.x,
 					)
 				}
 			}
@@ -608,7 +606,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 		// Update element size for Fit and Grow sizing (not Fixed)
 		sizing_y_kind := element.config.layout.sizing.y.kind
 		if sizing_y_kind == .Fit || sizing_y_kind == .Grow {
-			element.size.y = math.clamp(final_height, element.min_size.y, element.max_size.y)
+			element.size.y = clamp_to_sizing(final_height, element.config.layout.sizing.y)
 		}
 	}
 
@@ -642,12 +640,6 @@ make_element :: proc(
 		element.last_frame_idx = idx
 		element.config = config
 		element.fill = config.background_fill
-
-		element.min_size.x = config.layout.sizing.x.min_value
-		element.min_size.y = config.layout.sizing.y.min_value
-
-		element.max_size.x = config.layout.sizing.x.max_value
-		element.max_size.y = config.layout.sizing.y.max_value
 
 		if config.layout.sizing.x.kind == .Fixed {
 			element.size.x = config.layout.sizing.x.value
