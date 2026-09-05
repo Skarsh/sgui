@@ -390,10 +390,11 @@ get_main_and_cross_axis :: proc(
 	return main_axis, cross_axis
 }
 
-// Target-based distribution: elements are sized to match their factor ratios
-// e.g., factors 1:2:1 in 400px -> sizes 100:200:100
-// The caller passing in the allocator has the responsibility of freeing the allocated memory.
-RESIZE_ITER_MAX :: 32
+// Resolves sizes of Grow children along the specified axis. Sharing of spaces is only
+// done for Flow children. The distribution is done in rounds, and when clamped children
+// to their min size is final.
+// Caller owns allocator and is responsible for freeing the memory allocated here.
+@(require_results)
 resolve_grow_sizes_for_children :: proc(
 	element: ^UI_Element,
 	axis: base.Axis2,
@@ -401,82 +402,68 @@ resolve_grow_sizes_for_children :: proc(
 ) -> mem.Allocator_Error {
 
 	main_axis := is_main_axis(element^, axis)
+	content := content_box(element^)
+	child_gap := calc_child_gap(element^)
+	available := content.size[axis] - child_gap
 
-	// Distribute main-axis space between flow children
-	if main_axis {
-		resizables := make([dynamic]^UI_Element, allocator) or_return
-		padding := element.config.layout.padding
-		border := element.config.layout.border
-		padding_sum := get_padding_sum_for_axis(padding, axis)
-		border_sum := get_border_sum_for_axis(border, axis)
-		child_gap := calc_child_gap(element^)
+	sharing := make([dynamic]^UI_Element, allocator) or_return
 
-		fixed_space: f32 = padding_sum + border_sum + child_gap
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				fixed_space += get_margin_sum_for_axis(child.config.layout.margin, axis)
-
-				sizing_info := child.config.layout.sizing[axis]
-				if sizing_info.kind == .Grow && sizing_info.grow_factor > 0 {
-					append(&resizables, child) or_return
-				} else {
-					fixed_space += child.size[axis]
-				}
-			}
-		}
-
-		available_for_grow := element.size[axis] - fixed_space
-
-		// Iteratively assign target sizes, handling constraints
-		resize_iter := 0
-		for resize_iter < RESIZE_ITER_MAX && len(resizables) > 0 {
-			resize_iter += 1
-
-			// Calculate total factor for current resizables
-			total_factor: f32 = 0
-			for child in resizables {
-				total_factor += child.config.layout.sizing[axis].grow_factor
-			}
-
-			any_clamped := false
-
-			// Calculate and apply target sizes
-			#reverse for child, idx in resizables {
-				child_factor := child.config.layout.sizing[axis].grow_factor
-				target_size := (child_factor / total_factor) * available_for_grow
-				clamped_size := clamp(target_size, child.min_size[axis], child.max_size[axis])
-
-				child.size[axis] = clamped_size
-
-				// If clamped, remove from pool and adjust available space
-				if !base.approx_equal(clamped_size, target_size, EPSILON) {
-					unordered_remove(&resizables, idx)
-					available_for_grow -= clamped_size
-					any_clamped = true
-				}
-			}
-
-			// If no constraints were hit, we're done
-			if !any_clamped {
-				break
-			}
-		}
-
-	}
-
-	// Size anchored and cross-axis Grow children independently
-	remaining_size := content_box(element^).size[axis]
 	for child in element.children {
-		if child.config.layout.sizing[axis].kind == .Grow &&
-		   (!main_axis || child.config.layout.position_mode == .Anchored) {
-			margin_sum := get_margin_sum_for_axis(child.config.layout.margin, axis)
+		margins := get_margin_sum_for_axis(child.config.layout.margin, axis)
+		sizing := child.config.layout.sizing[axis]
 
+		if main_axis && child.config.layout.position_mode == .Flow {
+			available -= margins
+			if sizing.kind == .Grow && sizing.grow_factor > 0 {
+				append(&sharing, child) or_return
+			} else {
+				available -= child.size[axis]
+			}
+		} else if sizing.kind == .Grow {
+			// Cross axis or anchored
 			child.size[axis] = clamp(
-				remaining_size - margin_sum,
+				content.size[axis] - margins,
 				child.min_size[axis],
 				child.max_size[axis],
 			)
 		}
+	}
+
+	unresolved := sharing[:]
+	progress := true
+
+	for len(unresolved) > 0 && progress {
+		sum_factors: f32 = 0
+		for child in unresolved {
+			sum_factors += child.config.layout.sizing[axis].grow_factor
+		}
+
+		size_per_factor := available / sum_factors
+		total: f32 = 0
+
+		for child in unresolved {
+			child.size[axis] = clamp(
+				child.config.layout.sizing[axis].grow_factor * size_per_factor,
+				child.min_size[axis],
+				child.max_size[axis],
+			)
+			total += child.size[axis]
+		}
+
+		too_big := total > available
+		kept := 0
+		for child in unresolved {
+			limit := too_big ? child.min_size[axis] : child.max_size[axis]
+			if child.size[axis] == limit {
+				available -= child.size[axis]
+			} else {
+				unresolved[kept] = child
+				kept += 1
+			}
+		}
+
+		progress = kept < len(unresolved)
+		unresolved = unresolved[:kept]
 	}
 
 	return nil
