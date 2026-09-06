@@ -17,11 +17,7 @@ ui_key_null :: proc() -> UI_Key {
 
 @(require_results)
 ui_key_current_loc :: proc(seed: u64 = FNV_OFFSET, loc := #caller_location) -> UI_Key {
-	h := hash_string(loc.file_path, seed)
-	h = hash_u64(u64(loc.line), h)
-	h = hash_u64(u64(loc.column), h)
-
-	return UI_Key{hash = h}
+	return ui_key_from_loc(loc, seed)
 }
 
 @(require_results)
