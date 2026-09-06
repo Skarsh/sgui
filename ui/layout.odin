@@ -814,18 +814,6 @@ text_origin :: proc(element: UI_Element, text_layout: textpkg.Text_Layout) -> ba
 	return start_pos
 }
 
-@(require_results)
-has_flow_children :: #force_inline proc(element: UI_Element) -> bool {
-	result := false
-	for child in element.children {
-		if child.config.layout.position_mode == .Flow {
-			result = true
-			break
-		}
-	}
-	return result
-}
-
 position_anchored_children :: proc(element: ^UI_Element) {
 	for child in element.children {
 		if child.config.layout.position_mode == .Anchored {
@@ -856,30 +844,25 @@ position_anchored_children :: proc(element: ^UI_Element) {
 
 @(require_results)
 measure_flow_content_size :: proc(element: UI_Element) -> (content_size: base.Vec2) {
-	if has_flow_children(element) {
+	dir := element.config.layout.layout_direction
+	main_axis, cross_axis := get_main_and_cross_axis(dir)
 
-		dir := element.config.layout.layout_direction
-		main_axis, cross_axis := get_main_and_cross_axis(dir)
+	// Measure children (including margins)
+	for child in element.children {
+		if child.config.layout.position_mode == .Flow {
+			child_margin := child.config.layout.margin
+			margin_main := get_margin_sum_for_axis(child_margin, main_axis)
+			margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
 
-		// Measure children (including margins)
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				child_margin := child.config.layout.margin
-				margin_main := get_margin_sum_for_axis(child_margin, main_axis)
-				margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
-
-				content_size[main_axis] += child.size[main_axis] + margin_main
-				content_size[cross_axis] = max(
-					content_size[cross_axis],
-					child.size[cross_axis] + margin_cross,
-				)
-			}
+			content_size[main_axis] += child.size[main_axis] + margin_main
+			content_size[cross_axis] = max(
+				content_size[cross_axis],
+				child.size[cross_axis] + margin_cross,
+			)
 		}
-
-		// Apply child gap
-		gap_size := calc_child_gap(element)
-		content_size[main_axis] += gap_size
 	}
+
+	content_size[main_axis] += calc_child_gap(element)
 
 	return
 }
@@ -888,9 +871,6 @@ update_scroll_region :: proc(ctx: ^Context, element: ^UI_Element) {
 	flags := element.config.capability_flags
 
 	if .Scrollable_X in flags || .Scrollable_Y in flags {
-		// Reset scroll_region content_size
-		element.scroll_region.content_size = {}
-
 		available_size := content_box(element^).size
 		content_size := measure_flow_content_size(element^)
 
@@ -933,60 +913,55 @@ update_scroll_region :: proc(ctx: ^Context, element: ^UI_Element) {
 }
 
 position_flow_children :: proc(element: ^UI_Element) {
-	if has_flow_children(element^) {
-		// Setup Axes
-		dir := element.config.layout.layout_direction
-		main_axis, cross_axis := get_main_and_cross_axis(dir)
+	// Setup Axes
+	dir := element.config.layout.layout_direction
+	main_axis, cross_axis := get_main_and_cross_axis(dir)
 
-		box := content_box(element^)
-		available_size := box.size
+	box := content_box(element^)
+	available_size := box.size
 
-		// Content size
-		content_size := measure_flow_content_size(element^)
-		remaining_space_main := available_size[main_axis] - content_size[main_axis]
+	// Content size
+	content_size := measure_flow_content_size(element^)
+	remaining_space_main := available_size[main_axis] - content_size[main_axis]
 
-		// Determine starting position
-		start_pos := box.origin
-		align_factors := get_alignment_factors(
-			element.config.layout.alignment_x,
-			element.config.layout.alignment_y,
-		)
-		main_pos := start_pos[main_axis] + (remaining_space_main * align_factors[main_axis])
+	// Determine starting position
+	start_pos := box.origin
+	align_factors := get_alignment_factors(
+		element.config.layout.alignment_x,
+		element.config.layout.alignment_y,
+	)
+	main_pos := start_pos[main_axis] + (remaining_space_main * align_factors[main_axis])
 
-		// Adjust for scroll
-		main_pos -= element.scroll_region.offset[main_axis]
+	// Adjust for scroll
+	main_pos -= element.scroll_region.offset[main_axis]
 
-		// Position children
-		for child in element.children {
-			if child.config.layout.position_mode == .Flow {
-				child_margin := child.config.layout.margin
-				margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
-				margin_cross_start, margin_cross_end := get_margin_for_axis(
-					child_margin,
-					cross_axis,
-				)
+	// Position children
+	for child in element.children {
+		if child.config.layout.position_mode == .Flow {
+			child_margin := child.config.layout.margin
+			margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
+			margin_cross_start, margin_cross_end := get_margin_for_axis(child_margin, cross_axis)
 
-				// Main axis (apply start margin)
-				child.position[main_axis] = main_pos + margin_main_start
-				main_pos +=
-					child.size[main_axis] +
-					margin_main_start +
-					margin_main_end +
-					element.config.layout.child_gap
+			// Main axis (apply start margin)
+			child.position[main_axis] = main_pos + margin_main_start
+			main_pos +=
+				child.size[main_axis] +
+				margin_main_start +
+				margin_main_end +
+				element.config.layout.child_gap
 
-				// Cross axis (apply start margin)
-				remaining_space_cross :=
-					available_size[cross_axis] -
-					child.size[cross_axis] -
-					margin_cross_start -
-					margin_cross_end
+			// Cross axis (apply start margin)
+			remaining_space_cross :=
+				available_size[cross_axis] -
+				child.size[cross_axis] -
+				margin_cross_start -
+				margin_cross_end
 
-				child.position[cross_axis] =
-					start_pos[cross_axis] +
-					margin_cross_start +
-					(remaining_space_cross * align_factors[cross_axis]) -
-					element.scroll_region.offset[cross_axis]
-			}
+			child.position[cross_axis] =
+				start_pos[cross_axis] +
+				margin_cross_start +
+				(remaining_space_cross * align_factors[cross_axis]) -
+				element.scroll_region.offset[cross_axis]
 		}
 	}
 }
@@ -994,22 +969,19 @@ position_flow_children :: proc(element: ^UI_Element) {
 calculate_positions_and_alignment :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
 	assert(element != nil)
 
-	if element != nil {
-		base.animate_vec2(
-			&element.scroll_region.offset,
-			&element.scroll_region.target_offset,
-			dt,
-			20.0,
-		)
+	base.animate_vec2(
+		&element.scroll_region.offset,
+		&element.scroll_region.target_offset,
+		dt,
+		20.0,
+	)
 
-		update_scroll_region(ctx, element)
-		position_flow_children(element)
-		position_anchored_children(element)
+	update_scroll_region(ctx, element)
+	position_flow_children(element)
+	position_anchored_children(element)
 
-		// Recursive step
-		for child in element.children {
-			calculate_positions_and_alignment(ctx, child, dt)
-		}
+	for child in element.children {
+		calculate_positions_and_alignment(ctx, child, dt)
 	}
 }
 
@@ -1036,11 +1008,9 @@ get_element_pointer_by_key :: proc(ctx: ^Context, key: UI_Key) -> (^UI_Element, 
 print_element_hierarchy :: proc(root: ^UI_Element) {
 	assert(root != nil)
 
-	if root != nil {
-		log.infof("id: %v, size: %v, pos: %v", root.name, root.size, root.position)
+	log.infof("id: %v, size: %v, pos: %v", root.name, root.size, root.position)
 
-		for child in root.children {
-			print_element_hierarchy(child)
-		}
+	for child in root.children {
+		print_element_hierarchy(child)
 	}
 }

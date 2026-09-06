@@ -143,14 +143,8 @@ focused_text_state :: proc(
 	^textpkg.Text_State,
 	bool,
 ) {
-	// TODO(Thomas): Could probably simplify this by pushing this if up to the call site
-	if interaction.focused_id != ui_key_null() {
-		if s, ok := &ts.text_states[interaction.focused_id.hash]; ok {
-			return s, true
-		}
-	}
-
-	return nil, false
+	// Callers check that something is focused before asking
+	return &ts.text_states[interaction.focused_id.hash]
 }
 
 // TODO(Thomas): Move this? If this take the text system and a key: u64 this
