@@ -244,7 +244,10 @@ open_element :: proc(
 ) -> ^UI_Element {
 	final_config := resolve_style(ctx, style, default_style)
 
-	element := make_element(ctx, key, final_config, name)
+	element, make_err := make_element(ctx, key, final_config, name)
+	if make_err != .None {
+		log.panicf("failed to allocate element %q: %v", name, make_err)
+	}
 
 	if !push(&ctx.element_stack, element) {
 		panic("Unable to push element onto stack, panic")
@@ -598,14 +601,17 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 	return nil
 }
 
-// Always returns a usable element, will panic on invalid sizing or allocation failure.
+// Panics on invalid sizing, an allocation failure is returned to the caller.
 @(require_results)
 make_element :: proc(
 	ctx: ^Context,
 	key: UI_Key,
 	element_config: Element_Config,
 	name: string,
-) -> ^UI_Element {
+) -> (
+	element: ^UI_Element,
+	err: mem.Allocator_Error,
+) {
 
 	for axis in base.Axis2 {
 		sizing := element_config.layout.sizing[axis]
@@ -631,80 +637,22 @@ make_element :: proc(
 		}
 	}
 
-	element: ^UI_Element
-
 	if key == ui_key_null() {
-		// Non-cached / Temporary Element
-		err: mem.Allocator_Error
-		element, err = new(UI_Element, ctx.frame_allocator)
-		assert(err == .None, fmt.tprintf("failed to allocate UI_Element: %v", err))
-
-		element.key = key
-
-		// TODO(Thomas): @Perf The string cloning here has now moved to be only for elements
-		// that has a non-empty string name. But this is still unnecessary to do in production
-		// builds, so we should gate this by checking whether a prod build or not when we
-		// get that up and running, since this is mostly for debugging purposes.
-		if name != "" {
-			str_clone_err: mem.Allocator_Error
-			element.name, str_clone_err = strings.clone(name, ctx.frame_allocator)
-			assert(
-				str_clone_err == .None,
-				fmt.tprintf(
-					"failed to allocate memory for cloning name string: %v",
-					str_clone_err,
-				),
-			)
-		}
-
-		element.children, err = make([dynamic]^UI_Element, ctx.frame_allocator)
-		assert(err == .None, fmt.tprintf("failed to allocate UI_element children: %v", err))
-
+		// Temporary element, lives for this frame only
+		element = new_element(key, name, ctx.frame_allocator) or_return
+	} else if cached, found := ctx.element_cache[key]; found {
+		fmt.assertf(
+			ctx.frame_idx > cached.last_frame_idx,
+			"adding two elements with the same id / key on the same frame is not allowed: " +
+			"key %v, new element name %q, existing element name %q",
+			key.hash,
+			name,
+			cached.name,
+		)
+		element = cached
 	} else {
-		// Cached Element
-		found := false
-		element, found = ctx.element_cache[key]
-
-		if found {
-			fmt.assertf(
-				ctx.frame_idx > element.last_frame_idx,
-				"adding two elements with the same id / key on the same frame is not allowed: " +
-				"key %v, new element name %q, existing element name %q",
-				key.hash,
-				name,
-				element.name,
-			)
-		} else {
-			err: mem.Allocator_Error
-			element, err = new(UI_Element, ctx.persistent_allocator)
-			if err != .None {
-				log.panicf("failed to allocate UI_Element: %v", err)
-			}
-
-
-			element.key = key
-
-			// TODO(Thomas): @Perf The string cloning here has now moved to be only for elements
-			// that has a non-empty string name. But this is still unnecessary to do in production
-			// builds, so we should gate this by checking whether a prod build or not when we
-			// get that up and running, since this is mostly for debugging purposes.
-			if name != "" {
-				str_clone_err: mem.Allocator_Error
-				element.name, str_clone_err = strings.clone(name, ctx.persistent_allocator)
-				if str_clone_err != .None {
-					log.panicf(
-						"failed to allocate memory for cloning id string: %v",
-						str_clone_err,
-					)
-				}
-			}
-
-			element.children, err = make([dynamic]^UI_Element, ctx.persistent_allocator)
-			if err != .None {
-				log.panicf("failed to allocate UI_Element children: %v", err)
-			}
-			ctx.element_cache[key] = element
-		}
+		element = new_element(key, name, ctx.persistent_allocator) or_return
+		ctx.element_cache[key] = element
 	}
 
 
@@ -723,13 +671,36 @@ make_element :: proc(
 	element.parent = ctx.current_parent
 	clear_dynamic_array(&element.children)
 	if element.parent != nil {
-		_, append_err := append(&element.parent.children, element)
-		if append_err != .None {
-			log.panicf("failed to append element to its parent: %v", append_err)
-		}
+		append(&element.parent.children, element) or_return
 	}
 
-	return element
+	return element, nil
+}
+
+// Allocates an element and the storage it owns from allocator.
+@(require_results)
+new_element :: proc(
+	key: UI_Key,
+	name: string,
+	allocator: mem.Allocator,
+) -> (
+	element: ^UI_Element,
+	err: mem.Allocator_Error,
+) {
+	element = new(UI_Element, allocator) or_return
+	element.key = key
+
+	// TODO(Thomas): @Perf The string cloning here has now moved to be only for elements
+	// that has a non-empty string name. But this is still unnecessary to do in production
+	// builds, so we should gate this by checking whether a prod build or not when we
+	// get that up and running, since this is mostly for debugging purposes.
+	if name != "" {
+		element.name = strings.clone(name, allocator) or_return
+	}
+
+	element.children = make([dynamic]^UI_Element, allocator) or_return
+
+	return element, nil
 }
 
 @(require_results)
