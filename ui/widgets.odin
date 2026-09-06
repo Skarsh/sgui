@@ -32,18 +32,13 @@ text :: proc(
 		// Selection needs to be able to click and take focuse for hit testing
 		element.config.capability_flags |= {.Clickable, .Focusable}
 
-		state, state_exists := &ctx.text_system.text_states[element.key.hash]
-
-		// TODO(Thomas): Can this be simplified?
+		state, state_exists := &ctx.text_system.text_states[key.hash]
 		if !state_exists {
-			text_read_state := textpkg.Text_Read_Only_State{}
-			text_state := textpkg.Text_State {
-				variant = text_read_state,
-			}
-			ctx.text_system.text_states[key.hash] = text_state
-			ok: bool
-			state, ok = &ctx.text_system.text_states[key.hash]
-			assert(ok)
+			state = map_insert(
+				&ctx.text_system.text_states,
+				key.hash,
+				textpkg.Text_State{variant = textpkg.Text_Read_Only_State{}},
+			)
 		}
 
 		// Last frame idx must be set every frame
@@ -280,8 +275,7 @@ text_input :: proc(
 		textpkg.text_edit_init(&text_edit_state, text_buffer)
 		new_state.variant = text_edit_state
 
-		ctx.text_system.text_states[key.hash] = new_state
-		state = &ctx.text_system.text_states[key.hash]
+		state = map_insert(&ctx.text_system.text_states, key.hash, new_state)
 	}
 
 	// Last frame idx must be set every frame

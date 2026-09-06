@@ -226,8 +226,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 					selection, has_selection = get_text_state_selection(&ctx.text_system, element^)
 				}
 
-				current_y := start_pos.y
-
 				for row in text_layout.rows {
 					// Draw selection
 					if has_selection {
@@ -254,17 +252,15 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 					}
 
 					// Draw text
-					start_x := start_pos.x + row.pos.x
 					draw_text(
 						draw_state,
-						start_x,
-						current_y,
+						start_pos.x + row.pos.x,
+						start_pos.y + row.pos.y,
 						base.slice_from_range(text_layout.glyphs, row.glyph_range),
 						element.config.text_fill,
 						element.config.layout.font_id,
 						z_index = 0,
 					)
-					current_y += row.size.y
 				}
 
 				if has_selection {
