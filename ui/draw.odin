@@ -124,7 +124,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		}
 
 		cap_flags := element.config.capability_flags
-		final_bg_fill := element.fill
+		final_bg_fill := element.config.background_fill
 
 		last_comm := element.last_comm
 

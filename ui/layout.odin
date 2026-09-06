@@ -88,8 +88,6 @@ Scroll_Region :: struct {
 	content_size:  base.Vec2,
 }
 
-// TODO(Thomas): Redundant data between the Element_Config and fields in this struct
-// e.g. sizes, etc.
 UI_Element :: struct {
 	parent:            ^UI_Element,
 	name:              string,
@@ -100,7 +98,6 @@ UI_Element :: struct {
 	scroll_region:     Scroll_Region,
 	config:            Element_Config,
 	children:          [dynamic]^UI_Element,
-	fill:              base.Fill,
 	z_index:           i32,
 	hot:               f32,
 	active:            f32,
@@ -639,7 +636,6 @@ make_element :: proc(
 	update_element_configuration :: proc(element: ^UI_Element, config: Element_Config, idx: u64) {
 		element.last_frame_idx = idx
 		element.config = config
-		element.fill = config.background_fill
 
 		if config.layout.sizing.x.kind == .Fixed {
 			element.size.x = config.layout.sizing.x.value
