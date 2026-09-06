@@ -37,7 +37,6 @@ Context :: struct {
 	element_cache:        map[UI_Key]^UI_Element,
 	frame_idx:            u64,
 	dt:                   f32,
-	font_configs:         []base.Font_Config,
 	text_system:          textpkg.Text_System,
 	window_size:          [2]i32,
 }
@@ -81,10 +80,7 @@ init :: proc(
 ) {
 	assert(len(draw_command_buffer) > 0)
 	ctx^ = {} // zero memory
-	ctx.interaction = Interaction {
-		input            = input,
-		text_measurement = text_measurement,
-	}
+	ctx.interaction = Interaction{input = input}
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 	ctx.window_size = screen_size

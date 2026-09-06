@@ -22,9 +22,6 @@ Comm :: struct {
 Interaction :: struct {
 	// input is owned by app
 	input:               ^base.Input,
-	// text_measurement is owned by app
-	text_measurement:    ^textpkg.Text_Measurement,
-	active_element:      ^UI_Element,
 	hot_id:              UI_Key,
 	clicked_id:          UI_Key,
 	pressed_id:          UI_Key,

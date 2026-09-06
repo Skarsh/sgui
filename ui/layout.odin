@@ -98,7 +98,6 @@ UI_Element :: struct {
 	scroll_region:     Scroll_Region,
 	config:            Element_Config,
 	children:          [dynamic]^UI_Element,
-	z_index:           i32,
 	hot:               f32,
 	active:            f32,
 	last_comm:         Comm,
@@ -250,9 +249,7 @@ open_element :: proc(
 
 	element := make_element(ctx, key, final_config, name)
 
-	if push(&ctx.element_stack, element) {
-		element.z_index = ctx.element_stack.top
-	} else {
+	if !push(&ctx.element_stack, element) {
 		panic("Unable to push element onto stack, panic")
 	}
 	ctx.current_parent = element
