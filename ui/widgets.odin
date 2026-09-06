@@ -120,11 +120,10 @@ slider :: proc(
 	thumb_key := ui_key_current_loc(track_key.hash)
 	thumb := open_element(ctx, thumb_key, resolved_thumb, name = thumb_name)
 
-	padding := track.config.layout.padding
-	border := track.config.layout.border
+	inset := content_inset(track.config.layout)
 
-	start_space := is_vert ? (padding.top + border.top) : (padding.left + border.left)
-	end_space := is_vert ? (padding.bottom + border.bottom) : (padding.right + border.right)
+	start_space := is_vert ? inset.top : inset.left
+	end_space := is_vert ? inset.bottom : inset.right
 
 	axis_idx := int(axis)
 	travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
@@ -316,9 +315,7 @@ text_input :: proc(
 	caret_x_offset := intrinsic_size.x
 
 	start := element.scroll_region.offset.x
-	padding_sum := get_padding_sum_for_axis(element.config.layout.padding, .X)
-	border_sum := get_border_sum_for_axis(element.config.layout.border, .X)
-	end := start + (element.size.x - padding_sum - border_sum)
+	end := start + content_box(element^).size.x
 
 	if caret_x_offset > end {
 		diff := caret_x_offset - end

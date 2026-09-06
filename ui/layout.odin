@@ -210,13 +210,10 @@ clamp_to_sizing :: proc(size: f32, sizing: Sizing) -> f32 {
 calculate_element_size_for_axis :: proc(element: ^UI_Element, axis: base.Axis2) -> f32 {
 	assert(element != nil)
 
-	padding := element.config.layout.padding
-	border := element.config.layout.border
-	padding_sum := get_padding_sum_for_axis(padding, axis)
-	border_sum := get_border_sum_for_axis(border, axis)
+	inset_sum := get_box_sum_for_axis(content_inset(element.config.layout), axis)
 
 	content_size := measure_flow_content_size(element^)[axis]
-	total_size := content_size + padding_sum + border_sum
+	total_size := content_size + inset_sum
 
 	// text content_size already includes padding and border
 	if .Text in element.config.capability_flags {
@@ -511,13 +508,7 @@ measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
 			element.config.layout.font_id,
 		)
 
-		padding := element.config.layout.padding
-		border := element.config.layout.border
-
-		element.text_content_size = base.Vec2 {
-			intrinsic.x + padding.left + padding.right + border.left + border.right,
-			intrinsic.y + padding.top + padding.bottom + border.top + border.bottom,
-		}
+		element.text_content_size = intrinsic + get_box_sum(content_inset(element.config.layout))
 
 		if element.config.layout.sizing.x.kind != .Fixed {
 			element.size.x = clamp_to_sizing(
@@ -541,8 +532,7 @@ measure_text_sizes :: proc(ctx: ^Context, element: ^UI_Element) {
 
 wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 	if .Text in element.config.capability_flags {
-		border := element.config.layout.border
-		padding := element.config.layout.padding
+		inset := content_inset(element.config.layout)
 		text := element.config.content.text_data.text
 		text_wrap_mode := element.config.layout.text_wrap_mode
 
@@ -558,8 +548,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			// If parent has less space, use that and account for text's own padding/border,
 			// unless it's text_wrap_mode .None, then allow overflow
 			if parent_available.x < element.size.x && text_wrap_mode != .None {
-				wrap_width =
-					parent_available.x - padding.left - padding.right - border.left - border.right
+				wrap_width = parent_available.x - get_box_sum_for_axis(inset, .X)
 			}
 
 			// Constrain element width to parent's available space for Fit sizing
@@ -593,8 +582,7 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 
 
 		// Update text_content_size.y based on wrapped height
-		final_height :=
-			text_layout.size.y + padding.top + padding.bottom + border.top + border.bottom
+		final_height := text_layout.size.y + get_box_sum_for_axis(inset, .Y)
 		element.text_content_size.y = final_height
 
 		// Update element size for Fit and Grow sizing (not Fixed)
@@ -771,24 +759,29 @@ get_alignment_factors :: #force_inline proc(
 	return {get_alignment_factor(align_x), get_alignment_factor(align_y)}
 }
 
+// Sums the opposite sides of a box per axis: left + right for x, top + bottom for y.
+@(require_results)
+get_box_sum :: proc(box: Box) -> base.Vec2 {
+	return {box.left + box.right, box.top + box.bottom}
+}
+
 // Generic helper for summing box values (padding, border, margin) for a given axis
 @(require_results)
 get_box_sum_for_axis :: proc(box: Box, axis: base.Axis2) -> f32 {
-	if axis == .X {
-		return box.left + box.right
-	} else {
-		return box.top + box.bottom
+	return get_box_sum(box)[axis]
+}
+
+// The inset from an element's outer edge to its content box: padding plus border, per side.
+@(require_results)
+content_inset :: proc(layout: Layout_Config) -> Box {
+	padding := Box(layout.padding)
+	border := Box(layout.border)
+	return Box {
+		top = padding.top + border.top,
+		right = padding.right + border.right,
+		bottom = padding.bottom + border.bottom,
+		left = padding.left + border.left,
 	}
-}
-
-@(require_results)
-get_padding_sum_for_axis :: proc(padding: Padding, axis: base.Axis2) -> f32 {
-	return get_box_sum_for_axis(Box(padding), axis)
-}
-
-@(require_results)
-get_border_sum_for_axis :: proc(border: Border, axis: base.Axis2) -> f32 {
-	return get_box_sum_for_axis(Box(border), axis)
 }
 
 @(require_results)
@@ -814,24 +807,19 @@ Content_Box :: struct {
 
 @(require_results)
 content_box :: proc(element: UI_Element) -> Content_Box {
-	padding := element.config.layout.padding
-	border := element.config.layout.border
+	inset := content_inset(element.config.layout)
 	size := element.size
 
-	available_x := size.x - padding.left - padding.right - border.left - border.right
-	available_y := size.y - padding.top - padding.bottom - border.top - border.bottom
+	available := size - get_box_sum(inset)
 	result_size := base.Vec2 {
-		math.clamp(available_x, 0, size.x),
-		math.clamp(available_y, 0, size.y),
+		math.clamp(available.x, 0, size.x),
+		math.clamp(available.y, 0, size.y),
 	}
 
 	assert(result_size.x >= 0)
 	assert(result_size.y >= 0)
 
-	return Content_Box {
-		origin = element.position + {padding.left + border.left, padding.top + border.top},
-		size = result_size,
-	}
+	return Content_Box{origin = element.position + {inset.left, inset.top}, size = result_size}
 }
 
 @(require_results)
@@ -881,10 +869,7 @@ position_anchored_children :: proc(element: ^UI_Element) {
 				child.config.layout.alignment_y,
 			)
 
-			margin_size := base.Vec2 {
-				child_margin.left + child_margin.right,
-				child_margin.top + child_margin.bottom,
-			}
+			margin_size := get_box_sum(Box(child_margin))
 
 			// Gives natural alignment, e.g. left side of child is aligned with left side of parent
 			// when .Left for alignment_x, and right side of child is aligned with right side of parent
