@@ -173,23 +173,10 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				)
 			}
 
-			if .Click_Animation in cap_flags {
-				if last_comm.held {
-					click_color := default_color_style[.Click]
-					final_bg_fill = click_color
-				} else {
-					final_bg_fill = base.fill_gradient(
-						gradient.color_start,
-						gradient.color_end,
-						gradient.direction,
-					)
-				}
+			if .Click_Animation in cap_flags && last_comm.held {
+				final_bg_fill = default_color_style[.Click]
 			} else {
-				final_bg_fill = base.fill_gradient(
-					gradient.color_start,
-					gradient.color_end,
-					gradient.direction,
-				)
+				final_bg_fill = gradient
 			}
 		}
 
