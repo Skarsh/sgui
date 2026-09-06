@@ -186,8 +186,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				element_rect(element^),
 				final_bg_fill,
 				element.config.layout.border_radius,
-				border = Border{},
-				border_fill = base.TRANSPARENT,
 				z_index = 0,
 			)
 		}
@@ -244,9 +242,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 								h = i32(sel_rect.h),
 							},
 							base.fill_color(255, 255, 255, 128),
-							border_radius = base.Vec4{},
-							border = Border{},
-							border_fill = base.TRANSPARENT,
 							z_index = 0,
 						)
 					}
@@ -301,9 +296,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 								h = i32(caret_height),
 							},
 							element.config.text_fill,
-							border_radius = base.Vec4{},
-							border = Border{},
-							border_fill = base.TRANSPARENT,
 							z_index = 0,
 						)
 					}
@@ -350,9 +342,9 @@ draw_rect :: proc(
 	draw_state: ^Draw_State,
 	rect: base.Rect,
 	fill: base.Fill,
-	border_radius: base.Vec4,
-	border: Border,
-	border_fill: base.Fill,
+	border_radius: base.Vec4 = {},
+	border: Border = {},
+	border_fill: base.Fill = base.TRANSPARENT,
 	z_index: i32 = 0,
 ) {
 	cmd := Command_Rect{rect, fill, border_fill, border, border_radius}
