@@ -231,7 +231,7 @@ scrollbar :: proc(
 						sizing_x = sizing_fixed(axis_sizes[base.Axis2.X]),
 						sizing_y = sizing_fixed(axis_sizes[base.Axis2.Y]),
 						background_fill = base.fill_color(80, 80, 80),
-						border_fill = base.fill_color(0, 0, 0, 0),
+						border_fill = base.TRANSPARENT,
 					},
 					track_name = name,
 					thumb_name = fmt.tprintf("%s_thumb", name),

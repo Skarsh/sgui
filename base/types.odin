@@ -27,6 +27,10 @@ fill_gradient :: proc(start, end: Color, direction: Vec2 = {0, 1}) -> Fill {
 	return Gradient{start, end, direction}
 }
 
+// Fully transparent color. Used as a Fill it counts as set, unlike nil,
+// so it overrides an inherited fill instead of falling through to it.
+TRANSPARENT :: Color{0, 0, 0, 0}
+
 Rect :: struct {
 	x, y, w, h: i32,
 }

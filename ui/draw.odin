@@ -200,7 +200,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 				final_bg_fill,
 				element.config.layout.border_radius,
 				border = Border{},
-				border_fill = base.fill_color(0, 0, 0, 0),
+				border_fill = base.TRANSPARENT,
 				z_index = 0,
 			)
 		}
@@ -261,7 +261,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 							base.fill_color(255, 255, 255, 128),
 							border_radius = base.Vec4{},
 							border = Border{},
-							border_fill = base.fill_color(0, 0, 0, 0),
+							border_fill = base.TRANSPARENT,
 							z_index = 0,
 						)
 					}
@@ -320,7 +320,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 							element.config.text_fill,
 							border_radius = base.Vec4{},
 							border = Border{},
-							border_fill = base.fill_color(0, 0, 0, 0),
+							border_fill = base.TRANSPARENT,
 							z_index = 0,
 						)
 					}
@@ -343,7 +343,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			draw_rect(
 				draw_state,
 				element_rect(element^),
-				base.fill_color(0, 0, 0, 0),
+				base.TRANSPARENT,
 				element.config.layout.border_radius,
 				element.config.layout.border,
 				element.config.border_fill,

@@ -283,7 +283,7 @@ default_theme :: proc() -> Theme {
 			capability_flags = Capability_Flags{.Background},
 		},
 		scrollbar = Style {
-			background_fill = base.fill_color(0, 0, 0, 0),
+			background_fill = base.TRANSPARENT,
 			position_mode = .Anchored,
 		},
 		slider = Style {
