@@ -337,10 +337,9 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			)
 		}
 
-		epsilon: f32 = 0.001
 		border := element.config.layout.border
 		border_sum := border.left + border.right + border.top + border.bottom
-		if .Background in cap_flags && border_sum > (0 + epsilon) {
+		if .Background in cap_flags && border_sum > EPSILON {
 			draw_rect(
 				draw_state,
 				element_rect(element^),

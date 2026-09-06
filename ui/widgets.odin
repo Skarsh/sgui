@@ -184,16 +184,14 @@ scrollbar :: proc(
 
 		axis_sizes[cross_axis] = 20
 
-		epsilon: f32 = 0.001
-
 		// Auto hide check
-		if target.scroll_region.max_offset[axis] > (1.0 + epsilon) {
+		if target.scroll_region.max_offset[axis] > 1.0 + EPSILON {
 
 			// Calculate thumb size
 			viewport_len := target.size[axis]
 			content_len := target.scroll_region.content_size[axis]
 
-			if content_len > (0 + epsilon) {
+			if content_len > EPSILON {
 
 				view_ratio := viewport_len / content_len
 

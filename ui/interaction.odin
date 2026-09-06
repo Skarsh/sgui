@@ -475,7 +475,7 @@ build_comm :: proc(
 			clicked = is_clicked,
 			active = is_focused,
 			hovering = is_hot || is_pressed,
-			hot = base.approx_equal(element.hot, 1.0, 0.001),
+			hot = base.approx_equal(element.hot, 1.0, EPSILON),
 		},
 		nil
 }
