@@ -99,12 +99,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
 
 		if should_clip {
-			new_constraint := base.Rect {
-				x = i32(element.position.x),
-				y = i32(element.position.y),
-				w = i32(element.size.x),
-				h = i32(element.size.y),
-			}
+			new_constraint := element_rect(element^)
 
 			//NOTE(Thomas): If X clipping is disabled, we ignore the elements's width constraint
 			// and use the the parent's width constraint instead.
@@ -201,12 +196,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		if .Background in element.config.capability_flags {
 			draw_rect(
 				draw_state,
-				base.Rect {
-					i32(element.position.x),
-					i32(element.position.y),
-					i32(element.size.x),
-					i32(element.size.y),
-				},
+				element_rect(element^),
 				final_bg_fill,
 				element.config.layout.border_radius,
 				border = Border{},
@@ -341,12 +331,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		if .Shape in cap_flags {
 			draw_shape(
 				draw_state,
-				base.Rect {
-					i32(element.position.x),
-					i32(element.position.y),
-					i32(element.size.x),
-					i32(element.size.y),
-				},
+				element_rect(element^),
 				element.config.content.shape_data,
 				z_index = 0,
 			)
@@ -358,12 +343,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		if .Background in cap_flags && border_sum > (0 + epsilon) {
 			draw_rect(
 				draw_state,
-				base.Rect {
-					i32(element.position.x),
-					i32(element.position.y),
-					i32(element.size.x),
-					i32(element.size.y),
-				},
+				element_rect(element^),
 				base.fill_color(0, 0, 0, 0),
 				element.config.layout.border_radius,
 				element.config.layout.border,
