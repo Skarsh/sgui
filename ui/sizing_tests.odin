@@ -1240,6 +1240,83 @@ test_grow_min_max_constraints_are_order_independent :: proc(t: ^testing.T) {
 	}
 }
 
+@(test)
+test_grow_min_clamped_child_grows_when_round_is_too_small :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(200),
+				sizing_y = sizing_fixed(100),
+				layout_direction = .Left_To_Right,
+				alignment_x = .Left,
+				alignment_y = .Top,
+			},
+			children = {
+				{
+					name = "first",
+					style = {sizing_x = sizing_grow(min = 110), sizing_y = sizing_fixed(20)},
+				},
+				{
+					name = "second",
+					style = {sizing_x = sizing_grow(max = 50), sizing_y = sizing_fixed(20)},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {200, 100},
+			children = {
+				{name = "first", pos = {0, 0}, size = {150, 20}},
+				{name = "second", pos = {150, 0}, size = {50, 20}},
+			},
+		},
+	)
+}
+
+@(test)
+test_grow_exact_fit_survives_extra_rounds :: proc(t: ^testing.T) {
+	check_layout(
+		t,
+		Element_Spec {
+			name = "parent",
+			style = {
+				sizing_x = sizing_fixed(300),
+				sizing_y = sizing_fixed(100),
+				layout_direction = .Left_To_Right,
+				alignment_x = .Left,
+				alignment_y = .Top,
+			},
+			children = {
+				{
+					name = "min_child",
+					style = {sizing_x = sizing_grow(min = 120), sizing_y = sizing_fixed(20)},
+				},
+				{
+					name = "max_child",
+					style = {sizing_x = sizing_grow(max = 80), sizing_y = sizing_fixed(20)},
+				},
+				{
+					name = "free_child",
+					style = {sizing_x = sizing_grow(), sizing_y = sizing_fixed(20)},
+				},
+			},
+		},
+		Expected_Element {
+			name = "parent",
+			pos = {0, 0},
+			size = {300, 100},
+			children = {
+				{name = "min_child", pos = {0, 0}, size = {120, 20}},
+				{name = "max_child", pos = {120, 0}, size = {80, 20}},
+				{name = "free_child", pos = {200, 0}, size = {100, 20}},
+			},
+		},
+	)
+}
+
 
 @(test)
 test_all_zero_factors :: proc(t: ^testing.T) {
