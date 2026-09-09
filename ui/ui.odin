@@ -80,7 +80,9 @@ init :: proc(
 ) {
 	assert(len(draw_command_buffer) > 0)
 	ctx^ = {} // zero memory
-	ctx.interaction = Interaction{input = input}
+	ctx.interaction = Interaction {
+		input = input,
+	}
 	ctx.persistent_allocator = persistent_allocator
 	ctx.frame_allocator = frame_allocator
 	ctx.window_size = screen_size

@@ -129,51 +129,6 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
-
-// TODO(Thomas): Move this?
-@(private)
-@(require_results)
-focused_text_state :: proc(
-	interaction: ^Interaction,
-	ts: ^textpkg.Text_System,
-) -> (
-	^textpkg.Text_State,
-	bool,
-) {
-	// Callers check that something is focused before asking
-	return &ts.text_states[interaction.focused_id.hash]
-}
-
-// TODO(Thomas): Move this? If this take the text system and a key: u64 this
-// can live in the text package, along with the Text_System type probably.
-@(require_results)
-get_text_state_selection :: proc(
-	ts: ^textpkg.Text_System,
-	element: UI_Element,
-) -> (
-	textpkg.Selection,
-	bool,
-) {
-
-	if s, ok := ts.text_states[element.key.hash]; ok {
-		return s.selection, true
-	}
-
-	return {}, false
-}
-
-
-// TODO(Thomas): Move this?
-@(require_results)
-focused_caret :: proc(ts: ^textpkg.Text_System, key: UI_Key) -> (byte_pos: int, ok: bool) {
-	s, found := ts.text_states[key.hash]
-	if found {
-		byte_pos = s.selection.active
-		ok = true
-	}
-	return
-}
-
 dispatch_mouse_to_focused :: proc(ctx: ^Context) {
 	it := &ctx.interaction
 	if it.focused_id != ui_key_null() {

@@ -58,12 +58,14 @@ text_read_only_set_text :: proc(state: ^Text_State, text: string) {
 	state.selection.anchor = clamp(state.selection.anchor, 0, len(text))
 }
 
+Text_State_Variant :: union {
+	Text_Edit_State,
+	Text_Read_Only_State,
+}
+
 Text_State :: struct {
 	selection:      Selection,
-	variant:        union {
-		Text_Edit_State,
-		Text_Read_Only_State,
-	},
+	variant:        Text_State_Variant,
 	last_frame_idx: u64,
 }
 

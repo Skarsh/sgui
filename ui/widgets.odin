@@ -32,18 +32,7 @@ text :: proc(
 		// Selection needs to be able to click and take focuse for hit testing
 		element.config.capability_flags |= {.Clickable, .Focusable}
 
-		state, state_exists := &ctx.text_system.text_states[key.hash]
-		if !state_exists {
-			state = map_insert(
-				&ctx.text_system.text_states,
-				key.hash,
-				textpkg.Text_State{variant = textpkg.Text_Read_Only_State{}},
-			)
-		}
-
-		// Last frame idx must be set every frame
-		state.last_frame_idx = ctx.frame_idx
-
+		state := text_state_for(ctx, key, textpkg.Text_Read_Only_State{})
 		textpkg.text_read_only_set_text(state, text)
 	}
 
@@ -257,28 +246,13 @@ text_input :: proc(
 	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().text_input, name = name)
 
-	state, state_exists := &ctx.text_system.text_states[element.key.hash]
+	text_edit_state := textpkg.Text_Edit_State{}
+	textpkg.text_edit_init(
+		&text_edit_state,
+		textpkg.Text_Buffer{buf = fixed_buffer.Fixed_Buffer{buf = buf}},
+	)
 
-	if !state_exists {
-		new_state := textpkg.Text_State{}
-
-		fixed_buf := fixed_buffer.Fixed_Buffer {
-			buf = buf,
-			len = 0,
-		}
-		text_buffer := textpkg.Text_Buffer {
-			buf = fixed_buf,
-		}
-
-		text_edit_state := textpkg.Text_Edit_State{}
-		textpkg.text_edit_init(&text_edit_state, text_buffer)
-		new_state.variant = text_edit_state
-
-		state = map_insert(&ctx.text_system.text_states, key.hash, new_state)
-	}
-
-	// Last frame idx must be set every frame
-	state.last_frame_idx = ctx.frame_idx
+	state := text_state_for(ctx, key, text_edit_state)
 
 	//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
 	// which will free at the beginning of the next frame.
