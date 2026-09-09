@@ -83,9 +83,6 @@ hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result 
 			if out.hot_animation == nil && .Hot_Animation in flags {
 				out.hot_animation = element
 			}
-
-		} else {
-			return
 		}
 	}
 

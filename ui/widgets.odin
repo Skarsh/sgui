@@ -120,16 +120,15 @@ slider :: proc(
 	start_space := is_vert ? inset.top : inset.left
 	end_space := is_vert ? inset.bottom : inset.right
 
-	axis_idx := int(axis)
-	travel_len := track.size[axis_idx] - start_space - end_space - thumb_size[axis_idx]
+	travel_len := track.size[axis] - start_space - end_space - thumb_size[axis]
 
 	range := max_val - min_val
 	if (track.last_comm.clicked || thumb.last_comm.held) && travel_len > 0 {
-		mouse_val := f32(ctx.interaction.input.mouse_pos[axis_idx])
-		mouse_rel := mouse_val - track.position[axis_idx] - start_space
+		mouse_val := f32(ctx.interaction.input.mouse_pos[axis])
+		mouse_rel := mouse_val - track.position[axis] - start_space
 
 		// Calculate ratio (centering thumb on mouse)
-		ratio := (mouse_rel - thumb_size[axis_idx] * 0.5) / travel_len
+		ratio := (mouse_rel - thumb_size[axis] * 0.5) / travel_len
 		value^ = min_val + (math.clamp(ratio, 0, 1) * range)
 	}
 
@@ -342,11 +341,7 @@ checkbox :: proc(
 	element := open_element(ctx, key, style, default_theme().checkbox, name = name)
 
 	if element.last_comm.clicked {
-		if checked^ {
-			checked^ = false
-		} else {
-			checked^ = true
-		}
+		checked^ = !checked^
 	}
 
 	if checked^ {

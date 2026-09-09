@@ -793,16 +793,11 @@ content_box :: proc(element: UI_Element) -> Content_Box {
 	return Content_Box{origin = element.position + {inset.left, inset.top}, size = result_size}
 }
 
-@(require_results)
-content_origin_scrolled :: proc(element: UI_Element) -> base.Vec2 {
-	return content_box(element).origin - element.scroll_region.offset
-}
-
 // Text origin in screen space
 @(require_results)
 text_origin :: proc(element: UI_Element, text_layout: textpkg.Text_Layout) -> base.Vec2 {
-	start_pos := content_origin_scrolled(element)
 	box := content_box(element)
+	start_pos := box.origin - element.scroll_region.offset
 	switch element.config.layout.text_alignment_y {
 	case .Top:
 	// No change
@@ -815,11 +810,9 @@ text_origin :: proc(element: UI_Element, text_layout: textpkg.Text_Layout) -> ba
 }
 
 position_anchored_children :: proc(element: ^UI_Element) {
+	box := content_box(element^)
 	for child in element.children {
 		if child.config.layout.position_mode == .Anchored {
-
-			box := content_box(element^)
-
 			child_margin := child.config.layout.margin
 			relative_position := child.config.layout.relative_position
 

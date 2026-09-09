@@ -180,7 +180,7 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 			}
 		}
 
-		if .Background in element.config.capability_flags {
+		if .Background in cap_flags {
 			draw_rect(
 				draw_state,
 				element_rect(element^),
