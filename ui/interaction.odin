@@ -60,12 +60,14 @@ hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result 
 	hit_test_recurse :: proc(element: ^UI_Element, pos: base.Vector2i32, out: ^Hit_Result) {
 		assert(element != nil)
 		assert(out != nil)
-		if base.point_in_rect(pos, element_rect(element^)) {
-			// children drawn last are on top, so we visit in reverse
-			#reverse for child in element.children {
-				hit_test_recurse(child, pos, out)
-			}
 
+		#reverse for child in element.children {
+			hit_test_recurse(child, pos, out)
+		}
+
+		in_clip_rect := base.point_in_rect(pos, element.clip_rect)
+		in_element_rect := base.point_in_rect(pos, element_rect(element^))
+		if in_clip_rect && in_element_rect {
 			flags := element.config.capability_flags
 
 			if out.clickable == nil && .Clickable in flags {

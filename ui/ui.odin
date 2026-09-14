@@ -142,7 +142,7 @@ begin :: proc(ctx: ^Context) {
 	// Interaction runs against the tree that was laid out last frame.
 	// Widgets see the input from this frame.
 	// It is very important that this is the first thing that happens this frame
-	// to make sure that memory from the preivous frame is valid for this to use.
+	// to make sure that memory from the previous frame is valid for this to use.
 	if ctx.root_element != nil {
 		process_interaction(ctx)
 	}
@@ -242,7 +242,7 @@ end :: proc(ctx: ^Context) {
 	)
 	assert(resolve_height_alloc_err == .None)
 
-	calculate_positions_and_alignment(ctx, ctx.root_element, ctx.dt)
+	update_layout_geometry(ctx, ctx.root_element, ctx.dt)
 
 	draw_all_elements(ctx)
 

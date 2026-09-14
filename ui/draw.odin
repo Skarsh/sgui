@@ -91,38 +91,12 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 	if element != nil && draw_state != nil {
 
-		// NOTE(Thomas): Store the previous clip to restore it after processing this element
-		// and its children
-		prev_clip_rect := draw_state.current_clip_rect
-
-		clip_config := element.config.clip
-		should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
-
-		if should_clip {
-			new_constraint := element_rect(element^)
-
-			//NOTE(Thomas): If X clipping is disabled, we ignore the elements's width constraint
-			// and use the the parent's width constraint instead.
-			if !clip_config.clip_axes.x {
-				new_constraint.x = prev_clip_rect.x
-				new_constraint.w = prev_clip_rect.w
-			}
-
-			//NOTE(Thomas): If Y clipping is disabled, we ignore the elements's height constraint
-			// and use the the parent's height constraint instead.
-			if !clip_config.clip_axes.y {
-				new_constraint.y = prev_clip_rect.y
-				new_constraint.h = prev_clip_rect.h
-			}
-
-			draw_state.current_clip_rect = base.intersect_rects(prev_clip_rect, new_constraint)
-		}
+		draw_state.current_clip_rect = element.clip_rect
 
 		cap_flags := element.config.capability_flags
 		final_bg_fill := element.config.background_fill
 
 		last_comm := element.last_comm
-
 
 		// TODO(Thomas): Click could have an embossed / debossed animation effect instead.
 		// There's lots left to figure out for hot and active too, it could be highlighted with
@@ -329,8 +303,6 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 		for child in element.children {
 			draw_element(ctx, child)
 		}
-
-		draw_state.current_clip_rect = prev_clip_rect
 	}
 }
 

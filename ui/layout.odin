@@ -96,6 +96,7 @@ UI_Element :: struct {
 	size:              base.Vec2,
 	text_content_size: base.Vec2,
 	scroll_region:     Scroll_Region,
+	clip_rect:         base.Rect,
 	config:            Element_Config,
 	children:          [dynamic]^UI_Element,
 	hot:               f32,
@@ -959,7 +960,43 @@ position_flow_children :: proc(element: ^UI_Element) {
 	}
 }
 
-calculate_positions_and_alignment :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
+// The clip rect of the child must always atleast be as restrictive as the clip rect of the parent
+update_clip_rect :: proc(element: ^UI_Element, window_size: base.Vector2i32) {
+	parent := element.parent
+
+	// root element
+	if parent == nil {
+		element.clip_rect = base.Rect{0, 0, window_size.x, window_size.y}
+	} else {
+		clip_config := element.config.clip
+		should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
+
+		if should_clip {
+
+			new_constraint := element_rect(element^)
+
+			//NOTE(Thomas): If X clipping is disabled, we ignore the elements's width constraint
+			// and use the the parent's width constraint instead.
+			if !clip_config.clip_axes.x {
+				new_constraint.x = parent.clip_rect.x
+				new_constraint.w = parent.clip_rect.w
+			}
+
+			//NOTE(Thomas): If Y clipping is disabled, we ignore the elements's height constraint
+			// and use the the parent's height constraint instead.
+			if !clip_config.clip_axes.y {
+				new_constraint.y = parent.clip_rect.y
+				new_constraint.h = parent.clip_rect.h
+			}
+
+			element.clip_rect = base.intersect_rects(parent.clip_rect, new_constraint)
+		} else {
+			element.clip_rect = parent.clip_rect
+		}
+	}
+}
+
+update_layout_geometry :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
 	assert(element != nil)
 
 	base.animate_vec2(
@@ -972,9 +1009,10 @@ calculate_positions_and_alignment :: proc(ctx: ^Context, element: ^UI_Element, d
 	update_scroll_region(ctx, element)
 	position_flow_children(element)
 	position_anchored_children(element)
+	update_clip_rect(element, ctx.window_size)
 
 	for child in element.children {
-		calculate_positions_and_alignment(ctx, child, dt)
+		update_layout_geometry(ctx, child, dt)
 	}
 }
 
