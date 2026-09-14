@@ -191,7 +191,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 	)
 
 	vertical_boxes_wrapper_element := vertical_boxes_wrapper_comm.element
-	ui.scrollbar(ctx, vertical_boxes_wrapper_element, name = "vertical_scrollbar")
+	ui.scrollbar(ctx, vertical_boxes_wrapper_element, name = "vertical_scrollbar", thickness = 15)
 	ui.end_container(ctx)
 
 	vertical_boxes_scroll_region := vertical_boxes_wrapper_element.scroll_region

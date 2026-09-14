@@ -150,6 +150,7 @@ scrollbar :: proc(
 	style: Style = {},
 	name: string = "",
 	id: string = "",
+	thickness: f32 = 20,
 	loc := #caller_location,
 ) -> Comm {
 	comm := Comm{}
@@ -165,7 +166,7 @@ scrollbar :: proc(
 			cross_axis = .X
 		}
 
-		axis_sizes[cross_axis] = 20
+		axis_sizes[cross_axis] = thickness
 
 		// Auto hide check
 		if target.scroll_region.max_offset[axis] > 1.0 + EPSILON {
@@ -180,6 +181,7 @@ scrollbar :: proc(
 
 				calculated_thumb_size := max(20.0, viewport_len * view_ratio)
 				axis_sizes[axis] = calculated_thumb_size
+				thumb_radius := min(axis_sizes[base.Axis2.X], axis_sizes[base.Axis2.Y]) * 0.5
 
 				// Configure slider
 				val := &target.scroll_region.offset[axis]
@@ -215,6 +217,7 @@ scrollbar :: proc(
 						sizing_y = sizing_fixed(axis_sizes[base.Axis2.Y]),
 						background_fill = base.fill_color(80, 80, 80),
 						border_fill = base.TRANSPARENT,
+						border_radius = border_radius_all(thumb_radius),
 					},
 					track_name = name,
 					thumb_name = fmt.tprintf("%s_thumb", name),
