@@ -155,82 +155,68 @@ scrollbar :: proc(
 ) -> Comm {
 	comm := Comm{}
 
-	if target != nil {
+	if target != nil &&
+	   target.scroll_region.max_offset[axis] > 1.0 + EPSILON &&
+	   target.scroll_region.content_size[axis] > EPSILON {
 
-		axis_sizes: [2]f32
-		cross_axis: base.Axis2
+		scroll := &target.scroll_region
+		viewport_len := target.size[axis]
+		content_len := scroll.content_size[axis]
+		max_offset := scroll.max_offset[axis]
 
-		if axis == .X {
-			cross_axis = .Y
-		} else {
-			cross_axis = .X
-		}
+		offset := &scroll.offset[axis]
+		offset^ = clamp(offset^, 0, max_offset)
 
-		axis_sizes[cross_axis] = thickness
+		view_ratio := viewport_len / content_len
+		thumb_length := max(20.0, viewport_len * view_ratio)
 
-		// Auto hide check
-		if target.scroll_region.max_offset[axis] > 1.0 + EPSILON {
+		thumb_size := base.Vec2{thickness, thickness}
+		thumb_size[axis] = thumb_length
 
-			// Calculate thumb size
-			viewport_len := target.size[axis]
-			content_len := target.scroll_region.content_size[axis]
+		thumb_radius := min(thumb_size.x, thumb_size.y) * 0.5
 
-			if content_len > EPSILON {
+		track_style := merge_styles(default_theme().scrollbar, style)
 
-				view_ratio := viewport_len / content_len
-
-				calculated_thumb_size := max(20.0, viewport_len * view_ratio)
-				axis_sizes[axis] = calculated_thumb_size
-				thumb_radius := min(axis_sizes[base.Axis2.X], axis_sizes[base.Axis2.Y]) * 0.5
-
-				// Configure slider
-				val := &target.scroll_region.offset[axis]
-
-				// Safety clamp
-				val^ = clamp(val^, 0, target.scroll_region.max_offset[axis])
-
-				// Apply theme defaults, then overlay axis-dependent sizing and alignment.
-				sb_style := merge_styles(default_theme().scrollbar, style)
-				if mode, ok := sb_style.position_mode.?; ok && mode == .Anchored {
-					if axis == .Y {
-						sb_style.sizing_y = sizing_percent(1.0)
-						if sb_style.alignment_x == nil {
-							sb_style.alignment_x = .Right
-						}
-					} else {
-						sb_style.sizing_x = sizing_percent(1.0)
-						if sb_style.alignment_y == nil {
-							sb_style.alignment_y = .Bottom
-						}
-					}
+		if mode, ok := track_style.position_mode.?; ok && mode == .Anchored {
+			if axis == .Y {
+				track_style.sizing_y = sizing_percent(1.0)
+				if track_style.alignment_x == nil {
+					track_style.alignment_x = .Right
 				}
-
-				comm = slider(
-					ctx,
-					val,
-					0,
-					target.scroll_region.max_offset[axis],
-					axis,
-					sb_style,
-					Style {
-						sizing_x = sizing_fixed(axis_sizes[base.Axis2.X]),
-						sizing_y = sizing_fixed(axis_sizes[base.Axis2.Y]),
-						background_fill = base.fill_color(80, 80, 80),
-						border_fill = base.TRANSPARENT,
-						border_radius = border_radius_all(thumb_radius),
-					},
-					track_name = name,
-					thumb_name = fmt.tprintf("%s_thumb", name),
-					id = id,
-					loc = loc,
-				)
-
-				// Sync the target_offset if the user is interacting with the scrollbar.
-				// This prevents the layout animation from pulling the view back to the old position.
-				if comm.held || comm.clicked {
-					target.scroll_region.target_offset[axis] = val^
+			} else {
+				track_style.sizing_x = sizing_percent(1.0)
+				if track_style.alignment_y == nil {
+					track_style.alignment_y = .Bottom
 				}
 			}
+		}
+
+		thumb_style := Style {
+			sizing_x        = sizing_fixed(thumb_size.x),
+			sizing_y        = sizing_fixed(thumb_size.y),
+			background_fill = base.fill_color(80, 80, 80),
+			border_fill     = base.TRANSPARENT,
+			border_radius   = border_radius_all(thumb_radius),
+		}
+
+		comm = slider(
+			ctx,
+			offset,
+			0,
+			max_offset,
+			axis,
+			track_style,
+			thumb_style,
+			track_name = name,
+			thumb_name = fmt.tprintf("%s_thumb", name),
+			id = id,
+			loc = loc,
+		)
+
+		// Sync the target_offset if the user is interacting with the scrollbar.
+		// This prevents the layout animation from pulling the view back to the old position.
+		if comm.held || comm.clicked {
+			scroll.target_offset[axis] = offset^
 		}
 	}
 
