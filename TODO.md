@@ -16,7 +16,6 @@
 * Add margin layout tests for Fit, Grow, Percentage, and anchored elements. 
 * Don't use f32 for time, should be something like nanoseconds instead.
 * Use integer / fixed point glyph metrics instead of f32 (same as FreeType, Pango) etc
-* Layout margins - doesn't seem entirely right. Need to investigate and add more examples / tests for it.
 * Elements are now allocated using the general purpose heap allocator, this could probably be done using
     as `Pool_Allocator` or some other type of allocator for several benefits (simplicity, perf?).
 * Review how capability flags are set in `open_element`. Currently they are additive, which
