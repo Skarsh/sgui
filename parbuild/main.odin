@@ -6,6 +6,14 @@ import "core:os"
 import "core:thread"
 import "core:time"
 
+when ODIN_OS == .Windows {
+	FILE_EXTENSION :: "exe"
+} else when ODIN_OS == .Linux {
+	FILE_EXTENSION :: "bin"
+} else {
+	FILE_EXTENSION :: "unsupported"
+}
+
 Build :: struct {
 	name:         string,
 	pipe_read:    ^os.File,
@@ -74,7 +82,7 @@ start_build :: proc(build: ^Build, dir: os.File_Info, out_dir: string) -> bool {
 			"-vet-tabs",
 			"-warnings-as-errors",
 			"-debug",
-			fmt.tprintf("-out:%v/%v.exe", out_dir, dir.name),
+			fmt.tprintf("-out:%v/%v.%v", out_dir, dir.name, FILE_EXTENSION),
 		},
 		stdout  = pipe_write,
 		stderr  = pipe_write,
