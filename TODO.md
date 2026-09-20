@@ -1,13 +1,15 @@
 # TODOs
 
 ## Active
+* Look into unification / simplification of pruning elements, text layout cache entries and text states
+    The trigger for all of them to be pruned is that there's a new frame where they haven't been laid out
+    or constructed / set. This seems to only really happen when the element is removed from the hierarchy.
 
 ## Bugs
 
 ## Backlog
-* Look into unification / simplification of pruning elements, text layout cache entries and text states
-    The trigger for all of them to be pruned is that there's a new frame where they haven't been laid out
-    or constructed / set. This seems to only really happen when the element is removed from the hierarchy.
+
+* Add some way to set fullscreen mode
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.
 * New text system
