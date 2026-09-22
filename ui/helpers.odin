@@ -282,10 +282,7 @@ default_theme :: proc() -> Theme {
 			border_radius = border_radius_all(8),
 			capability_flags = Capability_Flags{.Background},
 		},
-		scrollbar = Style {
-			background_fill = base.TRANSPARENT,
-			position_mode = .Anchored,
-		},
+		scrollbar = Style{background_fill = base.TRANSPARENT, position_mode = .Anchored},
 		slider = Style {
 			sizing_x = sizing_grow(),
 			sizing_y = sizing_fixed(20),
@@ -320,7 +317,6 @@ default_theme :: proc() -> Theme {
 			text_wrap_mode = .Wrap,
 			text_fill = base.fill_color(255, 255, 255),
 			capability_flags = Capability_Flags{.Text},
-			clip = Clip_Config{clip_axes = {true, true}},
 		},
 		text_input = Style {
 			alignment_x = .Left,

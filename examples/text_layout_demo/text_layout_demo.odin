@@ -116,6 +116,7 @@ build_ui :: proc(ctx: ^ui.Context, data: ^Data) {
 			border = ui.border_all(10),
 			background_fill = base.fill_color(60, 60, 60),
 			capability_flags = ui.Capability_Flags{.Selectable, .Scrollable_Y},
+			clip = ui.Clip_Config{{true, true}},
 		},
 		name = "label",
 	)
