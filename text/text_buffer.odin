@@ -27,7 +27,7 @@ text_buffer_deinit :: proc(tb: ^Text_Buffer) {
 	case gap_buffer.Gap_Buffer:
 		gap_buffer.deinit(&buf)
 	case fixed_buffer.Fixed_Buffer:
-		fixed_buffer.deinit(&buf)
+	// Nothing to free, the caller owns the storage
 	}
 }
 
@@ -122,8 +122,6 @@ text_buffer_get_byte_at :: proc(tb: Text_Buffer, byte_idx: int) -> (u8, bool) {
 @(private)
 @(require_results)
 get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (rune, int) {
-	r: rune = utf8.RUNE_ERROR
-	width: int = 0
 	if byte_idx <= 0 {
 		return 0, 0
 	}
@@ -144,8 +142,7 @@ get_prev_rune :: proc(buf: Text_Buffer, byte_idx: int) -> (rune, int) {
 		start -= 1
 	}
 
-	r, width = peek_rune_at_byte_offset(buf, start)
-	return r, width
+	return peek_rune_at_byte_offset(buf, start)
 }
 
 @(private)

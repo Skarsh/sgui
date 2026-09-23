@@ -20,9 +20,6 @@ init_with_content :: proc(fb: ^Fixed_Buffer, buf: []u8, content: []u8) {
 	fb.len = n
 }
 
-// NOTE(Thomas): For completeness
-deinit :: proc(fb: ^Fixed_Buffer) {}
-
 @(require_results)
 capacity :: proc(fb: Fixed_Buffer) -> int {
 	return len(fb.buf)

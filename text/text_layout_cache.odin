@@ -8,7 +8,6 @@ Text_Layout_Cache_Request :: struct {
 	frame_idx: u64,
 	text:      string,
 	params:    Text_Layout_Params,
-	ts:        ^Text_System,
 }
 
 Text_Layout_Cache_Entry :: struct {
