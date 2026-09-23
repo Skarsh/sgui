@@ -71,7 +71,7 @@ prune_text_system :: proc(
 
 	for key, state in ts.text_states {
 		if state.last_frame_idx < frame_idx - 1 {
-			append(&dead_keys, key)
+			append(&dead_keys, key) or_return
 		}
 	}
 
@@ -82,14 +82,12 @@ prune_text_system :: proc(
 		delete_key(&ts.text_states, key)
 	}
 
-	prune_text_layout_cache(
+	return prune_text_layout_cache(
 		&ts.layout_cache,
 		frame_idx,
 		persistent_allocator,
 		frame_allocator,
-	) or_return
-
-	return nil
+	)
 }
 
 Font_Cache :: struct {

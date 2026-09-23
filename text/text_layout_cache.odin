@@ -82,7 +82,7 @@ prune_text_layout_cache :: proc(
 
 	for key, entry in cache {
 		if entry.last_frame_idx < frame_idx - 1 {
-			_ = append(&dead_keys, key) or_return
+			append(&dead_keys, key) or_return
 		}
 	}
 
