@@ -55,16 +55,6 @@ cleanup_test_environment :: proc(env: ^Test_Environment) {
 	free(env)
 }
 
-expect_element_size :: proc(t: ^testing.T, element: ^UI_Element, expected_size: base.Vec2) {
-	testing.expect_value(t, element.size.x, expected_size.x)
-	testing.expect_value(t, element.size.y, expected_size.y)
-}
-
-expect_element_pos :: proc(t: ^testing.T, element: ^UI_Element, expected_pos: base.Vec2) {
-	testing.expect_value(t, element.position.x, expected_pos.x)
-	testing.expect_value(t, element.position.y, expected_pos.y)
-}
-
 Element_Spec :: struct {
 	style:    Style,
 	text:     string,
@@ -83,25 +73,6 @@ DEFAULT_TESTING_WINDOW_SIZE :: [2]i32{480, 360}
 
 MOCK_CHAR_WIDTH :: 10
 MOCK_LINE_HEIGHT :: 10
-
-run_ui_test :: proc(
-	t: ^testing.T,
-	build_ui: proc(ctx: ^Context, data: ^$T),
-	verify: proc(t: ^testing.T, ctx: ^Context, root: UI_Element, data: ^T),
-	data: ^T,
-	window_size := DEFAULT_TESTING_WINDOW_SIZE,
-) {
-	test_env := setup_test_environment(window_size)
-	defer cleanup_test_environment(test_env)
-
-	ctx := &test_env.ctx
-
-	begin(ctx)
-	build_ui(ctx, data)
-	end(ctx)
-
-	verify(t, ctx, ctx.root_element^, data)
-}
 
 check_layout :: proc(
 	t: ^testing.T,
