@@ -53,6 +53,8 @@ Hit_Result :: struct {
 	hot_animation: ^UI_Element,
 }
 
+// TODO(Thomas): @Perf - There for sure are some optimizations that can be done here
+// instead of doing DFS on the entire element hierarchy.
 @(require_results)
 hit_test :: proc(root_element: ^UI_Element, pos: base.Vector2i32) -> Hit_Result {
 	// TODO(Thomas): Make an iterative variant with explicit limitations
