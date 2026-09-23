@@ -325,10 +325,7 @@ sdl_poll_events :: proc(user_data: rawptr, on_event: proc(data: rawptr, event: b
 				valid = true
 			}
 		case .QUIT:
-			// TODO(Thomas): What to do here?? Return bool? Callback?
-			event = base.Quit_Event {
-				quit = true,
-			}
+			event = base.Quit_Event{}
 			valid = true
 		}
 

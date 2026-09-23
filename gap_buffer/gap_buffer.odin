@@ -3,8 +3,6 @@ package gap_buffer
 import "core:mem"
 import "core:unicode/utf8"
 
-DEFAULT_GAP_BUFFER_SIZE :: 4096
-
 Gap_Buffer :: struct {
 	buf:       []u8,
 	start:     int,
@@ -55,14 +53,7 @@ insert_at :: proc {
 
 @(require_results)
 insert_byte_at :: proc(gb: ^Gap_Buffer, pos: int, ch: u8) -> mem.Allocator_Error {
-	assert(pos >= 0, "pos must be non-negative")
-	assert(pos <= byte_length(gb^), "pos must be within the buffer contents")
-
-	ensure_space(gb, 1) or_return
-	shift_gap_to(gb, pos)
-	gb.buf[gb.start] = ch
-	gb.start += 1
-	return nil
+	return insert_slice_at(gb, pos, {ch})
 }
 
 @(require_results)
@@ -88,17 +79,13 @@ insert_string_at :: proc(gb: ^Gap_Buffer, pos: int, str: string) -> mem.Allocato
 	return insert_slice_at(gb, pos, transmute([]u8)str)
 }
 
-
 delete_at :: proc(gb: ^Gap_Buffer, pos: int) {
-	if pos >= 0 && pos < byte_length(gb^) {
-		shift_gap_to(gb, pos)
-		gb.end += 1
-	}
+	delete_range(gb, pos, 1)
 }
 
 delete_range :: proc(gb: ^Gap_Buffer, pos: int, count: int) {
 	valid_len := byte_length(gb^)
-	if (pos >= 0 && pos < byte_length(gb^)) && count > 0 {
+	if pos >= 0 && pos < valid_len && count > 0 {
 
 		// Clamp count so we don't delete past the end
 		actual_count := min(count, valid_len - pos)
@@ -165,15 +152,6 @@ peek_rune_at :: proc(gb: Gap_Buffer, byte_idx: int) -> (r: rune, width: int) {
 	return utf8.RUNE_ERROR, 0
 }
 
-// Helper procedure to get the left and right strings of the gap
-@(private)
-@(require_results)
-get_strings :: proc(gb: Gap_Buffer) -> (left: string, right: string) {
-	left = string(gb.buf[0:gb.start])
-	right = string(gb.buf[gb.end:])
-	return
-}
-
 // Grows the buffer when out of space
 @(private)
 @(require_results)
@@ -207,9 +185,7 @@ grow :: proc(gb: ^Gap_Buffer, required: int) -> mem.Allocator_Error {
 @(require_results)
 ensure_space :: proc(gb: ^Gap_Buffer, amount: int) -> mem.Allocator_Error {
 	assert(amount >= 0)
-	minimum_capacity := byte_length(gb^) + amount
-	reserve(gb, minimum_capacity) or_return
-	return nil
+	return reserve(gb, byte_length(gb^) + amount)
 }
 
 // TODO(Thomas): @Perf - Can we do some copy here when

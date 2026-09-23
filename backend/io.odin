@@ -106,11 +106,10 @@ apply_event :: proc(io: ^Io, event: base.Event) {
 	case base.Mouse_Wheel_Event:
 		base.handle_scroll(input, e.x, e.y)
 	case base.Keyboard_Event:
+		base.set_keymods(input, e.mod)
 		if e.down {
-			base.handle_keymod_down(input, e.mod)
 			base.handle_key_down(input, e.key)
 		} else {
-			base.handle_keymod_up(input, e.mod)
 			base.handle_key_up(input, e.key)
 		}
 	case base.Text_Input_Event:

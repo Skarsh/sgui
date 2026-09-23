@@ -10,10 +10,7 @@ color_to_vec4 :: proc(color: Color) -> Vec4 {
 
 @(require_results)
 point_in_rect :: proc(p: Vector2i32, rect: Rect) -> bool {
-	if p.x < rect.x || p.y < rect.y || p.x >= rect.x + rect.w || p.y >= rect.y + rect.h {
-		return false
-	}
-	return true
+	return p.x >= rect.x && p.y >= rect.y && p.x < rect.x + rect.w && p.y < rect.y + rect.h
 }
 
 @(require_results)
@@ -51,25 +48,25 @@ lerp_color :: proc(a, b: Color, t: f32) -> Color {
 	return color
 }
 
-animate_vec2 :: proc(current: ^Vec2, target: ^Vec2, dt: f32, stiffness: f32) {
-	if approx_equal_vec2(current^, target^, 0.001) {
+animate_vec2 :: proc(current: ^Vec2, target: Vec2, dt: f32, stiffness: f32) {
+	if approx_equal_vec2(current^, target, 0.001) {
 		return
 	}
 
 	// Calculate smoothing factor
-	t := 1.0 - math.pow(2.0, -stiffness * dt)
+	factor := 1.0 - math.pow(2.0, -stiffness * dt)
 
-	apply_axis :: proc(c: ^f32, t: ^f32, factor: f32) {
-		if math.abs(t^ - c^) < 0.1 {
+	apply_axis :: proc(current: ^f32, target: f32, factor: f32) {
+		if math.abs(target - current^) < 0.1 {
 			// Snap
-			c^ = t^
+			current^ = target
 		} else {
-			c^ = math.lerp(c^, t^, factor)
+			current^ = math.lerp(current^, target, factor)
 		}
 	}
 
-	apply_axis(&current.x, &target.x, t)
-	apply_axis(&current.y, &target.y, t)
+	apply_axis(&current.x, target.x, factor)
+	apply_axis(&current.y, target.y, factor)
 }
 
 @(require_results)

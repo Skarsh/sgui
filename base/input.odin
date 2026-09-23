@@ -32,10 +32,8 @@ Event :: union {
 }
 
 Mouse_Motion_Event :: struct {
-	x:     i32,
-	y:     i32,
-	x_rel: i32,
-	y_rel: i32,
+	x: i32,
+	y: i32,
 }
 
 Mouse_Button_Event :: struct {
@@ -46,9 +44,8 @@ Mouse_Button_Event :: struct {
 }
 
 Mouse_Wheel_Event :: struct {
-	x:         i32,
-	y:         i32,
-	direction: i32,
+	x: i32,
+	y: i32,
 }
 
 Keyboard_Event :: struct {
@@ -67,9 +64,7 @@ Window_Event :: struct {
 	size_y: i32,
 }
 
-Quit_Event :: struct {
-	quit: bool,
-}
+Quit_Event :: struct {}
 
 Mouse_Button :: enum u32 {
 	Unknown,
@@ -243,8 +238,6 @@ Text_Input_Buffer :: struct {
 Input :: struct {
 	// Mouse
 	mouse_pos:            Vector2i32,
-	last_mouse_pos:       Vector2i32,
-	mouse_delta:          Vector2i32,
 	scroll_delta:         Vector2i32,
 	mouse_down_bits:      Mouse_Set,
 	mouse_pressed_bits:   Mouse_Set,
@@ -282,14 +275,6 @@ handle_mouse_up :: proc(input: ^Input, x, y: i32, btn: Mouse_Button) {
 
 set_keymods :: proc(input: ^Input, keymod: Keymod_Set) {
 	input.keymod_down_bits = keymod
-}
-
-handle_keymod_down :: proc(input: ^Input, keymod: Keymod_Set) {
-	set_keymods(input, keymod)
-}
-
-handle_keymod_up :: proc(input: ^Input, keymod: Keymod_Set) {
-	set_keymods(input, keymod)
 }
 
 handle_key_down :: proc(input: ^Input, key: Key) {

@@ -999,12 +999,7 @@ update_clip_rect :: proc(element: ^UI_Element, window_size: base.Vector2i32) {
 update_layout_geometry :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
 	assert(element != nil)
 
-	base.animate_vec2(
-		&element.scroll_region.offset,
-		&element.scroll_region.target_offset,
-		dt,
-		20.0,
-	)
+	base.animate_vec2(&element.scroll_region.offset, element.scroll_region.target_offset, dt, 20.0)
 
 	update_scroll_region(ctx, element)
 	position_flow_children(element)
