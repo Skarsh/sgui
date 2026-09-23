@@ -185,7 +185,7 @@ copy_selection_to_clipboard :: proc(
 	copied: bool,
 	error: base.Clipboard_Error,
 ) {
-	selection := textpkg.text_cursor_get_selection(state)
+	selection := state.selection
 	start := textpkg.selection_start(selection)
 	end := textpkg.selection_end(selection)
 

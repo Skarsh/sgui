@@ -175,8 +175,7 @@ text_cursor_insert :: proc(state: ^Text_State, cmd: Cursor_Insert) -> Text_Buffe
 
 		text_buffer_replace_range(&v.buffer, start, end, cmd.text) or_return
 
-		insert_at := start
-		set_caret(state, insert_at + len(cmd.text))
+		set_caret(state, start + len(cmd.text))
 
 	case Text_Read_Only_State:
 	// no-op
@@ -229,12 +228,6 @@ text_cursor_get_text :: proc(
 	}
 
 	return "", nil
-}
-
-@(require_results)
-text_cursor_get_selection :: proc(state: ^Text_State) -> Selection {
-	_, selection := text_state_parts(state)
-	return selection^
 }
 
 @(private)
@@ -408,9 +401,7 @@ text_source_byte_length :: proc(source: Text_Source) -> int {
 @(private)
 @(require_results)
 clamp_byte_pos_to_text_source_range :: proc(source: Text_Source, byte_pos: int) -> int {
-	max_pos := text_source_byte_length(source)
-	clamped := clamp(byte_pos, 0, max_pos)
-	return clamped
+	return clamp(byte_pos, 0, text_source_byte_length(source))
 }
 
 @(private)
