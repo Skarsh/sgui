@@ -23,10 +23,7 @@ setup_test_environment :: proc(window_size: [2]i32) -> ^Test_Environment {
 	env := new(Test_Environment)
 
 	// Text measurement
-	env.text_measurement = textpkg.Text_Measurement {
-		measure_text_proc      = textpkg.mock_measure_text_proc,
-		measure_codepoint_proc = textpkg.mock_measure_codepoint_proc,
-	}
+	env.text_measurement = textpkg.mock_text_measurement
 
 	// Setup arenas and allocators
 	env.persistent_allocator = context.allocator
