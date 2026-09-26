@@ -50,8 +50,12 @@ Text_Read_Only_State :: struct {
 // This function makes sure that the string in the state points to the
 // right one, and that the selection is clamped to the new string pointed to.
 text_read_only_set_text :: proc(state: ^Text_State, text: string) {
+	if state.variant == nil {
+		state.variant = Text_Read_Only_State{}
+	}
+
 	read_only, is_read_only := &state.variant.(Text_Read_Only_State)
-	assert(is_read_only, "text_read_only_set_text requires a read only text state")
+	assert(is_read_only, "element changed text state kind")
 
 	read_only.text = text
 	state.selection.active = clamp(state.selection.active, 0, len(text))
@@ -64,9 +68,8 @@ Text_State_Variant :: union {
 }
 
 Text_State :: struct {
-	selection:      Selection,
-	variant:        Text_State_Variant,
-	last_frame_idx: u64,
+	selection: Selection,
+	variant:   Text_State_Variant,
 }
 
 deinit_text_state :: proc(state: ^Text_State) {

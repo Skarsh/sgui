@@ -133,44 +133,29 @@ update_interaction_ids :: proc(interaction: ^Interaction, hit_result: Hit_Result
 	}
 }
 
-dispatch_mouse_to_focused :: proc(ctx: ^Context) {
+dispatch_mouse_to_focused :: proc(ctx: ^Context, focused: ^UI_Element) {
 	it := &ctx.interaction
-	if it.focused_id != ui_key_null() {
+	state := &focused.text_state
 
-		state, found := focused_text_state(it, &ctx.text_system)
+	// Press sets the caret (collapsing the selection)
+	// holding / dragging extends it.
+	pressed := base.is_mouse_pressed(it.input^, .Left)
+	held := base.is_mouse_down(it.input^, .Left)
 
-		if found {
-			focused_element, focused_found := get_element_by_key(ctx, it.focused_id)
-			if focused_found {
+	text_layout, found_layout := textpkg.read_text_layout_cache(
+		ctx.text_system.layout_cache,
+		focused.key.hash,
+	)
 
-				// Press sets the caret (collapsing the selection)
-				// holding / dragging extends it.
-				pressed := base.is_mouse_pressed(it.input^, .Left)
-				held := base.is_mouse_down(it.input^, .Left)
+	if found_layout {
+		if pressed || held {
+			mouse_pos := base.Vec2{f32(it.input.mouse_pos.x), f32(it.input.mouse_pos.y)}
 
-				text_layout, found_layout := textpkg.read_text_layout_cache(
-					ctx.text_system.layout_cache,
-					focused_element.key.hash,
-				)
+			origin := text_origin(focused^, text_layout)
+			start_pos := mouse_pos - origin
 
-				if found_layout {
-					if pressed || held {
-						mouse_pos := base.Vec2 {
-							f32(it.input.mouse_pos.x),
-							f32(it.input.mouse_pos.y),
-						}
-
-						origin := text_origin(focused_element, text_layout)
-						start_pos := mouse_pos - origin
-
-						byte_pos := textpkg.text_layout_byte_pos_from_point(text_layout, start_pos)
-						textpkg.text_cursor_set_caret(
-							state,
-							textpkg.Cursor_Set_Caret{byte_pos, !pressed},
-						)
-					}
-				}
-			}
+			byte_pos := textpkg.text_layout_byte_pos_from_point(text_layout, start_pos)
+			textpkg.text_cursor_set_caret(state, textpkg.Cursor_Set_Caret{byte_pos, !pressed})
 		}
 	}
 }
@@ -210,122 +195,100 @@ copy_selection_to_clipboard :: proc(
 // TODO(Thomas): Find a better way than just pass the frame_allocator here?
 // TODO(Thomas): Clean up error handling here, it's a little messy.
 // TODO(Thomas): @Speed This runs every frame when an element is focused, which most likely is wasteful
-dispatch_keyboard_to_focused :: proc(
-	interaction: ^Interaction,
-	ts: ^textpkg.Text_System,
-	frame_allocator: mem.Allocator,
-) {
-	if interaction.focused_id != ui_key_null() {
+dispatch_keyboard_to_focused :: proc(ctx: ^Context, focused: ^UI_Element) {
+	interaction := &ctx.interaction
+	frame_allocator := ctx.frame_allocator
 
-		state, found := focused_text_state(interaction, ts)
 
-		if found {
-			// Text Input
-			if interaction.input.text_input.len > 0 {
-				text := string(
-					interaction.input.text_input.data[:interaction.input.text_input.len],
-				)
+	state := &focused.text_state
+	// Text Input
+	if interaction.input.text_input.len > 0 {
+		text := string(interaction.input.text_input.data[:interaction.input.text_input.len])
 
-				text_buffer_error := textpkg.text_cursor_insert(
-					state,
-					textpkg.Cursor_Insert{text = text},
-				)
+		text_buffer_error := textpkg.text_cursor_insert(state, textpkg.Cursor_Insert{text = text})
 
-				switch text_buffer_error {
-				case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
-				case mem.Allocator_Error.None:
-				case:
-					panic(
-						fmt.tprintf(
-							"Error when inserting text into text buffer: %v",
-							text_buffer_error,
-						),
-					)
-				}
-			}
+		switch text_buffer_error {
+		case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+		case mem.Allocator_Error.None:
+		case:
+			panic(fmt.tprintf("Error when inserting text into text buffer: %v", text_buffer_error))
+		}
+	}
 
-			// Key handling
-			keymod := interaction.input.keymod_down_bits
-			keys := interaction.input.key_pressed_bits
+	// Key handling
+	keymod := interaction.input.keymod_down_bits
+	keys := interaction.input.key_pressed_bits
 
-			clipboard_command, text_handle_keys_error := textpkg.text_cursor_handle_keys(
+	clipboard_command, text_handle_keys_error := textpkg.text_cursor_handle_keys(
+		state,
+		keys,
+		keymod,
+	)
+
+	switch text_handle_keys_error {
+	// Fixed buffer errors should be ignored
+	case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
+	case mem.Allocator_Error.None:
+	case:
+		panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
+	}
+
+	switch clipboard_command {
+	case .None:
+	case .Copy:
+		_, copy_error := copy_selection_to_clipboard(
+			state,
+			interaction.input.clipboard_text_procs,
+			frame_allocator,
+		)
+
+		if copy_error != nil {
+			log.error("Could not copy selection: ", copy_error)
+		}
+
+	case .Paste:
+		//TODO(Thomas): This can cause OOM for the frame_allocator if copying
+		//very large text. We can think about using a fallback strategy of
+		//persistent allocator or some general purpose allocator in those cases
+		//when it has first failed with the frame allocator
+		text_to_paste, clipboard_error :=
+			interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
+		if clipboard_error == nil {
+			// We don't crash just because someone tries to copy paste very large text
+			text_insert_err := textpkg.text_cursor_insert(
 				state,
-				keys,
-				keymod,
+				textpkg.Cursor_Insert{text = text_to_paste},
+			)
+			switch text_insert_err {
+			case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
+			case .Buffer_Full:
+				log.error("Cannot paste because fixed buffer is full error:", text_insert_err)
+			case .Out_Of_Memory:
+				log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
+			case:
+				panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
+			}
+		} else {
+			log.error("Failed to get clipboard text")
+		}
+
+	case .Cut:
+		// Cut should not work for read-only text, just be a no-op
+		switch v in state.variant {
+		case textpkg.Text_Edit_State:
+			copied, copy_error := copy_selection_to_clipboard(
+				state,
+				interaction.input.clipboard_text_procs,
+				frame_allocator,
 			)
 
-			switch text_handle_keys_error {
-			// Fixed buffer errors should be ignored
-			case fixed_buffer.Fixed_Buffer_Error.None, .Buffer_Full:
-			case mem.Allocator_Error.None:
-			case:
-				panic(fmt.tprintf("Error when trying handling keys: %v", text_handle_keys_error))
+			if copy_error != nil {
+				log.error("Failed to cut")
+			} else if copied {
+				textpkg.text_cursor_delete(state, textpkg.Cursor_Delete{translation = .Left})
 			}
-
-			switch clipboard_command {
-			case .None:
-			case .Copy:
-				_, copy_error := copy_selection_to_clipboard(
-					state,
-					interaction.input.clipboard_text_procs,
-					frame_allocator,
-				)
-
-				if copy_error != nil {
-					log.error("Could not copy selection: ", copy_error)
-				}
-
-			case .Paste:
-				//TODO(Thomas): This can cause OOM for the frame_allocator if copying
-				//very large text. We can think about using a fallback strategy of
-				//persistent allocator or some general purpose allocator in those cases
-				//when it has first failed with the frame allocator
-				text_to_paste, clipboard_error :=
-					interaction.input.clipboard_text_procs.get_clipboard_text_proc(frame_allocator)
-				if clipboard_error == nil {
-					// We don't crash just because someone tries to copy paste very large text
-					text_insert_err := textpkg.text_cursor_insert(
-						state,
-						textpkg.Cursor_Insert{text = text_to_paste},
-					)
-					switch text_insert_err {
-					case fixed_buffer.Fixed_Buffer_Error.None, mem.Allocator_Error.None:
-					case .Buffer_Full:
-						log.error(
-							"Cannot paste because fixed buffer is full error:",
-							text_insert_err,
-						)
-					case .Out_Of_Memory:
-						log.error("Cannot paste because of Out Of Memory error:", text_insert_err)
-					case:
-						panic(fmt.tprintf("Unexpected error, cannot proceed: %v", text_insert_err))
-					}
-				} else {
-					log.error("Failed to get clipboard text")
-				}
-
-			case .Cut:
-				// Cut should not work for read-only text, just be a no-op
-				switch v in state.variant {
-				case textpkg.Text_Edit_State:
-					copied, copy_error := copy_selection_to_clipboard(
-						state,
-						interaction.input.clipboard_text_procs,
-						frame_allocator,
-					)
-
-					if copy_error != nil {
-						log.error("Failed to cut")
-					} else if copied {
-						textpkg.text_cursor_delete(
-							state,
-							textpkg.Cursor_Delete{translation = .Left},
-						)
-					}
-				case textpkg.Text_Read_Only_State:
-				// no-op
-				}
-			}
+		case textpkg.Text_Read_Only_State:
+		// no-op
 		}
 	}
 }
@@ -385,8 +348,17 @@ process_interaction :: proc(ctx: ^Context) {
 	// update interaction ids, e.g. hot, pressed, focused
 	update_interaction_ids(&ctx.interaction, hit_result)
 
-	dispatch_mouse_to_focused(ctx)
-	dispatch_keyboard_to_focused(&ctx.interaction, &ctx.text_system, ctx.frame_allocator)
+	if ctx.interaction.focused_id != ui_key_null() {
+		focused, found := get_element_pointer_by_key(ctx, ctx.interaction.focused_id)
+		if found &&
+		   focused.last_frame_idx == ctx.frame_idx &&
+		   .Selectable in focused.config.capability_flags &&
+		   focused.text_state.variant != nil {
+			dispatch_mouse_to_focused(ctx, focused)
+			dispatch_keyboard_to_focused(ctx, focused)
+
+		}
+	}
 
 	apply_scroll(&ctx.interaction, hit_result.scrollable)
 

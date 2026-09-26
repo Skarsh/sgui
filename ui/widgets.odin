@@ -31,9 +31,7 @@ text :: proc(
 		// like a side-effect here is good, or if we just assert / log instead?
 		// Selection needs to be able to click and take focuse for hit testing
 		element.config.capability_flags |= {.Clickable, .Focusable}
-
-		state := text_state_for(ctx, key, textpkg.Text_Read_Only_State{})
-		textpkg.text_read_only_set_text(state, text)
+		textpkg.text_read_only_set_text(&element.text_state, text)
 	}
 
 	close_element(ctx)
@@ -235,20 +233,19 @@ text_input :: proc(
 	key := ui_key(ctx, id, loc)
 	element := open_element(ctx, key, style, default_theme().text_input, name = name)
 
-	text_edit_state := textpkg.Text_Edit_State{}
-	textpkg.text_edit_init(
-		&text_edit_state,
-		textpkg.Text_Buffer{buf = fixed_buffer.Fixed_Buffer{buf = buf}},
-	)
+	state := &element.text_state
+	if state.variant == nil {
+		state.variant = textpkg.Text_Edit_State {
+			buffer = textpkg.Text_Buffer{buf = fixed_buffer.Fixed_Buffer{buf = buf}},
+		}
+	}
 
-	state := text_state_for(ctx, key, text_edit_state)
+	edit, is_editable := &state.variant.(textpkg.Text_Edit_State)
+	assert(is_editable, "element change text state kind")
 
 	//NOTE(Thomas): We don't need to free this because it's allocated using the frame allocator
 	// which will free at the beginning of the next frame.
-	text_view, text_alloc_err := textpkg.text_buffer_text(
-		state.variant.(textpkg.Text_Edit_State).buffer,
-		ctx.frame_allocator,
-	)
+	text_view, text_alloc_err := textpkg.text_buffer_text(edit.buffer, ctx.frame_allocator)
 	if text_alloc_err != .None {
 		log.error("Error when trying to get text buffer text: ", text_alloc_err)
 	}

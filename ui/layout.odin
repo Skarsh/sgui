@@ -103,6 +103,8 @@ UI_Element :: struct {
 	active:            f32,
 	last_comm:         Comm,
 	last_frame_idx:    u64,
+	text_state:        textpkg.Text_State,
+	text_layout_cache: textpkg.Text_Layout_Cache_Entry,
 }
 
 Sizing :: struct {

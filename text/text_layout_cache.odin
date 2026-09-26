@@ -68,8 +68,8 @@ layout_text_cached :: proc(
 	return
 }
 
-// TODO(Thomas): Think about unifying this with pruning text system
-// Frees entreis that weren't requested on the last frame.
+// TODO(Thomas): Unify this with element pruning by moving layout ownership to the element.
+// Frees entries that weren't requested on the last frame.
 @(require_results)
 prune_text_layout_cache :: proc(
 	cache: ^map[u64]Text_Layout_Cache_Entry,

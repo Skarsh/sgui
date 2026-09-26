@@ -337,6 +337,7 @@ default_theme :: proc() -> Theme {
 				.Focusable,
 				.Hot_Animation,
 				.Scrollable_X,
+				.Selectable,
 			},
 			clip = Clip_Config{clip_axes = {true, true}},
 		},

@@ -1,9 +1,8 @@
 # TODOs
 
 ## Active
-* Look into unification / simplification of pruning elements, text layout cache entries and text states
-    The trigger for all of them to be pruned is that there's a new frame where they haven't been laid out
-    or constructed / set. This seems to only really happen when the element is removed from the hierarchy.
+* Unify pruning of elements and text layout cache entries.
+    Text states are now owned and freed by their UI elements. The text layout cache is still pruned separately.
 
 ## Bugs
 

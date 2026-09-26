@@ -134,6 +134,8 @@ free_element :: proc(elem: ^UI_Element, allocator: mem.Allocator) {
 	}
 	delete(elem.name)
 
+	textpkg.deinit_text_state(&elem.text_state)
+
 	free_err := free(elem, allocator)
 	assert(free_err == .None)
 }
@@ -255,13 +257,13 @@ end :: proc(ctx: ^Context) {
 		ctx.frame_allocator,
 	)
 
-	prune_text_system_alloc_err := textpkg.prune_text_system(
-		&ctx.text_system,
+	prune_text_layout_alloc_err := textpkg.prune_text_layout_cache(
+		&ctx.text_system.layout_cache,
 		ctx.frame_idx,
 		ctx.persistent_allocator,
 		ctx.frame_allocator,
 	)
-	assert(prune_text_system_alloc_err == .None)
+	assert(prune_text_layout_alloc_err == .None)
 }
 
 // Prunes dead elements from the cache and the hierarchy

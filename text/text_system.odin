@@ -11,7 +11,6 @@ Text_System :: struct {
 	measurement:  Text_Measurement,
 	fonts:        [dynamic]Font_Cache,
 	layout_cache: map[u64]Text_Layout_Cache_Entry,
-	text_states:  map[u64]Text_State,
 	font_configs: []base.Font_Config,
 }
 
@@ -35,7 +34,6 @@ init_text_system :: proc(
 	}
 
 	ts.layout_cache = make(map[u64]Text_Layout_Cache_Entry, allocator)
-	ts.text_states = make(map[u64]Text_State, allocator)
 	ts.font_configs = font_configs
 
 	return nil
@@ -49,45 +47,6 @@ deinit_text_system :: proc(ts: ^Text_System, allocator: mem.Allocator) {
 		delete(fc.extended)
 	}
 	delete(ts.fonts)
-
-	for _, &state in ts.text_states {
-		deinit_text_state(&state)
-	}
-	delete(ts.text_states)
-}
-
-// TODO(Thomas): Think about unifying this with the pruning of UI_Elements.
-// It seems to pretty much have the same condition??
-@(require_results)
-prune_text_system :: proc(
-	ts: ^Text_System,
-	frame_idx: u64,
-	persistent_allocator: mem.Allocator,
-	frame_allocator: mem.Allocator,
-) -> mem.Allocator_Error {
-
-	// Cannot alter map while iterating, so we collect keys first.
-	dead_keys := make([dynamic]u64, frame_allocator) or_return
-
-	for key, state in ts.text_states {
-		if state.last_frame_idx < frame_idx - 1 {
-			append(&dead_keys, key) or_return
-		}
-	}
-
-	for key in dead_keys {
-		state, found := &ts.text_states[key]
-		assert(found)
-		deinit_text_state(state)
-		delete_key(&ts.text_states, key)
-	}
-
-	return prune_text_layout_cache(
-		&ts.layout_cache,
-		frame_idx,
-		persistent_allocator,
-		frame_allocator,
-	)
 }
 
 Font_Cache :: struct {
