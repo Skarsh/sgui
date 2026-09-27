@@ -600,9 +600,6 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 		} else {
 			// Cache is invalid
 
-			// deinit the layout before we make a new one
-			textpkg.deinit_text_layout(&entry.layout, layout_allocator)
-
 			text_layout = textpkg.layout_text(
 				&ctx.text_system,
 				text,
@@ -610,6 +607,9 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 				layout_allocator,
 				ctx.frame_allocator,
 			) or_return
+
+			// We deinit the old layout only after the new layout succeeds
+			textpkg.deinit_text_layout(&entry.layout, layout_allocator)
 
 			entry^ = {
 				text_hash = text_hash,
