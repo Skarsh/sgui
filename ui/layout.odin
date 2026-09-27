@@ -571,6 +571,10 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 		}
 
 		// Text layout
+		layout_allocator := ctx.persistent_allocator
+		if element.key == ui_key_null() {
+			layout_allocator = ctx.frame_allocator
+		}
 		layout_params := textpkg.Text_Layout_Params {
 			wrap_width,
 			element.config.layout.font_id,
@@ -597,13 +601,13 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			// Cache is invalid
 
 			// deinit the layout before we make a new one
-			textpkg.deinit_text_layout(&entry.layout, ctx.persistent_allocator)
+			textpkg.deinit_text_layout(&entry.layout, layout_allocator)
 
 			text_layout = textpkg.layout_text(
 				&ctx.text_system,
 				text,
 				layout_params,
-				ctx.persistent_allocator,
+				layout_allocator,
 				ctx.frame_allocator,
 			) or_return
 
