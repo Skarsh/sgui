@@ -70,6 +70,12 @@ Text_Layout :: struct {
 	glyphs: []Glyph,
 }
 
+deinit_text_layout :: proc(layout: ^Text_Layout, allocator: mem.Allocator) {
+	delete(layout.rows, allocator)
+	delete(layout.glyphs, allocator)
+	layout^ = {}
+}
+
 paragraph_segmentation :: proc(
 	text: string,
 	paragraphs: ^[dynamic]Paragraph,

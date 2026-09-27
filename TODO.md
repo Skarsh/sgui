@@ -1,13 +1,12 @@
 # TODOs
 
 ## Active
-* Unify pruning of elements and text layout cache entries.
-    Text states are now owned and freed by their UI elements. The text layout cache is still pruned separately.
 
 ## Bugs
 
 ## Backlog
 
+* Get rid of all / most dynamic memory allocations and only use static memory allocations.
 * Add some way to set fullscreen mode
 * Need a better Glyph type, probably should live in base package.
 * io abstraction, figure out to handle quit event, and whether that should be its own event type or a window event.

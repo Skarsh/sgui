@@ -181,98 +181,89 @@ draw_element :: proc(ctx: ^Context, element: ^UI_Element) {
 
 		if .Text in cap_flags {
 
-			text_layout, found_text_layout := textpkg.read_text_layout_cache(
-				ctx.text_system.layout_cache,
-				element.key.hash,
-			)
-			if found_text_layout {
-				start_pos := text_origin(element^, text_layout)
+			text_layout := element.text_layout_cache_entry.layout
 
-				selection := element.text_state.selection
+			start_pos := text_origin(element^, text_layout)
 
-				is_focused :=
-					element.key != ui_key_null() && ctx.interaction.focused_id == element.key
+			selection := element.text_state.selection
 
-				show_text_interaction :=
-					is_focused &&
-					.Selectable in element.config.capability_flags &&
-					element.text_state.variant != nil
+			is_focused := element.key != ui_key_null() && ctx.interaction.focused_id == element.key
+
+			show_text_interaction :=
+				is_focused &&
+				.Selectable in element.config.capability_flags &&
+				element.text_state.variant != nil
 
 
-				for row in text_layout.rows {
-					// Draw selection
-					if show_text_interaction {
-						sel_rect := textpkg.text_layout_row_selection_rect(
-							text_layout,
-							row,
-							selection,
-						)
-
-						draw_rect(
-							draw_state,
-							base.Rect {
-								x = i32(start_pos.x + sel_rect.x),
-								y = i32(start_pos.y + sel_rect.y),
-								w = i32(sel_rect.w),
-								h = i32(sel_rect.h),
-							},
-							base.fill_color(255, 255, 255, 128),
-							z_index = 0,
-						)
-					}
-
-					// Draw text
-					draw_text(
-						draw_state,
-						start_pos.x + row.pos.x,
-						start_pos.y + row.pos.y,
-						base.slice_from_range(text_layout.glyphs, row.glyph_range),
-						element.config.text_fill,
-						element.config.layout.font_id,
-						z_index = 0,
-					)
-				}
-
+			for row in text_layout.rows {
+				// Draw selection
 				if show_text_interaction {
-					caret_byte_pos := element.text_state.selection.active
-
-					// TODO(Thomas): This should be configurable
-					CARET_WIDTH :: 2.0
-
-					//  TODO(Thomas): Bad way of doing this I think
-					caret_pos, caret_height := textpkg.text_layout_caret_pos(
-						text_layout,
-						caret_byte_pos,
-					)
-
-					// TODO(Thomas): HACK - This is a special case for when there
-					// is no rows, then the start_pos.y doesn't subtract the size
-					// of the text_layout / 2 as far as I can see.
-					// This works, but maybe there is a cleaner solution, something
-					// like paragraphs always producing one row, even if it's empty??
-					if len(text_layout.rows) == 0 {
-						// TODO(Thomas): Do more error handling here if the caret_height is not ok?
-						caret_height_ok: bool
-						caret_height, caret_height_ok = textpkg.font_line_height(
-							&ctx.text_system,
-							element.config.layout.font_id,
-						)
-						assert(caret_height_ok)
-						caret_pos.y -= caret_height / 2
-					}
+					sel_rect := textpkg.text_layout_row_selection_rect(text_layout, row, selection)
 
 					draw_rect(
 						draw_state,
 						base.Rect {
-							x = i32(start_pos.x + caret_pos.x),
-							y = i32(start_pos.y + caret_pos.y),
-							w = i32(CARET_WIDTH),
-							h = i32(caret_height),
+							x = i32(start_pos.x + sel_rect.x),
+							y = i32(start_pos.y + sel_rect.y),
+							w = i32(sel_rect.w),
+							h = i32(sel_rect.h),
 						},
-						element.config.text_fill,
+						base.fill_color(255, 255, 255, 128),
 						z_index = 0,
 					)
 				}
+
+				// Draw text
+				draw_text(
+					draw_state,
+					start_pos.x + row.pos.x,
+					start_pos.y + row.pos.y,
+					base.slice_from_range(text_layout.glyphs, row.glyph_range),
+					element.config.text_fill,
+					element.config.layout.font_id,
+					z_index = 0,
+				)
+			}
+
+			if show_text_interaction {
+				caret_byte_pos := element.text_state.selection.active
+
+				// TODO(Thomas): This should be configurable
+				CARET_WIDTH :: 2.0
+
+				//  TODO(Thomas): Bad way of doing this I think
+				caret_pos, caret_height := textpkg.text_layout_caret_pos(
+					text_layout,
+					caret_byte_pos,
+				)
+
+				// TODO(Thomas): HACK - This is a special case for when there
+				// is no rows, then the start_pos.y doesn't subtract the size
+				// of the text_layout / 2 as far as I can see.
+				// This works, but maybe there is a cleaner solution, something
+				// like paragraphs always producing one row, even if it's empty??
+				if len(text_layout.rows) == 0 {
+					// TODO(Thomas): Do more error handling here if the caret_height is not ok?
+					caret_height_ok: bool
+					caret_height, caret_height_ok = textpkg.font_line_height(
+						&ctx.text_system,
+						element.config.layout.font_id,
+					)
+					assert(caret_height_ok)
+					caret_pos.y -= caret_height / 2
+				}
+
+				draw_rect(
+					draw_state,
+					base.Rect {
+						x = i32(start_pos.x + caret_pos.x),
+						y = i32(start_pos.y + caret_pos.y),
+						w = i32(CARET_WIDTH),
+						h = i32(caret_height),
+					},
+					element.config.text_fill,
+					z_index = 0,
+				)
 			}
 		}
 

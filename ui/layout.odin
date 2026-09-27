@@ -1,6 +1,7 @@
 package ui
 
 import "core:fmt"
+import "core:hash"
 import "core:log"
 import "core:math"
 import "core:mem"
@@ -89,22 +90,22 @@ Scroll_Region :: struct {
 }
 
 UI_Element :: struct {
-	parent:            ^UI_Element,
-	name:              string,
-	key:               UI_Key,
-	position:          base.Vec2,
-	size:              base.Vec2,
-	text_content_size: base.Vec2,
-	scroll_region:     Scroll_Region,
-	clip_rect:         base.Rect,
-	config:            Element_Config,
-	children:          [dynamic]^UI_Element,
-	hot:               f32,
-	active:            f32,
-	last_comm:         Comm,
-	last_frame_idx:    u64,
-	text_state:        textpkg.Text_State,
-	text_layout_cache: textpkg.Text_Layout_Cache_Entry,
+	parent:                  ^UI_Element,
+	name:                    string,
+	key:                     UI_Key,
+	position:                base.Vec2,
+	size:                    base.Vec2,
+	text_content_size:       base.Vec2,
+	scroll_region:           Scroll_Region,
+	clip_rect:               base.Rect,
+	config:                  Element_Config,
+	children:                [dynamic]^UI_Element,
+	hot:                     f32,
+	active:                  f32,
+	last_comm:               Comm,
+	last_frame_idx:          u64,
+	text_state:              textpkg.Text_State,
+	text_layout_cache_entry: textpkg.Text_Layout_Cache_Entry,
 }
 
 Sizing :: struct {
@@ -569,23 +570,49 @@ wrap_text :: proc(ctx: ^Context, element: ^UI_Element) -> mem.Allocator_Error {
 			}
 		}
 
-		text_layout := textpkg.layout_text_cached(
-			&ctx.text_system,
-			{
-				key = element.key.hash,
-				frame_idx = ctx.frame_idx,
-				text = text,
-				params = {
-					wrap_width,
-					element.config.layout.font_id,
-					element.config.layout.text_alignment_x,
-					text_wrap_mode,
-				},
-			},
-			ctx.persistent_allocator,
-			ctx.frame_allocator,
-		) or_return
+		// Text layout
+		layout_params := textpkg.Text_Layout_Params {
+			wrap_width,
+			element.config.layout.font_id,
+			element.config.layout.text_alignment_x,
+			text_wrap_mode,
+		}
 
+		req := textpkg.Text_Layout_Cache_Request {
+			key    = element.key.hash,
+			text   = text,
+			params = layout_params,
+		}
+
+		text_hash := hash.fnv64a(transmute([]u8)req.text)
+
+		entry := &element.text_layout_cache_entry
+
+		text_layout: textpkg.Text_Layout
+
+		if entry.text_hash == text_hash && entry.params == layout_params {
+			// Cache is valid
+			text_layout = entry.layout
+		} else {
+			// Cache is invalid
+
+			// deinit the layout before we make a new one
+			textpkg.deinit_text_layout(&entry.layout, ctx.persistent_allocator)
+
+			text_layout = textpkg.layout_text(
+				&ctx.text_system,
+				text,
+				layout_params,
+				ctx.persistent_allocator,
+				ctx.frame_allocator,
+			) or_return
+
+			entry^ = {
+				text_hash = text_hash,
+				params    = layout_params,
+				layout    = text_layout,
+			}
+		}
 
 		// Update text_content_size.y based on wrapped height
 		final_height := text_layout.size.y + get_box_sum_for_axis(inset, .Y)
@@ -871,14 +898,8 @@ update_scroll_region :: proc(ctx: ^Context, element: ^UI_Element) {
 		content_size := measure_flow_content_size(element^)
 
 		if .Text in flags {
-			text_size := base.Vec2{}
 
-			if text_layout, found := textpkg.read_text_layout_cache(
-				ctx.text_system.layout_cache,
-				element.key.hash,
-			); found {
-				text_size = text_layout.size
-			}
+			text_size := element.text_layout_cache_entry.layout.size
 
 			content_size.x = max(content_size.x, text_size.x)
 			content_size.y = max(content_size.y, text_size.y)

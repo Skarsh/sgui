@@ -142,21 +142,17 @@ dispatch_mouse_to_focused :: proc(ctx: ^Context, focused: ^UI_Element) {
 	pressed := base.is_mouse_pressed(it.input^, .Left)
 	held := base.is_mouse_down(it.input^, .Left)
 
-	text_layout, found_layout := textpkg.read_text_layout_cache(
-		ctx.text_system.layout_cache,
-		focused.key.hash,
-	)
+	if pressed || held {
+		mouse_pos := base.Vec2{f32(it.input.mouse_pos.x), f32(it.input.mouse_pos.y)}
 
-	if found_layout {
-		if pressed || held {
-			mouse_pos := base.Vec2{f32(it.input.mouse_pos.x), f32(it.input.mouse_pos.y)}
+		origin := text_origin(focused^, focused.text_layout_cache_entry.layout)
+		start_pos := mouse_pos - origin
 
-			origin := text_origin(focused^, text_layout)
-			start_pos := mouse_pos - origin
-
-			byte_pos := textpkg.text_layout_byte_pos_from_point(text_layout, start_pos)
-			textpkg.text_cursor_set_caret(state, textpkg.Cursor_Set_Caret{byte_pos, !pressed})
-		}
+		byte_pos := textpkg.text_layout_byte_pos_from_point(
+			focused.text_layout_cache_entry.layout,
+			start_pos,
+		)
+		textpkg.text_cursor_set_caret(state, textpkg.Cursor_Set_Caret{byte_pos, !pressed})
 	}
 }
 

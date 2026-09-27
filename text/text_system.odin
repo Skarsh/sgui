@@ -10,7 +10,6 @@ ASCII_TABLE_LEN :: 128
 Text_System :: struct {
 	measurement:  Text_Measurement,
 	fonts:        [dynamic]Font_Cache,
-	layout_cache: map[u64]Text_Layout_Cache_Entry,
 	font_configs: []base.Font_Config,
 }
 
@@ -33,16 +32,12 @@ init_text_system :: proc(
 		append(&ts.fonts, fc) or_return
 	}
 
-	ts.layout_cache = make(map[u64]Text_Layout_Cache_Entry, allocator)
 	ts.font_configs = font_configs
 
 	return nil
 }
 
 deinit_text_system :: proc(ts: ^Text_System, allocator: mem.Allocator) {
-	free_text_layout_cache_entries(ts.layout_cache, allocator)
-	delete(ts.layout_cache)
-
 	for &fc in ts.fonts {
 		delete(fc.extended)
 	}
