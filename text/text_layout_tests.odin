@@ -31,15 +31,6 @@ mock_text_measurement :: Text_Measurement {
 	measure_codepoint_proc = mock_measure_codepoint_proc,
 }
 
-
-@(private = "file")
-make_test_text_system :: proc() -> Text_System {
-	ts: Text_System
-	err := init_text_system(&ts, mock_text_measurement, {{"", 0, nil}}, context.temp_allocator)
-	assert(err == .None)
-	return ts
-}
-
 // Test only helper which checks that laying out text at the given width and
 // wrap mode yields the expected size and rows
 @(private = "file")
@@ -51,7 +42,14 @@ check_layout :: proc(
 	params: Text_Layout_Params,
 	loc := #caller_location,
 ) {
-	ts := make_test_text_system()
+	ts: Text_System
+	ts_alloc_err := init_text_system(
+		&ts,
+		mock_text_measurement,
+		{{"", 0, nil}},
+		context.temp_allocator,
+	)
+	assert(ts_alloc_err == .None)
 	layout, alloc_err := layout_text(
 		&ts,
 		text,
