@@ -36,6 +36,8 @@ Context :: struct {
 	interaction:          Interaction,
 	element_cache:        map[UI_Key]^UI_Element,
 	frame_idx:            u64,
+	total_ns:             u64,
+	dt_ns:                u64,
 	dt:                   f32,
 	text_system:          textpkg.Text_System,
 	window_size:          [2]i32,

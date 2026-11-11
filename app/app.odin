@@ -139,6 +139,8 @@ run :: proc(app: ^App, app_data: $T, update_proc: proc(ctx: ^ui.Context, app_dat
 		// 1. Timing
 		backend.time(&app.backend_ctx.io)
 		app.ui_ctx.dt = app.backend_ctx.io.frame_time.dt
+		app.ui_ctx.dt_ns = app.backend_ctx.io.frame_time.dt_ns
+		app.ui_ctx.total_ns = app.backend_ctx.io.frame_time.total_ns
 
 		// 2. Event processing
 		backend.process(&app.backend_ctx)

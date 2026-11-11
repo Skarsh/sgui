@@ -4,7 +4,7 @@ import "core:log"
 
 import "../base"
 
-// TODO(Thomas): Clean up when done with converting to nanos
+// TODO(Thomas): Clean up when done with converting to nanoseconds
 Frame_Time :: struct {
 	initial_counter: u64,
 	counter:         u64,
@@ -12,8 +12,8 @@ Frame_Time :: struct {
 	last:            u64,
 	now:             u64,
 	dt:              f32,
-	dt_nanos:        u64,
-	prev_total_ns:   u64,
+	dt_ns:           u64,
+	total_ns:        u64,
 }
 
 Platform_API :: struct {
@@ -95,7 +95,7 @@ init_io :: proc(
 //
 // Total for each counter value:
 //
-//   now_counter | end | end_seconds | end_remainder | end_nanos
+//   now_counter | end | end_seconds | end_remainder | end_ns
 //   ------------+-----+-------------+---------------+--------------
 //             1 |   1 |           0 |             1 |   333_333_333
 //             2 |   2 |           0 |             2 |   666_666_666
@@ -103,7 +103,7 @@ init_io :: proc(
 //
 // 3 frames of 1 tick:
 //
-//   now_counter | end_nanos     | prev_total_ns | dt_nanos
+//   now_counter |    end_ns     | prev_total_ns | dt_ns
 //   ------------+---------------+---------------+------------
 //             1 |   333_333_333 |             0 | 333_333_333
 //             2 |   666_666_666 |   333_333_333 | 333_333_333
@@ -111,22 +111,20 @@ init_io :: proc(
 //
 // 1 frame of 2 ticks, then 1 frame of 1 tick:
 //
-//   now_counter | end_nanos     | prev_total_ns | dt_nanos
+//   now_counter |    end_ns     | prev_total_ns | dt_ns
 //   ------------+---------------+---------------+------------
 //             2 |   666_666_666 |             0 | 666_666_666
 //             3 | 1_000_000_000 |   666_666_666 | 333_333_334
 //
 // Both add up to 1_000_000_000. Converting only the ticks of each frame gives 999_999_999.
-calc_nanos :: proc(now_counter: u64, prev_total_ns: u64, initial_counter: u64, freq: u64) -> u64 {
+calc_ns :: proc(now_counter: u64, prev_total_ns: u64, initial_counter: u64, freq: u64) -> u64 {
 	end := now_counter - initial_counter
 	end_seconds := end / freq
 	end_remainder := end % freq
 
-	end_nanos := (end_seconds * 1_000_000_000) + (end_remainder * 1_000_000_000) / freq
+	end_ns := (end_seconds * 1_000_000_000) + (end_remainder * 1_000_000_000) / freq
 
-	dt_nanos := end_nanos - prev_total_ns
-
-	return end_nanos - prev_total_ns
+	return end_ns - prev_total_ns
 }
 
 time :: proc(io: ^Io) {
@@ -143,16 +141,16 @@ time :: proc(io: ^Io) {
 
 		log.info("dt: ", io.frame_time.dt)
 
-		dt_nanos := calc_nanos(
+		dt_ns := calc_ns(
 			io.frame_time.now,
-			io.frame_time.prev_total_ns,
+			io.frame_time.total_ns,
 			io.frame_time.initial_counter,
 			io.frame_time.frequency,
 		)
-		io.frame_time.prev_total_ns += dt_nanos
-		io.frame_time.dt_nanos = dt_nanos
+		io.frame_time.total_ns += dt_ns
+		io.frame_time.dt_ns = dt_ns
 
-		log.info("dt_nanos: ", io.frame_time.dt_nanos)
+		log.info("dt_ns: ", io.frame_time.dt_ns)
 	}
 
 	io.frame_time.counter += 1

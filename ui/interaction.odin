@@ -334,6 +334,35 @@ tween_animations :: proc(interaction: ^Interaction, dt: f32) {
 	}
 }
 
+// TODO(Thomas): Think about the issue of accumulation in hot and active here.
+// We are accumulating f32s instead of nanoseconds here, probably needs to be
+// nanoseconds to be deterministic in all the cases we care about.
+tween_animations_ns :: proc(interaction: ^Interaction, dt_ns: u64) {
+	fade_ns :: 200_000_000
+
+	rate := f32(dt_ns) / f32(fade_ns)
+
+	for element in interaction.animatable_elements {
+		flags := element.config.capability_flags
+
+		if .Hot_Animation in flags {
+			if element.key == interaction.hot_id || element.key == interaction.pressed_id {
+				element.hot = math.clamp(element.hot + rate, 0, 1)
+			} else {
+				element.hot = math.clamp(element.hot - rate, 0, 1)
+			}
+		}
+
+		if .Active_Animation in flags {
+			if element.key == interaction.pressed_id {
+				element.active = math.clamp(element.active + rate, 0, 1)
+			} else {
+				element.active = math.clamp(element.active - rate, 0, 1)
+			}
+		}
+	}
+}
+
 
 // TODO(Thomas): Find a better way than just passing the frame allocator here?
 process_interaction :: proc(ctx: ^Context) {
@@ -358,7 +387,8 @@ process_interaction :: proc(ctx: ^Context) {
 
 	apply_scroll(&ctx.interaction, hit_result.scrollable)
 
-	tween_animations(&ctx.interaction, ctx.dt)
+	//tween_animations(&ctx.interaction, ctx.dt)
+	tween_animations_ns(&ctx.interaction, ctx.dt_ns)
 }
 
 build_comm :: proc(
