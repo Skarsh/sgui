@@ -80,3 +80,5 @@ Font_Config :: struct {
 	size:      f32,
 	user_data: rawptr,
 }
+
+NANOSECONDS_PER_SECOND: u64 : 1_000_000_000

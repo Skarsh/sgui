@@ -4,16 +4,14 @@ import "core:log"
 
 import "../base"
 
-// TODO(Thomas): Clean up when done with converting to nanoseconds
 Frame_Time :: struct {
 	initial_counter: u64,
 	counter:         u64,
 	frequency:       u64,
-	last:            u64,
 	now:             u64,
-	dt:              f32,
 	dt_ns:           u64,
 	total_ns:        u64,
+	dt:              f32,
 }
 
 Platform_API :: struct {
@@ -67,7 +65,6 @@ init_io :: proc(
 	io.frame_time = Frame_Time {
 		initial_counter = initial_counter,
 		frequency       = frequency,
-		last            = initial_counter,
 		now             = initial_counter,
 		dt              = 0,
 	}
@@ -80,77 +77,41 @@ init_io :: proc(
 	return true
 }
 
-// Returns nanoseconds since the previous call.
-//
-// Converting only the ticks of each frame would lose the rounded off part every frame.
-// So we convert the total since initial_counter and subtract the previous total.
-// Caller must add the result to prev_total_ns before the next call.
-//
-// We split into seconds and remainder to avoid overflow.
-//
-// Example
-// freq = 3
-// initial_counter = 0
-// one tick = 333_333_333.33... ns
-//
-// Total for each counter value:
-//
-//   now_counter | end | end_seconds | end_remainder | end_ns
-//   ------------+-----+-------------+---------------+--------------
-//             1 |   1 |           0 |             1 |   333_333_333
-//             2 |   2 |           0 |             2 |   666_666_666
-//             3 |   3 |           1 |             0 | 1_000_000_000
-//
-// 3 frames of 1 tick:
-//
-//   now_counter |    end_ns     | prev_total_ns | dt_ns
-//   ------------+---------------+---------------+------------
-//             1 |   333_333_333 |             0 | 333_333_333
-//             2 |   666_666_666 |   333_333_333 | 333_333_333
-//             3 | 1_000_000_000 |   666_666_666 | 333_333_334
-//
-// 1 frame of 2 ticks, then 1 frame of 1 tick:
-//
-//   now_counter |    end_ns     | prev_total_ns | dt_ns
-//   ------------+---------------+---------------+------------
-//             2 |   666_666_666 |             0 | 666_666_666
-//             3 | 1_000_000_000 |   666_666_666 | 333_333_334
-//
-// Both add up to 1_000_000_000. Converting only the ticks of each frame gives 999_999_999.
-calc_ns :: proc(now_counter: u64, prev_total_ns: u64, initial_counter: u64, freq: u64) -> u64 {
-	end := now_counter - initial_counter
+
+// initial: the initial counter captured at the beginning of the io setup
+// now: the current time counter
+// freq: the frequency defined as counts / seconds, used to
+// calculate seconds from counts.
+// returns the number of nanoseconds that has passed since the start of io setup.
+calc_time_ns :: proc(initial: u64, now: u64, freq: u64) -> u64 {
+	end := now - initial
 	end_seconds := end / freq
 	end_remainder := end % freq
 
-	end_ns := (end_seconds * 1_000_000_000) + (end_remainder * 1_000_000_000) / freq
+	end_ns :=
+		(end_seconds * base.NANOSECONDS_PER_SECOND) +
+		(end_remainder * base.NANOSECONDS_PER_SECOND) / freq
 
-	return end_ns - prev_total_ns
+	return end_ns
 }
 
 time :: proc(io: ^Io) {
-	io.frame_time.last = io.frame_time.now
 	io.frame_time.now = io.platform_api.get_perf_counter()
 
 	if io.frame_time.counter == 0 {
 		io.frame_time.dt = 0
 		io.frame_time.initial_counter = io.frame_time.now
 	} else {
-		io.frame_time.dt = f32(
-			f32(io.frame_time.now - io.frame_time.last) / f32(io.frame_time.frequency),
-		)
 
-		log.info("dt: ", io.frame_time.dt)
-
-		dt_ns := calc_ns(
-			io.frame_time.now,
-			io.frame_time.total_ns,
+		time_ns := calc_time_ns(
 			io.frame_time.initial_counter,
+			io.frame_time.now,
 			io.frame_time.frequency,
 		)
-		io.frame_time.total_ns += dt_ns
-		io.frame_time.dt_ns = dt_ns
 
-		log.info("dt_ns: ", io.frame_time.dt_ns)
+		io.frame_time.dt_ns = time_ns - io.frame_time.total_ns
+		io.frame_time.total_ns = time_ns
+		io.frame_time.dt = f32(io.frame_time.dt_ns) / f32(base.NANOSECONDS_PER_SECOND)
 	}
 
 	io.frame_time.counter += 1

@@ -248,7 +248,7 @@ end :: proc(ctx: ^Context) {
 	)
 	assert(resolve_height_alloc_err == .None)
 
-	update_layout_geometry(ctx, ctx.root_element, ctx.dt)
+	update_layout_geometry(ctx, ctx.root_element)
 
 	draw_all_elements(ctx)
 

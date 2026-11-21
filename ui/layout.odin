@@ -1023,10 +1023,15 @@ update_clip_rect :: proc(element: ^UI_Element, window_size: base.Vector2i32) {
 	}
 }
 
-update_layout_geometry :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
+update_layout_geometry :: proc(ctx: ^Context, element: ^UI_Element) {
 	assert(element != nil)
 
-	base.animate_vec2(&element.scroll_region.offset, element.scroll_region.target_offset, dt, 20.0)
+	base.animate_vec2(
+		&element.scroll_region.offset,
+		element.scroll_region.target_offset,
+		ctx.dt,
+		20.0,
+	)
 
 	update_scroll_region(ctx, element)
 	position_flow_children(element)
@@ -1034,7 +1039,7 @@ update_layout_geometry :: proc(ctx: ^Context, element: ^UI_Element, dt: f32) {
 	update_clip_rect(element, ctx.window_size)
 
 	for child in element.children {
-		update_layout_geometry(ctx, child, dt)
+		update_layout_geometry(ctx, child)
 	}
 }
 
