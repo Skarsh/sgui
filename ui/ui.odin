@@ -44,6 +44,8 @@ Context :: struct {
 	// new fields for LAOTs impl, they live in parallel to the actual working
 	// implementation now
 	elements:             ^UI_Elements,
+	current_parent_ref:   UI_Element_Ref,
+	root_element_ref:     UI_Element_Ref,
 }
 
 Capability :: enum {
@@ -190,6 +192,47 @@ begin :: proc(ctx: ^Context) {
 
 	ctx.root_element = root_element
 }
+
+begin_2 :: proc(ctx: ^Context) {
+	// Interaction runs against the tree that was laid out last frame.
+	// Widgets see the input from this frame.
+	// It is very important that this is the first thing that happens this frame
+	// to make sure that memory from the previous frame is valid for this to use.
+	if ctx.root_element != nil {
+		process_interaction(ctx)
+	}
+
+	clear(&ctx.id_stack)
+
+	ctx.frame_idx += 1
+
+	free_frame_alloc_err := free_all(ctx.frame_allocator)
+	assert(free_frame_alloc_err == .None)
+
+	reset_interaction(&ctx.interaction)
+	reset_draw_state(&ctx.draw_state, ctx.window_size)
+
+	// Open the root element
+	root_element_ref := open_element_2(
+		ctx,
+		ui_key_current_loc(),
+		Style {
+			sizing_x = sizing_fixed(f32(ctx.window_size.x)),
+			sizing_y = sizing_fixed(f32(ctx.window_size.y)),
+			background_fill = base.fill_color(128, 128, 128),
+		},
+		name = "root",
+	)
+
+	//NOTE(Thomas): Root element size needs to be updated every frame, meaning not cached like other elements.
+	// TODO(Thomas): We can maybe remove this special case by making the root be a NULL key type element, like a spacer.
+	if root_element_ref != {} {
+		set_size(ctx.elements, root_element_ref, {f32(ctx.window_size.x), f32(ctx.window_size.y)})
+	}
+
+	ctx.root_element_ref = root_element_ref
+}
+
 
 end :: proc(ctx: ^Context) {
 	// Order of the operations we need to follow:

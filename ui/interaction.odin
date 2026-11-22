@@ -24,16 +24,18 @@ Comm :: struct {
 
 Interaction :: struct {
 	// input is owned by app
-	input:               ^base.Input,
-	hot_id:              UI_Key,
-	clicked_id:          UI_Key,
-	pressed_id:          UI_Key,
-	focused_id:          UI_Key,
-	animatable_elements: small_array.Small_Array(MAX_ANIMATABLE_ELEMENTS, ^UI_Element),
+	input:                   ^base.Input,
+	hot_id:                  UI_Key,
+	clicked_id:              UI_Key,
+	pressed_id:              UI_Key,
+	focused_id:              UI_Key,
+	animatable_elements:     small_array.Small_Array(MAX_ANIMATABLE_ELEMENTS, ^UI_Element),
+	animatable_element_refs: small_array.Small_Array(MAX_ANIMATABLE_ELEMENTS, UI_Element_Ref),
 }
 
 reset_interaction :: proc(interaction: ^Interaction) {
 	small_array.clear(&interaction.animatable_elements)
+	small_array.clear(&interaction.animatable_element_refs)
 }
 
 Hit_Result :: struct {
@@ -350,7 +352,7 @@ process_interaction :: proc(ctx: ^Context) {
 	tween_animations(&ctx.interaction, ctx.dt)
 }
 
-build_comm :: proc(interaction: ^Interaction, element: ^UI_Element) -> (comm: Comm) {
+build_comm :: proc(interaction: ^Interaction, element: ^UI_Element) -> Comm {
 	// The interaction ids use the null key to mean "nothing", so a null-key
 	// element would match them when there is no interaction at all, so we only
 	// set the element and clears the rest in the Comm and return.
