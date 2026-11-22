@@ -46,6 +46,7 @@ Context :: struct {
 	elements:             ^UI_Elements,
 	current_parent_ref:   UI_Element_Ref,
 	root_element_ref:     UI_Element_Ref,
+	element_ref_stack:    Stack(UI_Element_Ref, ELEMENT_STACK_SIZE),
 }
 
 Capability :: enum {
@@ -102,6 +103,7 @@ init :: proc(
 	// option might be to have usage code specify the max number of elements, then pass in a statically
 	// allocated array.
 	ctx.elements = new(UI_Elements, persistent_allocator)
+	init_ui_elements(ctx.elements)
 
 	ts_err := textpkg.init_text_system(
 		&ctx.text_system,
@@ -309,6 +311,96 @@ end :: proc(ctx: ^Context) {
 		ctx.persistent_allocator,
 		ctx.frame_allocator,
 	)
+}
+
+end_2 :: proc(ctx: ^Context) {
+	// Order of the operations we need to follow:
+	// 1. Measure text sizes
+	// 2. Measure intrinsic widths
+	// 3. Resolve dependent sizes widths
+	// 4. Wrap text
+	// 5. Measure intrinsic heights
+	// 6. Resolve dependent sizes heights
+	// 7. Positions
+	// 8. Draw commands
+
+	if ctx.element_ref_stack.top != 1 {
+		panic(
+			fmt.tprintf(
+				"expected only the root element to be open at the end of the frame, got %v open",
+				ctx.element_stack.top,
+			),
+		)
+	}
+
+	// Close the root element
+	close_element_2(ctx)
+	assert(ctx.current_parent == {})
+
+	// TODO(Thomas): Properly Log the name of the element that is not closed.
+	//if ctx.element_stack.top != 1 {
+	//	panic(
+	//		fmt.tprintf(
+	//			"expected only the root element to be open at the end of the frame, got %v open",
+	//			ctx.element_stack.top,
+	//		),
+	//	)
+	//}
+
+	//if !is_empty(&ctx.id_stack) {
+	//	panic(
+	//		fmt.tprintf(
+	//			"expected the id_stack to be empty at the end of the frame, got %v oepn",
+	//			ctx.id_stack.top,
+	//		),
+	//	)
+	//}
+
+	//// Close the root element
+	//close_element(ctx)
+	//assert(ctx.current_parent == nil)
+
+	//// Measure text sizes, intrinsic sizes of the text elements
+	//measure_text_sizes(ctx, ctx.root_element)
+
+	//// Measure intrinsic widths
+	//measure_intrinsic_size_for_axis(ctx.root_element, .X)
+
+	//// Resolve dependent widths
+	//resolve_width_alloc_err := resolve_dependent_sizes_for_axis(
+	//	ctx.root_element,
+	//	.X,
+	//	ctx.frame_allocator,
+	//)
+	//assert(resolve_width_alloc_err == .None)
+
+	//// Wrap text
+	//wrap_text_alloc_err := wrap_text(ctx, ctx.root_element)
+	//assert(wrap_text_alloc_err == .None)
+
+	//// Measure intrinsic heights
+	//measure_intrinsic_size_for_axis(ctx.root_element, .Y)
+
+	//// Resolve dependent heights
+	//resolve_height_alloc_err := resolve_dependent_sizes_for_axis(
+	//	ctx.root_element,
+	//	.Y,
+	//	ctx.frame_allocator,
+	//)
+	//assert(resolve_height_alloc_err == .None)
+
+	//update_layout_geometry(ctx, ctx.root_element)
+
+	//draw_all_elements(ctx)
+
+	//base.clear_input(ctx.interaction.input)
+
+	//prune_dead_elements(
+	//	&ctx.element_cache,
+	//	ctx.frame_idx,
+	//	ctx.persistent_allocator,
+	//	ctx.frame_allocator,
+	//)
 }
 
 // Prunes dead elements from the cache and the hierarchy

@@ -127,9 +127,9 @@ deref :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> int {
 	}
 }
 
-// TODO(Thomas): Implement when needed, stubbed out for now
+@(require_results)
 make_element_ref :: proc(elements: UI_Elements, slot: int) -> UI_Element_Ref {
-	return {}
+	return {idx = slot, gen = elements.gen[slot]}
 }
 
 nil_ref :: proc() -> UI_Element_Ref {
@@ -339,6 +339,18 @@ set_text_layout_cache_entry :: proc(
 	}
 }
 
+// ---------- Getters for child and parent fields ---------- //
+
+@(require_results)
+get_parent :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
+	slot := deref(elements, ref)
+	if elements.elements[slot].parent_idx == 0 {
+		return {}
+	} else {
+		return make_element_ref(elements, elements.elements[slot].parent_idx)
+	}
+}
+
 
 // ---------- NEW LAYOUT IMPL FOR LAOTs ---------- //
 
@@ -367,12 +379,40 @@ open_element_2 :: proc(
 
 	assert(element_ref != {})
 
+	if !push(&ctx.element_ref_stack, element_ref) {
+		panic("Unable to push element ref onto stack, panic")
+	}
+
 	ctx.current_parent_ref = element_ref
 
 	comm := build_comm_2(&ctx.interaction, ctx.elements^, element_ref)
 	set_last_comm(ctx.elements, element_ref, comm)
 
 	return element_ref
+}
+
+close_element_2 :: proc(ctx: ^Context) {
+	ref, ok := pop(&ctx.element_ref_stack)
+	assert(ok)
+	if ok {
+		ctx.current_parent_ref = get_parent(ctx.elements^, ref)
+	}
+}
+
+begin_container_2 :: proc(
+	ctx: ^Context,
+	style: Style = {},
+	name: string = "",
+	id: string = "",
+	loc := #caller_location,
+) -> Comm_2 {
+	key := ui_key(ctx, id, loc)
+	element_ref := open_element_2(ctx, key, style, name = name)
+	return get_last_comm(ctx.elements^, element_ref)
+}
+
+end_container_2 :: proc(ctx: ^Context) {
+	close_element_2(ctx)
 }
 
 // TODO(Thomas): Think about using a get accessor to just get the element to retrieve
