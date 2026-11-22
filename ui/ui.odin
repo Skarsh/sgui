@@ -41,6 +41,9 @@ Context :: struct {
 	dt:                   f32,
 	text_system:          textpkg.Text_System,
 	window_size:          [2]i32,
+	// new fields for LAOTs impl, they live in parallel to the actual working
+	// implementation now
+	elements:             ^UI_Elements,
 }
 
 Capability :: enum {
@@ -93,6 +96,11 @@ init :: proc(
 	// and is actually returning the error in an upcoming Odin version?
 	ctx.element_cache = make(map[UI_Key]^UI_Element, persistent_allocator)
 
+	// TODO(Thomas): Not sure if allocating LAOTs array using persistent allocator is the best
+	// option might be to have usage code specify the max number of elements, then pass in a statically
+	// allocated array.
+	ctx.elements = new(UI_Elements, persistent_allocator)
+
 	ts_err := textpkg.init_text_system(
 		&ctx.text_system,
 		text_measurement^,
@@ -102,9 +110,6 @@ init :: proc(
 	assert(ts_err == .None)
 
 	init_draw_state(&ctx.draw_state, draw_command_buffer)
-
-	init_interaction_alloc_err := init_interaction(&ctx.interaction, persistent_allocator)
-	assert(init_interaction_alloc_err == .None)
 }
 
 window_resize :: proc(ctx: ^Context, window_size: base.Vector2i32) {
@@ -118,9 +123,6 @@ deinit :: proc(ctx: ^Context) {
 	// Deinit text system
 	textpkg.deinit_text_system(&ctx.text_system, ctx.persistent_allocator)
 
-	// Deinit interaction
-	deinit_interaction(&ctx.interaction)
-
 	for _, elem in ctx.element_cache {
 		if elem != nil {
 			free_element(elem, ctx.persistent_allocator)
@@ -128,6 +130,10 @@ deinit :: proc(ctx: ^Context) {
 	}
 
 	delete(ctx.element_cache)
+
+	// TODO(Thomas): The elements should probably be statically allocated and provided by the user
+	// so this is just temporary while refactoring to LAOTs is being done.
+	free(ctx.elements, ctx.persistent_allocator)
 }
 
 free_element :: proc(elem: ^UI_Element, allocator: mem.Allocator) {

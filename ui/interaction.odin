@@ -1,5 +1,6 @@
 package ui
 
+import "core:container/small_array"
 import "core:fmt"
 import "core:log"
 import "core:math"
@@ -8,6 +9,8 @@ import "core:mem"
 import "../base"
 import textpkg "../text"
 import "../text/fixed_buffer"
+
+MAX_ANIMATABLE_ELEMENTS :: 64
 
 Comm :: struct {
 	element:  ^UI_Element,
@@ -26,24 +29,11 @@ Interaction :: struct {
 	clicked_id:          UI_Key,
 	pressed_id:          UI_Key,
 	focused_id:          UI_Key,
-	animatable_elements: [dynamic]^UI_Element,
-}
-
-@(require_results)
-init_interaction :: proc(
-	interaction: ^Interaction,
-	allocator: mem.Allocator,
-) -> mem.Allocator_Error {
-	interaction.animatable_elements = make([dynamic]^UI_Element, allocator) or_return
-	return nil
-}
-
-deinit_interaction :: proc(interaction: ^Interaction) {
-	delete(interaction.animatable_elements)
+	animatable_elements: small_array.Small_Array(MAX_ANIMATABLE_ELEMENTS, ^UI_Element),
 }
 
 reset_interaction :: proc(interaction: ^Interaction) {
-	clear_dynamic_array(&interaction.animatable_elements)
+	small_array.clear(&interaction.animatable_elements)
 }
 
 Hit_Result :: struct {
@@ -314,7 +304,7 @@ tween_animations :: proc(interaction: ^Interaction, dt: f32) {
 	FADE_SEC :: 0.2
 	rate := (dt / FADE_SEC)
 
-	for element in interaction.animatable_elements {
+	for element in small_array.slice(&interaction.animatable_elements) {
 		flags := element.config.capability_flags
 
 		if .Hot_Animation in flags {
@@ -360,18 +350,12 @@ process_interaction :: proc(ctx: ^Context) {
 	tween_animations(&ctx.interaction, ctx.dt)
 }
 
-build_comm :: proc(
-	interaction: ^Interaction,
-	element: ^UI_Element,
-) -> (
-	comm: Comm,
-	alloc_err: mem.Allocator_Error,
-) {
+build_comm :: proc(interaction: ^Interaction, element: ^UI_Element) -> (comm: Comm) {
 	// The interaction ids use the null key to mean "nothing", so a null-key
 	// element would match them when there is no interaction at all, so we only
 	// set the element and clears the rest in the Comm and return.
 	if element.key == ui_key_null() {
-		return Comm{element = element}, nil
+		return Comm{element = element}
 	}
 
 	is_hot := element.key == interaction.hot_id
@@ -382,17 +366,15 @@ build_comm :: proc(
 	flags := element.config.capability_flags
 
 	if .Hot_Animation in flags || .Active_Animation in flags {
-		append(&interaction.animatable_elements, element) or_return
+		small_array.append_elem(&interaction.animatable_elements, element)
 	}
 
-
 	return Comm {
-			element = element,
-			held = is_pressed,
-			clicked = is_clicked,
-			active = is_focused,
-			hovering = is_hot || is_pressed,
-			hot = base.approx_equal(element.hot, 1.0, EPSILON),
-		},
-		nil
+		element = element,
+		held = is_pressed,
+		clicked = is_clicked,
+		active = is_focused,
+		hovering = is_hot || is_pressed,
+		hot = base.approx_equal(element.hot, 1.0, EPSILON),
+	}
 }
