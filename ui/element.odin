@@ -214,7 +214,6 @@ get_text_content_size :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> bas
 	return elements.elements[deref(elements, ref)].text_content_size
 }
 
-
 set_text_content_size :: proc(
 	elements: ^UI_Elements,
 	ref: UI_Element_Ref,
@@ -482,4 +481,79 @@ tween_animations_2 :: proc(interaction: ^Interaction, elements: ^UI_Elements, dt
 			}
 		}
 	}
+}
+
+// TODO(Thomas): @Speed This could probably check if the element has fit sizing on
+// any of the axes, because I'm pretty sure that's the only case where this really matters.
+// The element's sizing mode (Fit, Fixed, Grow) determines how the text affects layout:
+// - Fit: Element sizes to fit text content
+// - Fixed: Element uses specified size, text renders within
+// - Grow: Element can grow/shrink, text wraps as needed
+measure_text_sizes_2 :: proc(ctx: ^Context, ref: UI_Element_Ref) {
+
+	config := get_config(ctx.elements^, ref)
+
+	if .Text in config.capability_flags {
+
+
+		intrinsic := textpkg.measure_text_intrinsic(
+			config.content.text_data.text,
+			&ctx.text_system,
+			config.layout.font_id,
+		)
+
+		set_text_content_size(
+			ctx.elements,
+			ref,
+			intrinsic + get_box_sum(content_inset(config.layout)),
+		)
+
+		text_content_size := get_text_content_size(ctx.elements^, ref)
+
+		if config.layout.sizing.x.kind != .Fixed {
+			set_size(
+				ctx.elements,
+				ref,
+				clamp_to_sizing(text_content_size.x, config.layout.sizing.x),
+			)
+		}
+
+		if config.layout.sizing.y.kind != .Fixed {
+			set_size(
+				ctx.elements,
+				ref,
+				clamp_to_sizing(text_content_size.y, config.layout.sizing.y),
+			)
+		}
+
+		// TODO(Thomas): NEXT UP, iterating children
+	}
+
+	//if .Text in element.config.capability_flags {
+	//	intrinsic := textpkg.measure_text_intrinsic(
+	//		element.config.content.text_data.text,
+	//		&ctx.text_system,
+	//		element.config.layout.font_id,
+	//	)
+
+	//	element.text_content_size = intrinsic + get_box_sum(content_inset(element.config.layout))
+
+	//	if element.config.layout.sizing.x.kind != .Fixed {
+	//		element.size.x = clamp_to_sizing(
+	//			element.text_content_size.x,
+	//			element.config.layout.sizing.x,
+	//		)
+	//	}
+
+	//	if element.config.layout.sizing.y.kind != .Fixed {
+	//		element.size.y = clamp_to_sizing(
+	//			element.text_content_size.y,
+	//			element.config.layout.sizing.y,
+	//		)
+	//	}
+	//}
+
+	//for child in element.children {
+	//	measure_text_sizes(ctx, child)
+	//}
 }

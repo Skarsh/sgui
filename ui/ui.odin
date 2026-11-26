@@ -337,6 +337,9 @@ end_2 :: proc(ctx: ^Context) {
 	close_element_2(ctx)
 	assert(ctx.current_parent == {})
 
+	// Measure text sizes, intrinsic sizes of the text elements
+	measure_text_sizes(ctx, ctx.root_element)
+
 	// TODO(Thomas): Properly Log the name of the element that is not closed.
 	//if ctx.element_stack.top != 1 {
 	//	panic(
