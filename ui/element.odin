@@ -2,6 +2,7 @@ package ui
 
 import "core:container/small_array"
 import "core:math"
+import "core:testing"
 
 import base "../base"
 import textpkg "../text"
@@ -106,10 +107,11 @@ attach_child :: proc(
 
 	child_idx := deref(elements^, child_ref)
 	child := &elements.elements[child_idx]
-	child.parent_idx = parent_idx
 
 	assert(parent_idx != child_idx)
-	assert(child.parent_idx == 0 && child.next_sibling_idx == 0 && child.next_sibling_idx == 0)
+	assert(child.parent_idx == 0 && child.next_sibling_idx == 0 && child.prev_sibling_idx == 0)
+
+	child.parent_idx = parent_idx
 
 	if parent.first_child_idx == 0 {
 		// First child
@@ -650,4 +652,121 @@ measure_text_sizes_2 :: proc(ctx: ^Context, ref: UI_Element_Ref) {
 	//for child in element.children {
 	//	measure_text_sizes(ctx, child)
 	//}
+}
+
+
+// ------------- Testing ------------- //
+
+@(private)
+Tree_Edge :: struct {
+	parent: string,
+	child:  string,
+}
+
+@(private)
+find_ref_by_name :: proc(elements: UI_Elements, name: string) -> UI_Element_Ref {
+	for i in 1 ..< MAX_ELEMENTS {
+		if elements.used[i] && elements.elements[i].name == name {
+			return make_element_ref(elements, i)
+		}
+	}
+
+	assert(false, "test element not found")
+	return nil_ref()
+}
+
+@(private)
+build_test_tree :: proc(elements: ^UI_Elements, names: []string, edges: []Tree_Edge) {
+	init_ui_elements(elements)
+
+	for name, i in names {
+		for prev in names[:i] {
+			assert(prev != name, "duplicate element name in test tree")
+		}
+		ref := add_element(elements, {}, {}, name)
+		assert(ref != nil_ref())
+	}
+
+	for edge in edges {
+		parent_ref := find_ref_by_name(elements^, edge.parent)
+		child_ref := find_ref_by_name(elements^, edge.child)
+		attach_child(elements, parent_ref, child_ref)
+	}
+}
+
+@(private)
+check_children :: proc(
+	t: ^testing.T,
+	names: []string,
+	edges: []Tree_Edge,
+	target: string,
+	expected: []string,
+	loc := #caller_location,
+) {
+	elements := new(UI_Elements)
+	defer free(elements)
+
+	build_test_tree(elements, names, edges)
+
+	target_ref := find_ref_by_name(elements^, target)
+	iter := make_child_element_iterator(elements, target_ref)
+
+	for expected_name in expected {
+		child, ok := next_child_element(&iter)
+		if !testing.expect(t, ok, "child iterator ended early", loc = loc) {
+			return
+		}
+
+		testing.expect_value(t, get_name(elements^, child), expected_name, loc = loc)
+		testing.expect_value(t, get_parent(elements^, child), target_ref, loc = loc)
+	}
+
+	// Verify exhaustion stays false across repeated calls
+	for _ in 0 ..< 2 {
+		child, ok := next_child_element(&iter)
+		testing.expect_value(t, ok, false, loc = loc)
+		testing.expect_value(t, child, nil_ref(), loc = loc)
+	}
+}
+
+@(test)
+test_child_iterator_no_children :: proc(t: ^testing.T) {
+	check_children(t, {"root"}, nil, "root", nil)
+}
+
+@(test)
+test_child_iterator_single_child :: proc(t: ^testing.T) {
+	check_children(t, {"root", "a"}, {{"root", "a"}}, "root", {"a"})
+}
+
+@(test)
+test_child_iterator_multiple_children :: proc(t: ^testing.T) {
+	check_children(
+		t,
+		{"root", "a", "b", "c"},
+		{{"root", "a"}, {"root", "b"}, {"root", "c"}},
+		"root",
+		{"a", "b", "c"},
+	)
+}
+
+@(test)
+test_child_iterator_reversed_attach_order :: proc(t: ^testing.T) {
+	check_children(
+		t,
+		{"root", "a", "b", "c"},
+		{{"root", "c"}, {"root", "b"}, {"root", "a"}},
+		"root",
+		{"c", "b", "a"},
+	)
+}
+
+@(test)
+test_child_iterator_nested_hierarchy :: proc(t: ^testing.T) {
+	names := []string{"root", "a", "b", "a1", "a2"}
+	edges := []Tree_Edge{{"root", "a"}, {"root", "b"}, {"a", "a1"}, {"a", "a2"}}
+
+	check_children(t, names, edges, "root", {"a", "b"})
+	check_children(t, names, edges, "a", {"a1", "a2"})
+	check_children(t, names, edges, "b", nil)
 }
