@@ -96,12 +96,41 @@ add_element :: proc(
 // TODO(Thomas): Implement when needed, stubbed out for now
 remove_element :: proc(elements: ^UI_Elements, ref: UI_Element_Ref) {}
 
-// TODO(Thomas): Implement when needed, stubbed out for now
 attach_child :: proc(
 	elements: ^UI_Elements,
 	parent_ref: UI_Element_Ref,
 	child_ref: UI_Element_Ref,
-) {}
+) {
+	parent_idx := deref(elements^, parent_ref)
+	parent := &elements.elements[parent_idx]
+
+	child_idx := deref(elements^, child_ref)
+	child := &elements.elements[child_idx]
+	child.parent_idx = parent_idx
+
+	assert(parent_idx != child_idx)
+	assert(child.parent_idx == 0 && child.next_sibling_idx == 0 && child.next_sibling_idx == 0)
+
+	if parent.first_child_idx == 0 {
+		// First child
+		parent.first_child_idx = child_idx
+		child.next_sibling_idx = child_idx
+		child.prev_sibling_idx = child_idx
+	} else {
+		// Append sibling
+		first_child_idx := parent.first_child_idx
+		first_child := &elements.elements[first_child_idx]
+
+		last_child_idx := first_child.prev_sibling_idx
+		last_child := &elements.elements[last_child_idx]
+
+		child.next_sibling_idx = first_child_idx
+		child.prev_sibling_idx = last_child_idx
+
+		last_child.next_sibling_idx = child_idx
+		first_child.prev_sibling_idx = child_idx
+	}
+}
 
 find_empty :: proc(elements: ^UI_Elements) -> int {
 	return elements.first_free
@@ -344,12 +373,41 @@ set_text_layout_cache_entry :: proc(
 get_parent :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
 	slot := deref(elements, ref)
 	if elements.elements[slot].parent_idx == 0 {
-		return {}
+		return nil_ref()
 	} else {
 		return make_element_ref(elements, elements.elements[slot].parent_idx)
 	}
 }
 
+@(require_results)
+get_first_child :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
+	slot := deref(elements, ref)
+	if elements.elements[slot].first_child_idx == 0 {
+		return nil_ref()
+	} else {
+		return make_element_ref(elements, elements.elements[slot].first_child_idx)
+	}
+}
+
+@(require_results)
+get_next_sibling :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
+	slot := deref(elements, ref)
+	if elements.elements[slot].next_sibling_idx == 0 {
+		return nil_ref()
+	} else {
+		return make_element_ref(elements, elements.elements[slot].next_sibling_idx)
+	}
+}
+
+@(require_results)
+get_prev_sibling :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
+	slot := deref(elements, ref)
+	if elements.elements[slot].prev_sibling_idx == 0 {
+		return nil_ref()
+	} else {
+		return make_element_ref(elements, elements.elements[slot].prev_sibling_idx)
+	}
+}
 
 // ---------- NEW LAYOUT IMPL FOR LAOTs ---------- //
 
