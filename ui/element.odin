@@ -178,17 +178,53 @@ next_element :: proc(iter: ^Elements_Iterator) -> (UI_Element_Ref, bool) {
 	return {}, false
 }
 
-// TODO(Thomas): Implement when needed, stubbed out for now
-Child_Iterator :: struct {}
-
-// TODO(Thomas): Implement when needed, stubbed out for now
-make_child_element_iterator :: proc(elements: ^UI_Elements) -> Child_Iterator {
-	return {}
+Child_Iterator :: struct {
+	elements:        ^UI_Elements,
+	idx:             int,
+	first_child_idx: int,
+	visited:         int,
+	has_next:        bool,
 }
 
-// TODO(Thomas): Implement when needed, stubbed out for now
+@(require_results)
+make_child_element_iterator :: proc(
+	elements: ^UI_Elements,
+	parent_ref: UI_Element_Ref,
+) -> Child_Iterator {
+	first_child_ref := get_first_child(elements^, parent_ref)
+	has_next: bool
+
+	if first_child_ref != nil_ref() {
+		has_next = true
+	}
+
+	return {elements, first_child_ref.idx, first_child_ref.idx, 0, has_next}
+}
+
+@(require_results)
 next_child_element :: proc(iter: ^Child_Iterator) -> (UI_Element_Ref, bool) {
-	return {}, false
+	if iter.has_next {
+
+		assert(iter.visited < MAX_ELEMENTS)
+
+		child_ref := make_element_ref(iter.elements^, iter.idx)
+		assert(is_valid_ref(iter.elements^, child_ref))
+		sib_idx := get_next_sibling(iter.elements^, child_ref).idx
+
+		// Next sibling idx is the same as first child, so we would wrap around on next.
+		if sib_idx == iter.first_child_idx {
+			iter.has_next = false
+		} else {
+			iter.idx = sib_idx
+		}
+
+		iter.visited += 1
+
+		return child_ref, true
+
+	} else {
+		return nil_ref(), false
+	}
 }
 
 // ---------- Getters and Setters ---------- //
