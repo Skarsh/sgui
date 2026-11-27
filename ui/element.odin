@@ -229,6 +229,105 @@ next_child_element :: proc(iter: ^Child_Iterator) -> (UI_Element_Ref, bool) {
 	}
 }
 
+Traversal_Order :: enum {
+	Pre_Order,
+	Post_Order,
+	Reverse_Post_Order,
+}
+
+Tree_Iterator :: struct {
+	elements: ^UI_Elements,
+	root_idx: int,
+	curr_idx: int,
+	order:    Traversal_Order,
+	visited:  int,
+}
+
+@(require_results)
+make_tree_iterator :: proc(
+	elements: ^UI_Elements,
+	root_ref: UI_Element_Ref,
+	order: Traversal_Order,
+) -> Tree_Iterator {
+
+	root_idx := deref(elements^, root_ref)
+
+	curr_idx: int
+
+	switch order {
+	case .Pre_Order:
+		curr_idx = root_idx
+	case .Post_Order:
+		unimplemented("Post_Order traversal not implemented yet")
+	case .Reverse_Post_Order:
+		unimplemented("Reverse_Post_Order traversal not implemented yet")
+	}
+
+	return {elements = elements, root_idx = root_idx, curr_idx = curr_idx, order = order}
+}
+
+@(require_results)
+next_tree_element :: proc(iter: ^Tree_Iterator) -> (UI_Element_Ref, bool) {
+
+	if iter.curr_idx == 0 {
+		return nil_ref(), false
+	}
+
+	assert(iter.visited < MAX_ELEMENTS, "tree traversal exceeded MAX_ELEMENTS")
+	iter.visited += 1
+
+	current_idx := iter.curr_idx
+	current_ref := make_element_ref(iter.elements^, current_idx)
+	assert(is_valid_ref(iter.elements^, current_ref))
+
+	switch iter.order {
+	case .Pre_Order:
+		iter.curr_idx = next_preorder_idx(iter.elements, iter.root_idx, current_idx)
+	case .Post_Order:
+		unimplemented("Post_Order traversal not implemented yet")
+	case .Reverse_Post_Order:
+		unimplemented("Reverse_Post_Order traversal not implemented yet")
+	}
+
+	return current_ref, true
+}
+
+@(private)
+@(require_results)
+next_preorder_idx :: proc(elements: ^UI_Elements, root_idx: int, current_idx: int) -> int {
+
+	current := &elements.elements[current_idx]
+
+	// 1. Descend into first child if present
+	if current.first_child_idx != 0 {
+		return current.first_child_idx
+	}
+
+	// 2. Climb until an ancestor has an unvisited next sibling, stopping at root_idx
+	walk_idx := current_idx
+	for _ in 0 ..< MAX_ELEMENTS {
+		if walk_idx == root_idx {
+			return 0
+		}
+
+		walk := &elements.elements[walk_idx]
+		assert(walk.parent_idx != 0, "non-root node has no parent during tree traversal")
+		assert(walk.next_sibling_idx != 0, "child node has broken sibling link")
+
+		parent := &elements.elements[walk.parent_idx]
+		if walk.next_sibling_idx != parent.first_child_idx {
+			return walk.next_sibling_idx
+		}
+
+		walk_idx = walk.parent_idx
+
+	}
+
+	assert(false, "tree traversal climb exceeded MAX_ELEMENTS")
+	return 0
+}
+
+
 // ---------- Getters and Setters ---------- //
 
 
@@ -729,6 +828,41 @@ check_children :: proc(
 	}
 }
 
+@(private)
+check_tree_traversal :: proc(
+	t: ^testing.T,
+	order: Traversal_Order,
+	names: []string,
+	edges: []Tree_Edge,
+	start: string,
+	expected: []string,
+	loc := #caller_location,
+) {
+
+	elements := new(UI_Elements)
+	defer free(elements)
+
+	build_test_tree(elements, names, edges)
+
+	start_ref := find_ref_by_name(elements^, start)
+	iter := make_tree_iterator(elements, start_ref, order)
+
+	for expected_name in expected {
+		elem, ok := next_tree_element(&iter)
+		if !testing.expect(t, ok, "tree iterator ended early", loc = loc) {
+			return
+		}
+
+		testing.expect_value(t, get_name(elements^, elem), expected_name, loc = loc)
+	}
+
+	for _ in 0 ..< 2 {
+		elem, ok := next_tree_element(&iter)
+		testing.expect_value(t, ok, false, loc = loc)
+		testing.expect_value(t, elem, nil_ref(), loc = loc)
+	}
+}
+
 @(test)
 test_child_iterator_no_children :: proc(t: ^testing.T) {
 	check_children(t, {"root"}, nil, "root", nil)
@@ -769,4 +903,74 @@ test_child_iterator_nested_hierarchy :: proc(t: ^testing.T) {
 	check_children(t, names, edges, "root", {"a", "b"})
 	check_children(t, names, edges, "a", {"a1", "a2"})
 	check_children(t, names, edges, "b", nil)
+}
+
+@(test)
+test_tree_iterator_preorder_single_node :: proc(t: ^testing.T) {
+	check_tree_traversal(t, .Pre_Order, {"root"}, nil, "root", {"root"})
+}
+
+@(test)
+test_tree_iterator_preorder_chain :: proc(t: ^testing.T) {
+	check_tree_traversal(
+		t,
+		.Pre_Order,
+		{"root", "a", "b", "c"},
+		{{"root", "a"}, {"a", "b"}, {"b", "c"}},
+		"root",
+		{"root", "a", "b", "c"},
+	)
+}
+
+@(test)
+test_tree_iterator_preorder_flat_siblings :: proc(t: ^testing.T) {
+	check_tree_traversal(
+		t,
+		.Pre_Order,
+		{"root", "a", "b", "c"},
+		{{"root", "a"}, {"root", "b"}, {"root", "c"}},
+		"root",
+		{"root", "a", "b", "c"},
+	)
+}
+
+@(test)
+test_tree_iterator_preorder_mixed_tree :: proc(t: ^testing.T) {
+	names := []string{"root", "a", "a1", "a2", "a2_1", "b", "c", "c1"}
+	edges := []Tree_Edge {
+		{"root", "a"},
+		{"root", "b"},
+		{"root", "c"},
+		{"a", "a1"},
+		{"a", "a2"},
+		{"a2", "a2_1"},
+		{"c", "c1"},
+	}
+
+	check_tree_traversal(
+		t,
+		.Pre_Order,
+		names,
+		edges,
+		"root",
+		{"root", "a", "a1", "a2", "a2_1", "b", "c", "c1"},
+	)
+}
+
+@(test)
+test_tree_iterator_preorder_subtree :: proc(t: ^testing.T) {
+	names := []string{"root", "a", "a1", "a2", "a2_1", "b", "c"}
+	edges := []Tree_Edge {
+		{"root", "a"},
+		{"root", "b"},
+		{"root", "c"},
+		{"a", "a1"},
+		{"a", "a2"},
+		{"a2", "a2_1"},
+	}
+
+	// Subtree with children must not leak into b or c
+	check_tree_traversal(t, .Pre_Order, names, edges, "a", {"a", "a1", "a2", "a2_1"})
+	// Leaf subtree with siblings must only yield itself
+	check_tree_traversal(t, .Pre_Order, names, edges, "b", {"b"})
 }
