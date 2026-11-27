@@ -328,17 +328,19 @@ end_2 :: proc(ctx: ^Context) {
 		panic(
 			fmt.tprintf(
 				"expected only the root element to be open at the end of the frame, got %v open",
-				ctx.element_stack.top,
+				ctx.element_ref_stack.top,
 			),
 		)
 	}
 
 	// Close the root element
 	close_element_2(ctx)
-	assert(ctx.current_parent == {})
+	assert(ctx.current_parent_ref == {})
 
 	// Measure text sizes, intrinsic sizes of the text elements
-	measure_text_sizes(ctx, ctx.root_element)
+	//measure_text_sizes(ctx, ctx.root_element)
+
+	measure_text_sizes_2(ctx, ctx.root_element_ref)
 
 	// TODO(Thomas): Properly Log the name of the element that is not closed.
 	//if ctx.element_stack.top != 1 {

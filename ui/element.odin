@@ -163,9 +163,7 @@ make_element_ref :: proc(elements: UI_Elements, slot: int) -> UI_Element_Ref {
 	return {idx = slot, gen = elements.gen[slot]}
 }
 
-nil_ref :: proc() -> UI_Element_Ref {
-	return {}
-}
+NIL_REF: UI_Element_Ref = {}
 
 // TODO(Thomas): Implement when needed, stubbed out for now
 Elements_Iterator :: struct {}
@@ -196,7 +194,7 @@ make_child_element_iterator :: proc(
 	first_child_ref := get_first_child(elements^, parent_ref)
 	has_next: bool
 
-	if first_child_ref != nil_ref() {
+	if first_child_ref != NIL_REF {
 		has_next = true
 	}
 
@@ -225,7 +223,7 @@ next_child_element :: proc(iter: ^Child_Iterator) -> (UI_Element_Ref, bool) {
 		return child_ref, true
 
 	} else {
-		return nil_ref(), false
+		return NIL_REF, false
 	}
 }
 
@@ -270,7 +268,7 @@ make_tree_iterator :: proc(
 next_tree_element :: proc(iter: ^Tree_Iterator) -> (UI_Element_Ref, bool) {
 
 	if iter.curr_idx == 0 {
-		return nil_ref(), false
+		return NIL_REF, false
 	}
 
 	assert(iter.visited < MAX_ELEMENTS, "tree traversal exceeded MAX_ELEMENTS")
@@ -510,7 +508,7 @@ set_text_layout_cache_entry :: proc(
 get_parent :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
 	slot := deref(elements, ref)
 	if elements.elements[slot].parent_idx == 0 {
-		return nil_ref()
+		return NIL_REF
 	} else {
 		return make_element_ref(elements, elements.elements[slot].parent_idx)
 	}
@@ -520,7 +518,7 @@ get_parent :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref
 get_first_child :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
 	slot := deref(elements, ref)
 	if elements.elements[slot].first_child_idx == 0 {
-		return nil_ref()
+		return NIL_REF
 	} else {
 		return make_element_ref(elements, elements.elements[slot].first_child_idx)
 	}
@@ -530,7 +528,7 @@ get_first_child :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Elemen
 get_next_sibling :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
 	slot := deref(elements, ref)
 	if elements.elements[slot].next_sibling_idx == 0 {
-		return nil_ref()
+		return NIL_REF
 	} else {
 		return make_element_ref(elements, elements.elements[slot].next_sibling_idx)
 	}
@@ -540,7 +538,7 @@ get_next_sibling :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Eleme
 get_prev_sibling :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> UI_Element_Ref {
 	slot := deref(elements, ref)
 	if elements.elements[slot].prev_sibling_idx == 0 {
-		return nil_ref()
+		return NIL_REF
 	} else {
 		return make_element_ref(elements, elements.elements[slot].prev_sibling_idx)
 	}
@@ -571,7 +569,11 @@ open_element_2 :: proc(
 
 	element_ref := add_element(ctx.elements, key, final_config, name)
 
-	assert(element_ref != {})
+	assert(element_ref != NIL_REF)
+
+	if ctx.current_parent_ref != NIL_REF {
+		attach_child(ctx.elements, ctx.current_parent_ref, element_ref)
+	}
 
 	if !push(&ctx.element_ref_stack, element_ref) {
 		panic("Unable to push element ref onto stack, panic")
@@ -684,73 +686,36 @@ tween_animations_2 :: proc(interaction: ^Interaction, elements: ^UI_Elements, dt
 // - Fit: Element sizes to fit text content
 // - Fixed: Element uses specified size, text renders within
 // - Grow: Element can grow/shrink, text wraps as needed
-measure_text_sizes_2 :: proc(ctx: ^Context, ref: UI_Element_Ref) {
+measure_text_sizes_2 :: proc(ctx: ^Context, root_ref: UI_Element_Ref) {
 
-	config := get_config(ctx.elements^, ref)
+	iter := make_tree_iterator(ctx.elements, root_ref, .Pre_Order)
+	for ref in next_tree_element(&iter) {
+		config := get_config(ctx.elements^, ref)
 
-	if .Text in config.capability_flags {
+		if .Text in config.capability_flags {
 
-
-		intrinsic := textpkg.measure_text_intrinsic(
-			config.content.text_data.text,
-			&ctx.text_system,
-			config.layout.font_id,
-		)
-
-		set_text_content_size(
-			ctx.elements,
-			ref,
-			intrinsic + get_box_sum(content_inset(config.layout)),
-		)
-
-		text_content_size := get_text_content_size(ctx.elements^, ref)
-
-		if config.layout.sizing.x.kind != .Fixed {
-			set_size(
-				ctx.elements,
-				ref,
-				clamp_to_sizing(text_content_size.x, config.layout.sizing.x),
+			intrinsic := textpkg.measure_text_intrinsic(
+				config.content.text_data.text,
+				&ctx.text_system,
+				config.layout.font_id,
 			)
-		}
 
-		if config.layout.sizing.y.kind != .Fixed {
-			set_size(
-				ctx.elements,
-				ref,
-				clamp_to_sizing(text_content_size.y, config.layout.sizing.y),
-			)
-		}
+			text_content_size := intrinsic + get_box_sum(content_inset(config.layout))
+			set_text_content_size(ctx.elements, ref, text_content_size)
 
-		// TODO(Thomas): NEXT UP, iterating children
+			size := get_size(ctx.elements^, ref)
+
+			if config.layout.sizing.x.kind != .Fixed {
+				size.x = clamp_to_sizing(text_content_size.x, config.layout.sizing.x)
+			}
+
+			if config.layout.sizing.y.kind != .Fixed {
+				size.y = clamp_to_sizing(text_content_size.y, config.layout.sizing.y)
+			}
+
+			set_size(ctx.elements, ref, size)
+		}
 	}
-
-	//if .Text in element.config.capability_flags {
-	//	intrinsic := textpkg.measure_text_intrinsic(
-	//		element.config.content.text_data.text,
-	//		&ctx.text_system,
-	//		element.config.layout.font_id,
-	//	)
-
-	//	element.text_content_size = intrinsic + get_box_sum(content_inset(element.config.layout))
-
-	//	if element.config.layout.sizing.x.kind != .Fixed {
-	//		element.size.x = clamp_to_sizing(
-	//			element.text_content_size.x,
-	//			element.config.layout.sizing.x,
-	//		)
-	//	}
-
-	//	if element.config.layout.sizing.y.kind != .Fixed {
-	//		element.size.y = clamp_to_sizing(
-	//			element.text_content_size.y,
-	//			element.config.layout.sizing.y,
-	//		)
-	//	}
-	//}
-
-	//for child in element.children {
-	//	measure_text_sizes(ctx, child)
-	//}
 }
 
 
@@ -771,7 +736,7 @@ find_ref_by_name :: proc(elements: UI_Elements, name: string) -> UI_Element_Ref 
 	}
 
 	assert(false, "test element not found")
-	return nil_ref()
+	return NIL_REF
 }
 
 @(private)
@@ -783,7 +748,7 @@ build_test_tree :: proc(elements: ^UI_Elements, names: []string, edges: []Tree_E
 			assert(prev != name, "duplicate element name in test tree")
 		}
 		ref := add_element(elements, {}, {}, name)
-		assert(ref != nil_ref())
+		assert(ref != NIL_REF)
 	}
 
 	for edge in edges {
@@ -824,7 +789,7 @@ check_children :: proc(
 	for _ in 0 ..< 2 {
 		child, ok := next_child_element(&iter)
 		testing.expect_value(t, ok, false, loc = loc)
-		testing.expect_value(t, child, nil_ref(), loc = loc)
+		testing.expect_value(t, child, NIL_REF, loc = loc)
 	}
 }
 
@@ -859,7 +824,7 @@ check_tree_traversal :: proc(
 	for _ in 0 ..< 2 {
 		elem, ok := next_tree_element(&iter)
 		testing.expect_value(t, ok, false, loc = loc)
-		testing.expect_value(t, elem, nil_ref(), loc = loc)
+		testing.expect_value(t, elem, NIL_REF, loc = loc)
 	}
 }
 
