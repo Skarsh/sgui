@@ -755,6 +755,233 @@ measure_text_sizes_2 :: proc(ctx: ^Context, root_ref: UI_Element_Ref) {
 	}
 }
 
+@(require_results)
+calc_child_gap_2 :: proc(elements: ^UI_Elements, ref: UI_Element_Ref) -> f32 {
+	flow_children: int
+	iter := make_child_element_iterator(elements, ref)
+	for child_ref in next_child_element(&iter) {
+		child_config := get_config(elements^, child_ref)
+		if child_config.layout.position_mode == .Flow {
+			flow_children += 1
+		}
+	}
+
+	child_gap := get_config(elements^, ref).layout.child_gap
+	result := max(f32(flow_children - 1), 0) * child_gap
+	assert(result >= 0, "child_gap must be >= 0")
+	return result
+}
+
+@(require_results)
+measure_flow_content_size_2 :: proc(
+	elements: ^UI_Elements,
+	ref: UI_Element_Ref,
+) -> (
+	content_size: base.Vec2,
+) {
+	dir := get_config(elements^, ref).layout.layout_direction
+	main_axis, cross_axis := get_main_and_cross_axis(dir)
+
+	iter := make_child_element_iterator(elements, ref)
+	for child_ref in next_child_element(&iter) {
+		child_config := get_config(elements^, child_ref)
+		if child_config.layout.position_mode == .Flow {
+			child_size := get_size(elements^, child_ref)
+			child_margin := child_config.layout.margin
+			margin_main := get_margin_sum_for_axis(child_margin, main_axis)
+			margin_cross := get_margin_sum_for_axis(child_margin, cross_axis)
+
+			content_size[main_axis] += child_size[main_axis] + margin_main
+			content_size[cross_axis] = max(
+				content_size[cross_axis],
+				child_size[cross_axis] + margin_cross,
+			)
+		}
+	}
+
+	content_size[main_axis] += calc_child_gap_2(elements, ref)
+	return
+}
+
+@(require_results)
+calculate_element_size_for_axis_2 :: proc(
+	elements: ^UI_Elements,
+	ref: UI_Element_Ref,
+	axis: base.Axis2,
+) -> f32 {
+
+	config := get_config(elements^, ref)
+	inset_sum := get_box_sum_for_axis(content_inset(config.layout), axis)
+
+	content_size := measure_flow_content_size_2(elements, ref)[axis]
+	total_size := content_size + inset_sum
+
+	// text_content_size already includes padding and border
+	if .Text in config.capability_flags {
+		text_content_size := get_text_content_size(elements^, ref)
+		total_size = max(total_size, text_content_size[axis])
+	}
+
+	total_size = clamp_to_sizing(total_size, config.layout.sizing[axis])
+
+	assert(total_size >= 0)
+	return total_size
+}
+
+measure_intrinsic_size_for_axis_2 :: proc(
+	elements: ^UI_Elements,
+	root_ref: UI_Element_Ref,
+	axis: base.Axis2,
+) {
+	iter := make_tree_iterator(elements, root_ref, .Post_Order)
+
+	for ref in next_tree_element(&iter) {
+		config := get_config(elements^, ref)
+		sizing_kind := config.layout.sizing[axis].kind
+		if sizing_kind == .Fit || sizing_kind == .Grow {
+			size := get_size(elements^, ref)
+			size[axis] = calculate_element_size_for_axis_2(elements, ref, axis)
+			set_size(elements, ref, size)
+		}
+	}
+}
+
+@(require_results)
+content_box_2 :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> Content_Box {
+
+	config := get_config(elements, ref)
+	inset := content_inset(config.layout)
+	size := get_size(elements, ref)
+	pos := get_position(elements, ref)
+
+	available := size - get_box_sum(inset)
+	result_size := base.Vec2 {
+		math.clamp(available.x, 0, size.x),
+		math.clamp(available.y, 0, size.y),
+	}
+
+	assert(result_size.x >= 0)
+	assert(result_size.y >= 0)
+
+	return Content_Box{origin = pos + {inset.left, inset.top}, size = result_size}
+}
+
+@(require_results)
+is_main_axis_2 :: proc(layout_direction: Layout_Direction, axis: base.Axis2) -> bool {
+
+	return(
+		(axis == .X && layout_direction == .Left_To_Right) ||
+		(axis == .Y && layout_direction == .Top_To_Bottom) \
+	)
+
+}
+
+resolve_percentage_sizes_for_children_2 :: proc(
+	elements: ^UI_Elements,
+	ref: UI_Element_Ref,
+	axis: base.Axis2,
+) {
+	content_available_size := content_box_2(elements^, ref).size
+
+	iter := make_child_element_iterator(elements, ref)
+	for child_ref in next_child_element(&iter) {
+		sizing_info := get_config(elements^, child_ref).layout.sizing[axis]
+		if sizing_info.kind == .Percentage {
+			size := get_size(elements^, child_ref)
+			size[axis] = clamp_to_sizing(
+				content_available_size[axis] * sizing_info.value,
+				sizing_info,
+			)
+			set_size(elements, child_ref, size)
+		}
+	}
+}
+
+resolve_grow_sizes_for_children_2 :: proc(
+	elements: ^UI_Elements,
+	ref: UI_Element_Ref,
+	axis: base.Axis2,
+) {
+	config := get_config(elements^, ref)
+	main_axis := is_main_axis_2(config.layout.layout_direction, axis)
+	content := content_box_2(elements^, ref)
+	child_gap := calc_child_gap_2(elements, ref)
+	available := content.size[axis] - child_gap
+
+	sharing: small_array.Small_Array(MAX_ELEMENTS, UI_Element_Ref)
+
+	iter := make_child_element_iterator(elements, ref)
+	for child_ref in next_child_element(&iter) {
+		child_config := get_config(elements^, child_ref)
+		margins := get_margin_sum_for_axis(child_config.layout.margin, axis)
+		sizing := child_config.layout.sizing[axis]
+
+		if main_axis && child_config.layout.position_mode == .Flow {
+			available -= margins
+			if sizing.kind == .Grow && sizing.grow_factor > 0 {
+				ok := small_array.append_elem(&sharing, child_ref)
+				assert(ok)
+			} else {
+				available -= get_size(elements^, child_ref)[axis]
+			}
+		} else if sizing.kind == .Grow {
+			// Cross axis or anchored
+			size := get_size(elements^, child_ref)
+			size[axis] = clamp_to_sizing(content.size[axis] - margins, sizing)
+			set_size(elements, child_ref, size)
+		}
+	}
+
+	unresolved := small_array.slice(&sharing)
+	progress := true
+
+	for len(unresolved) > 0 && progress {
+		sum_factors: f32 = 0
+		for child_ref in unresolved {
+			sum_factors += get_config(elements^, child_ref).layout.sizing[axis].grow_factor
+		}
+
+		size_per_factor := available / sum_factors
+		total: f32 = 0
+
+		for child_ref in unresolved {
+			sizing := get_config(elements^, child_ref).layout.sizing[axis]
+			size := get_size(elements^, child_ref)
+			size[axis] = clamp_to_sizing(sizing.grow_factor * size_per_factor, sizing)
+			set_size(elements, child_ref, size)
+			total += size[axis]
+		}
+
+		too_big := total > available
+		kept := 0
+		for child_ref in unresolved {
+			sizing := get_config(elements^, child_ref).layout.sizing[axis]
+			child_size_axis := get_size(elements^, child_ref)[axis]
+			limit := too_big ? sizing.min_value : sizing.max_value
+			if child_size_axis == limit {
+				available -= child_size_axis
+			} else {
+				unresolved[kept] = child_ref
+				kept += 1
+			}
+		}
+
+		progress = kept < len(unresolved)
+		unresolved = unresolved[:kept]
+	}
+}
+
+resolve_dependent_sizes_for_axis_2 :: proc(
+	elements: ^UI_Elements,
+	root_ref: UI_Element_Ref,
+	axis: base.Axis2,
+) {
+	iter := make_tree_iterator(elements, root_ref, .Pre_Order)
+	for ref in next_tree_element(&iter) {
+		resolve_percentage_sizes_for_children_2(elements, ref, axis)
+		resolve_grow_sizes_for_children_2(elements, ref, axis)
+	}
+}
 
 // ------------- Testing ------------- //
 

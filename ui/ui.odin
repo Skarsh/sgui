@@ -342,6 +342,10 @@ end_2 :: proc(ctx: ^Context) {
 
 	measure_text_sizes_2(ctx, ctx.root_element_ref)
 
+	measure_intrinsic_size_for_axis_2(ctx.elements, ctx.root_element_ref, .X)
+
+	resolve_dependent_sizes_for_axis_2(ctx.elements, ctx.root_element_ref, .X)
+
 	// TODO(Thomas): Properly Log the name of the element that is not closed.
 	//if ctx.element_stack.top != 1 {
 	//	panic(
