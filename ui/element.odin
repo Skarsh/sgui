@@ -256,7 +256,7 @@ make_tree_iterator :: proc(
 	case .Pre_Order:
 		curr_idx = root_idx
 	case .Post_Order:
-		unimplemented("Post_Order traversal not implemented yet")
+		curr_idx = descend_leftmost_idx(elements, root_idx)
 	case .Reverse_Post_Order:
 		unimplemented("Reverse_Post_Order traversal not implemented yet")
 	}
@@ -282,7 +282,7 @@ next_tree_element :: proc(iter: ^Tree_Iterator) -> (UI_Element_Ref, bool) {
 	case .Pre_Order:
 		iter.curr_idx = next_preorder_idx(iter.elements, iter.root_idx, current_idx)
 	case .Post_Order:
-		unimplemented("Post_Order traversal not implemented yet")
+		iter.curr_idx = next_postorder_idx(iter.elements, iter.root_idx, current_idx)
 	case .Reverse_Post_Order:
 		unimplemented("Reverse_Post_Order traversal not implemented yet")
 	}
@@ -323,6 +323,43 @@ next_preorder_idx :: proc(elements: ^UI_Elements, root_idx: int, current_idx: in
 
 	assert(false, "tree traversal climb exceeded MAX_ELEMENTS")
 	return 0
+}
+
+@(private)
+@(require_results)
+descend_leftmost_idx :: proc(elements: ^UI_Elements, start_idx: int) -> int {
+
+	walk_idx := start_idx
+	for _ in 0 ..< MAX_ELEMENTS {
+		first_child := elements.elements[walk_idx].first_child_idx
+		if first_child == 0 {
+			return walk_idx
+		}
+		walk_idx = first_child
+	}
+
+	assert(false, "tree traversal descent exceeded")
+	return 0
+}
+
+@(private)
+@(require_results)
+next_postorder_idx :: proc(elements: ^UI_Elements, root_idx: int, current_idx: int) -> int {
+
+	if current_idx == root_idx {
+		return 0
+	}
+
+	current := &elements.elements[current_idx]
+	assert(current.parent_idx != 0, "non-root node has no parent during tree traversal")
+	assert(current.next_sibling_idx != 0, "child node has broken sibling link")
+
+	parent := &elements.elements[current.parent_idx]
+	if current.next_sibling_idx != parent.first_child_idx {
+		return descend_leftmost_idx(elements, current.next_sibling_idx)
+	}
+
+	return current.parent_idx
 }
 
 
@@ -938,4 +975,73 @@ test_tree_iterator_preorder_subtree :: proc(t: ^testing.T) {
 	check_tree_traversal(t, .Pre_Order, names, edges, "a", {"a", "a1", "a2", "a2_1"})
 	// Leaf subtree with siblings must only yield itself
 	check_tree_traversal(t, .Pre_Order, names, edges, "b", {"b"})
+}
+
+@(test)
+test_tree_iterator_postorder_single_node :: proc(t: ^testing.T) {
+	check_tree_traversal(t, .Post_Order, {"root"}, nil, "root", {"root"})
+}
+
+@(test)
+test_tree_iterator_postorder_chain :: proc(t: ^testing.T) {
+	check_tree_traversal(
+		t,
+		.Post_Order,
+		{"root", "a", "b", "c"},
+		{{"root", "a"}, {"a", "b"}, {"b", "c"}},
+		"root",
+		{"c", "b", "a", "root"},
+	)
+}
+
+@(test)
+test_tree_iterator_postorder_flat_siblings :: proc(t: ^testing.T) {
+	check_tree_traversal(
+		t,
+		.Post_Order,
+		{"root", "a", "b", "c"},
+		{{"root", "a"}, {"root", "b"}, {"root", "c"}},
+		"root",
+		{"a", "b", "c", "root"},
+	)
+}
+
+@(test)
+test_tree_iterator_postorder_mixed_tree :: proc(t: ^testing.T) {
+	names := []string{"root", "a", "a1", "a2", "a2_1", "b", "c", "c1"}
+	edges := []Tree_Edge {
+		{"root", "a"},
+		{"root", "b"},
+		{"root", "c"},
+		{"a", "a1"},
+		{"a", "a2"},
+		{"a2", "a2_1"},
+		{"c", "c1"},
+	}
+
+	check_tree_traversal(
+		t,
+		.Post_Order,
+		names,
+		edges,
+		"root",
+		{"a1", "a2_1", "a2", "a", "b", "c1", "c", "root"},
+	)
+}
+
+@(test)
+test_tree_iterator_postorder_subtree :: proc(t: ^testing.T) {
+
+	names := []string{"root", "a", "a1", "a2", "a2_1", "b", "c"}
+	edges := []Tree_Edge {
+		{"root", "a"},
+		{"root", "b"},
+		{"root", "c"},
+		{"a", "a1"},
+		{"a", "a2"},
+		{"a2", "a2_1"},
+	}
+
+	check_tree_traversal(t, .Post_Order, names, edges, "a", {"a1", "a2_1", "a2", "a"})
+	check_tree_traversal(t, .Post_Order, names, edges, "b", {"b"})
 }
