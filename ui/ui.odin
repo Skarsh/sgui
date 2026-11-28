@@ -333,6 +333,15 @@ end_2 :: proc(ctx: ^Context) {
 		)
 	}
 
+	if !is_empty(&ctx.id_stack) {
+		panic(
+			fmt.tprintf(
+				"expected the id_stack to be empty at the end of the frame, got %v open",
+				ctx.id_stack.top,
+			),
+		)
+	}
+
 	// Close the root element
 	close_element_2(ctx)
 	assert(ctx.current_parent_ref == {})
@@ -346,63 +355,18 @@ end_2 :: proc(ctx: ^Context) {
 
 	resolve_dependent_sizes_for_axis_2(ctx.elements, ctx.root_element_ref, .X)
 
-	// TODO(Thomas): Properly Log the name of the element that is not closed.
-	//if ctx.element_stack.top != 1 {
-	//	panic(
-	//		fmt.tprintf(
-	//			"expected only the root element to be open at the end of the frame, got %v open",
-	//			ctx.element_stack.top,
-	//		),
-	//	)
-	//}
+	wrap_text_alloc_err := wrap_text_2(ctx, ctx.root_element_ref)
+	assert(wrap_text_alloc_err == .None)
 
-	//if !is_empty(&ctx.id_stack) {
-	//	panic(
-	//		fmt.tprintf(
-	//			"expected the id_stack to be empty at the end of the frame, got %v oepn",
-	//			ctx.id_stack.top,
-	//		),
-	//	)
-	//}
+	measure_intrinsic_size_for_axis_2(ctx.elements, ctx.root_element_ref, .Y)
 
-	//// Close the root element
-	//close_element(ctx)
-	//assert(ctx.current_parent == nil)
+	resolve_dependent_sizes_for_axis_2(ctx.elements, ctx.root_element_ref, .Y)
 
-	//// Measure text sizes, intrinsic sizes of the text elements
-	//measure_text_sizes(ctx, ctx.root_element)
+	update_layout_geometry_2(ctx, ctx.root_element_ref)
 
-	//// Measure intrinsic widths
-	//measure_intrinsic_size_for_axis(ctx.root_element, .X)
+	draw_all_elements_2(ctx, ctx.root_element_ref)
 
-	//// Resolve dependent widths
-	//resolve_width_alloc_err := resolve_dependent_sizes_for_axis(
-	//	ctx.root_element,
-	//	.X,
-	//	ctx.frame_allocator,
-	//)
-	//assert(resolve_width_alloc_err == .None)
-
-	//// Wrap text
-	//wrap_text_alloc_err := wrap_text(ctx, ctx.root_element)
-	//assert(wrap_text_alloc_err == .None)
-
-	//// Measure intrinsic heights
-	//measure_intrinsic_size_for_axis(ctx.root_element, .Y)
-
-	//// Resolve dependent heights
-	//resolve_height_alloc_err := resolve_dependent_sizes_for_axis(
-	//	ctx.root_element,
-	//	.Y,
-	//	ctx.frame_allocator,
-	//)
-	//assert(resolve_height_alloc_err == .None)
-
-	//update_layout_geometry(ctx, ctx.root_element)
-
-	//draw_all_elements(ctx)
-
-	//base.clear_input(ctx.interaction.input)
+	base.clear_input(ctx.interaction.input)
 
 	//prune_dead_elements(
 	//	&ctx.element_cache,

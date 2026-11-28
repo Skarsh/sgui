@@ -1,7 +1,9 @@
 package ui
 
 import "core:container/small_array"
+import "core:hash"
 import "core:math"
+import "core:mem"
 import "core:testing"
 
 import base "../base"
@@ -980,6 +982,447 @@ resolve_dependent_sizes_for_axis_2 :: proc(
 	for ref in next_tree_element(&iter) {
 		resolve_percentage_sizes_for_children_2(elements, ref, axis)
 		resolve_grow_sizes_for_children_2(elements, ref, axis)
+	}
+}
+
+@(require_results)
+wrap_text_2 :: proc(ctx: ^Context, root_ref: UI_Element_Ref) -> mem.Allocator_Error {
+	iter := make_tree_iterator(ctx.elements, root_ref, .Pre_Order)
+	for ref in next_tree_element(&iter) {
+
+		config := get_config(ctx.elements^, ref)
+
+		if .Text in config.capability_flags {
+			inset := content_inset(config.layout)
+			text := config.content.text_data.text
+			text_wrap_mode := config.layout.text_wrap_mode
+			size := get_size(ctx.elements^, ref)
+
+			// Determine available width for text wrapping.
+			// Use parent's available space if it's more constrained than element's size.
+			wrap_width := content_box_2(ctx.elements^, ref).size.x
+
+			sizing_x_kind := config.layout.sizing.x.kind
+			parent_ref := get_parent(ctx.elements^, ref)
+
+			if parent_ref != NIL_REF {
+				parent_available := content_box_2(ctx.elements^, parent_ref).size
+
+				// If parent has less space, use that and account for text's own padding/border,
+				// unless text_wrap_mode is .None, then allow overflow.
+				if parent_available.x < size.x && text_wrap_mode != .None {
+					wrap_width = parent_available.x - get_box_sum_for_axis(inset, .X)
+				}
+
+				// Constrain element width to parent's available space for Fit sizing
+				// unless text_wrap_mode is .None.
+				if sizing_x_kind == .Fit && text_wrap_mode != .None {
+					if parent_available.x < size.x {
+						size.x = clamp_to_sizing(parent_available.x, config.layout.sizing.x)
+					}
+				}
+			}
+
+			// Text layout
+			key := get_key(ctx.elements^, ref)
+			layout_allocator := ctx.persistent_allocator
+			if key == ui_key_null() {
+				layout_allocator = ctx.frame_allocator
+			}
+
+			layout_params := textpkg.Text_Layout_Params {
+				wrap_width,
+				config.layout.font_id,
+				config.layout.text_alignment_x,
+				text_wrap_mode,
+			}
+
+			text_hash := hash.fnv64a(transmute([]u8)text)
+			entry := get_text_layout_cache_entry(ctx.elements^, ref)
+			text_layout: textpkg.Text_Layout
+
+			if entry.text_hash == text_hash && entry.params == layout_params {
+				// Cache is valid
+				text_layout = entry.layout
+			} else {
+				// Cache is invalid
+				text_layout = textpkg.layout_text(
+					&ctx.text_system,
+					text,
+					layout_params,
+					layout_allocator,
+					ctx.frame_allocator,
+				) or_return
+
+				// Deinit old layout only after the new layout succeeds
+				textpkg.deinit_text_layout(&entry.layout, layout_allocator)
+
+				set_text_layout_cache_entry(
+					ctx.elements,
+					ref,
+					{text_hash = text_hash, params = layout_params, layout = text_layout},
+				)
+			}
+
+			// Update text_content_size.y based on wrapped height
+			final_height := text_layout.size.y + get_box_sum_for_axis(inset, .Y)
+			text_content_size := get_text_content_size(ctx.elements^, ref)
+			text_content_size.y = final_height
+			set_text_content_size(ctx.elements, ref, text_content_size)
+
+			// Update element size for Fit and Grow sizing (not Fixed)
+			sizing_y_kind := config.layout.sizing.y.kind
+			if sizing_y_kind == .Fit || sizing_y_kind == .Grow {
+				size.y = clamp_to_sizing(final_height, config.layout.sizing.y)
+			}
+
+			set_size(ctx.elements, ref, size)
+
+		}
+	}
+
+	return nil
+}
+
+@(require_results)
+element_rect_2 :: proc(elements: UI_Elements, ref: UI_Element_Ref) -> base.Rect {
+	pos := get_position(elements, ref)
+	size := get_size(elements, ref)
+	return base.Rect{i32(pos.x), i32(pos.y), i32(size.x), i32(size.y)}
+}
+
+update_scroll_region_2 :: proc(elements: ^UI_Elements, ref: UI_Element_Ref) {
+	config := get_config(elements^, ref)
+	flags := config.capability_flags
+
+	if .Scrollable_X in flags || .Scrollable_Y in flags {
+		available_size := content_box_2(elements^, ref).size
+		content_size := measure_flow_content_size_2(elements, ref)
+
+		if .Text in flags {
+			text_size := get_text_layout_cache_entry(elements^, ref).layout.size
+			content_size.x = max(content_size.x, text_size.x)
+			content_size.y = max(content_size.y, text_size.y)
+		}
+
+		max_offset := base.Vec2 {
+			max(0.0, content_size.x - available_size.x),
+			max(0.0, content_size.y - available_size.y),
+		}
+
+		if .Scrollable_X not_in flags do max_offset.x = 0
+		if .Scrollable_Y not_in flags do max_offset.y = 0
+
+		scroll_region := get_scroll_region(elements^, ref)
+		scroll_region.content_size = content_size
+		scroll_region.max_offset = max_offset
+		for axis in base.Axis2 {
+			scroll_region.offset[axis] = clamp(scroll_region.offset[axis], 0, max_offset[axis])
+			scroll_region.target_offset[axis] = clamp(
+				scroll_region.target_offset[axis],
+				0,
+				max_offset[axis],
+			)
+		}
+		set_scroll_region(elements, ref, scroll_region)
+	}
+}
+
+position_flow_children_2 :: proc(elements: ^UI_Elements, ref: UI_Element_Ref) {
+	config := get_config(elements^, ref)
+	scroll_offset := get_scroll_region(elements^, ref).offset
+
+	dir := config.layout.layout_direction
+	main_axis, cross_axis := get_main_and_cross_axis(dir)
+
+	box := content_box_2(elements^, ref)
+	available_size := box.size
+
+	content_size := measure_flow_content_size_2(elements, ref)
+	remaining_space_main := available_size[main_axis] - content_size[main_axis]
+
+	start_pos := box.origin
+	align_factors := get_alignment_factors(config.layout.alignment_x, config.layout.alignment_y)
+	main_pos := start_pos[main_axis] + (remaining_space_main * align_factors[main_axis])
+	main_pos -= scroll_offset[main_axis]
+
+	iter := make_child_element_iterator(elements, ref)
+	for child_ref in next_child_element(&iter) {
+		child_config := get_config(elements^, child_ref)
+		if child_config.layout.position_mode == .Flow {
+			child_size := get_size(elements^, child_ref)
+			child_margin := child_config.layout.margin
+			margin_main_start, margin_main_end := get_margin_for_axis(child_margin, main_axis)
+			margin_cross_start, margin_cross_end := get_margin_for_axis(child_margin, cross_axis)
+
+			child_pos: base.Vec2
+			child_pos[main_axis] = main_pos + margin_main_start
+			main_pos +=
+				child_size[main_axis] +
+				margin_main_start +
+				margin_main_end +
+				config.layout.child_gap
+
+			remaining_space_cross :=
+				available_size[cross_axis] -
+				child_size[cross_axis] -
+				margin_cross_start -
+				margin_cross_end
+
+			child_pos[cross_axis] =
+				start_pos[cross_axis] +
+				margin_cross_start +
+				(remaining_space_cross * align_factors[cross_axis]) -
+				scroll_offset[cross_axis]
+
+			set_position(elements, child_ref, child_pos)
+		}
+	}
+}
+
+position_anchored_children_2 :: proc(elements: ^UI_Elements, ref: UI_Element_Ref) {
+	box := content_box_2(elements^, ref)
+
+	iter := make_child_element_iterator(elements, ref)
+	for child_ref in next_child_element(&iter) {
+		child_config := get_config(elements^, child_ref)
+		if child_config.layout.position_mode == .Anchored {
+			child_size := get_size(elements^, child_ref)
+			child_margin := child_config.layout.margin
+			relative_position := child_config.layout.relative_position
+
+			factors := get_alignment_factors(
+				child_config.layout.alignment_x,
+				child_config.layout.alignment_y,
+			)
+			margin_size := get_box_sum(Box(child_margin))
+
+			remaining :=
+				base.Vec2{child_margin.left, child_margin.top} +
+				(box.size - child_size - margin_size) * factors
+
+			set_position(elements, child_ref, box.origin + remaining + relative_position)
+		}
+	}
+}
+
+update_clip_rect_2 :: proc(
+	elements: ^UI_Elements,
+	ref: UI_Element_Ref,
+	window_size: base.Vector2i32,
+) {
+	parent_ref := get_parent(elements^, ref)
+
+	if parent_ref == NIL_REF {
+		set_clip_rect(elements, ref, base.Rect{0, 0, window_size.x, window_size.y})
+	} else {
+		parent_clip := get_clip_rect(elements^, parent_ref)
+		clip_config := get_config(elements^, ref).clip
+		should_clip := clip_config.clip_axes.x || clip_config.clip_axes.y
+
+		if should_clip {
+			new_constraint := element_rect_2(elements^, ref)
+
+			if !clip_config.clip_axes.x {
+				new_constraint.x = parent_clip.x
+				new_constraint.w = parent_clip.w
+			}
+
+			if !clip_config.clip_axes.y {
+				new_constraint.y = parent_clip.y
+				new_constraint.h = parent_clip.h
+			}
+
+			set_clip_rect(elements, ref, base.intersect_rects(parent_clip, new_constraint))
+		} else {
+			set_clip_rect(elements, ref, parent_clip)
+		}
+	}
+}
+
+update_layout_geometry_2 :: proc(ctx: ^Context, root_ref: UI_Element_Ref) {
+	iter := make_tree_iterator(ctx.elements, root_ref, .Pre_Order)
+	for ref in next_tree_element(&iter) {
+		scroll_region := get_scroll_region(ctx.elements^, ref)
+		base.animate_vec2(&scroll_region.offset, scroll_region.target_offset, ctx.dt, 20.0)
+		set_scroll_region(ctx.elements, ref, scroll_region)
+
+		update_scroll_region_2(ctx.elements, ref)
+		position_flow_children_2(ctx.elements, ref)
+		position_anchored_children_2(ctx.elements, ref)
+		update_clip_rect_2(ctx.elements, ref, ctx.window_size)
+	}
+}
+
+@(require_results)
+text_origin_2 :: proc(
+	elements: UI_Elements,
+	ref: UI_Element_Ref,
+	text_layout: textpkg.Text_Layout,
+) -> base.Vec2 {
+	box := content_box_2(elements, ref)
+	scroll_offset := get_scroll_region(elements, ref).offset
+	start_pos := box.origin - scroll_offset
+
+	switch get_config(elements, ref).layout.text_alignment_y {
+	case .Top:
+	// No change
+	case .Center:
+		start_pos.y += (box.size.y - text_layout.size.y) / 2
+	case .Bottom:
+		start_pos.y += box.size.y - text_layout.size.y
+	}
+	return start_pos
+}
+
+draw_element_2 :: proc(ctx: ^Context, ref: UI_Element_Ref) {
+	draw_state := &ctx.draw_state
+	elements := ctx.elements
+
+	draw_state.current_clip_rect = get_clip_rect(elements^, ref)
+
+	config := get_config(elements^, ref)
+	cap_flags := config.capability_flags
+	final_bg_fill := config.background_fill
+	last_comm := get_last_comm(elements^, ref)
+	hot := get_hot(elements^, ref)
+	active := get_active(elements^, ref)
+
+	switch fill in final_bg_fill {
+	case base.Color:
+		color := fill
+		if .Hot_Animation in cap_flags {
+			color = base.lerp_color(color, default_color_style[.Hot], hot)
+		}
+		if .Active_Animation in cap_flags {
+			color = base.lerp_color(color, default_color_style[.Active], active)
+		}
+		if .Click_Animation in cap_flags && last_comm.held {
+			color = default_color_style[.Click]
+		}
+		final_bg_fill = color
+	case base.Gradient:
+		gradient := fill
+		if .Hot_Animation in cap_flags {
+			hot_color := default_color_style[.Hot]
+			gradient.color_start = base.lerp_color(gradient.color_start, hot_color, hot)
+			gradient.color_end = base.lerp_color(gradient.color_end, hot_color, hot)
+		}
+		if .Active_Animation in cap_flags {
+			active_color := default_color_style[.Active]
+			gradient.color_start = base.lerp_color(gradient.color_start, active_color, active)
+			gradient.color_end = base.lerp_color(gradient.color_end, active_color, active)
+		}
+		if .Click_Animation in cap_flags && last_comm.held {
+			final_bg_fill = default_color_style[.Click]
+		} else {
+			final_bg_fill = gradient
+		}
+	}
+
+	rect := element_rect_2(elements^, ref)
+
+	if .Background in cap_flags {
+		draw_rect(draw_state, rect, final_bg_fill, config.layout.border_radius, z_index = 0)
+	}
+
+	if .Image in cap_flags {
+		if texture_id, has_texture := config.content.texture_id.?; has_texture {
+			pos := get_position(elements^, ref)
+			size := get_size(elements^, ref)
+			draw_image(draw_state, pos.x, pos.y, size.x, size.y, texture_id, z_index = 0)
+		}
+	}
+
+	if .Text in cap_flags {
+		text_layout := get_text_layout_cache_entry(elements^, ref).layout
+		start_pos := text_origin_2(elements^, ref, text_layout)
+		text_state := get_text_state(elements^, ref)
+		selection := text_state.selection
+
+		key := get_key(elements^, ref)
+		is_focused := key != ui_key_null() && ctx.interaction.focused_id == key
+		show_text_interaction :=
+			is_focused && .Selectable in cap_flags && text_state.variant != nil
+
+		for row in text_layout.rows {
+			if show_text_interaction {
+				sel_rect := textpkg.text_layout_row_selection_rect(text_layout, row, selection)
+				draw_rect(
+					draw_state,
+					base.Rect {
+						x = i32(start_pos.x + sel_rect.x),
+						y = i32(start_pos.y + sel_rect.y),
+						w = i32(sel_rect.w),
+						h = i32(sel_rect.h),
+					},
+					base.fill_color(255, 255, 255, 128),
+					z_index = 0,
+				)
+			}
+
+			draw_text(
+				draw_state,
+				start_pos.x + row.pos.x,
+				start_pos.y + row.pos.y,
+				base.slice_from_range(text_layout.glyphs, row.glyph_range),
+				config.text_fill,
+				config.layout.font_id,
+				z_index = 0,
+			)
+		}
+
+		if show_text_interaction {
+			CARET_WIDTH :: 2.0
+			caret_pos, caret_height := textpkg.text_layout_caret_pos(text_layout, selection.active)
+
+			if len(text_layout.rows) == 0 {
+				caret_height_ok: bool
+				caret_height, caret_height_ok = textpkg.font_line_height(
+					&ctx.text_system,
+					config.layout.font_id,
+				)
+				assert(caret_height_ok)
+				caret_pos.y -= caret_height / 2
+			}
+
+			draw_rect(
+				draw_state,
+				base.Rect {
+					x = i32(start_pos.x + caret_pos.x),
+					y = i32(start_pos.y + caret_pos.y),
+					w = i32(CARET_WIDTH),
+					h = i32(caret_height),
+				},
+				config.text_fill,
+				z_index = 0,
+			)
+		}
+	}
+
+	if .Shape in cap_flags {
+		draw_shape(draw_state, rect, config.content.shape_data, z_index = 0)
+	}
+
+	border := config.layout.border
+	border_sum := border.left + border.right + border.top + border.bottom
+	if .Background in cap_flags && border_sum > EPSILON {
+		draw_rect(
+			draw_state,
+			rect,
+			base.TRANSPARENT,
+			config.layout.border_radius,
+			border,
+			config.border_fill,
+			z_index = 1,
+		)
+	}
+}
+
+draw_all_elements_2 :: proc(ctx: ^Context, root_ref: UI_Element_Ref) {
+	iter := make_tree_iterator(ctx.elements, root_ref, .Pre_Order)
+	for ref in next_tree_element(&iter) {
+		draw_element_2(ctx, ref)
 	}
 }
 
